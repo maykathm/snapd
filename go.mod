@@ -15,7 +15,7 @@ require (
 	github.com/gorilla/mux v1.7.4-0.20190701202633-d83b6ffe499a
 	github.com/gvalkov/golang-evdev v0.0.0-20191114124502-287e62b94bcb
 	github.com/jessevdk/go-flags v1.5.1-0.20210607101731-3927b71304df
-	github.com/juju/ratelimit v1.0.1
+	github.com/juju/ratelimit v1.0.2
 	github.com/mvo5/goconfigparser v0.0.0-20200803085309-72e476556adb
 	// if below two libseccomp-golang lines are updated, one must also update packaging/ubuntu-14.04/rules
 	github.com/mvo5/libseccomp-golang v0.9.1-0.20180308152521-f4de83b52afb // old trusty builds only
