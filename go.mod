@@ -24,7 +24,7 @@ require (
 	github.com/snapcore/secboot v0.0.0-20240411101434-f3ad7c92552a
 	golang.org/x/crypto v0.17.0
 	golang.org/x/net v0.10.0 // indirect
-	golang.org/x/sys v0.15.0
+	golang.org/x/sys v0.26.0
 	golang.org/x/text v0.14.0
 	golang.org/x/xerrors v0.0.0-20220609144429-65e65417b02f
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c
