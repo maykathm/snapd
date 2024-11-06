@@ -174,7 +174,7 @@ jobs:
         done
 
     - name: Run spread tests
-      if: "!contains(github.event.pull_request.labels.*.name, 'Skip spread') && ( !startsWith(inputs.group, 'nested-') || contains(github.event.pull_request.labels.*.name, 'Run nested') )"
+      if: "!contains(github.event.pull_request.labels.*.name, 'Skip spread')"
       env:
           SPREAD_GOOGLE_KEY: ${{ secrets.SPREAD_GOOGLE_KEY }}
       run: |
