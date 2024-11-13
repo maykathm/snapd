@@ -196,7 +196,7 @@ jobs:
       # Instead here we create a json array and pass it as a string.
       # Then in the spread workflow it turns it into a sequence 
       # using the fromJSON expression.
-      runs-on: '["self-hosted", "spread-enabled"]'
+      runs-on: '["self-hosted"]'
       group: ${{ matrix.group }}
       backend: ${{ matrix.backend }}
       systems: ${{ matrix.systems }}
@@ -327,7 +327,7 @@ jobs:
       # Instead here we create a json array and pass it as a string.
       # Then in the spread workflow it turns it into a sequence 
       # using the fromJSON expression.
-      runs-on: '["self-hosted", "spread-enabled"]'
+      runs-on: '["self-hosted"]'
       group: ${{ matrix.group }}
       backend: ${{ matrix.backend }}
       systems: ${{ matrix.systems }}
