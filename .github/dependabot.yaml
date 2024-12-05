@@ -9,6 +9,11 @@ updates:
     schedule:
       interval: "weekly"
     groups:
+      actions-deps:
+        patterns:
+          - "*"
+          
+    groups:
       non-breaking:
         applies-to: version-updates
         patterns:
