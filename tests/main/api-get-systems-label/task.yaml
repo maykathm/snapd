@@ -8,6 +8,7 @@ systems:
   - ubuntu-core-2*
 
 execute: |
+  echo "hi"
   echo "Find what systems are available"
   snap debug api /v2/systems > systems
   current_label=$(gojq -r '.result.systems[0]["label"]' < systems)
