@@ -237,7 +237,7 @@ jobs:
           SPREAD_GOOGLE_KEY: ${{ secrets.SPREAD_GOOGLE_KEY }}
       run: |
           touch spread.log
-          exit 0
+          exit 1
           # # Register a problem matcher to highlight spread failures
           # echo "::add-matcher::.github/spread-problem-matcher.json"
           # set -x
