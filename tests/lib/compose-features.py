@@ -39,13 +39,12 @@ if __name__ == '__main__':
     parser.add_argument('-s', '--scenarios', type=str, help='Comma-separated list of scenarios')
     parser.add_argument('-e', '--env-variables', type=str, help='Comma-separated list of environment variables as key=value')
     args = parser.parse_args()
-    args.dir = '/home/katie/Desktop/tags2/feature-tags'
-    args.output = '/home/katie/Desktop/test-output'
     os.makedirs(args.output, exist_ok=True)
     systems = _get_system_list(args.dir)
     for system in systems:
         system_files = _get_system_file_list(args.dir, system)
         composed = _compose_system(args.dir, system_files)
+        system = "_".join(system.split(':'))
         with open(os.path.join(args.output, system + '.json'), 'w') as f:
             f.write(json.dumps(composed))
         
