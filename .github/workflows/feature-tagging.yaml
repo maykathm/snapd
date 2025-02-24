@@ -1,0 +1,10 @@
+name: Feature Tagging
+
+# See https://docs.github.com/en/actions/writing-workflows/workflow-syntax-for-github-actions#onschedule
+on:
+  workflow_dispatch:
+    inputs:
+      features:
+        type: string
+        description: 'Comma-separated list of features to tag'
+        default: 'all'
