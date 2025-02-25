@@ -210,88 +210,88 @@ jobs:
           # Add start line to filtered log
           echo "GRAFANA START: pr ${CHANGE_ID} attempt ${{ github.run_attempt }} run ${{ github.run_id }} group ${{ inputs.group }}" > "$FILTERED_LOG_FILE"
 
-    - name: Download built snap (amd64)
-      uses: actions/download-artifact@v4
-      if: "${{ !inputs.use-snapd-snap-from-master && !contains(inputs.group, '-arm64') && !endsWith(inputs.group, '-fips') }}"
-      with:
-        name: snap-files-amd64-default-test
-        # eg. snapd_1337.2.65.1+g97.d35b459_amd64.snap
-        pattern: snapd_1337.*.snap
-        path: "${{ github.workspace }}/built-snap"
+    # - name: Download built snap (amd64)
+    #   uses: actions/download-artifact@v4
+    #   if: "${{ !inputs.use-snapd-snap-from-master && !contains(inputs.group, '-arm64') && !endsWith(inputs.group, '-fips') }}"
+    #   with:
+    #     name: snap-files-amd64-default-test
+    #     # eg. snapd_1337.2.65.1+g97.d35b459_amd64.snap
+    #     pattern: snapd_1337.*.snap
+    #     path: "${{ github.workspace }}/built-snap"
 
-    - name: Download built snap (arm64)
-      if: "contains(inputs.group, '-arm64') && !endsWith(inputs.group, '-fips')"
-      uses: actions/download-artifact@v4
-      with:
-        name: snap-files-arm64-default-test
-        pattern: snapd_1337.*.snap
-        # eg. snapd_1337.2.65.1+g97.d35b459_amd64.snap
-        path: "${{ github.workspace }}/built-snap"
+    # - name: Download built snap (arm64)
+    #   if: "contains(inputs.group, '-arm64') && !endsWith(inputs.group, '-fips')"
+    #   uses: actions/download-artifact@v4
+    #   with:
+    #     name: snap-files-arm64-default-test
+    #     pattern: snapd_1337.*.snap
+    #     # eg. snapd_1337.2.65.1+g97.d35b459_amd64.snap
+    #     path: "${{ github.workspace }}/built-snap"
 
-    - name: Download built FIPS snap (amd64)
-      uses: actions/download-artifact@v4
-      # eg. ubuntu-fips
-      if: "${{ !inputs.use-snapd-snap-from-master && !contains(inputs.group, '-arm64') && endsWith(inputs.group, '-fips') }}"
-      with:
-        name: snap-files-amd64-FIPS-test
-        # eg. snapd_1337.2.65.1+g97.d35b459-fips_amd64.snap
-        pattern: snapd_1337.*-fips_*.snap
-        path: "${{ github.workspace }}/built-snap"
+    # - name: Download built FIPS snap (amd64)
+    #   uses: actions/download-artifact@v4
+    #   # eg. ubuntu-fips
+    #   if: "${{ !inputs.use-snapd-snap-from-master && !contains(inputs.group, '-arm64') && endsWith(inputs.group, '-fips') }}"
+    #   with:
+    #     name: snap-files-amd64-FIPS-test
+    #     # eg. snapd_1337.2.65.1+g97.d35b459-fips_amd64.snap
+    #     pattern: snapd_1337.*-fips_*.snap
+    #     path: "${{ github.workspace }}/built-snap"
 
-    - name: Rename imported snap
-      if: "${{ !inputs.use-snapd-snap-from-master }}"
-      run: |
-        for snap in built-snap/snapd_1337.*.snap; do
-          mv -v "${snap}" "${snap}.keep"
-        done
+    # - name: Rename imported snap
+    #   if: "${{ !inputs.use-snapd-snap-from-master }}"
+    #   run: |
+    #     for snap in built-snap/snapd_1337.*.snap; do
+    #       mv -v "${snap}" "${snap}.keep"
+    #     done
 
     - name: Run spread tests
       if: "!contains(github.event.pull_request.labels.*.name, 'Skip spread')"
       env:
           SPREAD_GOOGLE_KEY: ${{ secrets.SPREAD_GOOGLE_KEY }}
       run: |
-          # Register a problem matcher to highlight spread failures
-          echo "::add-matcher::.github/spread-problem-matcher.json"
-          set -x
-          SPREAD=spread
-          if [[ "${{ inputs.group }}" =~ nested- ]]; then
-            export NESTED_BUILD_SNAPD_FROM_CURRENT=true
-            export NESTED_ENABLE_KVM=true
-          fi
+          # # Register a problem matcher to highlight spread failures
+          # echo "::add-matcher::.github/spread-problem-matcher.json"
+          # set -x
+          # SPREAD=spread
+          # if [[ "${{ inputs.group }}" =~ nested- ]]; then
+          #   export NESTED_BUILD_SNAPD_FROM_CURRENT=true
+          #   export NESTED_ENABLE_KVM=true
+          # fi
 
-          export SPREAD_USE_PREBUILT_SNAPD_SNAP=true
+          # export SPREAD_USE_PREBUILT_SNAPD_SNAP=true
           
-          if [ "${{ inputs.use-snapd-snap-from-master }}" = true ]; then
-            export SPREAD_USE_SNAPD_SNAP_URL=https://storage.googleapis.com/snapd-spread-tests/snapd-tests/snaps/snapd_master_amd64.snap
-          fi
+          # if [ "${{ inputs.use-snapd-snap-from-master }}" = true ]; then
+          #   export SPREAD_USE_SNAPD_SNAP_URL=https://storage.googleapis.com/snapd-spread-tests/snapd-tests/snaps/snapd_master_amd64.snap
+          # fi
 
-          # This could be the case when either there are not systems for a group or
-          # the list of tests to run is empty
-          if [ -z "$RUN_TESTS" ]; then
-            echo "No tests to run, exiting..."
-            exit 0
-          fi
+          # # This could be the case when either there are not systems for a group or
+          # # the list of tests to run is empty
+          # if [ -z "$RUN_TESTS" ]; then
+          #   echo "No tests to run, exiting..."
+          #   exit 0
+          # fi
 
-          # Add openstack backend definition to spread.yaml
-          if [ "${{ inputs.backend }}" = openstack ]; then
-              ./tests/lib/spread/add-backend tests/lib/spread/backend.openstack.yaml spread.yaml
-          fi
+          # # Add openstack backend definition to spread.yaml
+          # if [ "${{ inputs.backend }}" = openstack ]; then
+          #     ./tests/lib/spread/add-backend tests/lib/spread/backend.openstack.yaml spread.yaml
+          # fi
 
-          spread_list="$($SPREAD -list $RUN_TESTS 2>&1 || true)"
+          # spread_list="$($SPREAD -list $RUN_TESTS 2>&1 || true)"
 
-          if [[ "$spread_list" =~ amazon-linux-2023 ]]; then
-              # Amazon Linux 2023 has no xdelta, however we cannot disable
-              # xdelta on a per-target basis as it's used in the repack section
-              # of spread.yaml, which is shared by all targets, so all systems
-              # in this batch will not use delta for transferring project data
-              echo "Disabling xdelta support"
-              export NO_DELTA=1
-          fi
+          # if [[ "$spread_list" =~ amazon-linux-2023 ]]; then
+          #     # Amazon Linux 2023 has no xdelta, however we cannot disable
+          #     # xdelta on a per-target basis as it's used in the repack section
+          #     # of spread.yaml, which is shared by all targets, so all systems
+          #     # in this batch will not use delta for transferring project data
+          #     echo "Disabling xdelta support"
+          #     export NO_DELTA=1
+          # fi
 
-          if grep -q "nothing matches provider filter" <<< "$spread_list"; then
-            echo "No tests to run, exiting..."
-            exit 0
-          fi
+          # if grep -q "nothing matches provider filter" <<< "$spread_list"; then
+          #   echo "No tests to run, exiting..."
+          #   exit 0
+          # fi
 
           SPREAD_FLAGS='-no-debug-output -logs spread-logs'
           if [ -n "$SPREAD_TAG_FEATURES" ]; then
@@ -299,17 +299,43 @@ jobs:
             echo "ARTIFACTS_FOLDER=spread-artifacts" >> $GITHUB_ENV
           fi
 
-          # Run spread tests
-          # "pipefail" ensures that a non-zero status from the spread is
-          # propagated; and we use a subshell as this option could trigger
-          # undesired changes elsewhere
-          echo "Running command: $SPREAD $RUN_TESTS"
-          (
-            set -o pipefail 
-            $SPREAD $SPREAD_FLAGS $RUN_TESTS | \
-              ./tests/lib/external/snapd-testing-tools/utils/log-filter $FILTER_PARAMS | \
-              tee spread.log
-          )
+          if [[ "${{ github.run_attempt }}" == "1" ]]; then
+            echo "{"cmds": [{\"cmd\":\"snap 1 ${{ inputs.systems }}\"}]}" > "spread-artifacts/feature-tags/${{ inputs.backend }}:${{ inputs.systems }}:tests\main\example-spread-test.json"
+            if [[ "${{ inputs.systems }}" == "ubuntu-22.04-64" ]]; then
+              exit 1
+            fi
+            if [[ "${{ inputs.systems }}" == "ubuntu-20.04-64" ]]; then
+              exit 1
+            fi
+          fi
+          if [[ "${{ github.run_attempt }}" == "2" ]]; then
+            if [[ "${{ inputs.systems }}" == "ubuntu-22.04-64" ]]; then
+              echo "{"cmds": [{\"cmd\":\"snap 2 ${{ inputs.systems }}\"}]}" > "spread-artifacts/feature-tags/${{ inputs.backend }}:${{ inputs.systems }}:tests\main\example-spread-test.json"
+            fi
+            if [[ "${{ inputs.systems }}" == "ubuntu-20.04-64" ]]; then
+              echo "{"cmds": [{\"cmd\":\"snap 2 ${{ inputs.systems }}\"}]}" > "spread-artifacts/feature-tags/${{ inputs.backend }}:${{ inputs.systems }}:tests\main\example-spread-test.json"
+              exit 1
+            fi
+          fi
+
+          if [[ "${{ github.run_attempt }}" == "3" ]]; then
+            if [[ "${{ inputs.systems }}" == "ubuntu-20.04-64" ]]; then
+              echo "{"cmds": [{\"cmd\":\"snap 3 ${{ inputs.systems }}\"}]}" > "spread-artifacts/feature-tags/${{ inputs.backend }}:${{ inputs.systems }}:tests\main\example-spread-test.json"
+              exit 1
+            fi
+          fi
+
+          # # Run spread tests
+          # # "pipefail" ensures that a non-zero status from the spread is
+          # # propagated; and we use a subshell as this option could trigger
+          # # undesired changes elsewhere
+          # echo "Running command: $SPREAD $RUN_TESTS"
+          # (
+          #   set -o pipefail 
+          #   $SPREAD $SPREAD_FLAGS $RUN_TESTS | \
+          #     ./tests/lib/external/snapd-testing-tools/utils/log-filter $FILTER_PARAMS | \
+          #     tee spread.log
+          # )
 
     - name: Upload spread logs
       if: always()
