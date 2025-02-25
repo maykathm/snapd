@@ -3,6 +3,7 @@
 import argparse
 import json
 import os
+import shutil
 
 
 def _parse_file_name(file_name: str) -> tuple[str, str, str, str]:
@@ -105,6 +106,45 @@ def get_system_list(dir: str) -> set:
     return set(systems)
 
 
+def _replace_tests(old_json_file, new_json_file):
+    '''
+    '''
+    with open(old_json_file, 'r') as f:
+        old_json = json.load(f)
+    with open(new_json_file, 'r') as f:
+        new_json = json.load(f)
+    for test in new_json['tests']:
+        for old_test in old_json['tests']:
+            if old_test['task-name'] == test['task-name'] and old_test['suite'] == test['suite'] and old_test['variant'] == test['variant']:
+                old_test.clear()
+                for key, value in test.items():
+                    old_test[key] = value
+                break
+    return old_json
+
+
+def replace_old_runs(dir, output_dir):
+    '''
+    '''
+    os.makedirs(output_dir)
+    filenames = [os.path.splitext(f)[0] for f in os.listdir(
+        dir) if os.path.isfile(os.path.join(dir, f))]
+    reruns = [file for file in filenames if not file.endswith('_1')]
+    originals = [file for file in filenames if file.endswith('_1') and any(rerun for rerun in reruns if rerun.startswith(file[:-2]))]
+    reruns.sort(key=lambda x: int(x.split('_')[-1]))
+    for rerun in reruns:
+        beginning = '-'.join(rerun.split('_')[:-1])
+        original = list(filter(lambda x: x.startswith(beginning), originals))
+        if len(original) != 1:
+            raise RuntimeError("The rerun %s does not have a corresponding original run" % rerun)
+        tests = _replace_tests(original, rerun)
+        with open(os.path.join(output_dir, beginning + ".json"), 'w') as f:
+            f.write(json.dumps(tests))
+    for file in filenames: 
+        if file not in originals:
+            shutil.copyfile(os.path.join(dir, file + ".json"), os.path.join(output_dir, '_'.join(file.split('_')[:-1]) + '.json'))
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="""
                                      Given a directory containing files with outputs of journal-analzyer.py with filenames
@@ -112,21 +152,31 @@ if __name__ == '__main__':
                                      file for each <backend>:<system> with feature-tagging information, accompanied with
                                      additional test information.
                                      """)
-    parser.add_argument('-d', '--dir', type=str,
-                        help='Path to the feature-tags folder')
-    parser.add_argument('-o', '--output', type=str, help='Output directory')
+    parser.add_argument('-d', '--dir', type=str, required=True,
+                        help='Path to the folder containing json files')
+    parser.add_argument('-o', '--output', type=str, help='Output directory', required=True)
     parser.add_argument('-s', '--scenarios', type=str,
                         help='Comma-separated list of scenarios', default="")
     parser.add_argument('-e', '--env-variables', type=str,
                         help='Comma-separated list of environment variables as key=value', default="")
     parser.add_argument('-f', '--failed-tests', type=str,
                         help='List of failed tests', default="")
+    parser.add_argument('--run-attempt', type=int, help="Run attempt number of the json files contained in the folder")
+    parser.add_argument('-r', '--replace-old-runs', action="store_true", help='When set, will process pre-composed runs and ')
     args = parser.parse_args()
+
+    if args.replace_old_runs:
+        replace_old_runs(args.dir, args.output)
+        exit(0)
+    
+    attempt=""
+    if args.run_attempt:
+        attempt="_%s" % args.run_attempt
     os.makedirs(args.output, exist_ok=True)
     systems = get_system_list(args.dir)
     for system in systems:
         composed = compose_system(dir=args.dir, system=system,
                                   failed_tests=args.failed_tests, env_variables=args.env_variables)
         system = "_".join(system.split(':'))
-        with open(os.path.join(args.output, system + '.json'), 'w') as f:
+        with open(os.path.join(args.output, system + attempt + '.json'), 'w') as f:
             f.write(json.dumps(composed))
