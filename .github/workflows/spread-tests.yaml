@@ -299,8 +299,10 @@ jobs:
             echo "ARTIFACTS_FOLDER=spread-artifacts" >> $GITHUB_ENV
           fi
 
+          mkdir -p "spread-artifacts/feature-tags"
+
           if [[ "${{ github.run_attempt }}" == "1" ]]; then
-            echo "{"cmds": [{\"cmd\":\"snap 1 ${{ inputs.systems }}\"}]}" > "spread-artifacts/feature-tags/${{ inputs.backend }}:${{ inputs.systems }}:tests\main\example-spread-test.json"
+            echo "{\"cmds\": [{\"cmd\":\"snap 1 ${{ inputs.systems }}\"}]}" > "spread-artifacts/feature-tags/${{ inputs.backend }}:${{ inputs.systems }}:tests\main\example-spread-test.json"
             if [[ "${{ inputs.systems }}" == "ubuntu-22.04-64" ]]; then
               exit 1
             fi
@@ -310,17 +312,17 @@ jobs:
           fi
           if [[ "${{ github.run_attempt }}" == "2" ]]; then
             if [[ "${{ inputs.systems }}" == "ubuntu-22.04-64" ]]; then
-              echo "{"cmds": [{\"cmd\":\"snap 2 ${{ inputs.systems }}\"}]}" > "spread-artifacts/feature-tags/${{ inputs.backend }}:${{ inputs.systems }}:tests\main\example-spread-test.json"
+              echo "{\"cmds\": [{\"cmd\":\"snap 2 ${{ inputs.systems }}\"}]}" > "spread-artifacts/feature-tags/${{ inputs.backend }}:${{ inputs.systems }}:tests\main\example-spread-test.json"
             fi
             if [[ "${{ inputs.systems }}" == "ubuntu-20.04-64" ]]; then
-              echo "{"cmds": [{\"cmd\":\"snap 2 ${{ inputs.systems }}\"}]}" > "spread-artifacts/feature-tags/${{ inputs.backend }}:${{ inputs.systems }}:tests\main\example-spread-test.json"
+              echo "{\"cmds\": [{\"cmd\":\"snap 2 ${{ inputs.systems }}\"}]}" > "spread-artifacts/feature-tags/${{ inputs.backend }}:${{ inputs.systems }}:tests\main\example-spread-test.json"
               exit 1
             fi
           fi
 
           if [[ "${{ github.run_attempt }}" == "3" ]]; then
             if [[ "${{ inputs.systems }}" == "ubuntu-20.04-64" ]]; then
-              echo "{"cmds": [{\"cmd\":\"snap 3 ${{ inputs.systems }}\"}]}" > "spread-artifacts/feature-tags/${{ inputs.backend }}:${{ inputs.systems }}:tests\main\example-spread-test.json"
+              echo "{\"cmds\": [{\"cmd\":\"snap 3 ${{ inputs.systems }}\"}]}" > "spread-artifacts/feature-tags/${{ inputs.backend }}:${{ inputs.systems }}:tests\main\example-spread-test.json"
               exit 1
             fi
           fi
@@ -398,7 +400,7 @@ jobs:
           fi
 
     - name: Analyze feature tags
-      if: ${{ env.SPREAD_TAG_FEATURES }} != ""
+      if: always() && env.SPREAD_TAG_FEATURES != ''
       run: |
         ./tests/lib/compose-features.py \
             --dir "${ARTIFACTS_FOLDER}/feature-tags" \
@@ -408,7 +410,7 @@ jobs:
             --env-variables "SPREAD_EXPERIMENTAL_FEATURES=${SPREAD_EXPERIMENTAL_FEATURES},SPREAD_SNAPD_DEB_FROM_REPO=${SPREAD_SNAPD_DEB_FROM_REPO}"
 
     - name: Upload feature tags
-      if: ${{ env.SPREAD_TAG_FEATURES }} != ""
+      if: always() && env.SPREAD_TAG_FEATURES != ''
       uses: actions/upload-artifact@v4
       with:
         name: "feature-tags-${{ inputs.group }}_${{ inputs.systems }}_${{ github.run_attempt }}"

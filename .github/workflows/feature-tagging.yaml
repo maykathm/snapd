@@ -14,29 +14,27 @@ on:
 
 jobs:
   read-systems:
-  runs-on: ubuntu-latest
-  outputs:
-    fundamental-systems: ${{ steps.read-systems.outputs.fundamental-systems }}
-    non-fundamental-systems: ${{ steps.read-systems.outputs.non-fundamental-systems }}
-    nested-systems: ${{ steps.read-systems.outputs.nested-systems }}
-  steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+    runs-on: ubuntu-latest
+    outputs:
+      fundamental-systems: ${{ steps.read-systems.outputs.fundamental-systems }}
+      non-fundamental-systems: ${{ steps.read-systems.outputs.non-fundamental-systems }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-    - name: Read matrix file
-      id: read-systems
-      shell: bash
-      run: |
-        echo "fundamental-systems=$(jq -c . ./.github/workflows/fundamental-systems.json)" >> $GITHUB_OUTPUT
-        echo "non-fundamental-systems=$(jq -c . ./.github/workflows/non-fundamental-systems.json)" >> $GITHUB_OUTPUT
-        echo "nested-systems=$(jq -c . ./.github/workflows/nested-systems.json)" >> $GITHUB_OUTPUT
+      - name: Read matrix file
+        id: read-systems
+        shell: bash
+        run: |
+          echo "fundamental-systems=$(jq -c . ./.github/workflows/fundamental-systems.json)" >> $GITHUB_OUTPUT
+          echo "non-fundamental-systems=$(jq -c . ./.github/workflows/non-fundamental-systems.json)" >> $GITHUB_OUTPUT
 
   tag-features-fundamental:
     uses: ./.github/workflows/spread-tests.yaml
     needs: [read-systems]
     name: "spread ${{ matrix.group }}"
     with:
-      runs-on: '["self-hosted", "spread-enabled"]'
+      runs-on: '["ubuntu-latest"]'
       group: ${{ matrix.group }}
       backend: ${{ matrix.backend }}
       systems: ${{ matrix.systems }}  
@@ -54,7 +52,7 @@ jobs:
     needs: [read-systems]
     name: "spread ${{ matrix.group }}"
     with:
-      runs-on: '["self-hosted", "spread-enabled"]'
+      runs-on: '["ubuntu-latest"]'
       group: ${{ matrix.group }}
       backend: ${{ matrix.backend }}
       systems: ${{ matrix.systems }}  
@@ -66,29 +64,29 @@ jobs:
       fail-fast: false
       matrix: ${{ fromJson(needs.read-systems.outputs.non-fundamental-systems) }}
 
-  tag-features-nested:
-    uses: ./.github/workflows/spread-tests.yaml
-    needs: [read-systems]
-    name: "spread ${{ matrix.group }}"
-    with:
-      runs-on: '["self-hosted", "spread-enabled"]'
-      group: ${{ matrix.group }}
-      backend: ${{ matrix.backend }}
-      systems: ${{ matrix.systems }}  
-      tasks: ${{ matrix.tasks }}
-      rules: ${{ matrix.rules }}
-      use-snapd-snap-from-master: true
-      spread-tag-features: ${{ inputs.features }}
-    strategy:
-      fail-fast: false
-      matrix: ${{ fromJson(needs.read-systems.outputs.nested-systems) }}
+  # tag-features-nested:
+  #   uses: ./.github/workflows/spread-tests.yaml
+  #   needs: [read-systems]
+  #   name: "spread ${{ matrix.group }}"
+  #   with:
+  #     runs-on: '["ubuntu-latest"]'
+  #     group: ${{ matrix.group }}
+  #     backend: ${{ matrix.backend }}
+  #     systems: ${{ matrix.systems }}  
+  #     tasks: ${{ matrix.tasks }}
+  #     rules: ${{ matrix.rules }}
+  #     use-snapd-snap-from-master: true
+  #     spread-tag-features: ${{ inputs.features }}
+  #   strategy:
+  #     fail-fast: false
+  #     matrix: ${{ fromJson(needs.read-systems.outputs.nested-systems) }}
 
   re-run:
     permissions:
       actions: write
-    needs: [tag-features-fundamental, tag-features-non-fundamental, tag-features-nested]
+    needs: [tag-features-fundamental, tag-features-non-fundamental]
     # If the spread tests ended in failure, rerun the workflow up to 2 times
-    if: failure() && fromJSON(github.run_attempt) < ${{ inputs.maximum-reruns }}
+    if: failure() && fromJSON(github.run_attempt) < fromJSON(inputs.maximum-reruns)
     runs-on: ubuntu-latest
     steps:
       - env:
@@ -97,9 +95,9 @@ jobs:
         run: gh workflow run rerun.yaml -F run_id=${{ github.run_id }}
 
   create-reports:
-    needs: [tag-features-fundamental, tag-features-non-fundamental, tag-features-nested]
+    needs: [tag-features-fundamental, tag-features-non-fundamental]
     runs-on: ubuntu-latest
-    if: success() || fromJSON(github.run_attempt) >= ${{ inputs.maximum-reruns }}
+    if: success() || fromJSON(github.run_attempt) >= fromJSON(inputs.maximum-reruns)
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -116,7 +114,7 @@ jobs:
               response = await github.rest.actions.listWorkflowRunArtifacts({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
-                run_id: context.payload.workflow_run.id,
+                run_id: context.runId,
                 per_page: per_page,
                 page: page
               });
