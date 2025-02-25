@@ -133,11 +133,11 @@ def replace_old_runs(dir, output_dir):
     originals = [file for file in filenames if file.endswith('_1') and any(rerun for rerun in reruns if rerun.startswith(file[:-2]))]
     reruns.sort(key=lambda x: int(x.split('_')[-1]))
     for rerun in reruns:
-        beginning = '-'.join(rerun.split('_')[:-1])
+        beginning = '_'.join(rerun.split('_')[:-1])
         original = list(filter(lambda x: x.startswith(beginning), originals))
         if len(original) != 1:
             raise RuntimeError("The rerun %s does not have a corresponding original run" % rerun)
-        tests = _replace_tests(original, rerun)
+        tests = _replace_tests(os.path.join(dir, original[0] + ".json"), os.path.join(dir, rerun + ".json"))
         with open(os.path.join(output_dir, beginning + ".json"), 'w') as f:
             f.write(json.dumps(tests))
     for file in filenames: 
