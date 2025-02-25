@@ -302,11 +302,18 @@ jobs:
           mkdir -p "spread-artifacts/feature-tags"
 
           if [[ "${{ github.run_attempt }}" == "1" ]]; then
+            if [[ "${{ inputs.systems }} " == "ubuntu-16.04-64 ubuntu-18.04-64" ]]; then
+              echo "{\"cmds\": [{\"cmd\":\"snap 1 ubuntu-16.04-64\"}]}" > "spread-artifacts/feature-tags/${{ inputs.backend }}:ubuntu-16.04-64:tests\main\example-spread-test.json"
+              echo "{\"cmds\": [{\"cmd\":\"snap 1 ubuntu-18.04-64\"}]}" > "spread-artifacts/feature-tags/${{ inputs.backend }}:ubuntu-18.04-64:tests\main\example-spread-test.json"
+              exit 0
+            fi
             echo "{\"cmds\": [{\"cmd\":\"snap 1 ${{ inputs.systems }}\"}]}" > "spread-artifacts/feature-tags/${{ inputs.backend }}:${{ inputs.systems }}:tests\main\example-spread-test.json"
             if [[ "${{ inputs.systems }}" == "ubuntu-22.04-64" ]]; then
+              echo "${{ inputs.backend }}:${{ inputs.systems }}:tests/main/example-spread-test.json" > $FAILED_TESTS_FILE
               exit 1
             fi
             if [[ "${{ inputs.systems }}" == "ubuntu-20.04-64" ]]; then
+              echo "${{ inputs.backend }}:${{ inputs.systems }}:tests/main/example-spread-test.json" > $FAILED_TESTS_FILE
               exit 1
             fi
           fi
@@ -316,6 +323,7 @@ jobs:
             fi
             if [[ "${{ inputs.systems }}" == "ubuntu-20.04-64" ]]; then
               echo "{\"cmds\": [{\"cmd\":\"snap 2 ${{ inputs.systems }}\"}]}" > "spread-artifacts/feature-tags/${{ inputs.backend }}:${{ inputs.systems }}:tests\main\example-spread-test.json"
+              echo "${{ inputs.backend }}:${{ inputs.systems }}:tests/main/example-spread-test.json" > $FAILED_TESTS_FILE
               exit 1
             fi
           fi
@@ -323,6 +331,7 @@ jobs:
           if [[ "${{ github.run_attempt }}" == "3" ]]; then
             if [[ "${{ inputs.systems }}" == "ubuntu-20.04-64" ]]; then
               echo "{\"cmds\": [{\"cmd\":\"snap 3 ${{ inputs.systems }}\"}]}" > "spread-artifacts/feature-tags/${{ inputs.backend }}:${{ inputs.systems }}:tests\main\example-spread-test.json"
+              echo "${{ inputs.backend }}:${{ inputs.systems }}:tests/main/example-spread-test.json" > $FAILED_TESTS_FILE
               exit 1
             fi
           fi
@@ -372,36 +381,37 @@ jobs:
             echo "No spread log found, skipping errors reporting"
         fi
 
-    - name: Analyze spread test results
-      if: always()
-      run: |
-          if [ -f spread.log ]; then
-              echo "Running spread log parser"
-              ./tests/lib/external/snapd-testing-tools/utils/log-parser spread.log --output spread-results.json
+    # - name: Analyze spread test results
+    #   if: always()
+    #   run: |
+          # if [ -f spread.log ]; then
+          #     echo "Running spread log parser"
+          #     ./tests/lib/external/snapd-testing-tools/utils/log-parser spread.log --output spread-results.json
 
-              # Add openstack backend definition to spread.yaml
-              if [ "${{ inputs.backend }}" = openstack ]; then
-                  ./tests/lib/spread/add-backend tests/lib/spread/backend.openstack.yaml spread.yaml
-              fi
+          #     # Add openstack backend definition to spread.yaml
+          #     if [ "${{ inputs.backend }}" = openstack ]; then
+          #         ./tests/lib/spread/add-backend tests/lib/spread/backend.openstack.yaml spread.yaml
+          #     fi
 
-              echo "Running spread log analyzer"
-              ./tests/lib/external/snapd-testing-tools/utils/log-analyzer list-reexecute-tasks "$RUN_TESTS" spread-results.json > "$FAILED_TESTS_FILE"
+          #     echo "Running spread log analyzer"
+          #     ./tests/lib/external/snapd-testing-tools/utils/log-analyzer list-reexecute-tasks "$RUN_TESTS" spread-results.json > "$FAILED_TESTS_FILE"
 
-              echo "List of failed tests saved"
-              cat "$FAILED_TESTS_FILE"
-          else
-              echo "No spread log found, saving empty list of failed tests"
-              touch "$FAILED_TESTS_FILE"
-          fi
+          #     echo "List of failed tests saved"
+          #     cat "$FAILED_TESTS_FILE"
+          # else
+          #     echo "No spread log found, saving empty list of failed tests"
+          #     touch "$FAILED_TESTS_FILE"
+          # fi
           
-          # Set the TEST_FAILED variable if there are any failed tests
-          if [ -n "$(cat $FAILED_TESTS_FILE)" ]; then
-            echo "TEST_FAILED=true" >> $GITHUB_ENV
-          fi
+          # # Set the TEST_FAILED variable if there are any failed tests
+          # if [ -n "$(cat $FAILED_TESTS_FILE)" ]; then
+          #   echo "TEST_FAILED=true" >> $GITHUB_ENV
+          # fi
 
     - name: Analyze feature tags
       if: always() && env.SPREAD_TAG_FEATURES != ''
       run: |
+        ls "${ARTIFACTS_FOLDER}/feature-tags"
         ./tests/lib/compose-features.py \
             --dir "${ARTIFACTS_FOLDER}/feature-tags" \
             --output "feature-tags" \
@@ -414,7 +424,7 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: "feature-tags-${{ inputs.group }}_${{ inputs.systems }}_${{ github.run_attempt }}"
-        path: "feature-tags/${{ inputs.backend }}_${{ inputs.systems }}_${{ github.run_attempt }}.json"
+        path: "feature-tags"
 
     - name: Save spread test results to cache
       if: always()
