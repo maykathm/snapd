@@ -18,7 +18,7 @@ if [ "${NO_REBUILD:-0}" = "1" ]; then
         done
     else
         echo "-- $(date) -- no prebuilt snaps found"
-        need_rebuild=1
+        # need_rebuild=1
     fi
 fi
 
@@ -41,7 +41,7 @@ else
     mkdir -p "$WRITE_DIR"
     for i in $(seq 1 $NUM_ATTEMPTS); do
 
-        spread -artifacts ${WRITE_DIR}/features-artifacts ${RUN_TESTS} | tee ${WRITE_DIR}/spread-logs.txt
+        /home/katie/go/bin/spread -artifacts ${WRITE_DIR}/features-artifacts ${RUN_TESTS} | tee ${WRITE_DIR}/spread-logs.txt
 
         if [ -f "$WRITE_DIR"/spread-logs.txt ]; then
             ./tests/lib/external/snapd-testing-tools/utils/log-parser ${WRITE_DIR}/spread-logs.txt --output ${WRITE_DIR}/spread-results.json
