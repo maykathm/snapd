@@ -1,0 +1,31 @@
+{
+    "all": [
+        {
+            "all": "Feb 27 10:27:49 feb271023-682914 snapd[7635]: daemon.go:220: DEBUG: pid=8047;uid=0;socket=/run/snapd.socket; POST /v2/assertions 6.064364ms 200"
+        },
+        {
+            "all": "Feb 27 10:27:49 feb271023-682914 snapd[7635]: daemon.go:220: DEBUG: pid=8060;uid=0;socket=/run/snapd.socket; POST /v2/assertions 386.183\u00b5s 400"
+        },
+        {
+            "all": "Feb 27 10:27:49 feb271023-682914 snapd[7635]: daemon.go:220: DEBUG: pid=8071;uid=0;socket=/run/snapd.socket; POST /v2/assertions 8.667446ms 200"
+        },
+        {
+            "all": "Feb 27 10:27:49 feb271023-682914 snapd[7635]: daemon.go:220: DEBUG: pid=8082;uid=0;socket=/run/snapd.socket; POST /v2/assertions 13.931721ms 200"
+        },
+        {
+            "all": "Feb 27 10:27:49 feb271023-682914 snapd[7635]: daemon.go:220: DEBUG: pid=8093;uid=0;socket=/run/snapd.socket; GET /v2/assertions/account?username=alice 380.277\u00b5s 200"
+        },
+        {
+            "all": "Feb 27 10:27:49 feb271023-682914 snapd[7635]: daemon.go:220: DEBUG: pid=8108;uid=0;socket=/run/snapd.socket; GET /v2/assertions/account-key?public-key-sha3-384=s2I2irs5PDzHx8n_-lEjkVUn81dvKujEmUiS0c3vwPbwojxDT_QUZ6ejDavhj_yU 294.404\u00b5s 200"
+        },
+        {
+            "all": "Feb 27 10:27:49 feb271023-682914 snapd[7635]: daemon.go:220: DEBUG: pid=8123;uid=0;socket=/run/snapd.socket; POST /v2/assertions 16.268852ms 200"
+        },
+        {
+            "all": "Feb 27 10:27:49 feb271023-682914 snapd[7635]: daemon.go:220: DEBUG: pid=8134;uid=0;socket=/run/snapd.socket; GET /v2/assertions/account?username=bob 288.64\u00b5s 200"
+        },
+        {
+            "all": "Feb 27 10:27:49 feb271023-682914 snapd[7635]: daemon.go:220: DEBUG: pid=8148;uid=0;socket=/run/snapd.socket; GET /v2/assertions/account-key?public-key-sha3-384=kW5sfrKZI2rIAT70JkttRq2VlNa9t8EHOoWrL2ZBAa7tLWZMy2KBweZEh3_MLcZh 526.37\u00b5s 200"
+        }
+    ]
+}

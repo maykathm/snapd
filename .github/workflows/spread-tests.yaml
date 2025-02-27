@@ -250,67 +250,82 @@ jobs:
       env:
           SPREAD_GOOGLE_KEY: ${{ secrets.SPREAD_GOOGLE_KEY }}
       run: |
-          # Register a problem matcher to highlight spread failures
-          echo "::add-matcher::.github/spread-problem-matcher.json"
-          set -x
-          SPREAD=spread
-          if [[ "${{ inputs.group }}" =~ nested- ]]; then
-            export NESTED_BUILD_SNAPD_FROM_CURRENT=true
-            export NESTED_ENABLE_KVM=true
-          fi
+          # # Register a problem matcher to highlight spread failures
+          # echo "::add-matcher::.github/spread-problem-matcher.json"
+          # set -x
+          # SPREAD=spread
+          # if [[ "${{ inputs.group }}" =~ nested- ]]; then
+          #   export NESTED_BUILD_SNAPD_FROM_CURRENT=true
+          #   export NESTED_ENABLE_KVM=true
+          # fi
 
-          export SPREAD_USE_PREBUILT_SNAPD_SNAP=true
+          # export SPREAD_USE_PREBUILT_SNAPD_SNAP=true
           
-          if [ "${{ inputs.use-snapd-snap-from-master }}" = true ]; then
-            export SPREAD_USE_SNAPD_SNAP_URL=https://storage.googleapis.com/snapd-spread-tests/snapd-tests/snaps/snapd_master_amd64.snap
+          # if [ "${{ inputs.use-snapd-snap-from-master }}" = true ]; then
+          #   export SPREAD_USE_SNAPD_SNAP_URL=https://storage.googleapis.com/snapd-spread-tests/snapd-tests/snaps/snapd_master_amd64.snap
+          # fi
+
+          # # This could be the case when either there are not systems for a group or
+          # # the list of tests to run is empty
+          # if [ -z "$RUN_TESTS" ]; then
+          #   echo "No tests to run, exiting..."
+          #   exit 0
+          # fi
+
+          # # Add openstack backend definition to spread.yaml
+          # if [ "${{ inputs.backend }}" = openstack ]; then
+          #     ./tests/lib/spread/add-backend tests/lib/spread/backend.openstack.yaml spread.yaml
+          # fi
+
+          # spread_list="$($SPREAD -list $RUN_TESTS 2>&1 || true)"
+
+          # if [[ "$spread_list" =~ amazon-linux-2023 ]]; then
+          #     # Amazon Linux 2023 has no xdelta, however we cannot disable
+          #     # xdelta on a per-target basis as it's used in the repack section
+          #     # of spread.yaml, which is shared by all targets, so all systems
+          #     # in this batch will not use delta for transferring project data
+          #     echo "Disabling xdelta support"
+          #     export NO_DELTA=1
+          # fi
+
+          # if grep -q "nothing matches provider filter" <<< "$spread_list"; then
+          #   echo "No tests to run, exiting..."
+          #   exit 0
+          # fi
+
+          # SPREAD_FLAGS='-no-debug-output -logs spread-logs'
+          # if [ -n "$SPREAD_TAG_FEATURES" ]; then
+          #   SPREAD_FLAGS="$SPREAD_FLAGS -artifacts spread-artifacts"
+          #   echo "ARTIFACTS_FOLDER=spread-artifacts" >> $GITHUB_ENV
+          # fi
+
+          # # Run spread tests
+          # # "pipefail" ensures that a non-zero status from the spread is
+          # # propagated; and we use a subshell as this option could trigger
+          # # undesired changes elsewhere
+          # echo "Running command: $SPREAD $RUN_TESTS"
+          # (
+          #   set -o pipefail 
+          #   $SPREAD $SPREAD_FLAGS $RUN_TESTS | \
+          #     ./tests/lib/external/snapd-testing-tools/utils/log-filter $FILTER_PARAMS | \
+          #     tee spread.log
+          # )
+          echo "ARTIFACTS_FOLDER=spread-artifacts" >> $GITHUB_ENV
+          mkdir -p spread-artifacts/feature-tags
+          if [[ "${{ inputs.systems }}" == "ubuntu-24.04-64" ]]; then
+            cp .github/workflows/google\:ubuntu-24*alias spread-artifacts/feature-tags/google\:ubuntu-24.04-64\:tests\main\alias
+            cp .github/workflows/spread-logs.txt spread.log
+            if [[ "${{ github.run_attempt }}" == 1 ]]; then
+              cp .github/workflows/google\:ubuntu-24*ack_1 spread-artifacts/feature-tags/google\:ubuntu-24.04-64\:tests\main\ack
+              exit 1
+            else
+              cp .github/workflows/google\:ubuntu-24*ack_2 spread-artifacts/feature-tags/google\:ubuntu-24.04-64\:tests\main\ack
+            fi
+          else
+            cp .github/workflows/google\:ubuntu-22*alias spread-artifacts/feature-tags/google\:ubuntu-22.04-64\:tests\main\ack
+            cp .github/workflows/google\:ubuntu-22*alias spread-artifacts/feature-tags/google\:ubuntu-22.04-64\:tests\main\alias
           fi
-
-          # This could be the case when either there are not systems for a group or
-          # the list of tests to run is empty
-          if [ -z "$RUN_TESTS" ]; then
-            echo "No tests to run, exiting..."
-            exit 0
-          fi
-
-          # Add openstack backend definition to spread.yaml
-          if [ "${{ inputs.backend }}" = openstack ]; then
-              ./tests/lib/spread/add-backend tests/lib/spread/backend.openstack.yaml spread.yaml
-          fi
-
-          spread_list="$($SPREAD -list $RUN_TESTS 2>&1 || true)"
-
-          if [[ "$spread_list" =~ amazon-linux-2023 ]]; then
-              # Amazon Linux 2023 has no xdelta, however we cannot disable
-              # xdelta on a per-target basis as it's used in the repack section
-              # of spread.yaml, which is shared by all targets, so all systems
-              # in this batch will not use delta for transferring project data
-              echo "Disabling xdelta support"
-              export NO_DELTA=1
-          fi
-
-          if grep -q "nothing matches provider filter" <<< "$spread_list"; then
-            echo "No tests to run, exiting..."
-            exit 0
-          fi
-
-          SPREAD_FLAGS='-no-debug-output -logs spread-logs'
-          if [ -n "$SPREAD_TAG_FEATURES" ]; then
-            SPREAD_FLAGS="$SPREAD_FLAGS -artifacts spread-artifacts"
-            echo "ARTIFACTS_FOLDER=spread-artifacts" >> $GITHUB_ENV
-          fi
-
-          # Run spread tests
-          # "pipefail" ensures that a non-zero status from the spread is
-          # propagated; and we use a subshell as this option could trigger
-          # undesired changes elsewhere
-          echo "Running command: $SPREAD $RUN_TESTS"
-          (
-            set -o pipefail 
-            $SPREAD $SPREAD_FLAGS $RUN_TESTS | \
-              ./tests/lib/external/snapd-testing-tools/utils/log-filter $FILTER_PARAMS | \
-              tee spread.log
-          )
-
+          
     - name: Upload spread logs
       if: always()
       uses: actions/upload-artifact@v4

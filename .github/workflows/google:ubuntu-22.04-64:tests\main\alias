@@ -1,0 +1,142 @@
+{
+    "all": [
+        {
+            "all": "Feb 27 10:27:43 feb271023-683010 snapd[7503]: daemon.go:220: DEBUG: pid=7944;uid=0;socket=/run/snapd.socket; POST /v2/snaps 29.363106ms 202"
+        },
+        {
+            "all": "Feb 27 10:27:43 feb271023-683010 snapd[7503]: taskrunner.go:471: DEBUG: Running task 32 on Do: Ensure prerequisites for \"aliases\" are available"
+        },
+        {
+            "all": "Feb 27 10:27:43 feb271023-683010 snapd[7503]: taskrunner.go:471: DEBUG: Running task 33 on Do: Prepare snap \"/var/lib/snapd/snaps/.local-install-1479453109\" (unset)"
+        },
+        {
+            "all": "Feb 27 10:27:43 feb271023-683010 snapd[7503]: taskrunner.go:471: DEBUG: Running task 34 on Do: Mount snap \"aliases\" (unset)"
+        },
+        {
+            "all": "Feb 27 10:27:43 feb271023-683010 systemd[1]: /lib/systemd/system/snapd.service:23: Unknown key name 'RestartMode' in section 'Service', ignoring."
+        },
+        {
+            "all": "Feb 27 10:27:43 feb271023-683010 snapd[7503]: handlers.go:1239: DEBUG: snap \"aliases\" (x1) available at \"/snap/aliases/x1\""
+        },
+        {
+            "all": "Feb 27 10:27:43 feb271023-683010 snapd[7503]: taskrunner.go:471: DEBUG: Running task 35 on Do: Copy snap \"aliases\" data"
+        },
+        {
+            "all": "Feb 27 10:27:43 feb271023-683010 snapd[7503]: taskrunner.go:471: DEBUG: Running task 36 on Do: Setup snap \"aliases\" (unset) security profiles"
+        },
+        {
+            "all": "Feb 27 10:27:43 feb271023-683010 snapd[7503]: apparmor.go:856: DEBUG: checking internal apparmor_parser candidate at /snap/snapd/x1/usr/lib/snapd/apparmor_parser"
+        },
+        {
+            "all": "Feb 27 10:27:44 feb271023-683010 snapd[7503]: taskrunner.go:471: DEBUG: Running task 37 on Do: Make snap \"aliases\" (unset) available to the system"
+        },
+        {
+            "all": "Feb 27 10:27:44 feb271023-683010 snapd[7503]: taskrunner.go:471: DEBUG: Running task 38 on Do: Automatically connect eligible plugs and slots of snap \"aliases\""
+        },
+        {
+            "all": "Feb 27 10:27:44 feb271023-683010 snapd[7503]: handlers.go:1411: DEBUG: finish restart from doAutoConnect"
+        },
+        {
+            "all": "Feb 27 10:27:44 feb271023-683010 snapd[7503]: taskrunner.go:471: DEBUG: Running task 39 on Do: Set automatic aliases for snap \"aliases\""
+        },
+        {
+            "all": "Feb 27 10:27:44 feb271023-683010 snapd[7503]: taskrunner.go:471: DEBUG: Running task 40 on Do: Setup snap \"aliases\" aliases"
+        },
+        {
+            "all": "Feb 27 10:27:44 feb271023-683010 snapd[7503]: taskrunner.go:471: DEBUG: Running task 41 on Do: Run install hook of \"aliases\" snap if present"
+        },
+        {
+            "all": "Feb 27 10:27:44 feb271023-683010 snapd[7503]: taskrunner.go:471: DEBUG: Running task 42 on Do: Run default-configure hook of \"aliases\" snap if present"
+        },
+        {
+            "all": "Feb 27 10:27:44 feb271023-683010 snapd[7503]: taskrunner.go:471: DEBUG: Running task 43 on Do: Start snap \"aliases\" (unset) services"
+        },
+        {
+            "all": "Feb 27 10:27:44 feb271023-683010 snapd[7503]: taskrunner.go:471: DEBUG: Running task 44 on Do: Run configure hook of \"aliases\" snap if present"
+        },
+        {
+            "all": "Feb 27 10:27:44 feb271023-683010 snapd[7503]: taskrunner.go:471: DEBUG: Running task 45 on Do: Run health check of \"aliases\" snap"
+        },
+        {
+            "all": "Feb 27 10:27:44 feb271023-683010 snapd[7503]: daemon.go:220: DEBUG: pid=7944;uid=0;socket=/run/snapd.socket; GET /v2/snaps?snaps=aliases 980.386\u00b5s 200"
+        },
+        {
+            "all": "Feb 27 10:27:45 feb271023-683010 snapd[7503]: daemon.go:220: DEBUG: pid=8147;uid=0;socket=/run/snapd.socket; POST /v2/aliases 7.905414ms 202"
+        },
+        {
+            "all": "Feb 27 10:27:45 feb271023-683010 snapd[7503]: taskrunner.go:471: DEBUG: Running task 46 on Do: Setup manual alias \"alias1\" => \"cmd1\" for snap \"aliases\""
+        },
+        {
+            "all": "Feb 27 10:27:45 feb271023-683010 snapd[7503]: daemon.go:220: DEBUG: pid=8168;uid=0;socket=/run/snapd.socket; POST /v2/aliases 6.139709ms 202"
+        },
+        {
+            "all": "Feb 27 10:27:45 feb271023-683010 snapd[7503]: taskrunner.go:471: DEBUG: Running task 47 on Do: Setup manual alias \"alias2\" => \"cmd2\" for snap \"aliases\""
+        },
+        {
+            "all": "Feb 27 10:27:45 feb271023-683010 snapd[7503]: daemon.go:220: DEBUG: pid=8261;uid=0;socket=/run/snapd.socket; GET /v2/aliases 351.953\u00b5s 200"
+        },
+        {
+            "all": "Feb 27 10:27:45 feb271023-683010 snapd[7503]: daemon.go:220: DEBUG: pid=8275;uid=0;socket=/run/snapd.socket; GET /v2/aliases 276.681\u00b5s 200"
+        },
+        {
+            "all": "Feb 27 10:27:45 feb271023-683010 snapd[7503]: daemon.go:220: DEBUG: pid=8290;uid=0;socket=/run/snapd.socket; POST /v2/aliases 6.473407ms 202"
+        },
+        {
+            "all": "Feb 27 10:27:45 feb271023-683010 snapd[7503]: taskrunner.go:471: DEBUG: Running task 48 on Do: Remove manual alias \"alias2\" for snap \"aliases\""
+        },
+        {
+            "all": "Feb 27 10:27:46 feb271023-683010 snapd[7503]: daemon.go:220: DEBUG: pid=8339;uid=0;socket=/run/snapd.socket; GET /v2/aliases 554.693\u00b5s 200"
+        },
+        {
+            "all": "Feb 27 10:27:46 feb271023-683010 snapd[7503]: daemon.go:220: DEBUG: pid=8355;uid=0;socket=/run/snapd.socket; GET /v2/aliases 338.972\u00b5s 200"
+        },
+        {
+            "all": "Feb 27 10:27:46 feb271023-683010 snapd[7503]: daemon.go:220: DEBUG: pid=8371;uid=0;socket=/run/snapd.socket; POST /v2/aliases 6.618484ms 202"
+        },
+        {
+            "all": "Feb 27 10:27:46 feb271023-683010 snapd[7503]: taskrunner.go:471: DEBUG: Running task 49 on Do: Disable aliases for snap \"aliases\""
+        },
+        {
+            "all": "Feb 27 10:27:46 feb271023-683010 snapd[7503]: daemon.go:220: DEBUG: pid=8395;uid=0;socket=/run/snapd.socket; GET /v2/aliases 506.623\u00b5s 200"
+        },
+        {
+            "all": "Feb 27 10:27:46 feb271023-683010 snapd[7503]: daemon.go:220: DEBUG: pid=8411;uid=0;socket=/run/snapd.socket; POST /v2/aliases 6.698059ms 202"
+        },
+        {
+            "all": "Feb 27 10:27:46 feb271023-683010 snapd[7503]: taskrunner.go:471: DEBUG: Running task 50 on Do: Setup manual alias \"alias1\" => \"cmd1\" for snap \"aliases\""
+        },
+        {
+            "all": "Feb 27 10:27:46 feb271023-683010 snapd[7503]: daemon.go:220: DEBUG: pid=8452;uid=0;socket=/run/snapd.socket; POST /v2/snaps/aliases 7.918482ms 202"
+        },
+        {
+            "all": "Feb 27 10:27:46 feb271023-683010 snapd[7503]: taskrunner.go:471: DEBUG: Running task 51 on Do: Stop snap \"aliases\" services"
+        },
+        {
+            "all": "Feb 27 10:27:46 feb271023-683010 snapd[7503]: taskrunner.go:471: DEBUG: Running task 52 on Do: Run remove hook of \"aliases\" snap if present"
+        },
+        {
+            "all": "Feb 27 10:27:46 feb271023-683010 snapd[7503]: taskrunner.go:471: DEBUG: Running task 53 on Do: Disconnect interfaces of snap \"aliases\""
+        },
+        {
+            "all": "Feb 27 10:27:46 feb271023-683010 snapd[7503]: taskrunner.go:471: DEBUG: Running task 54 on Do: Remove aliases for snap \"aliases\""
+        },
+        {
+            "all": "Feb 27 10:27:46 feb271023-683010 snapd[7503]: taskrunner.go:471: DEBUG: Running task 55 on Do: Make snap \"aliases\" unavailable to the system"
+        },
+        {
+            "all": "Feb 27 10:27:46 feb271023-683010 snapd[7503]: taskrunner.go:471: DEBUG: Running task 56 on Do: Remove security profile for snap \"aliases\" (x1)"
+        },
+        {
+            "all": "Feb 27 10:27:46 feb271023-683010 snapd[7503]: taskrunner.go:471: DEBUG: Running task 57 on Do: Remove data for snap \"aliases\" (x1)"
+        },
+        {
+            "all": "Feb 27 10:27:46 feb271023-683010 snapd[7503]: taskrunner.go:471: DEBUG: Running task 58 on Do: Remove snap \"aliases\" (x1) from the system"
+        },
+        {
+            "all": "Feb 27 10:27:46 feb271023-683010 systemd[1]: /lib/systemd/system/snapd.service:23: Unknown key name 'RestartMode' in section 'Service', ignoring."
+        },
+        {
+            "all": "Feb 27 10:27:47 feb271023-683010 snapd[7503]: backend.go:594: DEBUG: remove late for snap aliases (x1) type app"
+        }
+    ]
+}

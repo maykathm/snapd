@@ -1,0 +1,37 @@
+{
+  "all": [
+    {
+      "all": "Feb 27 10:28:36 feb271023-682797.c.snapd-spread.internal snapd[10296]: daemon.go:220: DEBUG: pid=10917;uid=0;socket=/run/snapd.socket; GET /v2/snaps?select=all 1.15753ms 200"
+    },
+    {
+      "all": "Feb 27 10:28:36 feb271023-682797.c.snapd-spread.internal snapd[10296]: daemon.go:220: DEBUG: pid=10948;uid=0;socket=/run/snapd.socket; POST /v2/assertions 6.003419ms 200"
+    },
+    {
+      "all": "Feb 27 10:28:36 feb271023-682797.c.snapd-spread.internal snapd[10296]: daemon.go:220: DEBUG: pid=10959;uid=0;socket=/run/snapd.socket; POST /v2/assertions 309.249µs 400"
+    },
+    {
+      "all": "Feb 27 10:28:36 feb271023-682797.c.snapd-spread.internal snapd[10296]: daemon.go:220: DEBUG: pid=10969;uid=0;socket=/run/snapd.socket; POST /v2/assertions 7.623744ms 200"
+    },
+    {
+      "all": "Feb 27 10:28:36 feb271023-682797.c.snapd-spread.internal snapd[10296]: daemon.go:220: DEBUG: pid=10979;uid=0;socket=/run/snapd.socket; POST /v2/assertions 9.615755ms 200"
+    },
+    {
+      "all": "Feb 27 10:28:36 feb271023-682797.c.snapd-spread.internal snapd[10296]: daemon.go:220: DEBUG: pid=10989;uid=0;socket=/run/snapd.socket; GET /v2/assertions/account?username=alice 530.057µs 200"
+    },
+    {
+      "all": "Feb 27 10:28:36 feb271023-682797.c.snapd-spread.internal snapd[10296]: daemon.go:220: DEBUG: pid=11003;uid=0;socket=/run/snapd.socket; GET /v2/assertions/account-key?public-key-sha3-384=s2I2irs5PDzHx8n_-lEjkVUn81dvKujEmUiS0c3vwPbwojxDT_QUZ6ejDavhj_yU 524.049µs 200"
+    },
+    {
+      "all": "Feb 27 10:28:36 feb271023-682797.c.snapd-spread.internal snapd[10296]: daemon.go:220: DEBUG: pid=11017;uid=0;socket=/run/snapd.socket; POST /v2/assertions 22.926821ms 200"
+    },
+    {
+      "all": "Feb 27 10:28:36 feb271023-682797.c.snapd-spread.internal snapd[10296]: daemon.go:220: DEBUG: pid=11027;uid=0;socket=/run/snapd.socket; GET /v2/assertions/account?username=bob 322.959µs 200"
+    },
+    {
+      "all": "Feb 27 10:28:36 feb271023-682797.c.snapd-spread.internal snapd[10296]: daemon.go:220: DEBUG: pid=11041;uid=0;socket=/run/snapd.socket; GET /v2/assertions/account-key?public-key-sha3-384=kW5sfrKZI2rIAT70JkttRq2VlNa9t8EHOoWrL2ZBAa7tLWZMy2KBweZEh3_MLcZh 258.268µs 200"
+    },
+    {
+      "all": "Feb 27 10:28:37 feb271023-682797.c.snapd-spread.internal snapd[10296]: daemon.go:220: DEBUG: pid=11098;uid=0;socket=/run/snapd.socket; GET /v2/connections?select=all 454.015µs 200"
+    }
+  ]
+}

@@ -1,0 +1,501 @@
+2025-02-27 11:30:39 Project content is packed for delivery (11.04MB).
+2025-02-27 11:30:39 If killed, discard servers with: spread -reuse-pid=31328 -discard
+2025-02-27 11:30:39 Allocating google:ubuntu-24.04-64...
+2025-02-27 11:30:53 Waiting for google:ubuntu-24.04-64 (feb271030-033833) to boot at 35.242.149.124...
+2025-02-27 11:31:34 Allocated google:ubuntu-24.04-64 (feb271030-033833).
+2025-02-27 11:31:34 Connecting to google:ubuntu-24.04-64 (feb271030-033833)...
+2025-02-27 11:31:34 Connected to google:ubuntu-24.04-64 (feb271030-033833) at 35.242.149.124.
+2025-02-27 11:31:34 Sending project content to google:ubuntu-24.04-64 (feb271030-033833)...
+2025-02-27 11:31:36 Preparing google:ubuntu-24.04-64 (feb271030-033833)...
+2025-02-27 11:34:54 Preparing google:ubuntu-24.04-64:tests/main/ (feb271030-033833)...
+2025-02-27 11:36:04 Preparing google:ubuntu-24.04-64:tests/main/ack (feb271030-033833)...
+2025-02-27 11:36:17 Executing google:ubuntu-24.04-64:tests/main/ack (feb271030-033833) (1/1)...
+2025-02-27 11:36:18 Error executing google:ubuntu-24.04-64:tests/main/ack (feb271030-033833) : 
+-----
++ '[' true = false ']'
++ echo 'Ack the test store key in case'
+Ack the test store key in case
++ snap ack /home/gopath/src/github.com/snapcore/snapd/tests/lib/assertions/testrootorg-store.account-key
++ ALICE_ID=BGLTY1rcRKQQMbt9B407lDH38lbCW3wg
++ echo 'Ack when missing prerequisite fails'
+Ack when missing prerequisite fails
++ not snap ack alice.account-key
+error: cannot assert: assert failed: cannot resolve prerequisite assertion: account (BGLTY1rcRKQQMbt9B407lDH38lbCW3wg)
++ echo 'Ack account and account-key for alice'
+Ack account and account-key for alice
++ snap ack alice.account
++ snap ack alice.account-key
++ echo 'We got alice account and account-key in the system db'
+We got alice account and account-key in the system db
++ MATCH 'account-id: BGLTY1rcRKQQMbt9B407lDH38lbCW3wg'
++ snap known account username=alice
++ snap known account-key public-key-sha3-384=s2I2irs5PDzHx8n_-lEjkVUn81dvKujEmUiS0c3vwPbwojxDT_QUZ6ejDavhj_yU
++ MATCH 'account-id: BGLTY1rcRKQQMbt9B407lDH38lbCW3wg'
++ BOB_ID=ct1P6H12NnpJ1nj2jxNX94lHp6sHClxT
++ echo 'Ack bob assertions as a stream'
+Ack bob assertions as a stream
++ snap ack bob.assertions
++ echo 'We got bob account and account-key in the system db'
+We got bob account and account-key in the system db
++ snap known account username=bob
++ MATCH 'account-id: ct1P6H12NnpJ1nj2jxNX94lHp6sHClxT'
++ snap known account-key public-key-sha3-384=kW5sfrKZI2rIAT70JkttRq2VlNa9t8EHOoWrL2ZBAa7tLWZMy2KBweZEh3_MLcZh
++ MATCH 'account-id: ct1P6H12NnpJ1nj2jxNX94lHp6sHClxT'
++ os.query is_noble
++ exit 1
+-----
+.
+2025-02-27 11:36:18 Debug output for google:ubuntu-24.04-64:tests/main/ack (feb271030-033833) : 
+-----
++ '[' 1 '!=' 1 ']'
++ . /home/gopath/src/github.com/snapcore/snapd/tests/lib/state.sh
+++ SNAPD_STATE_PATH=/var/tmp/snapd-tools/snapd-state
+++ SNAPD_STATE_FILE=/var/tmp/snapd-tools/snapd-state/snapd-state.tar
+++ SNAPD_ACTIVE_UNITS=/var/tmp/snapd-tools/runtime-state/snapd-active-units
++ . /home/gopath/src/github.com/snapcore/snapd/tests/lib/systems.sh
++ echo '# System information'
+# System information
++ cat /etc/os-release
+PRETTY_NAME="Ubuntu 24.04.2 LTS"
+NAME="Ubuntu"
+VERSION_ID="24.04"
+VERSION="24.04.2 LTS (Noble Numbat)"
+VERSION_CODENAME=noble
+ID=ubuntu
+ID_LIKE=debian
+HOME_URL="https://www.ubuntu.com/"
+SUPPORT_URL="https://help.ubuntu.com/"
+BUG_REPORT_URL="https://bugs.launchpad.net/ubuntu/"
+PRIVACY_POLICY_URL="https://www.ubuntu.com/legal/terms-and-policies/privacy-policy"
+UBUNTU_CODENAME=noble
+LOGO=ubuntu-logo
++ echo '# Kernel information'
+# Kernel information
++ uname -a
+Linux feb271030-033833.c.snapd-spread.internal 6.8.0-1021-gcp #23-Ubuntu SMP Wed Jan 15 22:37:41 UTC 2025 x86_64 x86_64 x86_64 GNU/Linux
++ echo '# Apparmor information'
+# Apparmor information
++ apparmor_parser --version
+AppArmor parser version 4.0.1
+Copyright (C) 1999-2008 Novell Inc.
+Copyright 2009-2018 Canonical Ltd.
++ echo '# Go information'
+# Go information
++ go version
+go version go1.22.2 linux/amd64
++ tests.nested is-nested
+Variable NESTED_TYPE not defined.
+Variable NESTED_TYPE not defined.
++ echo '# definition of snapd.service'
+# definition of snapd.service
++ systemctl cat snapd.service
+# /usr/lib/systemd/system/snapd.service
+[Unit]
+Description=Snap Daemon
+After=snapd.socket
+After=time-set.target
+After=snapd.mounts.target
+Wants=time-set.target
+Wants=snapd.mounts.target
+Requires=snapd.socket
+OnFailure=snapd.failure.service
+# This is handled by snapd
+# X-Snapd-Snap: do-not-start
+
+[Service]
+# Disabled because it breaks lxd
+# (https://bugs.launchpad.net/snapd/+bug/1709536)
+#Nice=-5
+OOMScoreAdjust=-900
+ExecStart=/usr/lib/snapd/snapd
+EnvironmentFile=-/etc/environment
+EnvironmentFile=-/var/lib/snapd/environment/snapd.conf
+Restart=always
+# with systemd v254+, skip going through failed state during restart
+RestartMode=direct
+WatchdogSec=5m
+Type=notify
+NotifyAccess=all
+SuccessExitStatus=42
+RestartPreventExitStatus=42
+KillMode=process
+
+[Install]
+WantedBy=multi-user.target
+
+# /etc/systemd/system/snapd.service.d/local.conf
+[Service]
+Environment=SNAPD_DEBUG_HTTP=7 SNAPD_DEBUG=1 SNAPPY_TESTING=1 SNAPD_REBOOT_DELAY=10m SNAPD_CONFIGURE_HOOK_TIMEOUT=30s SNAPPY_USE_STAGING_STORE=0
+ExecStartPre=/bin/touch /dev/iio:device0
+
+[Unit]
+# The default limit is usually 5, which can be easily hit in 
+# a fast system with few systemd units
+StartLimitBurst=10
+StartLimitIntervalSec=10s
+
+# /etc/systemd/system/snapd.service.d/memory-max.conf
+[Service]
+MemoryLimit=200M
++ echo '# status of snapd service'
+# status of snapd service
++ systemctl status snapd.service
+● snapd.service - Snap Daemon
+     Loaded: loaded (/usr/lib/systemd/system/snapd.service; enabled; preset: enabled)
+    Drop-In: /etc/systemd/system/snapd.service.d
+             └─local.conf, memory-max.conf
+     Active: active (running) since Thu 2025-02-27 10:36:03 UTC; 14s ago
+TriggeredBy: ● snapd.socket
+   Main PID: 10421 (snapd)
+      Tasks: 8 (limit: 4385)
+     Memory: 50.1M (limit: 200.0M peak: 50.9M)
+        CPU: 1.789s
+     CGroup: /system.slice/snapd.service
+             └─10421 /usr/lib/snapd/snapd
+
+Feb 27 10:36:17 feb271030-033833.c.snapd-spread.internal snapd[10421]: daemon.go:220: DEBUG: pid=11002;uid=0;socket=/run/snapd.socket; GET /v2/snaps?select=all 1.295302ms 200
+Feb 27 10:36:17 feb271030-033833.c.snapd-spread.internal snapd[10421]: daemon.go:220: DEBUG: pid=11033;uid=0;socket=/run/snapd.socket; POST /v2/assertions 6.549127ms 200
+Feb 27 10:36:17 feb271030-033833.c.snapd-spread.internal snapd[10421]: daemon.go:220: DEBUG: pid=11045;uid=0;socket=/run/snapd.socket; POST /v2/assertions 332.13µs 400
+Feb 27 10:36:17 feb271030-033833.c.snapd-spread.internal snapd[10421]: daemon.go:220: DEBUG: pid=11055;uid=0;socket=/run/snapd.socket; POST /v2/assertions 9.051026ms 200
+Feb 27 10:36:18 feb271030-033833.c.snapd-spread.internal snapd[10421]: daemon.go:220: DEBUG: pid=11065;uid=0;socket=/run/snapd.socket; POST /v2/assertions 14.432187ms 200
+Feb 27 10:36:18 feb271030-033833.c.snapd-spread.internal snapd[10421]: daemon.go:220: DEBUG: pid=11075;uid=0;socket=/run/snapd.socket; GET /v2/assertions/account?username=alice 446.964µs 200
+Feb 27 10:36:18 feb271030-033833.c.snapd-spread.internal snapd[10421]: daemon.go:220: DEBUG: pid=11089;uid=0;socket=/run/snapd.socket; GET /v2/assertions/account-key?public-key-sha3-384=s2I2irs5PDzHx8n_-lEjkVUn81dvKujEmUiS0c3vwPbwojxDT_QUZ6ejDavhj_yU 338.209µs 200
+Feb 27 10:36:18 feb271030-033833.c.snapd-spread.internal snapd[10421]: daemon.go:220: DEBUG: pid=11103;uid=0;socket=/run/snapd.socket; POST /v2/assertions 14.058015ms 200
+Feb 27 10:36:18 feb271030-033833.c.snapd-spread.internal snapd[10421]: daemon.go:220: DEBUG: pid=11114;uid=0;socket=/run/snapd.socket; GET /v2/assertions/account?username=bob 647.694µs 200
+Feb 27 10:36:18 feb271030-033833.c.snapd-spread.internal snapd[10421]: daemon.go:220: DEBUG: pid=11128;uid=0;socket=/run/snapd.socket; GET /v2/assertions/account-key?public-key-sha3-384=kW5sfrKZI2rIAT70JkttRq2VlNa9t8EHOoWrL2ZBAa7tLWZMy2KBweZEh3_MLcZh 445.809µs 200
++ echo '# memory limits of snapd service that systemd uses'
+# memory limits of snapd service that systemd uses
++ systemctl show snapd.service
++ grep -e MemoryMax= -e MemoryLimit=
+MemoryMax=infinity
+StartupMemoryMax=infinity
+MemoryLimit=209715200
++ echo '# memory limits of snapd service that are actually set'
+# memory limits of snapd service that are actually set
++ cat /sys/fs/cgroup/memory/system.slice/snapd.service/memory.limit_in_bytes
+cat: /sys/fs/cgroup/memory/system.slice/snapd.service/memory.limit_in_bytes: No such file or directory
++ true
++ echo '# journal messages for snapd'
+# journal messages for snapd
++ /home/gopath/src/github.com/snapcore/snapd/tests/lib/tools/journal-state get-log -u snapd
+Feb 27 10:36:17 feb271030-033833.c.snapd-spread.internal snapd[10421]: daemon.go:220: DEBUG: pid=11002;uid=0;socket=/run/snapd.socket; GET /v2/snaps?select=all 1.295302ms 200
+Feb 27 10:36:17 feb271030-033833.c.snapd-spread.internal snapd[10421]: daemon.go:220: DEBUG: pid=11033;uid=0;socket=/run/snapd.socket; POST /v2/assertions 6.549127ms 200
+Feb 27 10:36:17 feb271030-033833.c.snapd-spread.internal snapd[10421]: daemon.go:220: DEBUG: pid=11045;uid=0;socket=/run/snapd.socket; POST /v2/assertions 332.13µs 400
+Feb 27 10:36:17 feb271030-033833.c.snapd-spread.internal snapd[10421]: daemon.go:220: DEBUG: pid=11055;uid=0;socket=/run/snapd.socket; POST /v2/assertions 9.051026ms 200
+Feb 27 10:36:18 feb271030-033833.c.snapd-spread.internal snapd[10421]: daemon.go:220: DEBUG: pid=11065;uid=0;socket=/run/snapd.socket; POST /v2/assertions 14.432187ms 200
+Feb 27 10:36:18 feb271030-033833.c.snapd-spread.internal snapd[10421]: daemon.go:220: DEBUG: pid=11075;uid=0;socket=/run/snapd.socket; GET /v2/assertions/account?username=alice 446.964µs 200
+Feb 27 10:36:18 feb271030-033833.c.snapd-spread.internal snapd[10421]: daemon.go:220: DEBUG: pid=11089;uid=0;socket=/run/snapd.socket; GET /v2/assertions/account-key?public-key-sha3-384=s2I2irs5PDzHx8n_-lEjkVUn81dvKujEmUiS0c3vwPbwojxDT_QUZ6ejDavhj_yU 338.209µs 200
+Feb 27 10:36:18 feb271030-033833.c.snapd-spread.internal snapd[10421]: daemon.go:220: DEBUG: pid=11103;uid=0;socket=/run/snapd.socket; POST /v2/assertions 14.058015ms 200
+Feb 27 10:36:18 feb271030-033833.c.snapd-spread.internal snapd[10421]: daemon.go:220: DEBUG: pid=11114;uid=0;socket=/run/snapd.socket; GET /v2/assertions/account?username=bob 647.694µs 200
+Feb 27 10:36:18 feb271030-033833.c.snapd-spread.internal snapd[10421]: daemon.go:220: DEBUG: pid=11128;uid=0;socket=/run/snapd.socket; GET /v2/assertions/account-key?public-key-sha3-384=kW5sfrKZI2rIAT70JkttRq2VlNa9t8EHOoWrL2ZBAa7tLWZMy2KBweZEh3_MLcZh 445.809µs 200
++ echo '# user sessions information'
+# user sessions information
++ journalctl --user -u snapd.session-agent.service
+-- No entries --
++ systemctl status --user snapd.session-agent
+○ snapd.session-agent.service - snapd user session agent
+     Loaded: loaded (/usr/lib/systemd/user/snapd.session-agent.service; static)
+     Active: inactive (dead)
+TriggeredBy: ● snapd.session-agent.socket
++ true
++ is_cgroupv2
+++ stat -f -c %T /sys/fs/cgroup
++ test cgroup2fs = cgroup2fs
++ echo '# snap confinement device filtering maps'
+# snap confinement device filtering maps
++ ls -l /sys/fs/bpf/snap
+ls: cannot access '/sys/fs/bpf/snap': No such file or directory
++ true
++ case "$SPREAD_SYSTEM" in
++ echo '# apparmor denials '
+# apparmor denials 
++ dmesg --ctime
++ grep DENIED
++ true
++ echo '# seccomp denials (kills) '
+# seccomp denials (kills) 
++ dmesg --ctime
++ grep type=1326
++ true
++ echo '# snap connections --all'
+# snap connections --all
++ snap connections --all
+Interface         Plug               Slot  Notes
+cuda-driver-libs  :cuda-driver-libs  -     -
++ echo '# free space'
+# free space
++ df -h
+Filesystem      Size  Used Avail Use% Mounted on
+/dev/root        14G  4.8G  8.8G  36% /
+tmpfs           1.8G     0  1.8G   0% /dev/shm
+tmpfs           733M  2.0M  731M   1% /run
+tmpfs           5.0M     0  5.0M   0% /run/lock
+efivarfs         56K   24K   27K  48% /sys/firmware/efi/efivars
+/dev/sda16      881M   61M  759M   8% /boot
+/dev/sda15      105M  6.1M   99M   6% /boot/efi
+tmpfs           367M   24K  367M   1% /run/user/0
++ echo '# mounts'
+# mounts
++ findmnt --ascii -o+PROPAGATION
+TARGET                         SOURCE      FSTYPE      OPTIONS                                                                                              PROPAGATION
+/                              /dev/sda1   ext4        rw,relatime,discard,errors=remount-ro,commit=30                                                      shared
+|-/dev                         devtmpfs    devtmpfs    rw,nosuid,noexec,relatime,size=1871064k,nr_inodes=467766,mode=755,inode64                            shared
+| |-/dev/shm                   tmpfs       tmpfs       rw,nosuid,nodev,inode64                                                                              shared
+| |-/dev/pts                   devpts      devpts      rw,nosuid,noexec,relatime,gid=5,mode=620,ptmxmode=000                                                shared
+| |-/dev/hugepages             hugetlbfs   hugetlbfs   rw,nosuid,nodev,relatime,pagesize=2M                                                                 shared
+| `-/dev/mqueue                mqueue      mqueue      rw,nosuid,nodev,noexec,relatime                                                                      shared
+|-/proc                        proc        proc        rw,nosuid,nodev,noexec,relatime                                                                      shared
+| |-/proc/sys/fs/binfmt_misc   systemd-1   autofs      rw,relatime,fd=32,pgrp=1,timeout=0,minproto=5,maxproto=5,direct,pipe_ino=1031                        shared
+| | `-/proc/sys/fs/binfmt_misc binfmt_misc binfmt_misc rw,nosuid,nodev,noexec,relatime                                                                      shared
+| `-/proc/fs/nfsd              nfsd        nfsd        rw,relatime                                                                                          shared
+|-/sys                         sysfs       sysfs       rw,nosuid,nodev,noexec,relatime                                                                      shared
+| |-/sys/kernel/security       securityfs  securityfs  rw,nosuid,nodev,noexec,relatime                                                                      shared
+| |-/sys/fs/cgroup             cgroup2     cgroup2     rw,nosuid,nodev,noexec,relatime,nsdelegate,memory_recursiveprot                                      shared
+Feb 27 10:35:41 feb271030-033833.c.snapd-spread.internal systemd[1]: snapd.socket: Deactivated successfully.
+Feb 27 10:35:41 feb271030-033833.c.snapd-spread.internal systemd[1]: Closed snapd.socket - Socket activation for snappy daemon.
+Feb 27 10:35:41 feb271030-033833.c.snapd-spread.internal systemd[1]: Reloading requested from client PID 9469 ('systemctl') (unit session-1.scope)...
+Feb 27 10:35:41 feb271030-033833.c.snapd-spread.internal systemd[1]: Reloading...
+Feb 27 10:35:42 feb271030-033833.c.snapd-spread.internal systemd[1]: /etc/systemd/system/snapd.service.d/memory-max.conf:2: Unit uses MemoryLimit=; please use MemoryMax= instead. Support for MemoryLimit= will be removed soon.
+Feb 27 10:35:42 feb271030-033833.c.snapd-spread.internal systemd[1]: Reloading finished in 496 ms.
+Feb 27 10:35:43 feb271030-033833.c.snapd-spread.internal systemd[1]: Unmounting snap-core-17195.mount - Mount unit for core, revision 17195...
+Feb 27 10:35:43 feb271030-033833.c.snapd-spread.internal systemd[1]: snap-core-17195.mount: Deactivated successfully.
+Feb 27 10:35:43 feb271030-033833.c.snapd-spread.internal systemd[1]: Unmounted snap-core-17195.mount - Mount unit for core, revision 17195.
+Feb 27 10:35:43 feb271030-033833.c.snapd-spread.internal systemd[1]: Unmounting snap-snapd-x1.mount - Mount unit for snapd, revision x1...
+Feb 27 10:35:43 feb271030-033833.c.snapd-spread.internal systemd[1]: snap-snapd-x1.mount: Deactivated successfully.
+Feb 27 10:35:43 feb271030-033833.c.snapd-spread.internal systemd[1]: Unmounted snap-snapd-x1.mount - Mount unit for snapd, revision x1.
+Feb 27 10:35:44 feb271030-033833.c.snapd-spread.internal systemd[1]: Reloading requested from client PID 9580 ('systemctl') (unit session-1.scope)...
+Feb 27 10:35:44 feb271030-033833.c.snapd-spread.internal systemd[1]: Reloading...
+Feb 27 10:35:44 feb271030-033833.c.snapd-spread.internal systemd[1]: /etc/systemd/system/snapd.service.d/memory-max.conf:2: Unit uses MemoryLimit=; please use MemoryMax= instead. Support for MemoryLimit= will be removed soon.
+Feb 27 10:35:44 feb271030-033833.c.snapd-spread.internal systemd[1]: Reloading finished in 482 ms.
+Feb 27 10:35:44 feb271030-033833.c.snapd-spread.internal systemd[1]: Mounting snap-core-17195.mount - Mount unit for core, revision 17195...
+Feb 27 10:35:44 feb271030-033833.c.snapd-spread.internal kernel: loop0: detected capacity change from 0 to 215352
+Feb 27 10:35:44 feb271030-033833.c.snapd-spread.internal systemd[1]: Mounted snap-core-17195.mount - Mount unit for core, revision 17195.
+Feb 27 10:35:45 feb271030-033833.c.snapd-spread.internal systemd[1]: Mounting snap-snapd-x1.mount - Mount unit for snapd, revision x1...
+Feb 27 10:35:45 feb271030-033833.c.snapd-spread.internal kernel: loop1: detected capacity change from 0 to 104336
+Feb 27 10:35:45 feb271030-033833.c.snapd-spread.internal systemd[1]: Mounted snap-snapd-x1.mount - Mount unit for snapd, revision x1.
+Feb 27 10:35:45 feb271030-033833.c.snapd-spread.internal systemd[1]: Starting snapd.socket - Socket activation for snappy daemon...
+Feb 27 10:35:45 feb271030-033833.c.snapd-spread.internal systemd[1]: Listening on snapd.socket - Socket activation for snappy daemon.
+Feb 27 10:35:45 feb271030-033833.c.snapd-spread.internal systemd[1]: Starting snapd.service - Snap Daemon...
+Feb 27 10:35:45 feb271030-033833.c.snapd-spread.internal snapd[9669]: logger.go:99: DEBUG: restarting into "/snap/snapd/current/usr/lib/snapd/snapd"
+Feb 27 10:35:46 feb271030-033833.c.snapd-spread.internal snapd[9669]: apparmor.go:856: DEBUG: checking internal apparmor_parser candidate at /snap/snapd/x1/usr/lib/snapd/apparmor_parser
+Feb 27 10:35:46 feb271030-033833.c.snapd-spread.internal snapd[9669]: apparmor.go:856: DEBUG: checking internal apparmor_parser candidate at /snap/snapd/x1/usr/lib/snapd/apparmor_parser
+Feb 27 10:35:47 feb271030-033833.c.snapd-spread.internal snapd[9669]: apparmor.go:927: DEBUG: apparmor_parser --version
+Feb 27 10:35:47 feb271030-033833.c.snapd-spread.internal snapd[9669]: AppArmor parser version 4.0.2
+Feb 27 10:35:47 feb271030-033833.c.snapd-spread.internal snapd[9669]: Copyright (C) 1999-2008 Novell Inc.
+Feb 27 10:35:47 feb271030-033833.c.snapd-spread.internal snapd[9669]: Copyright 2009-2018 Canonical Ltd.
+Feb 27 10:35:47 feb271030-033833.c.snapd-spread.internal snapd[9669]: apparmor.go:780: DEBUG: apparmor parser version: "4.0.2"
+Feb 27 10:35:47 feb271030-033833.c.snapd-spread.internal snapd[9669]: apparmor.go:856: DEBUG: checking internal apparmor_parser candidate at /snap/snapd/x1/usr/lib/snapd/apparmor_parser
+Feb 27 10:35:47 feb271030-033833.c.snapd-spread.internal snapd[9669]: apparmor.go:856: DEBUG: checking internal apparmor_parser candidate at /snap/snapd/x1/usr/lib/snapd/apparmor_parser
+Feb 27 10:35:47 feb271030-033833.c.snapd-spread.internal snapd[9669]: apparmor.go:856: DEBUG: checking internal apparmor_parser candidate at /snap/snapd/x1/usr/lib/snapd/apparmor_parser
+Feb 27 10:35:47 feb271030-033833.c.snapd-spread.internal snapd[9669]: apparmor.go:856: DEBUG: checking internal apparmor_parser candidate at /snap/snapd/x1/usr/lib/snapd/apparmor_parser
+Feb 27 10:35:47 feb271030-033833.c.snapd-spread.internal snapd[9669]: apparmor.go:856: DEBUG: checking internal apparmor_parser candidate at /snap/snapd/x1/usr/lib/snapd/apparmor_parser
+Feb 27 10:35:47 feb271030-033833.c.snapd-spread.internal snapd[9669]: apparmor.go:856: DEBUG: checking internal apparmor_parser candidate at /snap/snapd/x1/usr/lib/snapd/apparmor_parser
+Feb 27 10:35:47 feb271030-033833.c.snapd-spread.internal snapd[9669]: apparmor.go:856: DEBUG: checking internal apparmor_parser candidate at /snap/snapd/x1/usr/lib/snapd/apparmor_parser
+Feb 27 10:35:47 feb271030-033833.c.snapd-spread.internal snapd[9669]: apparmor.go:856: DEBUG: checking internal apparmor_parser candidate at /snap/snapd/x1/usr/lib/snapd/apparmor_parser
+Feb 27 10:35:47 feb271030-033833.c.snapd-spread.internal snapd[9669]: apparmor.go:856: DEBUG: checking internal apparmor_parser candidate at /snap/snapd/x1/usr/lib/snapd/apparmor_parser
+Feb 27 10:35:47 feb271030-033833.c.snapd-spread.internal snapd[9669]: apparmor.go:856: DEBUG: checking internal apparmor_parser candidate at /snap/snapd/x1/usr/lib/snapd/apparmor_parser
+Feb 27 10:35:47 feb271030-033833.c.snapd-spread.internal snapd[9669]: apparmor.go:856: DEBUG: checking internal apparmor_parser candidate at /snap/snapd/x1/usr/lib/snapd/apparmor_parser
+Feb 27 10:35:47 feb271030-033833.c.snapd-spread.internal snapd[9669]: apparmor.go:856: DEBUG: checking internal apparmor_parser candidate at /snap/snapd/x1/usr/lib/snapd/apparmor_parser
+Feb 27 10:35:47 feb271030-033833.c.snapd-spread.internal snapd[9669]: apparmor.go:856: DEBUG: checking internal apparmor_parser candidate at /snap/snapd/x1/usr/lib/snapd/apparmor_parser
+Feb 27 10:35:47 feb271030-033833.c.snapd-spread.internal snapd[9669]: apparmor.go:808: DEBUG: probed apparmor parser features for version 4.0.2 (internal=true): [allow-all cap-audit-read cap-bpf include-if-exists io-uring mqueue mqueue-posix prompt qipcrtr-socket snapd-internal unconfined unsafe userns xdp]
+Feb 27 10:35:47 feb271030-033833.c.snapd-spread.internal snapd[9669]: overlord.go:284: Acquiring state lock file
+Feb 27 10:35:47 feb271030-033833.c.snapd-spread.internal snapd[9669]: overlord.go:289: Acquired state lock file
+Feb 27 10:35:47 feb271030-033833.c.snapd-spread.internal snapd[9669]: daemon.go:250: started snapd/1337.2.68+g81.b57e00f (series 16; classic; testing) ubuntu/24.04 (amd64) linux/6.8.0-1021-gcp.
+Feb 27 10:35:47 feb271030-033833.c.snapd-spread.internal kernel: loop2: detected capacity change from 0 to 8
+Feb 27 10:35:47 feb271030-033833.c.snapd-spread.internal systemd[1]: tmp-syscheck\x2dmountpoint\x2d561532267.mount: Deactivated successfully.
+Feb 27 10:35:47 feb271030-033833.c.snapd-spread.internal snapd[9669]: daemon.go:353: adjusting startup timeout by 40s (pessimistic estimate of 30s plus 5s per snap)
+Feb 27 10:35:47 feb271030-033833.c.snapd-spread.internal snapd[9669]: backends.go:91: AppArmor status: apparmor is enabled and all features are available (using snapd provided apparmor_parser)
+Feb 27 10:35:47 feb271030-033833.c.snapd-spread.internal snapd[9669]: apparmor.go:856: DEBUG: checking internal apparmor_parser candidate at /snap/snapd/x1/usr/lib/snapd/apparmor_parser
+Feb 27 10:35:47 feb271030-033833.c.snapd-spread.internal snapd[9669]: standby.go:95: DEBUG: will consider standby after: 5s
+Feb 27 10:35:47 feb271030-033833.c.snapd-spread.internal snapd[9669]: main.go:102: DEBUG: Setting up sd_notify() watchdog timer every 2m30s
+Feb 27 10:35:47 feb271030-033833.c.snapd-spread.internal systemd[1]: Started snapd.service - Snap Daemon.
+Feb 27 10:35:47 feb271030-033833.c.snapd-spread.internal snapd[9669]: main.go:165: DEBUG: activation done in 427ms
+Feb 27 10:35:47 feb271030-033833.c.snapd-spread.internal snapd[9669]: daemon.go:220: DEBUG: pid=9657;uid=0;socket=/run/snapd.socket; PUT /v2/snaps/system/conf 8.155491ms 202
+Feb 27 10:35:47 feb271030-033833.c.snapd-spread.internal snapd[9669]: autorefresh.go:360: DEBUG: Next refresh scheduled for 2025-02-28T23:15:18Z.
+Feb 27 10:35:47 feb271030-033833.c.snapd-spread.internal snapd[9669]: taskrunner.go:471: DEBUG: Running task 32 on Do: Run configure hook of "core" snap
+Feb 27 10:35:47 feb271030-033833.c.snapd-spread.internal snapd[9669]: daemon.go:220: DEBUG: pid=9743;uid=0;socket=/run/snapd.socket; GET /v2/snaps?select=all 21.971584ms 200
+Feb 27 10:35:47 feb271030-033833.c.snapd-spread.internal systemd[1]: Reloading requested from client PID 9761 ('systemctl') (unit session-1.scope)...
+Feb 27 10:35:47 feb271030-033833.c.snapd-spread.internal systemd[1]: Reloading...
+Feb 27 10:35:48 feb271030-033833.c.snapd-spread.internal systemd[1]: /etc/systemd/system/snapd.service.d/memory-max.conf:2: Unit uses MemoryLimit=; please use MemoryMax= instead. Support for MemoryLimit= will be removed soon.
+Feb 27 10:35:48 feb271030-033833.c.snapd-spread.internal systemd[1]: Reloading finished in 479 ms.
+Feb 27 10:35:48 feb271030-033833.c.snapd-spread.internal snapd[9669]: main.go:171: Exiting on terminated signal.
+Feb 27 10:35:48 feb271030-033833.c.snapd-spread.internal systemd[1]: Stopping snapd.service - Snap Daemon...
+Feb 27 10:35:48 feb271030-033833.c.snapd-spread.internal snapd[9669]: overlord.go:528: Released state lock file
+Feb 27 10:35:48 feb271030-033833.c.snapd-spread.internal systemd[1]: snapd.service: Deactivated successfully.
+Feb 27 10:35:48 feb271030-033833.c.snapd-spread.internal systemd[1]: Stopped snapd.service - Snap Daemon.
+Feb 27 10:35:48 feb271030-033833.c.snapd-spread.internal systemd[1]: snapd.service: Consumed 1.561s CPU time, 47.2M memory peak, 0B memory swap peak.
+Feb 27 10:35:48 feb271030-033833.c.snapd-spread.internal systemd[1]: snapd.socket: Deactivated successfully.
+Feb 27 10:35:48 feb271030-033833.c.snapd-spread.internal systemd[1]: Closed snapd.socket - Socket activation for snappy daemon.
+Feb 27 10:35:48 feb271030-033833.c.snapd-spread.internal systemd[1]: Reloading requested from client PID 9829 ('systemctl') (unit session-1.scope)...
+Feb 27 10:35:48 feb271030-033833.c.snapd-spread.internal systemd[1]: Reloading...
+Feb 27 10:35:48 feb271030-033833.c.snapd-spread.internal systemd[1]: /etc/systemd/system/snapd.service.d/memory-max.conf:2: Unit uses MemoryLimit=; please use MemoryMax= instead. Support for MemoryLimit= will be removed soon.
+Feb 27 10:35:48 feb271030-033833.c.snapd-spread.internal systemd[1]: Reloading finished in 458 ms.
+Feb 27 10:35:48 feb271030-033833.c.snapd-spread.internal systemd[1442]: Closed snapd.session-agent.socket - REST API socket for snapd user session agent.
+Feb 27 10:35:48 feb271030-033833.c.snapd-spread.internal systemd[1]: Starting fwupd-refresh.service - Refresh fwupd metadata and update motd...
+Feb 27 10:35:49 feb271030-033833.c.snapd-spread.internal dbus-daemon[722]: [system] Activating via systemd: service name='org.freedesktop.fwupd' unit='fwupd.service' requested by ':1.75' (uid=990 pid=9884 comm="/usr/bin/fwupdmgr refresh" label="unconfined")
+Feb 27 10:35:50 feb271030-033833.c.snapd-spread.internal systemd[1]: Starting fwupd.service - Firmware update daemon...
+Feb 27 10:35:51 feb271030-033833.c.snapd-spread.internal dbus-daemon[722]: [system] Activating via systemd: service name='org.freedesktop.UPower' unit='upower.service' requested by ':1.76' (uid=0 pid=9927 comm="/usr/libexec/fwupd/fwupd" label="unconfined")
+Feb 27 10:35:51 feb271030-033833.c.snapd-spread.internal systemd[1]: Starting upower.service - Daemon for power management...
+Feb 27 10:35:51 feb271030-033833.c.snapd-spread.internal systemd[1]: Unmounting snap-core-17195.mount - Mount unit for core, revision 17195...
+Feb 27 10:35:51 feb271030-033833.c.snapd-spread.internal systemd[1]: snap-core-17195.mount: Deactivated successfully.
+Feb 27 10:35:51 feb271030-033833.c.snapd-spread.internal systemd[1]: Unmounted snap-core-17195.mount - Mount unit for core, revision 17195.
+Feb 27 10:35:51 feb271030-033833.c.snapd-spread.internal systemd[1]: Unmounting snap-snapd-x1.mount - Mount unit for snapd, revision x1...
+Feb 27 10:35:51 feb271030-033833.c.snapd-spread.internal systemd[1]: snap-snapd-x1.mount: Deactivated successfully.
+Feb 27 10:35:51 feb271030-033833.c.snapd-spread.internal systemd[1]: Unmounted snap-snapd-x1.mount - Mount unit for snapd, revision x1.
+Feb 27 10:35:52 feb271030-033833.c.snapd-spread.internal systemd[1]: Reloading requested from client PID 10046 ('systemctl') (unit session-1.scope)...
+Feb 27 10:35:52 feb271030-033833.c.snapd-spread.internal systemd[1]: Reloading...
+Feb 27 10:35:52 feb271030-033833.c.snapd-spread.internal systemd[1]: /etc/systemd/system/snapd.service.d/memory-max.conf:2: Unit uses MemoryLimit=; please use MemoryMax= instead. Support for MemoryLimit= will be removed soon.
+Feb 27 10:35:52 feb271030-033833.c.snapd-spread.internal dbus-daemon[722]: [system] Successfully activated service 'org.freedesktop.UPower'
+Feb 27 10:35:52 feb271030-033833.c.snapd-spread.internal fwupd[9927]: 10:35:52.441 FuPluginUefiCapsule  SMBIOS BIOS Characteristics Extension Byte 2 is invalid -- UEFI Specification is unsupported, but /sys/firmware/efi exists: System does not support UEFI mode
+Feb 27 10:35:52 feb271030-033833.c.snapd-spread.internal systemd[1]: Reloading finished in 717 ms.
+Feb 27 10:35:52 feb271030-033833.c.snapd-spread.internal systemd[1]: Started upower.service - Daemon for power management.
+Feb 27 10:35:52 feb271030-033833.c.snapd-spread.internal systemd[1]: Starting motd-news.service - Message of the Day...
+Feb 27 10:35:53 feb271030-033833.c.snapd-spread.internal dbus-daemon[722]: [system] Reloaded configuration
+Feb 27 10:35:53 feb271030-033833.c.snapd-spread.internal systemd-logind[5880]: Watching system buttons on /dev/input/event0 (Power Button)
+Feb 27 10:35:53 feb271030-033833.c.snapd-spread.internal systemd-logind[5880]: Watching system buttons on /dev/input/event1 (Sleep Button)
+Feb 27 10:35:53 feb271030-033833.c.snapd-spread.internal systemd-logind[5880]: Watching system buttons on /dev/input/event2 (AT Translated Set 2 keyboard)
+Feb 27 10:35:53 feb271030-033833.c.snapd-spread.internal fwupd[9927]: 10:35:53.825 FuMain               Daemon ready for requests (locale C.UTF-8)
+Feb 27 10:35:53 feb271030-033833.c.snapd-spread.internal dbus-daemon[722]: [system] Successfully activated service 'org.freedesktop.fwupd'
+Feb 27 10:35:53 feb271030-033833.c.snapd-spread.internal systemd[1]: Started fwupd.service - Firmware update daemon.
+Feb 27 10:35:53 feb271030-033833.c.snapd-spread.internal fwupdmgr[9884]: Updating lvfs
+Feb 27 10:35:54 feb271030-033833.c.snapd-spread.internal systemd[1]: Reloading requested from client PID 10211 ('systemctl') (unit session-1.scope)...
+Feb 27 10:35:54 feb271030-033833.c.snapd-spread.internal systemd[1]: Reloading...
+Feb 27 10:35:54 feb271030-033833.c.snapd-spread.internal systemd[1]: /etc/systemd/system/snapd.service.d/memory-max.conf:2: Unit uses MemoryLimit=; please use MemoryMax= instead. Support for MemoryLimit= will be removed soon.
+Feb 27 10:35:54 feb271030-033833.c.snapd-spread.internal systemd[1]: Reloading finished in 861 ms.
+Feb 27 10:35:57 feb271030-033833.c.snapd-spread.internal fwupdmgr[9884]: Successfully downloaded new metadata: 1 local device supported
+Feb 27 10:35:58 feb271030-033833.c.snapd-spread.internal systemd[1]: fwupd-refresh.service: Deactivated successfully.
+Feb 27 10:35:58 feb271030-033833.c.snapd-spread.internal systemd[1]: Finished fwupd-refresh.service - Refresh fwupd metadata and update motd.
+Feb 27 10:35:59 feb271030-033833.c.snapd-spread.internal systemd[1]: Starting update-notifier-download.service - Download data for packages that failed at package install time...
+Feb 27 10:35:59 feb271030-033833.c.snapd-spread.internal systemd[1]: Reloading requested from client PID 10347 ('systemctl') (unit session-1.scope)...
+Feb 27 10:35:59 feb271030-033833.c.snapd-spread.internal systemd[1]: Reloading...
+Feb 27 10:35:59 feb271030-033833.c.snapd-spread.internal systemd[1]: /etc/systemd/system/snapd.service.d/memory-max.conf:2: Unit uses MemoryLimit=; please use MemoryMax= instead. Support for MemoryLimit= will be removed soon.
+Feb 27 10:35:59 feb271030-033833.c.snapd-spread.internal systemd[1]: Reloading finished in 682 ms.
+Feb 27 10:36:00 feb271030-033833.c.snapd-spread.internal systemd[1]: update-notifier-download.service: Deactivated successfully.
+Feb 27 10:36:00 feb271030-033833.c.snapd-spread.internal systemd[1]: Finished update-notifier-download.service - Download data for packages that failed at package install time.
+Feb 27 10:36:00 feb271030-033833.c.snapd-spread.internal systemd[1]: Mounting snap-core-17195.mount - Mount unit for core, revision 17195...
+Feb 27 10:36:00 feb271030-033833.c.snapd-spread.internal kernel: loop0: detected capacity change from 0 to 215352
+Feb 27 10:36:00 feb271030-033833.c.snapd-spread.internal systemd[1]: Mounted snap-core-17195.mount - Mount unit for core, revision 17195.
+Feb 27 10:36:00 feb271030-033833.c.snapd-spread.internal systemd[1]: Mounting snap-snapd-x1.mount - Mount unit for snapd, revision x1...
+Feb 27 10:36:00 feb271030-033833.c.snapd-spread.internal kernel: loop1: detected capacity change from 0 to 104336
+Feb 27 10:36:00 feb271030-033833.c.snapd-spread.internal systemd[1]: Mounted snap-snapd-x1.mount - Mount unit for snapd, revision x1.
+Feb 27 10:36:00 feb271030-033833.c.snapd-spread.internal systemd[1]: Starting snapd.socket - Socket activation for snappy daemon...
+Feb 27 10:36:00 feb271030-033833.c.snapd-spread.internal systemd[1]: Listening on snapd.socket - Socket activation for snappy daemon.
+Feb 27 10:36:00 feb271030-033833.c.snapd-spread.internal systemd[1]: Starting snapd.service - Snap Daemon...
+Feb 27 10:36:00 feb271030-033833.c.snapd-spread.internal snapd[10421]: logger.go:99: DEBUG: restarting into "/snap/snapd/current/usr/lib/snapd/snapd"
+Feb 27 10:36:01 feb271030-033833.c.snapd-spread.internal snapd[10421]: apparmor.go:856: DEBUG: checking internal apparmor_parser candidate at /snap/snapd/x1/usr/lib/snapd/apparmor_parser
+Feb 27 10:36:01 feb271030-033833.c.snapd-spread.internal snapd[10421]: apparmor.go:856: DEBUG: checking internal apparmor_parser candidate at /snap/snapd/x1/usr/lib/snapd/apparmor_parser
+Feb 27 10:36:01 feb271030-033833.c.snapd-spread.internal snapd[10421]: apparmor.go:927: DEBUG: apparmor_parser --version
+Feb 27 10:36:01 feb271030-033833.c.snapd-spread.internal snapd[10421]: AppArmor parser version 4.0.2
+Feb 27 10:36:01 feb271030-033833.c.snapd-spread.internal snapd[10421]: Copyright (C) 1999-2008 Novell Inc.
+Feb 27 10:36:01 feb271030-033833.c.snapd-spread.internal snapd[10421]: Copyright 2009-2018 Canonical Ltd.
+Feb 27 10:36:01 feb271030-033833.c.snapd-spread.internal snapd[10421]: apparmor.go:780: DEBUG: apparmor parser version: "4.0.2"
+Feb 27 10:36:01 feb271030-033833.c.snapd-spread.internal snapd[10421]: apparmor.go:856: DEBUG: checking internal apparmor_parser candidate at /snap/snapd/x1/usr/lib/snapd/apparmor_parser
+Feb 27 10:36:01 feb271030-033833.c.snapd-spread.internal snapd[10421]: apparmor.go:856: DEBUG: checking internal apparmor_parser candidate at /snap/snapd/x1/usr/lib/snapd/apparmor_parser
+Feb 27 10:36:01 feb271030-033833.c.snapd-spread.internal snapd[10421]: apparmor.go:856: DEBUG: checking internal apparmor_parser candidate at /snap/snapd/x1/usr/lib/snapd/apparmor_parser
+Feb 27 10:36:01 feb271030-033833.c.snapd-spread.internal snapd[10421]: apparmor.go:856: DEBUG: checking internal apparmor_parser candidate at /snap/snapd/x1/usr/lib/snapd/apparmor_parser
+Feb 27 10:36:01 feb271030-033833.c.snapd-spread.internal snapd[10421]: apparmor.go:856: DEBUG: checking internal apparmor_parser candidate at /snap/snapd/x1/usr/lib/snapd/apparmor_parser
+Feb 27 10:36:01 feb271030-033833.c.snapd-spread.internal snapd[10421]: apparmor.go:856: DEBUG: checking internal apparmor_parser candidate at /snap/snapd/x1/usr/lib/snapd/apparmor_parser
+Feb 27 10:36:01 feb271030-033833.c.snapd-spread.internal snapd[10421]: apparmor.go:856: DEBUG: checking internal apparmor_parser candidate at /snap/snapd/x1/usr/lib/snapd/apparmor_parser
+Feb 27 10:36:01 feb271030-033833.c.snapd-spread.internal snapd[10421]: apparmor.go:856: DEBUG: checking internal apparmor_parser candidate at /snap/snapd/x1/usr/lib/snapd/apparmor_parser
+Feb 27 10:36:01 feb271030-033833.c.snapd-spread.internal snapd[10421]: apparmor.go:856: DEBUG: checking internal apparmor_parser candidate at /snap/snapd/x1/usr/lib/snapd/apparmor_parser
+Feb 27 10:36:01 feb271030-033833.c.snapd-spread.internal snapd[10421]: apparmor.go:856: DEBUG: checking internal apparmor_parser candidate at /snap/snapd/x1/usr/lib/snapd/apparmor_parser
+Feb 27 10:36:01 feb271030-033833.c.snapd-spread.internal snapd[10421]: apparmor.go:856: DEBUG: checking internal apparmor_parser candidate at /snap/snapd/x1/usr/lib/snapd/apparmor_parser
+Feb 27 10:36:01 feb271030-033833.c.snapd-spread.internal snapd[10421]: apparmor.go:856: DEBUG: checking internal apparmor_parser candidate at /snap/snapd/x1/usr/lib/snapd/apparmor_parser
+Feb 27 10:36:01 feb271030-033833.c.snapd-spread.internal snapd[10421]: apparmor.go:856: DEBUG: checking internal apparmor_parser candidate at /snap/snapd/x1/usr/lib/snapd/apparmor_parser
+Feb 27 10:36:01 feb271030-033833.c.snapd-spread.internal snapd[10421]: apparmor.go:808: DEBUG: probed apparmor parser features for version 4.0.2 (internal=true): [allow-all cap-audit-read cap-bpf include-if-exists io-uring mqueue mqueue-posix prompt qipcrtr-socket snapd-internal unconfined unsafe userns xdp]
+Feb 27 10:36:01 feb271030-033833.c.snapd-spread.internal snapd[10421]: overlord.go:284: Acquiring state lock file
+Feb 27 10:36:01 feb271030-033833.c.snapd-spread.internal snapd[10421]: overlord.go:289: Acquired state lock file
+Feb 27 10:36:01 feb271030-033833.c.snapd-spread.internal snapd[10421]: daemon.go:250: started snapd/1337.2.68+g81.b57e00f (series 16; classic; testing) ubuntu/24.04 (amd64) linux/6.8.0-1021-gcp.
+Feb 27 10:36:01 feb271030-033833.c.snapd-spread.internal kernel: loop2: detected capacity change from 0 to 8
+Feb 27 10:36:01 feb271030-033833.c.snapd-spread.internal systemd[1]: tmp-syscheck\x2dmountpoint\x2d4094440468.mount: Deactivated successfully.
+Feb 27 10:36:01 feb271030-033833.c.snapd-spread.internal snapd[10421]: daemon.go:353: adjusting startup timeout by 40s (pessimistic estimate of 30s plus 5s per snap)
+Feb 27 10:36:01 feb271030-033833.c.snapd-spread.internal 50-motd-news[10470]:  * Strictly confined Kubernetes makes edge and IoT secure. Learn how MicroK8s
+Feb 27 10:36:01 feb271030-033833.c.snapd-spread.internal 50-motd-news[10470]:    just raised the bar for easy, resilient and secure K8s cluster deployment.
+Feb 27 10:36:01 feb271030-033833.c.snapd-spread.internal 50-motd-news[10470]:    https://ubuntu.com/engage/secure-kubernetes-at-the-edge
+Feb 27 10:36:01 feb271030-033833.c.snapd-spread.internal systemd[1]: motd-news.service: Deactivated successfully.
+Feb 27 10:36:01 feb271030-033833.c.snapd-spread.internal systemd[1]: Finished motd-news.service - Message of the Day.
+Feb 27 10:36:01 feb271030-033833.c.snapd-spread.internal snapd[10421]: backends.go:91: AppArmor status: apparmor is enabled and all features are available (using snapd provided apparmor_parser)
+Feb 27 10:36:01 feb271030-033833.c.snapd-spread.internal snapd[10421]: apparmor.go:856: DEBUG: checking internal apparmor_parser candidate at /snap/snapd/x1/usr/lib/snapd/apparmor_parser
+Feb 27 10:36:01 feb271030-033833.c.snapd-spread.internal snapd[10421]: helpers.go:159: error trying to compare the snap system key: system-key missing on disk
+Feb 27 10:36:02 feb271030-033833.c.snapd-spread.internal systemd-logind[5880]: Watching system buttons on /dev/input/event2 (AT Translated Set 2 keyboard)
+Feb 27 10:36:02 feb271030-033833.c.snapd-spread.internal systemd-logind[5880]: Watching system buttons on /dev/input/event1 (Sleep Button)
+Feb 27 10:36:02 feb271030-033833.c.snapd-spread.internal systemd-logind[5880]: Watching system buttons on /dev/input/event0 (Power Button)
+Feb 27 10:36:03 feb271030-033833.c.snapd-spread.internal snapd[10421]: apparmor.go:856: DEBUG: checking internal apparmor_parser candidate at /snap/snapd/x1/usr/lib/snapd/apparmor_parser
+Feb 27 10:36:03 feb271030-033833.c.snapd-spread.internal kernel: audit: type=1400 audit(1740652563.627:157): apparmor="STATUS" operation="profile_replace" profile="unconfined" name="/snap/core/17195/usr/lib/snapd/snap-confine" pid=10564 comm="apparmor_parser"
+Feb 27 10:36:03 feb271030-033833.c.snapd-spread.internal kernel: audit: type=1400 audit(1740652563.630:158): apparmor="STATUS" operation="profile_replace" profile="unconfined" name="/snap/core/17195/usr/lib/snapd/snap-confine//mount-namespace-capture-helper" pid=10564 comm="apparmor_parser"
+Feb 27 10:36:03 feb271030-033833.c.snapd-spread.internal snapd[10421]: apparmor.go:856: DEBUG: checking internal apparmor_parser candidate at /snap/snapd/x1/usr/lib/snapd/apparmor_parser
+Feb 27 10:36:03 feb271030-033833.c.snapd-spread.internal kernel: audit: type=1400 audit(1740652563.646:159): apparmor="STATUS" operation="profile_replace" profile="unconfined" name="/snap/snapd/x1/usr/lib/snapd/snap-confine" pid=10566 comm="apparmor_parser"
+Feb 27 10:36:03 feb271030-033833.c.snapd-spread.internal kernel: audit: type=1400 audit(1740652563.649:160): apparmor="STATUS" operation="profile_replace" profile="unconfined" name="/snap/snapd/x1/usr/lib/snapd/snap-confine//mount-namespace-capture-helper" pid=10566 comm="apparmor_parser"
+Feb 27 10:36:03 feb271030-033833.c.snapd-spread.internal snapd[10421]: apparmor.go:856: DEBUG: checking internal apparmor_parser candidate at /snap/snapd/x1/usr/lib/snapd/apparmor_parser
+Feb 27 10:36:03 feb271030-033833.c.snapd-spread.internal kernel: audit: type=1400 audit(1740652563.657:161): apparmor="STATUS" operation="profile_replace" info="same as current profile, skipping" profile="unconfined" name="snap-update-ns.core" pid=10568 comm="apparmor_parser"
+Feb 27 10:36:03 feb271030-033833.c.snapd-spread.internal kernel: audit: type=1400 audit(1740652563.664:162): apparmor="STATUS" operation="profile_replace" info="same as current profile, skipping" profile="unconfined" name="snap.core.hook.configure" pid=10569 comm="apparmor_parser"
+Feb 27 10:36:03 feb271030-033833.c.snapd-spread.internal snapd[10421]: apparmor.go:856: DEBUG: checking internal apparmor_parser candidate at /snap/snapd/x1/usr/lib/snapd/apparmor_parser
+Feb 27 10:36:03 feb271030-033833.c.snapd-spread.internal snapd[10421]: standby.go:95: DEBUG: will consider standby after: 5s
+Feb 27 10:36:03 feb271030-033833.c.snapd-spread.internal snapd[10421]: main.go:102: DEBUG: Setting up sd_notify() watchdog timer every 2m30s
+Feb 27 10:36:03 feb271030-033833.c.snapd-spread.internal snapd[10421]: main.go:165: DEBUG: activation done in 2.443s
+Feb 27 10:36:03 feb271030-033833.c.snapd-spread.internal snapd[10421]: daemon.go:220: DEBUG: pid=10418;uid=0;socket=/run/snapd.socket; GET / 179.316µs 200
+Feb 27 10:36:03 feb271030-033833.c.snapd-spread.internal systemd[1]: Started snapd.service - Snap Daemon.
+Feb 27 10:36:03 feb271030-033833.c.snapd-spread.internal snapd[10421]: autorefresh.go:360: DEBUG: Next refresh scheduled for 2025-02-28T12:40:52Z.
+Feb 27 10:36:07 feb271030-033833.c.snapd-spread.internal systemd[1]: lxd-installer.socket: Deactivated successfully.
+Feb 27 10:36:07 feb271030-033833.c.snapd-spread.internal systemd[1]: Closed lxd-installer.socket - Helper to install lxd snap on demand.
+Feb 27 10:36:07 feb271030-033833.c.snapd-spread.internal systemd[1]: Reloading requested from client PID 10658 ('systemctl') (unit session-1.scope)...
+Feb 27 10:36:07 feb271030-033833.c.snapd-spread.internal systemd[1]: Reloading...
+Feb 27 10:36:08 feb271030-033833.c.snapd-spread.internal systemd[1]: /etc/systemd/system/snapd.service.d/memory-max.conf:2: Unit uses MemoryLimit=; please use MemoryMax= instead. Support for MemoryLimit= will be removed soon.
+Feb 27 10:36:08 feb271030-033833.c.snapd-spread.internal systemd[1]: Reloading finished in 468 ms.
+Feb 27 10:36:08 feb271030-033833.c.snapd-spread.internal systemd[1]: Reloading requested from client PID 10728 ('systemctl') (unit session-1.scope)...
+Feb 27 10:36:08 feb271030-033833.c.snapd-spread.internal systemd[1]: Reloading...
+Feb 27 10:36:08 feb271030-033833.c.snapd-spread.internal systemd[1]: /etc/systemd/system/snapd.service.d/memory-max.conf:2: Unit uses MemoryLimit=; please use MemoryMax= instead. Support for MemoryLimit= will be removed soon.
+Feb 27 10:36:09 feb271030-033833.c.snapd-spread.internal systemd[1]: Reloading finished in 492 ms.
+Feb 27 10:36:11 feb271030-033833.c.snapd-spread.internal systemd-journald[7521]: Journal stopped
+Feb 27 10:36:11 feb271030-033833.c.snapd-spread.internal systemd-journald[7521]: Received SIGTERM from PID 1 (systemd).
+Feb 27 10:36:11 feb271030-033833.c.snapd-spread.internal systemd[1]: Stopping systemd-journald.service - Journal Service...
+Feb 27 10:36:11 feb271030-033833.c.snapd-spread.internal systemd[1]: systemd-journald.service: Deactivated successfully.
+Feb 27 10:36:11 feb271030-033833.c.snapd-spread.internal systemd[1]: Stopped systemd-journald.service - Journal Service.
+Feb 27 10:36:11 feb271030-033833.c.snapd-spread.internal systemd[1]: Starting systemd-journald.service - Journal Service...
+Feb 27 10:36:11 feb271030-033833.c.snapd-spread.internal systemd-journald[10863]: Collecting audit messages is disabled.
+Feb 27 10:36:11 feb271030-033833.c.snapd-spread.internal systemd-journald[10863]: Journal started
+Feb 27 10:36:11 feb271030-033833.c.snapd-spread.internal systemd-journald[10863]: System Journal (/var/log/journal/48b1696081f941ec9444994ee4a569f8) is 24.0M, max 1.3G, 1.3G free.
+Feb 27 10:36:11 feb271030-033833.c.snapd-spread.internal systemd[1]: Started systemd-journald.service - Journal Service.
+Feb 27 10:36:11 feb271030-033833.c.snapd-spread.internal systemd-journald[10863]: Received client request to sync journal.
+Feb 27 10:36:11 feb271030-033833.c.snapd-spread.internal snapd-test[10873]: New test starts here - google:ubuntu-24.04-64:tests/main/ack
+Feb 27 10:36:11 feb271030-033833.c.snapd-spread.internal snapd-test[10885]: Running test: test-2043818217
+Feb 27 10:36:11 feb271030-033833.c.snapd-spread.internal systemd-journald[10863]: Received client request to sync journal.
+Feb 27 10:36:11 feb271030-033833.c.snapd-spread.internal systemd[1442]: Reloading requested from client PID 10924 ('systemctl')...
+Feb 27 10:36:11 feb271030-033833.c.snapd-spread.internal systemd[1442]: Reloading...
+Feb 27 10:36:12 feb271030-033833.c.snapd-spread.internal systemd[1442]: Reloading finished in 162 ms.
+Feb 27 10:36:12 feb271030-033833.c.snapd-spread.internal systemd[1442]: Listening on snapd.session-agent.socket - REST API socket for snapd user session agent.
+Feb 27 10:36:12 feb271030-033833.c.snapd-spread.internal systemd[1442]: Closed dbus.socket - D-Bus User Message Bus Socket.
+Feb 27 10:36:12 feb271030-033833.c.snapd-spread.internal systemd[1442]: Starting dbus.socket - D-Bus User Message Bus Socket...
+Feb 27 10:36:12 feb271030-033833.c.snapd-spread.internal systemd[1442]: Listening on dbus.socket - D-Bus User Message Bus Socket.
+Feb 27 10:36:17 feb271030-033833.c.snapd-spread.internal snapd[10421]: daemon.go:220: DEBUG: pid=11002;uid=0;socket=/run/snapd.socket; GET /v2/snaps?select=all 1.295302ms 200
+Feb 27 10:36:17 feb271030-033833.c.snapd-spread.internal systemd-journald[10863]: Received client request to sync journal.
+Feb 27 10:36:17 feb271030-033833.c.snapd-spread.internal cat[11028]: end-of-prepare-suite-each for google:ubuntu-24.04-64:tests/main/ack
+Feb 27 10:36:17 feb271030-033833.c.snapd-spread.internal snapd[10421]: daemon.go:220: DEBUG: pid=11033;uid=0;socket=/run/snapd.socket; POST /v2/assertions 6.549127ms 200
+Feb 27 10:36:17 feb271030-033833.c.snapd-spread.internal snapd[10421]: daemon.go:220: DEBUG: pid=11045;uid=0;socket=/run/snapd.socket; POST /v2/assertions 332.13µs 400
+Feb 27 10:36:17 feb271030-033833.c.snapd-spread.internal snapd[10421]: daemon.go:220: DEBUG: pid=11055;uid=0;socket=/run/snapd.socket; POST /v2/assertions 9.051026ms 200
+Feb 27 10:36:18 feb271030-033833.c.snapd-spread.internal snapd[10421]: daemon.go:220: DEBUG: pid=11065;uid=0;socket=/run/snapd.socket; POST /v2/assertions 14.432187ms 200
+Feb 27 10:36:18 feb271030-033833.c.snapd-spread.internal snapd[10421]: daemon.go:220: DEBUG: pid=11075;uid=0;socket=/run/snapd.socket; GET /v2/assertions/account?username=alice 446.964µs 200
+Feb 27 10:36:18 feb271030-033833.c.snapd-spread.internal snapd[10421]: daemon.go:220: DEBUG: pid=11089;uid=0;socket=/run/snapd.socket; GET /v2/assertions/account-key?public-key-sha3-384=s2I2irs5PDzHx8n_-lEjkVUn81dvKujEmUiS0c3vwPbwojxDT_QUZ6ejDavhj_yU 338.209µs 200
+Feb 27 10:36:18 feb271030-033833.c.snapd-spread.internal snapd[10421]: daemon.go:220: DEBUG: pid=11103;uid=0;socket=/run/snapd.socket; POST /v2/assertions 14.058015ms 200
+Feb 27 10:36:18 feb271030-033833.c.snapd-spread.internal snapd[10421]: daemon.go:220: DEBUG: pid=11114;uid=0;socket=/run/snapd.socket; GET /v2/assertions/account?username=bob 647.694µs 200
+Feb 27 10:36:18 feb271030-033833.c.snapd-spread.internal snapd[10421]: daemon.go:220: DEBUG: pid=11128;uid=0;socket=/run/snapd.socket; GET /v2/assertions/account-key?public-key-sha3-384=kW5sfrKZI2rIAT70JkttRq2VlNa9t8EHOoWrL2ZBAa7tLWZMy2KBweZEh3_MLcZh 445.809µs 200
+Feb 27 10:36:18 feb271030-033833.c.snapd-spread.internal systemd-journald[10863]: Received client request to sync journal.
+Feb 27 10:36:18 feb271030-033833.c.snapd-spread.internal snapd[10421]: daemon.go:220: DEBUG: pid=11185;uid=0;socket=/run/snapd.socket; GET /v2/connections?select=all 899.703µs 200
++ echo '# tasks executed on system'
+# tasks executed on system
++ '[' -f /var/tmp/snapd-tools/runtime-state/runs ']'
+++ cat /var/tmp/snapd-tools/runtime-state/runs
++ echo 'EXECUTED_TESTS=google:ubuntu-24.04-64:tests/main/ack '
+EXECUTED_TESTS=google:ubuntu-24.04-64:tests/main/ack 
++ echo ''
+-----
+.
+2025-02-27 11:36:18 Restoring google:ubuntu-24.04-64:tests/main/ack (feb271030-033833)...
+2025-02-27 11:36:44 Restoring google:ubuntu-24.04-64:tests/main/ (feb271030-033833)...
+2025-02-27 11:36:55 Fetching artifacts...
+2025-02-27 11:36:55 Restoring google:ubuntu-24.04-64 (feb271030-033833)...
+2025-02-27 11:36:55 Discarding google:ubuntu-24.04-64 (feb271030-033833)...
+2025-02-27 11:36:56 Successful tasks: 0
+2025-02-27 11:36:56 Aborted tasks: 0
+2025-02-27 11:36:56 Failed tasks: 1
+    - google:ubuntu-24.04-64:tests/main/ack

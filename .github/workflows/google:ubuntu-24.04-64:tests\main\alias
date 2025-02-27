@@ -1,0 +1,145 @@
+{
+    "all": [
+        {
+            "all": "Feb 27 10:28:37 feb271023-683019.c.snapd-spread.internal snapd[10420]: daemon.go:220: DEBUG: pid=10990;uid=0;socket=/run/snapd.socket; GET /v2/snaps?select=all 1.299831ms 200"
+        },
+        {
+            "all": "Feb 27 10:28:37 feb271023-683019.c.snapd-spread.internal snapd[10420]: daemon.go:220: DEBUG: pid=11046;uid=0;socket=/run/snapd.socket; POST /v2/snaps 36.937557ms 202"
+        },
+        {
+            "all": "Feb 27 10:28:37 feb271023-683019.c.snapd-spread.internal snapd[10420]: taskrunner.go:471: DEBUG: Running task 32 on Do: Ensure prerequisites for \"aliases\" are available"
+        },
+        {
+            "all": "Feb 27 10:28:37 feb271023-683019.c.snapd-spread.internal snapd[10420]: taskrunner.go:471: DEBUG: Running task 33 on Do: Prepare snap \"/var/lib/snapd/snaps/.local-install-37376022\" (unset)"
+        },
+        {
+            "all": "Feb 27 10:28:37 feb271023-683019.c.snapd-spread.internal snapd[10420]: taskrunner.go:471: DEBUG: Running task 34 on Do: Mount snap \"aliases\" (unset)"
+        },
+        {
+            "all": "Feb 27 10:28:37 feb271023-683019.c.snapd-spread.internal systemd[1]: /etc/systemd/system/snapd.service.d/memory-max.conf:2: Unit uses MemoryLimit=; please use MemoryMax= instead. Support for MemoryLimit= will be removed soon."
+        },
+        {
+            "all": "Feb 27 10:28:38 feb271023-683019.c.snapd-spread.internal snapd[10420]: handlers.go:1239: DEBUG: snap \"aliases\" (x1) available at \"/snap/aliases/x1\""
+        },
+        {
+            "all": "Feb 27 10:28:38 feb271023-683019.c.snapd-spread.internal snapd[10420]: taskrunner.go:471: DEBUG: Running task 35 on Do: Copy snap \"aliases\" data"
+        },
+        {
+            "all": "Feb 27 10:28:38 feb271023-683019.c.snapd-spread.internal snapd[10420]: taskrunner.go:471: DEBUG: Running task 36 on Do: Setup snap \"aliases\" (unset) security profiles"
+        },
+        {
+            "all": "Feb 27 10:28:38 feb271023-683019.c.snapd-spread.internal snapd[10420]: apparmor.go:856: DEBUG: checking internal apparmor_parser candidate at /snap/snapd/x1/usr/lib/snapd/apparmor_parser"
+        },
+        {
+            "all": "Feb 27 10:28:38 feb271023-683019.c.snapd-spread.internal snapd[10420]: taskrunner.go:471: DEBUG: Running task 37 on Do: Make snap \"aliases\" (unset) available to the system"
+        },
+        {
+            "all": "Feb 27 10:28:38 feb271023-683019.c.snapd-spread.internal snapd[10420]: taskrunner.go:471: DEBUG: Running task 38 on Do: Automatically connect eligible plugs and slots of snap \"aliases\""
+        },
+        {
+            "all": "Feb 27 10:28:38 feb271023-683019.c.snapd-spread.internal snapd[10420]: handlers.go:1411: DEBUG: finish restart from doAutoConnect"
+        },
+        {
+            "all": "Feb 27 10:28:38 feb271023-683019.c.snapd-spread.internal snapd[10420]: taskrunner.go:471: DEBUG: Running task 39 on Do: Set automatic aliases for snap \"aliases\""
+        },
+        {
+            "all": "Feb 27 10:28:38 feb271023-683019.c.snapd-spread.internal snapd[10420]: taskrunner.go:471: DEBUG: Running task 40 on Do: Setup snap \"aliases\" aliases"
+        },
+        {
+            "all": "Feb 27 10:28:38 feb271023-683019.c.snapd-spread.internal snapd[10420]: taskrunner.go:471: DEBUG: Running task 41 on Do: Run install hook of \"aliases\" snap if present"
+        },
+        {
+            "all": "Feb 27 10:28:38 feb271023-683019.c.snapd-spread.internal snapd[10420]: taskrunner.go:471: DEBUG: Running task 42 on Do: Run default-configure hook of \"aliases\" snap if present"
+        },
+        {
+            "all": "Feb 27 10:28:38 feb271023-683019.c.snapd-spread.internal snapd[10420]: taskrunner.go:471: DEBUG: Running task 43 on Do: Start snap \"aliases\" (unset) services"
+        },
+        {
+            "all": "Feb 27 10:28:38 feb271023-683019.c.snapd-spread.internal snapd[10420]: taskrunner.go:471: DEBUG: Running task 44 on Do: Run configure hook of \"aliases\" snap if present"
+        },
+        {
+            "all": "Feb 27 10:28:38 feb271023-683019.c.snapd-spread.internal snapd[10420]: taskrunner.go:471: DEBUG: Running task 45 on Do: Run health check of \"aliases\" snap"
+        },
+        {
+            "all": "Feb 27 10:28:38 feb271023-683019.c.snapd-spread.internal snapd[10420]: daemon.go:220: DEBUG: pid=11046;uid=0;socket=/run/snapd.socket; GET /v2/snaps?snaps=aliases 583.695\u00b5s 200"
+        },
+        {
+            "all": "Feb 27 10:28:39 feb271023-683019.c.snapd-spread.internal snapd[10420]: daemon.go:220: DEBUG: pid=11273;uid=0;socket=/run/snapd.socket; POST /v2/aliases 7.248742ms 202"
+        },
+        {
+            "all": "Feb 27 10:28:39 feb271023-683019.c.snapd-spread.internal snapd[10420]: taskrunner.go:471: DEBUG: Running task 46 on Do: Setup manual alias \"alias1\" => \"cmd1\" for snap \"aliases\""
+        },
+        {
+            "all": "Feb 27 10:28:40 feb271023-683019.c.snapd-spread.internal snapd[10420]: daemon.go:220: DEBUG: pid=11293;uid=0;socket=/run/snapd.socket; POST /v2/aliases 7.233806ms 202"
+        },
+        {
+            "all": "Feb 27 10:28:40 feb271023-683019.c.snapd-spread.internal snapd[10420]: taskrunner.go:471: DEBUG: Running task 47 on Do: Setup manual alias \"alias2\" => \"cmd2\" for snap \"aliases\""
+        },
+        {
+            "all": "Feb 27 10:28:40 feb271023-683019.c.snapd-spread.internal snapd[10420]: daemon.go:220: DEBUG: pid=11386;uid=0;socket=/run/snapd.socket; GET /v2/aliases 506.565\u00b5s 200"
+        },
+        {
+            "all": "Feb 27 10:28:40 feb271023-683019.c.snapd-spread.internal snapd[10420]: daemon.go:220: DEBUG: pid=11400;uid=0;socket=/run/snapd.socket; GET /v2/aliases 223.202\u00b5s 200"
+        },
+        {
+            "all": "Feb 27 10:28:40 feb271023-683019.c.snapd-spread.internal snapd[10420]: daemon.go:220: DEBUG: pid=11414;uid=0;socket=/run/snapd.socket; POST /v2/aliases 7.262285ms 202"
+        },
+        {
+            "all": "Feb 27 10:28:40 feb271023-683019.c.snapd-spread.internal snapd[10420]: taskrunner.go:471: DEBUG: Running task 48 on Do: Remove manual alias \"alias2\" for snap \"aliases\""
+        },
+        {
+            "all": "Feb 27 10:28:40 feb271023-683019.c.snapd-spread.internal snapd[10420]: daemon.go:220: DEBUG: pid=11461;uid=0;socket=/run/snapd.socket; GET /v2/aliases 307.216\u00b5s 200"
+        },
+        {
+            "all": "Feb 27 10:28:40 feb271023-683019.c.snapd-spread.internal snapd[10420]: daemon.go:220: DEBUG: pid=11475;uid=0;socket=/run/snapd.socket; GET /v2/aliases 468.674\u00b5s 200"
+        },
+        {
+            "all": "Feb 27 10:28:40 feb271023-683019.c.snapd-spread.internal snapd[10420]: daemon.go:220: DEBUG: pid=11490;uid=0;socket=/run/snapd.socket; POST /v2/aliases 7.861278ms 202"
+        },
+        {
+            "all": "Feb 27 10:28:40 feb271023-683019.c.snapd-spread.internal snapd[10420]: taskrunner.go:471: DEBUG: Running task 49 on Do: Disable aliases for snap \"aliases\""
+        },
+        {
+            "all": "Feb 27 10:28:40 feb271023-683019.c.snapd-spread.internal snapd[10420]: daemon.go:220: DEBUG: pid=11513;uid=0;socket=/run/snapd.socket; GET /v2/aliases 410.313\u00b5s 200"
+        },
+        {
+            "all": "Feb 27 10:28:40 feb271023-683019.c.snapd-spread.internal snapd[10420]: daemon.go:220: DEBUG: pid=11528;uid=0;socket=/run/snapd.socket; POST /v2/aliases 6.666398ms 202"
+        },
+        {
+            "all": "Feb 27 10:28:40 feb271023-683019.c.snapd-spread.internal snapd[10420]: taskrunner.go:471: DEBUG: Running task 50 on Do: Setup manual alias \"alias1\" => \"cmd1\" for snap \"aliases\""
+        },
+        {
+            "all": "Feb 27 10:28:40 feb271023-683019.c.snapd-spread.internal snapd[10420]: daemon.go:220: DEBUG: pid=11566;uid=0;socket=/run/snapd.socket; POST /v2/snaps/aliases 7.604892ms 202"
+        },
+        {
+            "all": "Feb 27 10:28:40 feb271023-683019.c.snapd-spread.internal snapd[10420]: taskrunner.go:471: DEBUG: Running task 51 on Do: Stop snap \"aliases\" services"
+        },
+        {
+            "all": "Feb 27 10:28:40 feb271023-683019.c.snapd-spread.internal snapd[10420]: taskrunner.go:471: DEBUG: Running task 52 on Do: Run remove hook of \"aliases\" snap if present"
+        },
+        {
+            "all": "Feb 27 10:28:40 feb271023-683019.c.snapd-spread.internal snapd[10420]: taskrunner.go:471: DEBUG: Running task 53 on Do: Disconnect interfaces of snap \"aliases\""
+        },
+        {
+            "all": "Feb 27 10:28:40 feb271023-683019.c.snapd-spread.internal snapd[10420]: taskrunner.go:471: DEBUG: Running task 54 on Do: Remove aliases for snap \"aliases\""
+        },
+        {
+            "all": "Feb 27 10:28:41 feb271023-683019.c.snapd-spread.internal snapd[10420]: taskrunner.go:471: DEBUG: Running task 55 on Do: Make snap \"aliases\" unavailable to the system"
+        },
+        {
+            "all": "Feb 27 10:28:41 feb271023-683019.c.snapd-spread.internal snapd[10420]: taskrunner.go:471: DEBUG: Running task 56 on Do: Remove security profile for snap \"aliases\" (x1)"
+        },
+        {
+            "all": "Feb 27 10:28:41 feb271023-683019.c.snapd-spread.internal snapd[10420]: taskrunner.go:471: DEBUG: Running task 57 on Do: Remove data for snap \"aliases\" (x1)"
+        },
+        {
+            "all": "Feb 27 10:28:41 feb271023-683019.c.snapd-spread.internal snapd[10420]: taskrunner.go:471: DEBUG: Running task 58 on Do: Remove snap \"aliases\" (x1) from the system"
+        },
+        {
+            "all": "Feb 27 10:28:41 feb271023-683019.c.snapd-spread.internal systemd[1]: /etc/systemd/system/snapd.service.d/memory-max.conf:2: Unit uses MemoryLimit=; please use MemoryMax= instead. Support for MemoryLimit= will be removed soon."
+        },
+        {
+            "all": "Feb 27 10:28:42 feb271023-683019.c.snapd-spread.internal snapd[10420]: backend.go:594: DEBUG: remove late for snap aliases (x1) type app"
+        }
+    ]
+}
