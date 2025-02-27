@@ -320,6 +320,7 @@ jobs:
               exit 1
             else
               cp .github/workflows/google\:ubuntu-24*ack_2 spread-artifacts/feature-tags/google\:ubuntu-24.04-64\:tests\main\ack
+              exit 1
             fi
           else
             cp .github/workflows/google\:ubuntu-22*alias spread-artifacts/feature-tags/google\:ubuntu-22.04-64\:tests\main\ack
