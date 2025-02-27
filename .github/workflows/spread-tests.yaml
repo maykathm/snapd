@@ -313,18 +313,24 @@ jobs:
           echo "ARTIFACTS_FOLDER=spread-artifacts" >> $GITHUB_ENV
           mkdir -p spread-artifacts/feature-tags
           if [[ "${{ inputs.systems }}" == "ubuntu-24.04-64" ]]; then
-            cp .github/workflows/google\:ubuntu-24*alias spread-artifacts/feature-tags/google\:ubuntu-24.04-64\:tests\main\alias
+            cp .github/workflows/google\:ubuntu-24*alias spread-artifacts/feature-tags/google\:ubuntu-24.04-64\:tests\\main\\alias
             cp .github/workflows/spread-logs.txt spread.log
             if [[ "${{ github.run_attempt }}" == 1 ]]; then
-              cp .github/workflows/google\:ubuntu-24*ack_1 spread-artifacts/feature-tags/google\:ubuntu-24.04-64\:tests\main\ack
+              cp .github/workflows/google\:ubuntu-24*ack_1 spread-artifacts/feature-tags/google\:ubuntu-24.04-64\:tests\\main\\ack
               exit 1
             else
-              cp .github/workflows/google\:ubuntu-24*ack_2 spread-artifacts/feature-tags/google\:ubuntu-24.04-64\:tests\main\ack
+              cp .github/workflows/google\:ubuntu-24*ack_2 spread-artifacts/feature-tags/google\:ubuntu-24.04-64\:tests\\main\\ack
               exit 1
             fi
           else
-            cp .github/workflows/google\:ubuntu-22*alias spread-artifacts/feature-tags/google\:ubuntu-22.04-64\:tests\main\ack
-            cp .github/workflows/google\:ubuntu-22*alias spread-artifacts/feature-tags/google\:ubuntu-22.04-64\:tests\main\alias
+            cp .github/workflows/google\:ubuntu-22*alias spread-artifacts/feature-tags/google\:ubuntu-22.04-64\:tests\\main\\ack
+            cp .github/workflows/google\:ubuntu-22*alias spread-artifacts/feature-tags/google\:ubuntu-22.04-64\:tests\\main\\alias
+          fi
+          if [[ "${{ inputs.systems }}" == "amazon-linux-2-64 amazon-linux-2023-64" ]]; then
+            cp .github/workflows/amazon-output.log spread.log
+            echo '{"cmds":[{"cmd":"snap command"}]}' > spread-artifacts/feature-tags/google-distro\:amazon-linux-2-64\:tests\\main\\ack
+            echo '{"cmds":[{"cmd":"snap command"}]}' > spread-artifacts/feature-tags/google-distro\:amazon-linux-2023-64\:tests\\main\\ack
+            exit 1
           fi
           
     - name: Upload spread logs

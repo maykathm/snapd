@@ -6,6 +6,13 @@
         "systems": "ubuntu-22.04-64",
         "tasks": "tests/...",
         "rules": "main"
+      },
+      {
+        "group": "amazon-linux",
+        "backend": "google-distro-1",
+        "systems": "amazon-linux-2-64 amazon-linux-2023-64",
+        "tasks": "tests/...",
+        "rules": "main"
       }
     ]
   }
