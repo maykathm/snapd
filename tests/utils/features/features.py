@@ -24,15 +24,15 @@ class Interface(TypedDict):
 
 
 class Status(str, Enum):
-    done = "done"
-    undone = "undone"
-    error = "error"
-
+    done = "Done"
+    undone = "Undone"
+    error = "Error"
 
 class Task(TypedDict):
+    id: str
     kind: str
     snap_type: str
-    last_status: Status
+    last_status: str
 
 
 class Change(TypedDict):
@@ -41,6 +41,7 @@ class Change(TypedDict):
 
 
 class Ensure(TypedDict):
+    manager: str
     functions: list[str]
 
 
@@ -67,3 +68,41 @@ class SystemFeatures(TypedDict):
     scenarios: list[str]
     env_variables: list[EnvVariables]
     tests: list[TaskFeatures]
+
+
+class CmdLogLine:
+    msg = 'executing-command'
+    cmd = 'cmd'
+
+
+class EndpointLogLine:
+    msg = 'endpoint'
+    method = 'method'
+    path = 'path'
+    action = 'action'
+
+
+class InterfaceLogLine:
+    msg = 'interface-connection'
+    interface = 'interface'
+    slot = 'slot'
+    plug = 'plug'
+
+
+class EnsureLogLine:
+    msg = 'ensure'
+    manager = 'manager'
+    func = 'func'
+
+
+class TaskLogLine:
+    msg = 'task-status-change'
+    task_name = 'task-name'
+    id = 'id'
+    status = 'status'
+
+
+class ChangeLogLine:
+    msg = 'new-change'
+    kind = 'kind'
+    id = 'id'
