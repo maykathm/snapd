@@ -356,7 +356,7 @@ jobs:
               echo "Running spread log analyzer"
               # ./tests/lib/external/snapd-testing-tools/utils/log-analyzer list-reexecute-tasks "$RUN_TESTS" spread-results.json > "$FAILED_TESTS_FILE"
               if [[ "${{ github.run_attempt }}" == 1 ]]; then
-                "google:ubuntu-22.04-64:tests/main/ack google:ubuntu-24.04-64:tests/main/ack" > "$FAILED_TESTS_FILE"
+                echo "google:ubuntu-22.04-64:tests/main/ack google:ubuntu-24.04-64:tests/main/ack" > "$FAILED_TESTS_FILE"
               fi
 
               echo "List of failed tests saved"
