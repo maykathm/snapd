@@ -64,8 +64,9 @@ jobs:
       rules: ${{ fromJSON(needs.set-inputs.outputs.run-all) && matrix.rules || 'feature-tagging.yaml' }}
       is-fundamental: true
       use-snapd-snap-from-master: true
-      spread-tag-features: ${{ needs.set-inputs.outputs.features }}
+      spread-env: ${{ "SPREAD_TAG_FEATURES=needs.set-inputs.outputs.features" }}
       force-use-ruleset: ${{ ! fromJSON(needs.set-inputs.outputs.run-all) }}
+      upload-artifacts: true
     strategy:
       fail-fast: false
       matrix: ${{ fromJson(needs.read-systems.outputs.fundamental-systems) }}
@@ -82,8 +83,9 @@ jobs:
       tasks: ${{ matrix.tasks }}
       rules: ${{ fromJSON(needs.set-inputs.outputs.run-all) && matrix.rules || 'feature-tagging.yaml' }}
       use-snapd-snap-from-master: true
-      spread-tag-features: ${{ needs.set-inputs.outputs.features }}
+      spread-env: ${{ "SPREAD_TAG_FEATURES=needs.set-inputs.outputs.features" }}
       force-use-ruleset: ${{ ! fromJSON(needs.set-inputs.outputs.run-all) }}
+      upload-artifacts: true
     strategy:
       fail-fast: false
       matrix: ${{ fromJson(needs.read-systems.outputs.non-fundamental-systems) }}
@@ -100,8 +102,9 @@ jobs:
       tasks: ${{ matrix.tasks }}
       rules: ${{ fromJSON(needs.set-inputs.outputs.run-all) && matrix.rules || 'feature-tagging.yaml' }}
       use-snapd-snap-from-master: true
-      spread-tag-features: ${{ needs.set-inputs.outputs.features }}
+      spread-env: ${{ "SPREAD_TAG_FEATURES=needs.set-inputs.outputs.features" }}
       force-use-ruleset: ${{ ! fromJSON(needs.set-inputs.outputs.run-all) }}
+      upload-artifacts: true
     strategy:
       fail-fast: false
       matrix: ${{ fromJson(needs.read-systems.outputs.nested-systems) }}
@@ -165,9 +168,28 @@ jobs:
       - name: Unzip artifacts
         run: |
           mkdir -p feature-tags-artifacts
-          find . -name "feature-tags*.zip" | while read filename; do 
-            unzip "$filename" -d "feature-tags-artifacts"
+          find . -name "artifacts*.zip" -exec unzip -d feature-tags-artifacts {} ';'
+
+      - name: Create feature tags
+        run: |
+          IFS=',' read -ra features <<< "$SPREAD_TAG_FEATURES"
+          featdir="${ARTIFACTS_FOLDER}/extracted-tags"
+          mkdir -p "$featdir"
+          for dir in "${ARTIFACTS_FOLDER}/feature-tags"/*/; do
+            if [ -f "${dir}/journal.txt" ] && [ -f "${dir}/state.json" ]; then
+              ./tests/utils/features/featextractor.py \
+                -f "${features[@]}" \
+                --journal "${dir}/journal.txt" \
+                --state "${dir}/state.json" \
+                --output "$featdir/$(basename ${dir})"
+            fi
           done
+          ./tests/utils/features/featcomposer.py \
+              --dir "$featdir" \
+              --output "feature-tags" \
+              --failed-tests "$(cat $FAILED_TESTS_FILE)" \
+              --run-attempt ${{ github.run_attempt }} \
+              --env-variables SPREAD_EXPERIMENTAL_FEATURES=${SPREAD_EXPERIMENTAL_FEATURES} SPREAD_SNAPD_DEB_FROM_REPO=${SPREAD_SNAPD_DEB_FROM_REPO}
       
       - name: Consolidate feature data
         run: |
