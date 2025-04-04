@@ -158,61 +158,6 @@ jobs:
               echo "FAILED_TESTS=$FAILED_TESTS" >> $GITHUB_ENV
           fi
 
-    - name: Setup run tests variable
-      if: "!contains(github.event.pull_request.labels.*.name, 'Skip spread')"
-      run: |
-          # get_new_tasks() {
-          #   local prefix=$1
-          #   local changes_param=$2
-          #   # The tests are just filtered when the change is a PR
-          #   # When 'Run Nested' label is added in a PR, all the nested tests have to be executed
-          #   TASKS_TO_RUN=""
-          #   if [ "${{ inputs.force-use-ruleset }}" == "false" ] && \
-          #       ( [ -z "${{ github.event.number }}" ] || \
-          #         [ "$RUN_NESTED" = 'true' ] || \
-          #         [ -z "${{ inputs.rules }}" ] || \
-          #         [ -z "$changes_param" ] ); then
-          #       for TASKS in ${{ inputs.tasks }}; do
-          #           TASKS_TO_RUN="$TASKS_TO_RUN $prefix:$TASKS"
-          #       done
-          #   else
-          #       NEW_TASKS="$(./tests/lib/external/snapd-testing-tools/utils/spread-filter -r ./tests/lib/spread/rules/${{ inputs.rules }}.yaml -p "$prefix" $changes_param)"
-          #       TASKS_TO_RUN="$NEW_TASKS"
-          #   fi
-          #   echo "$TASKS_TO_RUN"
-          # }
-
-          # # Determine if the alternative backend has to be used for the current group
-          # # Alternative backends usage depends on the value stored in the file USE_ALTERNATIVE_BACKEND,
-          # # where it is defined the backend to use when images are ready in both google and openstack.
-          # USE_ALTERNATIVE_BACKEND="$(curl -s https://storage.googleapis.com/snapd-spread-tests/snapd-tests/ci/use_alternative_backend.json)"
-          # SPREAD_BACKEND="${{ inputs.backend }}"
-          # if [ -n "${{ inputs.alternative-backend }}" ] && [ $(jq -r ".\"${{ inputs.group }}\"" <<< "$USE_ALTERNATIVE_BACKEND") == true ]; then
-          #     SPREAD_BACKEND="${{ inputs.alternative-backend }}"
-          # fi
-          # echo SPREAD_BACKEND="$SPREAD_BACKEND" >> $GITHUB_ENV
-
-          # CHANGES_PARAM=""
-          # for CHANGE in $CHANGED_FILES; do
-          #     CHANGES_PARAM="$CHANGES_PARAM -c $CHANGE"
-          # done
-          # RUN_TESTS=""
-          # # Save previous failed test results in FAILED_TESTS env var
-          # if [ -n "$FAILED_TESTS" ]; then
-          #     RUN_TESTS="$FAILED_TESTS"
-          # elif [ "${{ inputs.systems }}" = "ALL" ]; then
-          #     RUN_TESTS=$(get_new_tasks "$SPREAD_BACKEND" "$CHANGES_PARAM")
-          # elif [ "${{ inputs.systems }}" != "NONE" ]; then
-          #     for SYSTEM in ${{ inputs.systems }}; do
-          #       NEW_TASKS="$(get_new_tasks "$SPREAD_BACKEND:$SYSTEM" "$CHANGES_PARAM")"
-          #       if [ -z "$RUN_TESTS" ]; then
-          #           RUN_TESTS="$NEW_TASKS"
-          #       else
-          #           RUN_TESTS="$RUN_TESTS $NEW_TASKS"
-          #       fi
-          #     done
-          # fi
-          echo RUN_TESTS="lots"  >> $GITHUB_ENV
 
     - name: Check if system is required
       if: always()
@@ -409,7 +354,10 @@ jobs:
               fi
 
               echo "Running spread log analyzer"
-              ./tests/lib/external/snapd-testing-tools/utils/log-analyzer list-reexecute-tasks "$RUN_TESTS" spread-results.json > "$FAILED_TESTS_FILE"
+              # ./tests/lib/external/snapd-testing-tools/utils/log-analyzer list-reexecute-tasks "$RUN_TESTS" spread-results.json > "$FAILED_TESTS_FILE"
+              if [[ "${{ github.run_attempt }}" == 1 ]]; then
+                "google:ubuntu-22.04-64:tests/main/ack google:ubuntu-24.04-64:tests/main/ack" > "$FAILED_TESTS_FILE"
+              fi
 
               echo "List of failed tests saved"
               cat "$FAILED_TESTS_FILE"
