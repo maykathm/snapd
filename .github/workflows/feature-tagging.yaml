@@ -23,11 +23,12 @@ jobs:
   set-inputs:
     runs-on: ubuntu-latest
     outputs:
-      features: ${{ steps.step1.outputs.features }}
-      maximum-reruns: ${{ steps.step1.outputs.maximum-reruns }}
-      run-all: ${{ steps.step1.outputs.run-all }}
+      features: ${{ steps.set-inputs.outputs.features }}
+      maximum-reruns: ${{ steps.set-inputs.outputs.maximum-reruns }}
+      run-all: ${{ steps.set-inputs.outputs.run-all }}
     steps:
       - name: Set inputs
+        id: set-inputs
         run: |
           echo "features=${{ inputs.features || 'all' }}" >> $GITHUB_OUTPUT
           echo "maximum-reruns=${{ inputs.maximum-reruns || 2 }}" >> $GITHUB_OUTPUT
