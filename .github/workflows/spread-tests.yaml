@@ -382,7 +382,7 @@ jobs:
         cp "$FAILED_TESTS_FILE" "${ARTIFACTS_FOLDER}/failed-tests.txt"
         echo "SPREAD_EXPERIMENTAL_FEATURES=${SPREAD_EXPERIMENTAL_FEATURES}" > "${ARTIFACTS_FOLDER}/env-variables.txt"
         echo "SPREAD_SNAPD_DEB_FROM_REPO=${SPREAD_SNAPD_DEB_FROM_REPO}" >> "${ARTIFACTS_FOLDER}/env-variables.txt"
-        tar -czf artifacts.tar.gz "$ARTIFACTS_FOLDER"
+        tar -czf artifacts-${{ inputs.group }}-${{ inputs.systems }}_${{ github.run_attempt }}.tar.gz "$ARTIFACTS_FOLDER"
 
     - name: Upload artifacts
       if: always() && fromJSON(inputs.upload-artifacts)

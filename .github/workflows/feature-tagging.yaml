@@ -178,9 +178,10 @@ jobs:
           mkdir -p "$featdir"
           for file in "$ARTIFACTS"/*; do
             echo "$file"
-            # mkdir working
-            # tar -xzf "$file" -C working
-            # ls working
+            mkdir working
+            tar -xzf "$file" -C working
+            ls working
+            rm -r working
           done
           IFS=',' read -ra features <<< "$SPREAD_TAG_FEATURES"
           featdir="${ARTIFACTS}/extracted-tags"
