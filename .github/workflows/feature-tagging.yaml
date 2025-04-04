@@ -65,7 +65,7 @@ jobs:
       rules: ${{ matrix.rules }}
       is-fundamental: true
       use-snapd-snap-from-master: true
-      spread-env: "SPREAD_TAG_FEATURES=${{ needs.set-inputs.outputs.features }}"
+      spread-env: "SPREAD_TAG_FEATURES=\"${{ needs.set-inputs.outputs.features }}\""
       upload-artifacts: true
     strategy:
       fail-fast: false
@@ -178,7 +178,7 @@ jobs:
           mkdir -p "$featdir"
           composedir="composed-tags"
           mkdir -p "$composedir"
-          # IFS=',' read -ra features <<< "${{ needs.set-inputs.outputs.features }}"
+          IFS=',' read -ra features <<< "${{ needs.set-inputs.outputs.features }}"
           for file in "$ARTIFACTS"/*; do
             echo "$file"
             mkdir working
