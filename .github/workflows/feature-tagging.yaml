@@ -64,7 +64,7 @@ jobs:
       rules: ${{ fromJSON(needs.set-inputs.outputs.run-all) && matrix.rules || 'feature-tagging.yaml' }}
       is-fundamental: true
       use-snapd-snap-from-master: true
-      spread-env: "SPREAD_TAG_FEATURES=${{ needs.set-inputs.outputs.features }}"
+      spread-env: "SPREAD_TAG_FEATURES=all"
       force-use-ruleset: ${{ ! fromJSON(needs.set-inputs.outputs.run-all) }}
       upload-artifacts: true
     strategy:
