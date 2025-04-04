@@ -183,6 +183,10 @@ jobs:
             echo "$file"
             mkdir working
             tar -xzf "$file" -C working
+            echo "working is"
+            ls "$ARTIFACTS/working"
+            echo "spread-artifacts is"
+            ls "$ARTIFACTS/working/spread-artifacts"
             for dir in "$ARTIFACTS/working/spread-artifacts/feature-tags"/*/; do
               if [ -f "${dir}/journal.txt" ] && [ -f "${dir}/state.json" ]; then
                 ./tests/utils/features/featextractor.py \
