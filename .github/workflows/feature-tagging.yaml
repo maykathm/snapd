@@ -184,10 +184,10 @@ jobs:
             mkdir working
             tar -xzf "$file" -C working
             echo "working is"
-            ls "$ARTIFACTS/working"
+            ls "working"
             echo "spread-artifacts is"
-            ls "$ARTIFACTS/working/spread-artifacts"
-            for dir in "$ARTIFACTS/working/spread-artifacts/feature-tags"/*/; do
+            ls "working/spread-artifacts"
+            for dir in "working/spread-artifacts/feature-tags"/*/; do
               if [ -f "${dir}/journal.txt" ] && [ -f "${dir}/state.json" ]; then
                 ./tests/utils/features/featextractor.py \
                   -f "${features[@]}" \
@@ -199,9 +199,9 @@ jobs:
             ./tests/utils/features/featcomposer.py \
                 --dir "$featdir" \
                 --output "$composedir" \
-                --failed-tests "$(cat "$ARTIFACTS/working/spread-artifacts/failed-tests.txt")" \
-                --run-attempt "$(cat "$ARTIFACTS/working/spread-artifacts/run-attempt.txt")" \
-                --env-variables "$(cat "$ARTIFACTS/working/spread-artifacts/env-variables.txt")"
+                --failed-tests "$(cat "working/spread-artifacts/failed-tests.txt")" \
+                --run-attempt "$(cat "working/spread-artifacts/run-attempt.txt")" \
+                --env-variables "$(cat "working/spread-artifacts/env-variables.txt")"
             rm -r working
           done
           ls $composedir
