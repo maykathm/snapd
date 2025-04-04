@@ -174,17 +174,18 @@ jobs:
 
       - name: Create feature tags
         run: |
-          featdir="${ARTIFACTS_FOLDER}/extracted-tags"
+          featdir="${ARTIFACTS}/extracted-tags"
           mkdir -p "$featdir"
-          for file in $ARTIFACTS/*; do
+          for file in "$ARTIFACTS"/*; do
+            ls $file
             mkdir working
             tar -xzf "$file" -C working
             ls working
           done
           IFS=',' read -ra features <<< "$SPREAD_TAG_FEATURES"
-          featdir="${ARTIFACTS_FOLDER}/extracted-tags"
+          featdir="${ARTIFACTS}/extracted-tags"
           mkdir -p "$featdir"
-          for dir in "${ARTIFACTS_FOLDER}/feature-tags"/*/; do
+          for dir in "${ARTIFACTS}/feature-tags"/*/; do
             if [ -f "${dir}/journal.txt" ] && [ -f "${dir}/state.json" ]; then
               ./tests/utils/features/featextractor.py \
                 -f "${features[@]}" \
