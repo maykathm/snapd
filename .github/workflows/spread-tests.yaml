@@ -101,7 +101,7 @@ jobs:
     - name: Set extra spread environment variables
       if: ${{ inputs.spread-env != '' }}
       run: |
-          for env in ${{ inputs.spread-env }}: do
+          for env in ${{ inputs.spread-env }}; do
             echo "$env" >> $GITHUB_ENV
           done
 
