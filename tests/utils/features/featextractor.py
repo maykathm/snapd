@@ -6,47 +6,46 @@ import json
 from typing import Any, TextIO
 
 from features import *
-
+from state import State
 
 def _check_msg(json_entry: dict[str, Any], msg: str) -> bool:
     return 'msg' in json_entry and json_entry['msg'] == msg
 
 
-def _get_first_task_from_change_containing_task_id(id: str, state_json: dict[str, Any]) -> str:
-    for _, data in state_json['changes'].items():
-        if id in data['task-ids']:
-            return data['task-ids'][0]
-    raise RuntimeError("Could not find change for task id {}".format(id))
+# def _get_first_task_from_change_containing_task_id(id: str, state: dict[str, Any]) -> str:
+#     for _, data in state['changes'].items():
+#         if id in data['task-ids']:
+#             return data['task-ids'][0]
+#     raise RuntimeError("Could not find change for task id {}".format(id))
 
 
-def _get_snap_type_from_task_id(id: str, state_json: dict[str, Any]) -> str:
-    try:
-        task_data = state_json['tasks'][id]['data']
-    except KeyError as e:
-        raise RuntimeError(
-            'Cannot find task data in the state.json for task {}'.format(id))
-    try:
-        if 'snap-type' in task_data:
-            return task_data['snap-type']
-        elif 'snap-setup' in task_data:
-            return task_data['snap-setup']['type']
-        elif 'snap-setup-task' in task_data:
-            return state_json['tasks'][task_data['snap-setup-task']]['data']['snap-setup']['type']
-    except KeyError as e:
-        raise RuntimeError(
-            'Could not find required keys in task data entry {}'.format(task_data))
-    raise RuntimeError(
-        'Could not identify snap type of task {} with task data {}'.format(id, task_data))
+# def _get_snap_type_from_task_id(id: str, state: dict[str, Any]) -> str:
+#     try:
+#         task_data = state['tasks'][id]['data']
+#     except KeyError as e:
+#         raise RuntimeError(
+#             'Cannot find task data in the state.json for task {}'.format(id))
+#     try:
+#         if 'snap-type' in task_data:
+#             return task_data['snap-type']
+#         elif 'snap-setup' in task_data:
+#             return task_data['snap-setup']['type']
+#         elif 'snap-setup-task' in task_data:
+#             return state['tasks'][task_data['snap-setup-task']]['data']['snap-setup']['type']
+#     except KeyError as e:
+#         raise RuntimeError(
+#             'Could not find required keys in task data entry {}'.format(task_data))
+#     raise RuntimeError(
+#         'Could not identify snap type of task {} with task data {}'.format(id, task_data))
 
 
 class CmdFeature:
     name = 'cmd'
     parent = 'cmds'
+    msg = 'executing-command'
 
     @staticmethod
-    def maybe_add_feature(feature_dict: dict[str, list[Any]], json_entry: dict[str, Any], _):
-        if not _check_msg(json_entry, CmdLogLine.msg):
-            return
+    def handle_feature(feature_dict: dict[str, list[Any]], json_entry: dict[str, Any], _):
         try:
             feature_dict[CmdFeature.parent].append(
                 Cmd(cmd=json_entry[CmdLogLine.cmd]))
@@ -65,11 +64,10 @@ class CmdFeature:
 class EndpointFeature:
     name = 'endpoint'
     parent = 'endpoints'
+    msg = 'endpoint'
 
     @staticmethod
-    def maybe_add_feature(feature_dict: dict[str, list[Any]], json_entry: dict[str, Any], _):
-        if not _check_msg(json_entry, EndpointLogLine.msg):
-            return
+    def handle_feature(feature_dict: dict[str, list[Any]], json_entry: dict[str, Any], _):
         try:
             if EndpointLogLine.action in json_entry:
                 entry = Endpoint(method=json_entry[EndpointLogLine.method],
@@ -94,11 +92,10 @@ class EndpointFeature:
 class InterfaceFeature:
     name = 'interface'
     parent = 'interfaces'
+    msg = 'interface-connection'
 
     @staticmethod
-    def maybe_add_feature(feature_dict: dict[str, list[Any]], json_entry: dict[str, Any], _):
-        if not _check_msg(json_entry, InterfaceLogLine.msg):
-            return
+    def handle_feature(feature_dict: dict[str, list[Any]], json_entry: dict[str, Any], _):
         try:
             feature_dict[InterfaceFeature.parent].append(Interface(
                 name=json_entry[InterfaceLogLine.interface], 
@@ -119,11 +116,10 @@ class InterfaceFeature:
 class EnsureFeature:
     name = 'ensure'
     parent = 'ensures'
+    msg = 'ensure'
 
     @staticmethod
-    def maybe_add_feature(feature_dict: dict[str, list[Any]], json_entry: dict[str, Any], _):
-        if not _check_msg(json_entry, EnsureLogLine.msg):
-            return
+    def handle_feature(feature_dict: dict[str, list[Any]], json_entry: dict[str, Any], _):
         try:
             if EnsureLogLine.func in json_entry:
                 for ensure_list in reversed(feature_dict[EnsureFeature.parent]):
@@ -140,63 +136,48 @@ class EnsureFeature:
 
     @staticmethod
     def cleanup_dict(feature_dict: dict[str, list[Any]]):
-        pass
+        l = feature_dict[EnsureFeature.parent]
+        feature_dict[EnsureFeature.parent] = [i for n, i in enumerate(l) if i not in l[n + 1:]]
 
 
 class ChangeFeature:
     name = 'change'
     parent = 'changes'
+    msg = 'new-change'
+    
 
     @staticmethod
-    def maybe_add_feature(feature_dict: dict[str, list[Any]], json_entry: dict[str, Any], state_json: dict[str, Any]):
-        if not _check_msg(json_entry, ChangeLogLine.msg):
-            return
+    def handle_feature(feature_dict: dict[str, list[Any]], json_entry: dict[str, Any], state: State):
         try:
-            change = state_json['changes'][json_entry['id']]
-            if 'task-ids' not in change:
-                # This is a change that operates on all snaps so no need to include it
-                return
-            if len(change['task-ids']) == 0:
-                raise RuntimeError(
-                    'Change {} has no task ids. Cannot find snap type'.format(json_entry))
-            snap_type = _get_snap_type_from_task_id(
-                change['task-ids'][0], state_json)
-            feature_dict[ChangeFeature.parent].append(Change(kind=json_entry[ChangeLogLine.kind], snap_type=snap_type))
+            snap_types = list(state.get_snap_types_from_change_id(json_entry[ChangeLogLine.id]))
+            feature_dict[ChangeFeature.parent].append(Change(kind=json_entry[ChangeLogLine.kind], snap_types=snap_types))
         except KeyError as e:
             raise RuntimeError(
                 'Change entries not found in entry {}: {}'.format(json_entry, e))
         
     @staticmethod
-    def cleanup_dict(feature_dict: dict[str, list[Any]]):
+    def cleanup_dict(_):
         pass
 
 
 class TaskFeature:
     name = 'task'
     parent = 'tasks'
+    msg = 'task-status-change'
 
     @staticmethod
-    def maybe_add_feature(feature_dict: dict[str, list[Any]], json_entry: dict[str, Any], state_json: dict[str, Any]):
-        if not _check_msg(json_entry, TaskLogLine.msg):
-            return
+    def handle_feature(feature_dict: dict[str, list[Any]], json_entry: dict[str, Any], state: State):
         for entry in feature_dict[TaskFeature.parent]:
             if json_entry[TaskLogLine.id] == entry["id"]:
                 entry['last_status'] = json_entry[TaskLogLine.status]
                 return
         try:
-            try:
-                snap_type = _get_snap_type_from_task_id(
-                    json_entry[TaskLogLine.id], state_json)
-            except RuntimeError:
-                id = _get_first_task_from_change_containing_task_id(
-                    json_entry[TaskLogLine.id], state_json)
-                snap_type = _get_snap_type_from_task_id(
-                    id, state_json)
+            snap_types = list(state.get_snap_types_from_task_id(json_entry[TaskLogLine.id]))
             feature_dict[TaskFeature.parent].append(
                 Task(id=json_entry[TaskLogLine.id], 
                      kind=json_entry[TaskLogLine.task_name], 
                      last_status=json_entry[TaskLogLine.status], 
-                     snap_type=snap_type))
+                     snap_types=snap_types))
         except KeyError as e:
             raise RuntimeError(
                 'Task entries not found in entry {}: {}'.format(json_entry, e))
@@ -214,13 +195,13 @@ FEATURE_LIST = [CmdFeature, EndpointFeature, InterfaceFeature,
                 EnsureFeature, ChangeFeature, TaskFeature]
 
 
-def get_feature_dictionary(log_file: TextIO, feature_list: list[str], state_json: dict[str, Any]):
+def get_feature_dictionary(log_file: TextIO, feature_list: list[str], state: State):
     '''
     Extracts features from the journal entries and places them in a dictionary.
 
     :param log_file: iterator of journal entries
     :param feature_list: list of feature names to extract
-    :param state_json: dictionary of a state.json
+    :param state: dictionary of a state.json
     :return: dictionary of features
     :raises: ValueError if an invalid feature name is provided
     :raises: RuntimeError if a line could not be parsed as json
@@ -237,8 +218,9 @@ def get_feature_dictionary(log_file: TextIO, feature_list: list[str], state_json
         try:
             line_json = json.loads(line)
             for feature_class in feature_classes:
-                feature_class.maybe_add_feature(
-                    feature_dict, line_json, state_json)
+                if _check_msg(line_json, feature_class.msg):
+                    feature_class.handle_feature(
+                        feature_dict, line_json, state)
         except json.JSONDecodeError:
             raise RuntimeError("Could not parse line as json: {}".format(line))
         
@@ -264,9 +246,9 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     try:
-        state_json = json.load(args.state)
+        state = State(json.load(args.state))
         feature_dictionary = get_feature_dictionary(
-            args.journal, args.feature, state_json)
+            args.journal, args.feature, state)
         json.dump(feature_dictionary, open(args.output, "w"))
     except json.JSONDecodeError:
         raise RuntimeError("The state.json is not valid json")

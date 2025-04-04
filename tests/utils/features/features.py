@@ -31,13 +31,13 @@ class Status(str, Enum):
 class Task(TypedDict):
     id: str
     kind: str
-    snap_type: str
+    snap_types: list[str]
     last_status: str
 
 
 class Change(TypedDict):
     kind: str
-    snap_type: str
+    snap_types: list[str]
 
 
 class Ensure(TypedDict):

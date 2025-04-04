@@ -5,14 +5,14 @@ import sys
 # add parent folder to path to permit relative imports
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-import featextractor
-from features import *
 import json
 from io import StringIO
-import tempfile
 from typing import Any
 import unittest
 
+import featextractor
+from features import *
+from state import State
 
 def _get_stringio_from_loglines(loglines: list[dict]):
     lines=""
@@ -28,7 +28,7 @@ class TestExtract(unittest.TestCase):
         cmd = "info snap"
         loglines = [{"msg":CmdLogLine.msg, CmdLogLine.cmd:cmd}]
         logs = _get_stringio_from_loglines(loglines)
-        d = featextractor.get_feature_dictionary(logs, ['cmd'], {})
+        d = featextractor.get_feature_dictionary(logs, ['cmd'], State({}))
         self.assertDictEqual({"cmds":[Cmd(cmd=cmd)]}, d)
 
     def test_extract_endpoint(self):
@@ -36,7 +36,7 @@ class TestExtract(unittest.TestCase):
         path = "/v2/snap/{info}"
         loglines = [{"msg":EndpointLogLine.msg, EndpointLogLine.method:method, EndpointLogLine.path:path}]
         logs = _get_stringio_from_loglines(loglines)
-        d = featextractor.get_feature_dictionary(logs, ['endpoint'], {})
+        d = featextractor.get_feature_dictionary(logs, ['endpoint'], State({}))
         self.assertDictEqual({"endpoints":[Endpoint(method=method, path=path)]}, d)
 
     def test_extract_endpoint_with_action(self):
@@ -45,7 +45,7 @@ class TestExtract(unittest.TestCase):
         action = "update"
         loglines = [{"msg":EndpointLogLine.msg, EndpointLogLine.method:method, EndpointLogLine.path:path, EndpointLogLine.action:action}]
         logs = _get_stringio_from_loglines(loglines)
-        d = featextractor.get_feature_dictionary(logs, ['endpoint'], {})
+        d = featextractor.get_feature_dictionary(logs, ['endpoint'], State({}))
         self.assertDictEqual({"endpoints":[Endpoint(method=method, path=path, action=action)]}, d)
 
     def test_extract_interface(self):
@@ -54,7 +54,7 @@ class TestExtract(unittest.TestCase):
         slot = 'snapd'
         loglines = [{"msg":InterfaceLogLine.msg, InterfaceLogLine.interface:name, InterfaceLogLine.plug:plug, InterfaceLogLine.slot:slot}]
         logs = _get_stringio_from_loglines(loglines)
-        d = featextractor.get_feature_dictionary(logs, ['interface'], {})
+        d = featextractor.get_feature_dictionary(logs, ['interface'], State({}))
         self.assertDictEqual({"interfaces":[Interface(name=name, plug_snap_type=plug, slot_snap_type=slot)]}, d)
 
     def test_extract_ensure(self):
@@ -67,7 +67,7 @@ class TestExtract(unittest.TestCase):
             {"msg":EnsureLogLine.msg, EnsureLogLine.manager:mgr, EnsureLogLine.func:'3'},
                     ]
         logs = _get_stringio_from_loglines(loglines)
-        d = featextractor.get_feature_dictionary(logs, ['ensure'], {})
+        d = featextractor.get_feature_dictionary(logs, ['ensure'], State({}))
         self.assertDictEqual({"ensures":[
             Ensure(manager=mgr, functions=['1','2']),
             Ensure(manager=mgr, functions=['3'])]}
@@ -90,11 +90,11 @@ class TestExtract(unittest.TestCase):
                 "2":{"data":{"snap-type":"app"}},
                 "3":{"data":{"snap-setup-task":"1"}}},
             }
-        d = featextractor.get_feature_dictionary(logs, ['task'], state)
+        d = featextractor.get_feature_dictionary(logs, ['task'], State(state))
         self.assertDictEqual({"tasks":[
-            Task(kind="kind1", snap_type="snapd", last_status=Status.done.value),
-            Task(kind="kind2", snap_type="app", last_status=Status.error.value),
-            Task(kind="kind3", snap_type="snapd", last_status=Status.undone.value),
+            Task(kind="kind1", snap_types=["snapd"], last_status=Status.done.value),
+            Task(kind="kind2", snap_types=["app"], last_status=Status.error.value),
+            Task(kind="kind3", snap_types=["snapd"], last_status=Status.undone.value),
         ]}, d)
         
     def test_extract_change(self):
@@ -114,10 +114,11 @@ class TestExtract(unittest.TestCase):
                 "11":{"data":{"snap-setup":{"type":"snapd"}}},
                 "12":{"data":{"snap-type":"app"}}
             }}
-        d = featextractor.get_feature_dictionary(logs, ['change'], state)
+        d = featextractor.get_feature_dictionary(logs, ['change'], State(state))
         self.assertDictEqual({"changes":[
-            Change(kind="kind1", snap_type="snapd"),
-            Change(kind="kind2", snap_type="app")
+            Change(kind="kind1", snap_types=["snapd"]),
+            Change(kind="kind2", snap_types=["app"]),
+            Change(kind="kind3", snap_types=[])
         ]}, d)
         
 
