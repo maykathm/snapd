@@ -210,8 +210,10 @@ jobs:
             --output "final-feature-tags" \
             --replace-old-runs
 
+          tar -czf "final-feature-tags.tar.gz" "final-feature-tags"
+
       - name: Upload feature data
         uses: actions/upload-artifact@v4
         with:
           name: "feature-tags"
-          path: "final-feature-tags"
+          path: "final-feature-tags.tar.gz"
