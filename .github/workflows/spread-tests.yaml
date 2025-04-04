@@ -61,6 +61,10 @@ on:
         type: boolean
         required: false
         default: false
+      tmp:
+        type: number
+        required: false
+
 
 
 jobs:
@@ -70,6 +74,10 @@ jobs:
       
     runs-on: ${{ fromJSON(inputs.runs-on) }}
     steps:
+
+    - name: Things
+      run: |
+        echo "The number is ${{ inputs.tmp }}"
 
     - name: Verify inputs
       run: |
