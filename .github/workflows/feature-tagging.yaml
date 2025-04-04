@@ -65,7 +65,7 @@ jobs:
       rules: ${{ matrix.rules }}
       is-fundamental: true
       use-snapd-snap-from-master: true
-      spread-env: "SPREAD_TAG_FEATURES=all"
+      spread-env: "SPREAD_TAG_FEATURES=${{ needs.set-inputs.outputs.features }}"
       upload-artifacts: true
     strategy:
       fail-fast: false
