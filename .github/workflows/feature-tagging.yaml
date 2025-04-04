@@ -176,34 +176,33 @@ jobs:
         run: |
           featdir="extracted-tags"
           mkdir -p "$featdir"
+          composedir="composed-tags"
+          mkdir -p "$composedir"
+          IFS=',' read -ra features <<< "$SPREAD_TAG_FEATURES"
           for file in "$ARTIFACTS"/*; do
             echo "$file"
             mkdir working
             tar -xzf "$file" -C working
-            ls working
+            for dir in "$ARTIFACTS/working/spread-artifacts/feature-tags"/*/; do
+              if [ -f "${dir}/journal.txt" ] && [ -f "${dir}/state.json" ]; then
+                ./tests/utils/features/featextractor.py \
+                  -f "${features[@]}" \
+                  --journal "${dir}/journal.txt" \
+                  --state "${dir}/state.json" \
+                  --output "$featdir/$(basename ${dir})"
+              fi
+            done
+            ./tests/utils/features/featcomposer.py \
+                --dir "$featdir" \
+                --output "$composedir" \
+                --failed-tests "$(cat "$ARTIFACTS/working/spread-artifacts/failed-tests.txt")" \
+                --run-attempt "$(cat "$ARTIFACTS/working/spread-artifacts/run-attempt.txt")" \
+                --env-variables "$(cat "$ARTIFACTS/working/spread-artifacts/env-variables.txt")"
             rm -r working
           done
-          IFS=',' read -ra features <<< "$SPREAD_TAG_FEATURES"
-          for dir in "${ARTIFACTS}/feature-tags"/*/; do
-            if [ -f "${dir}/journal.txt" ] && [ -f "${dir}/state.json" ]; then
-              ./tests/utils/features/featextractor.py \
-                -f "${features[@]}" \
-                --journal "${dir}/journal.txt" \
-                --state "${dir}/state.json" \
-                --output "$featdir/$(basename ${dir})"
-            fi
-          done
+          ls $composedir
           ./tests/utils/features/featcomposer.py \
-              --dir "$featdir" \
-              --output "feature-tags" \
-              --failed-tests "$(cat $FAILED_TESTS_FILE)" \
-              --run-attempt ${{ github.run_attempt }} \
-              --env-variables SPREAD_EXPERIMENTAL_FEATURES=${SPREAD_EXPERIMENTAL_FEATURES} SPREAD_SNAPD_DEB_FROM_REPO=${SPREAD_SNAPD_DEB_FROM_REPO}
-      
-      - name: Consolidate feature data
-        run: |
-          ./tests/utils/features/featcomposer.py \
-            --dir "feature-tags-artifacts" \
+            --dir "$composedir" \
             --output "final-feature-tags" \
             --replace-old-runs
 
