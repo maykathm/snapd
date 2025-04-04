@@ -289,6 +289,7 @@ jobs:
           if [[ "${{ github.run_attempt }}" == 1 ]]; then
             cp -r fake-data/run-1/feature-tags/google\:ubuntu-* "spread-artifacts/feature-tags"
             cp fake-data/run-1/spread-logs.txt spread.log
+            exit 1
           fi
           if [[ "${{ github.run_attempt }}" == 2 ]]; then
             cp -r fake-data/run-2/feature-tags/google\:ubuntu-* "spread-artifacts/feature-tags"
