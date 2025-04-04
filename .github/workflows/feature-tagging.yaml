@@ -61,11 +61,10 @@ jobs:
       backend: ${{ matrix.backend }}
       systems: ${{ matrix.systems }}  
       tasks: ${{ matrix.tasks }}
-      rules: ${{ fromJSON(needs.set-inputs.outputs.run-all) && matrix.rules || 'feature-tagging.yaml' }}
+      rules: ${{ matrix.rules }}
       is-fundamental: true
       use-snapd-snap-from-master: true
       spread-env: "SPREAD_TAG_FEATURES=all"
-      force-use-ruleset: ${{ ! fromJSON(needs.set-inputs.outputs.run-all) }}
       upload-artifacts: true
     strategy:
       fail-fast: false
