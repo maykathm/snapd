@@ -151,7 +151,7 @@ jobs:
             } while (response.data.artifacts.length === per_page);
 
             let matchingArtifacts = allArtifacts.filter((artifact) => {
-              return artifact.name.startsWith(`feature-tags`);
+              return artifact.name.startsWith(`artifact`);
             });
 
             for (let artifact of matchingArtifacts) {
