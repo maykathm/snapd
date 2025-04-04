@@ -169,9 +169,18 @@ jobs:
         run: |
           mkdir -p feature-tags-artifacts
           find . -name "artifacts*.zip" -exec unzip -d feature-tags-artifacts {} ';'
+          ls feature-tags-artifacts
+          echo "ARTIFACTS=feature-tags-artifacts" >> $GITHUB_ENV
 
       - name: Create feature tags
         run: |
+          featdir="${ARTIFACTS_FOLDER}/extracted-tags"
+          mkdir -p "$featdir"
+          for file in $ARTIFACTS/*; do
+            mkdir working
+            tar -xzf "$file" -C working
+            ls working
+          done
           IFS=',' read -ra features <<< "$SPREAD_TAG_FEATURES"
           featdir="${ARTIFACTS_FOLDER}/extracted-tags"
           mkdir -p "$featdir"
