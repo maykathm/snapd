@@ -1,0 +1,12 @@
+{"time":"2025-04-04T11:32:27.57550637Z","level":"TRACE","source":{"function":"main.run","file":"main.go","line":573},"msg":"command-execution","cmd":"list --all"}
+{"level":"TRACE","source":{"function":"github.com/snapcore/snapd/daemon.logHTTP.func1","file":"daemon.go","line":297},"msg":"endpoint","method":"GET","path":"/v2/snaps"}
+{"time":"2025-04-04T11:32:27.766775274Z","level":"TRACE","source":{"function":"main.run","file":"main.go","line":573},"msg":"command-execution","cmd":"ack /home/gopath/src/github.com/snapcore/snapd/tests/lib/assertions/testrootorg-store.account-key"}
+{"level":"TRACE","source":{"function":"github.com/snapcore/snapd/daemon.logHTTP.func1","file":"daemon.go","line":297},"msg":"endpoint","method":"POST","path":"/v2/assertions"}
+{"time":"2025-04-04T11:32:27.818074024Z","level":"TRACE","source":{"function":"main.run","file":"main.go","line":573},"msg":"command-execution","cmd":"ack alice.account-key"}
+{"level":"TRACE","source":{"function":"github.com/snapcore/snapd/daemon.logHTTP.func1","file":"daemon.go","line":297},"msg":"endpoint","method":"POST","path":"/v2/assertions"}
+{"time":"2025-04-04T11:32:27.862953778Z","level":"TRACE","source":{"function":"main.run","file":"main.go","line":573},"msg":"command-execution","cmd":"ack alice.account"}
+{"level":"TRACE","source":{"function":"github.com/snapcore/snapd/daemon.logHTTP.func1","file":"daemon.go","line":297},"msg":"endpoint","method":"POST","path":"/v2/assertions"}
+{"time":"2025-04-04T11:32:27.918468915Z","level":"TRACE","source":{"function":"main.run","file":"main.go","line":573},"msg":"command-execution","cmd":"ack alice.account-key"}
+{"level":"TRACE","source":{"function":"github.com/snapcore/snapd/daemon.logHTTP.func1","file":"daemon.go","line":297},"msg":"endpoint","method":"POST","path":"/v2/assertions"}
+{"time":"2025-04-04T11:32:28.177714881Z","level":"TRACE","source":{"function":"main.run","file":"main.go","line":573},"msg":"command-execution","cmd":"connections --all"}
+{"level":"TRACE","source":{"function":"github.com/snapcore/snapd/daemon.logHTTP.func1","file":"daemon.go","line":297},"msg":"endpoint","method":"GET","path":"/v2/connections"}

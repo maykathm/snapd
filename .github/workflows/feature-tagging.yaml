@@ -56,7 +56,7 @@ jobs:
     needs: [set-inputs, read-systems]
     name: "spread ${{ matrix.group }}"
     with:
-      runs-on: '["self-hosted", "spread-enabled"]'
+      runs-on: '["ubuntu-latest"]'
       group: ${{ matrix.group }}
       backend: ${{ matrix.backend }}
       systems: ${{ matrix.systems }}  
@@ -71,48 +71,48 @@ jobs:
       fail-fast: false
       matrix: ${{ fromJson(needs.read-systems.outputs.fundamental-systems) }}
 
-  tag-features-non-fundamental:
-    uses: ./.github/workflows/spread-tests.yaml
-    needs: [set-inputs, read-systems]
-    name: "spread ${{ matrix.group }}"
-    with:
-      runs-on: '["self-hosted", "spread-enabled"]'
-      group: ${{ matrix.group }}
-      backend: ${{ matrix.backend }}
-      systems: ${{ matrix.systems }}  
-      tasks: ${{ matrix.tasks }}
-      rules: ${{ fromJSON(needs.set-inputs.outputs.run-all) && matrix.rules || 'feature-tagging.yaml' }}
-      use-snapd-snap-from-master: true
-      spread-env: ${{ "SPREAD_TAG_FEATURES=needs.set-inputs.outputs.features" }}
-      force-use-ruleset: ${{ ! fromJSON(needs.set-inputs.outputs.run-all) }}
-      upload-artifacts: true
-    strategy:
-      fail-fast: false
-      matrix: ${{ fromJson(needs.read-systems.outputs.non-fundamental-systems) }}
+  # tag-features-non-fundamental:
+  #   uses: ./.github/workflows/spread-tests.yaml
+  #   needs: [set-inputs, read-systems]
+  #   name: "spread ${{ matrix.group }}"
+  #   with:
+  #     runs-on: '["self-hosted", "spread-enabled"]'
+  #     group: ${{ matrix.group }}
+  #     backend: ${{ matrix.backend }}
+  #     systems: ${{ matrix.systems }}  
+  #     tasks: ${{ matrix.tasks }}
+  #     rules: ${{ fromJSON(needs.set-inputs.outputs.run-all) && matrix.rules || 'feature-tagging.yaml' }}
+  #     use-snapd-snap-from-master: true
+  #     spread-env: ${{ "SPREAD_TAG_FEATURES=needs.set-inputs.outputs.features" }}
+  #     force-use-ruleset: ${{ ! fromJSON(needs.set-inputs.outputs.run-all) }}
+  #     upload-artifacts: true
+  #   strategy:
+  #     fail-fast: false
+  #     matrix: ${{ fromJson(needs.read-systems.outputs.non-fundamental-systems) }}
 
-  tag-features-nested:
-    uses: ./.github/workflows/spread-tests.yaml
-    needs: [set-inputs, read-systems]
-    name: "spread ${{ matrix.group }}"
-    with:
-      runs-on: '["self-hosted", "spread-enabled"]'
-      group: ${{ matrix.group }}
-      backend: ${{ matrix.backend }}
-      systems: ${{ matrix.systems }}  
-      tasks: ${{ matrix.tasks }}
-      rules: ${{ fromJSON(needs.set-inputs.outputs.run-all) && matrix.rules || 'feature-tagging.yaml' }}
-      use-snapd-snap-from-master: true
-      spread-env: ${{ "SPREAD_TAG_FEATURES=needs.set-inputs.outputs.features" }}
-      force-use-ruleset: ${{ ! fromJSON(needs.set-inputs.outputs.run-all) }}
-      upload-artifacts: true
-    strategy:
-      fail-fast: false
-      matrix: ${{ fromJson(needs.read-systems.outputs.nested-systems) }}
+  # tag-features-nested:
+  #   uses: ./.github/workflows/spread-tests.yaml
+  #   needs: [set-inputs, read-systems]
+  #   name: "spread ${{ matrix.group }}"
+  #   with:
+  #     runs-on: '["self-hosted", "spread-enabled"]'
+  #     group: ${{ matrix.group }}
+  #     backend: ${{ matrix.backend }}
+  #     systems: ${{ matrix.systems }}  
+  #     tasks: ${{ matrix.tasks }}
+  #     rules: ${{ fromJSON(needs.set-inputs.outputs.run-all) && matrix.rules || 'feature-tagging.yaml' }}
+  #     use-snapd-snap-from-master: true
+  #     spread-env: ${{ "SPREAD_TAG_FEATURES=needs.set-inputs.outputs.features" }}
+  #     force-use-ruleset: ${{ ! fromJSON(needs.set-inputs.outputs.run-all) }}
+  #     upload-artifacts: true
+  #   strategy:
+  #     fail-fast: false
+  #     matrix: ${{ fromJson(needs.read-systems.outputs.nested-systems) }}
 
   re-run:
     permissions:
       actions: write
-    needs: [set-inputs, tag-features-fundamental, tag-features-non-fundamental, tag-features-nested]
+    needs: [set-inputs, tag-features-fundamental]
     # If the spread tests ended in failure, rerun the workflow up to maximum-reruns times
     if: failure() && fromJSON(github.run_attempt) <= fromJSON(needs.set-inputs.outputs.maximum-reruns)
     runs-on: ubuntu-latest
@@ -123,7 +123,7 @@ jobs:
         run: gh workflow run rerun.yaml -F run_id=${{ github.run_id }}
 
   create-reports:
-    needs: [set-inputs, tag-features-fundamental, tag-features-non-fundamental, tag-features-nested]
+    needs: [set-inputs, tag-features-fundamental]
     runs-on: ubuntu-latest
     if: success() || fromJSON(github.run_attempt) > fromJSON(needs.set-inputs.outputs.maximum-reruns)
     steps:
