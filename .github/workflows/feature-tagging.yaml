@@ -115,7 +115,7 @@ jobs:
       actions: write
     needs: [set-inputs, tag-features-fundamental]
     # If the spread tests ended in failure, rerun the workflow up to maximum-reruns times
-    if: failure() && ${{ fromJSON(github.run_attempt) <= fromJSON(needs.set-inputs.outputs.maximum-reruns) }}
+    if: failure() && fromJSON(github.run_attempt) <= fromJSON(needs.set-inputs.outputs.maximum-reruns)
     runs-on: ubuntu-latest
     steps:
       - env:
@@ -126,7 +126,7 @@ jobs:
   create-reports:
     needs: [set-inputs, tag-features-fundamental]
     runs-on: ubuntu-latest
-    if: success() || ${{ fromJSON(github.run_attempt) > fromJSON(needs.set-inputs.outputs.maximum-reruns) }}
+    if: success() || fromJSON(github.run_attempt) > fromJSON(needs.set-inputs.outputs.maximum-reruns)
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
