@@ -284,17 +284,19 @@ jobs:
 
           echo "spread flags are $SPREAD_FLAGS"
 
-          mkdir -p "spread-artifacts/feature-tags"
+          mkdir -p "$ARTIFACTS_FOLDER/feature-tags"
 
           if [[ "${{ github.run_attempt }}" == 1 ]]; then
-            cp -r fake-data/run-1/feature-tags/google\:ubuntu-* "spread-artifacts/feature-tags"
+            cp -r fake-data/run-1/feature-tags/google\:ubuntu-* "$ARTIFACTS_FOLDER/feature-tags"
             cp fake-data/run-1/spread-logs.txt spread.log
             exit 1
           fi
           if [[ "${{ github.run_attempt }}" == 2 ]]; then
-            cp -r fake-data/run-2/feature-tags/google\:ubuntu-* "spread-artifacts/feature-tags"
+            cp -r fake-data/run-2/feature-tags/google\:ubuntu-* "$ARTIFACTS_FOLDER/feature-tags"
             cp fake-data/run-2/spread-logs.txt spread.log
           fi
+
+          ls $ARTIFACTS_FOLDER
 
 
           # # Run spread tests
