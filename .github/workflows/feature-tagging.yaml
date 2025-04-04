@@ -67,7 +67,6 @@ jobs:
       use-snapd-snap-from-master: true
       spread-env: "SPREAD_TAG_FEATURES=all"
       upload-artifacts: true
-      tmp: "${{ needs.set-inputs.outputs.maximum-reruns }}"
     strategy:
       fail-fast: false
       matrix: ${{ fromJson(needs.read-systems.outputs.fundamental-systems) }}
