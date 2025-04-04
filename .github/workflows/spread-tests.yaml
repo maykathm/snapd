@@ -387,7 +387,7 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: "artifacts-${{ inputs.group }}-${{ inputs.systems }}_${{ github.run_attempt }}"
-        path: "${ARTIFACTS_FOLDER}/"
+        path: env.ARTIFACTS_FOLDER
 
     - name: Save spread test results to cache
       if: always()
