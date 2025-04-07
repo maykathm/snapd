@@ -1,4 +1,5 @@
 
+import argparse
 import os
 import sys
 # To ensure the unit test can be run from any point in the filesystem,
@@ -9,8 +10,11 @@ import json
 from io import StringIO
 from typing import Any
 import unittest
+from unittest.mock import Mock, patch
+from tempfile import TemporaryFile
 
 import featextractor
+from featextractor import CmdFeature, EndpointFeature, InterfaceFeature, TaskFeature, ChangeFeature, EnsureFeature 
 from features import *
 from state import State
 
@@ -26,7 +30,7 @@ class TestExtract(unittest.TestCase):
 
     def test_extract_cmd(self):
         cmd = "info snap"
-        loglines = [{"msg":CmdLogLine.msg, CmdLogLine.cmd:cmd}]
+        loglines = [{"msg":CmdFeature.msg, CmdLogLine.cmd:cmd}]
         logs = _get_stringio_from_loglines(loglines)
         d = featextractor.get_feature_dictionary(logs, ['cmd'], State({}))
         self.assertDictEqual({"cmds":[Cmd(cmd=cmd)]}, d)
@@ -34,7 +38,7 @@ class TestExtract(unittest.TestCase):
     def test_extract_endpoint(self):
         method = "GET"
         path = "/v2/snap/{info}"
-        loglines = [{"msg":EndpointLogLine.msg, EndpointLogLine.method:method, EndpointLogLine.path:path}]
+        loglines = [{"msg":EndpointFeature.msg, EndpointLogLine.method:method, EndpointLogLine.path:path}]
         logs = _get_stringio_from_loglines(loglines)
         d = featextractor.get_feature_dictionary(logs, ['endpoint'], State({}))
         self.assertDictEqual({"endpoints":[Endpoint(method=method, path=path)]}, d)
@@ -43,7 +47,7 @@ class TestExtract(unittest.TestCase):
         method = "POST"
         path = "/v2/snap/{id}"
         action = "update"
-        loglines = [{"msg":EndpointLogLine.msg, EndpointLogLine.method:method, EndpointLogLine.path:path, EndpointLogLine.action:action}]
+        loglines = [{"msg":EndpointFeature.msg, EndpointLogLine.method:method, EndpointLogLine.path:path, EndpointLogLine.action:action}]
         logs = _get_stringio_from_loglines(loglines)
         d = featextractor.get_feature_dictionary(logs, ['endpoint'], State({}))
         self.assertDictEqual({"endpoints":[Endpoint(method=method, path=path, action=action)]}, d)
@@ -52,7 +56,7 @@ class TestExtract(unittest.TestCase):
         name = 'my-interface'
         plug = 'app'
         slot = 'snapd'
-        loglines = [{"msg":InterfaceLogLine.msg, InterfaceLogLine.interface:name, InterfaceLogLine.plug:plug, InterfaceLogLine.slot:slot}]
+        loglines = [{"msg":InterfaceFeature.msg, InterfaceLogLine.interface:name, InterfaceLogLine.plug:plug, InterfaceLogLine.slot:slot}]
         logs = _get_stringio_from_loglines(loglines)
         d = featextractor.get_feature_dictionary(logs, ['interface'], State({}))
         self.assertDictEqual({"interfaces":[Interface(name=name, plug_snap_type=plug, slot_snap_type=slot)]}, d)
@@ -60,11 +64,11 @@ class TestExtract(unittest.TestCase):
     def test_extract_ensure(self):
         mgr = 'my-manager'
         loglines = [
-            {"msg":EnsureLogLine.msg, EnsureLogLine.manager:mgr},
-            {"msg":EnsureLogLine.msg, EnsureLogLine.manager:mgr, EnsureLogLine.func:'1'},
-            {"msg":EnsureLogLine.msg, EnsureLogLine.manager:mgr, EnsureLogLine.func:'2'},
-            {"msg":EnsureLogLine.msg, EnsureLogLine.manager:mgr},
-            {"msg":EnsureLogLine.msg, EnsureLogLine.manager:mgr, EnsureLogLine.func:'3'},
+            {"msg":EnsureFeature.msg, EnsureLogLine.manager:mgr},
+            {"msg":EnsureFeature.msg, EnsureLogLine.manager:mgr, EnsureLogLine.func:'1'},
+            {"msg":EnsureFeature.msg, EnsureLogLine.manager:mgr, EnsureLogLine.func:'2'},
+            {"msg":EnsureFeature.msg, EnsureLogLine.manager:mgr},
+            {"msg":EnsureFeature.msg, EnsureLogLine.manager:mgr, EnsureLogLine.func:'3'},
                     ]
         logs = _get_stringio_from_loglines(loglines)
         d = featextractor.get_feature_dictionary(logs, ['ensure'], State({}))
@@ -75,13 +79,13 @@ class TestExtract(unittest.TestCase):
         
     def test_extract_task(self):
         loglines = [
-            {"msg":TaskLogLine.msg, TaskLogLine.id:"1", TaskLogLine.task_name:"kind1", TaskLogLine.status:"Doing"},
-            {"msg":TaskLogLine.msg, TaskLogLine.id:"2", TaskLogLine.task_name:"kind2", TaskLogLine.status:"Doing"},
-            {"msg":TaskLogLine.msg, TaskLogLine.id:"1", TaskLogLine.task_name:"kind1", TaskLogLine.status:"Done"},
-            {"msg":TaskLogLine.msg, TaskLogLine.id:"3", TaskLogLine.task_name:"kind3", TaskLogLine.status:"Doing"},
-            {"msg":TaskLogLine.msg, TaskLogLine.id:"3", TaskLogLine.task_name:"kind3", TaskLogLine.status:"Undoing"},
-            {"msg":TaskLogLine.msg, TaskLogLine.id:"3", TaskLogLine.task_name:"kind3", TaskLogLine.status:"Undone"},
-            {"msg":TaskLogLine.msg, TaskLogLine.id:"2", TaskLogLine.task_name:"kind2", TaskLogLine.status:"Error"},
+            {"msg":TaskFeature.msg, TaskLogLine.id:"1", TaskLogLine.task_name:"kind1", TaskLogLine.status:"Doing"},
+            {"msg":TaskFeature.msg, TaskLogLine.id:"2", TaskLogLine.task_name:"kind2", TaskLogLine.status:"Doing"},
+            {"msg":TaskFeature.msg, TaskLogLine.id:"1", TaskLogLine.task_name:"kind1", TaskLogLine.status:"Done"},
+            {"msg":TaskFeature.msg, TaskLogLine.id:"3", TaskLogLine.task_name:"kind3", TaskLogLine.status:"Doing"},
+            {"msg":TaskFeature.msg, TaskLogLine.id:"3", TaskLogLine.task_name:"kind3", TaskLogLine.status:"Undoing"},
+            {"msg":TaskFeature.msg, TaskLogLine.id:"3", TaskLogLine.task_name:"kind3", TaskLogLine.status:"Undone"},
+            {"msg":TaskFeature.msg, TaskLogLine.id:"2", TaskLogLine.task_name:"kind2", TaskLogLine.status:"Error"},
         ]
         logs = _get_stringio_from_loglines(loglines)
         state = {
@@ -99,9 +103,9 @@ class TestExtract(unittest.TestCase):
         
     def test_extract_change(self):
         loglines = [
-            {"msg":ChangeLogLine.msg, ChangeLogLine.id:"1", ChangeLogLine.kind:"kind1"},
-            {"msg":ChangeLogLine.msg, ChangeLogLine.id:"2", ChangeLogLine.kind:"kind2"},
-            {"msg":ChangeLogLine.msg, ChangeLogLine.id:"3", ChangeLogLine.kind:"kind3"},
+            {"msg":ChangeFeature.msg, ChangeLogLine.id:"1", ChangeLogLine.kind:"kind1"},
+            {"msg":ChangeFeature.msg, ChangeLogLine.id:"2", ChangeLogLine.kind:"kind2"},
+            {"msg":ChangeFeature.msg, ChangeLogLine.id:"3", ChangeLogLine.kind:"kind3"},
         ]
         logs = _get_stringio_from_loglines(loglines)
         state = {
@@ -121,6 +125,22 @@ class TestExtract(unittest.TestCase):
             Change(kind="kind3", snap_types=[])
         ]}, d)
         
+    @patch('argparse.ArgumentParser.parse_args')
+    def test_interfaces_avahi_observe(self, parse_args_mock: Mock):
+        output_file = '/tmp/outthings.json'
+        with open(os.path.join('interfaces-avahi-observe', 'state.json'), 'r', encoding='utf-8') as fpstate:
+            with open(os.path.join('interfaces-avahi-observe', 'journal.txt'), 'r', encoding='utf-8') as fpjournal:
+                parse_args_mock.return_value = argparse.Namespace(
+                    feature=['cmd','ensure','interface','task','change','endpoint'],
+                    journal=fpjournal,
+                    state = fpstate,
+                    output=output_file
+                )
+                featextractor.main()
+        with open(output_file, 'r') as f:
+            result = json.load(f)
+            i = 0
+
 
 if __name__ == '__main__':
     unittest.main()

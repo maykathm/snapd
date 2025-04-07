@@ -8,41 +8,15 @@ from typing import Any, TextIO
 from features import *
 from state import State
 
+
 def _check_msg(json_entry: dict[str, Any], msg: str) -> bool:
     return 'msg' in json_entry and json_entry['msg'] == msg
-
-
-# def _get_first_task_from_change_containing_task_id(id: str, state: dict[str, Any]) -> str:
-#     for _, data in state['changes'].items():
-#         if id in data['task-ids']:
-#             return data['task-ids'][0]
-#     raise RuntimeError("Could not find change for task id {}".format(id))
-
-
-# def _get_snap_type_from_task_id(id: str, state: dict[str, Any]) -> str:
-#     try:
-#         task_data = state['tasks'][id]['data']
-#     except KeyError as e:
-#         raise RuntimeError(
-#             'Cannot find task data in the state.json for task {}'.format(id))
-#     try:
-#         if 'snap-type' in task_data:
-#             return task_data['snap-type']
-#         elif 'snap-setup' in task_data:
-#             return task_data['snap-setup']['type']
-#         elif 'snap-setup-task' in task_data:
-#             return state['tasks'][task_data['snap-setup-task']]['data']['snap-setup']['type']
-#     except KeyError as e:
-#         raise RuntimeError(
-#             'Could not find required keys in task data entry {}'.format(task_data))
-#     raise RuntimeError(
-#         'Could not identify snap type of task {} with task data {}'.format(id, task_data))
 
 
 class CmdFeature:
     name = 'cmd'
     parent = 'cmds'
-    msg = 'executing-command'
+    msg = 'command-execution'
 
     @staticmethod
     def handle_feature(feature_dict: dict[str, list[Any]], json_entry: dict[str, Any], _):
@@ -156,8 +130,9 @@ class ChangeFeature:
                 'Change entries not found in entry {}: {}'.format(json_entry, e))
         
     @staticmethod
-    def cleanup_dict(_):
-        pass
+    def cleanup_dict(feature_dict: dict[str, list[Any]]):
+        l = feature_dict[ChangeFeature.parent]
+        feature_dict[ChangeFeature.parent] = [i for n, i in enumerate(l) if i not in l[n + 1:]]
 
 
 class TaskFeature:
@@ -230,7 +205,7 @@ def get_feature_dictionary(log_file: TextIO, feature_list: list[str], state: Sta
     return feature_dict
 
 
-if __name__ == "__main__":
+def main():
     parser = argparse.ArgumentParser(
         description="""Given a set of features with journal entries, each in json format, and a 
         state.json, this script will search the text file and extract the features. Those 
@@ -252,3 +227,7 @@ if __name__ == "__main__":
         json.dump(feature_dictionary, open(args.output, "w"))
     except json.JSONDecodeError:
         raise RuntimeError("The state.json is not valid json")
+
+
+if __name__ == "__main__":
+    main()

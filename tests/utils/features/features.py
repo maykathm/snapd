@@ -71,38 +71,32 @@ class SystemFeatures(TypedDict):
 
 
 class CmdLogLine:
-    msg = 'executing-command'
     cmd = 'cmd'
 
 
 class EndpointLogLine:
-    msg = 'endpoint'
     method = 'method'
     path = 'path'
     action = 'action'
 
 
 class InterfaceLogLine:
-    msg = 'interface-connection'
     interface = 'interface'
     slot = 'slot'
     plug = 'plug'
 
 
 class EnsureLogLine:
-    msg = 'ensure'
     manager = 'manager'
     func = 'func'
 
 
 class TaskLogLine:
-    msg = 'task-status-change'
     task_name = 'task-name'
     id = 'id'
     status = 'status'
 
 
 class ChangeLogLine:
-    msg = 'new-change'
     kind = 'kind'
     id = 'id'
