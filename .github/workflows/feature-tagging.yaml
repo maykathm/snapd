@@ -133,17 +133,9 @@ jobs:
       - name: Get generated data
         uses: actions/download-artifact@v4
         with:
-          path: artifacts
+          path: feature-tags-artifacts
           pattern: artifacts-*
           merge-multiple: true
-
-      - name: Unzip artifacts
-        run: |
-          ls artifacts
-          mkdir -p feature-tags-artifacts
-          find . -name "artifacts*.zip" -exec unzip -d feature-tags-artifacts {} ';'
-          ls feature-tags-artifacts
-          echo "ARTIFACTS=feature-tags-artifacts" >> $GITHUB_ENV
 
       - name: Create feature tags
         run: |
@@ -152,7 +144,7 @@ jobs:
           composedir="composed-tags"
           mkdir -p "$composedir"
           IFS=',' read -ra features <<< "${{ needs.set-inputs.outputs.features }}"
-          for file in "$ARTIFACTS"/*; do
+          for file in "feature-tags-artifacts"/*; do
             echo "$file"
             mkdir working
             tar -xzf "$file" -C working
