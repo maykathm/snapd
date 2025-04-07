@@ -139,6 +139,7 @@ jobs:
 
       - name: Unzip artifacts
         run: |
+          ls artifacts
           mkdir -p feature-tags-artifacts
           find . -name "artifacts*.zip" -exec unzip -d feature-tags-artifacts {} ';'
           ls feature-tags-artifacts
