@@ -4,6 +4,7 @@ import argparse
 from collections import defaultdict
 import json
 from typing import Any, TextIO
+import sys
 
 from features import *
 from state import State
@@ -24,8 +25,7 @@ class CmdFeature:
             feature_dict[CmdFeature.parent].append(
                 Cmd(cmd=json_entry[CmdLogLine.cmd]))
         except KeyError as e:
-            raise RuntimeError(
-                'cmd entry not found in entry {}: {}'.format(json_entry, e))
+            print('cmd entry not found in entry {}: {}'.format(json_entry, e), file=sys.stderr)
         
 
     @staticmethod
@@ -52,8 +52,7 @@ class EndpointFeature:
                     method=json_entry[EndpointLogLine.method], path=json_entry[EndpointLogLine.path])
             feature_dict[EndpointFeature.parent].append(entry)
         except KeyError as e:
-            raise RuntimeError(
-                'Endpoint entries not found in entry {}: {}'.format(json_entry, e))
+            print('endpoint entries not found in entry {}: {}'.format(json_entry, e), file=sys.stderr)
         
 
     @staticmethod
@@ -76,8 +75,7 @@ class InterfaceFeature:
                 plug_snap_type=json_entry[InterfaceLogLine.plug], 
                 slot_snap_type=json_entry[InterfaceLogLine.slot]))
         except KeyError as e:
-            raise RuntimeError(
-                'Interface entries not found in entry {}: {}'.format(json_entry, e))
+            print('interface entries not found in entry {}: {}'.format(json_entry, e), file=sys.stderr)
         
 
     @staticmethod
@@ -104,8 +102,7 @@ class EnsureFeature:
                 feature_dict[EnsureFeature.parent].append(Ensure(manager=json_entry[EnsureLogLine.manager], functions=[]))
 
         except KeyError as e:
-            raise RuntimeError(
-                'Interface entries not found in entry {}: {}'.format(json_entry, e))
+            print('ensure entries not found in entry {}: {}'.format(json_entry, e), file=sys.stderr)
 
 
     @staticmethod
@@ -126,8 +123,7 @@ class ChangeFeature:
             snap_types = list(state.get_snap_types_from_change_id(json_entry[ChangeLogLine.id]))
             feature_dict[ChangeFeature.parent].append(Change(kind=json_entry[ChangeLogLine.kind], snap_types=snap_types))
         except KeyError as e:
-            raise RuntimeError(
-                'Change entries not found in entry {}: {}'.format(json_entry, e))
+            print("Encountered error during change feature processing for change {}: {}".format(json_entry, e), file=sys.stderr)
         
     @staticmethod
     def cleanup_dict(feature_dict: dict[str, list[Any]]):
@@ -154,8 +150,7 @@ class TaskFeature:
                      last_status=json_entry[TaskLogLine.status], 
                      snap_types=snap_types))
         except KeyError as e:
-            raise RuntimeError(
-                'Task entries not found in entry {}: {}'.format(json_entry, e))
+            print("Encountered error during task feature processing for task {}: {}".format(json_entry, e), file=sys.stderr)
         
     @staticmethod
     def cleanup_dict(feature_dict: dict[str, list[Any]]):
