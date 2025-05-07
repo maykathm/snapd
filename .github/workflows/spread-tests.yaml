@@ -302,6 +302,7 @@ jobs:
             exit 0
           fi
 
+          echo "the skip-tests input is ${{ inputs.skip-tests }}"
           spread_list="$($SPREAD -list $RUN_TESTS 2>&1 || true)"
           for test in ${{ inputs.skip-tests }}; do
             spread_list=$(echo "$spread_list" | tr ' ' '\n' | grep -vE "$test" | tr '\n' ' ')
