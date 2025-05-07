@@ -276,7 +276,10 @@ jobs:
           # Register a problem matcher to highlight spread failures
           echo "::add-matcher::.github/spread-problem-matcher.json"
 
-          SPREAD=spread
+          wget https://storage.googleapis.com/snapd-spread-tests/spread/spread-plus-amd64.tar.gz
+          tar -xzf spread-plus-amd64.tar.gz
+
+          SPREAD=./spread
           if [[ "${{ inputs.group }}" =~ nested- ]]; then
             export NESTED_BUILD_SNAPD_FROM_CURRENT=true
             export NESTED_ENABLE_KVM=true
