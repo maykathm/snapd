@@ -18,7 +18,7 @@ on:
       skip-tests:
         type: string
         description: 'When set, will filter out all matches for each space-separated regex expression when running spread tests'
-        default: 'ubuntu-14.04-64 tests/lib/ core/persistent-journal manual/snapd-refresh-from-old'
+        default: ''
 
 jobs:
   set-inputs:
