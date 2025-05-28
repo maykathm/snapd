@@ -38,7 +38,12 @@ type snapFileSuite struct {
 	apiBaseSuite
 }
 
+func (s *snapFileSuite) expectFileReadAccess() {
+	s.expectReadAccess(daemon.InterfaceOpenAccess{Interfaces: []string{"desktop-launch"}})
+}
+
 func (s *snapFileSuite) TestGetFile(c *check.C) {
+	s.expectFileReadAccess()
 	d := s.daemonWithOverlordMock()
 	st := d.Overlord().State()
 

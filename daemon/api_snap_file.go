@@ -32,7 +32,7 @@ import (
 var snapFileCmd = &Command{
 	Path:       "/v2/snaps/{name}/file",
 	GET:        getSnapFile,
-	ReadAccess: openAccess{},
+	ReadAccess: interfaceOpenAccess{Interfaces: []string{"desktop-launch"}},
 }
 
 func getSnapFile(c *Command, r *http.Request, user *auth.UserState) Response {
