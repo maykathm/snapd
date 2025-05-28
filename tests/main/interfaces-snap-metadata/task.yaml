@@ -1,0 +1,34 @@
+summary: Ensure that the snap-metadata interface works.
+
+details: |
+    The snap-metadata interface allows snaps to access the 
+    /v2/snaps* and /v2/icon endpoints and retrieve snap metadata
+
+prepare: |
+    snap remove --purge api-client || true
+
+execute: |
+    "$TESTSTOOLS"/snaps-state install-local api-client
+    tests.cleanup defer snap remove --purge api-client
+
+    echo "Without the plug connection, the app cannot access endpoints"
+    api-client --socket /run/snapd-snap.socket "/v2/icons/api-client/icon" | gojq '."status-code"' | MATCH '^403$'
+    api-client --socket /run/snapd-snap.socket "/v2/snaps/snapd/file" | gojq '."status-code"' | MATCH '^403$'
+    api-client --socket /run/snapd-snap.socket "/v2/snaps/snapd" | gojq '."status-code"' | MATCH '^403$'
+    api-client --socket /run/snapd-snap.socket "/v2/snaps" | gojq '."status-code"' | MATCH '^403$'
+
+    echo "Connect the api-client snap-metadata plug"
+    snap connect api-client:snap-metadata
+
+    echo "Check that snap can access icons info via /v2/icons and gets 404 if icon is not found"
+    api-client --socket /run/snapd-snap.socket "/v2/icons/api-client/icon" | gojq '."status-code"' | MATCH '^404$'
+
+    echo "Check that snap can access /v2/snaps/{name}/file"
+    api-client --bytes --socket /run/snapd-snap.socket "/v2/snaps/snapd/file" > snap_file
+    file snap_file | MATCH "Squashfs filesystem"
+
+    echo "Check that snap can access /v2/snaps/{name}"
+    api-client --socket /run/snapd-snap.socket "/v2/snaps/snapd" | gojq '."status-code"' | MATCH '^200$'
+
+    echo "Check that snap can access /v2/snaps"
+    api-client --socket /run/snapd-snap.socket "/v2/snaps" | gojq '."status-code"' | MATCH '^200$'

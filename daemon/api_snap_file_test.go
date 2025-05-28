@@ -39,7 +39,7 @@ type snapFileSuite struct {
 }
 
 func (s *snapFileSuite) expectFileReadAccess() {
-	s.expectReadAccess(daemon.InterfaceOpenAccess{Interfaces: []string{"desktop-launch"}})
+	s.expectReadAccess(daemon.InterfaceOpenAccess{Interfaces: []string{"desktop-launch", "snap-metadata"}})
 }
 
 func (s *snapFileSuite) TestGetFile(c *check.C) {
