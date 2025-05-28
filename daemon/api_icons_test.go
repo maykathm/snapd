@@ -41,7 +41,7 @@ type iconsSuite struct {
 }
 
 func (s *iconsSuite) expectIconsReadAccess() {
-	s.expectReadAccess(daemon.InterfaceOpenAccess{Interfaces: []string{"desktop-launch", "snap-interfaces-requests-control", "snap-refresh-observe"}})
+	s.expectReadAccess(daemon.InterfaceOpenAccess{Interfaces: []string{"desktop-launch", "snap-interfaces-requests-control", "snap-refresh-observe", "snap-metadata"}})
 }
 
 func (s *iconsSuite) TestSnapIconGet(c *check.C) {
