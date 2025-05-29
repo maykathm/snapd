@@ -49,6 +49,7 @@ var api = []*Command{
 	snapFileCmd,
 	snapDownloadCmd,
 	snapConfCmd,
+	snapFeaturesCmd,
 	interfacesCmd,
 	assertsCmd,
 	assertsFindManyCmd,
@@ -92,6 +93,36 @@ var api = []*Command{
 	requestsRulesCmd,
 	requestsRuleCmd,
 	systemSecurebootCmd,
+}
+
+type featureEndpoint struct {
+	Path    string
+	Method  string
+	Actions []string
+}
+
+var featureList []featureEndpoint
+
+func init() {
+	featureList = []featureEndpoint{}
+	for _, cmd := range api {
+		var path string
+		if cmd.Path != "" {
+			path = cmd.Path
+		} else {
+			path = cmd.PathPrefix
+		}
+
+		if cmd.GET != nil {
+			featureList = append(featureList, featureEndpoint{Path: path, Method: "GET"})
+		}
+		if cmd.POST != nil {
+			featureList = append(featureList, featureEndpoint{Path: path, Actions: cmd.Actions, Method: "POST"})
+		}
+		if cmd.PUT != nil {
+			featureList = append(featureList, featureEndpoint{Path: path, Actions: cmd.Actions, Method: "PUT"})
+		}
+	}
 }
 
 const (

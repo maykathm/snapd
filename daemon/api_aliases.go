@@ -38,6 +38,7 @@ var (
 		Path:        "/v2/aliases",
 		GET:         getAliases,
 		POST:        changeAliases,
+		Actions:     []string{"alias", "unalias", "prefer"},
 		ReadAccess:  openAccess{},
 		WriteAccess: authenticatedAccess{},
 	}

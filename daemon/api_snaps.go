@@ -61,6 +61,7 @@ var (
 		Path:        "/v2/snaps/{name}",
 		GET:         getSnapInfo,
 		POST:        postSnap,
+		Actions:     []string{installCmdAction, refreshCmdAction, switchCmdAction, holdCmdAction, snapshotCmdAction, removeCmdAction},
 		ReadAccess:  interfaceOpenAccess{Interfaces: []string{"snap-interfaces-requests-control", "snap-refresh-observe"}},
 		WriteAccess: authenticatedAccess{Polkit: polkitActionManage},
 	}
@@ -69,6 +70,7 @@ var (
 		Path:        "/v2/snaps",
 		GET:         getSnapsInfo,
 		POST:        postSnaps,
+		Actions:     []string{installCmdAction, refreshCmdAction, switchCmdAction, holdCmdAction, snapshotCmdAction, removeCmdAction},
 		ReadAccess:  interfaceOpenAccess{Interfaces: []string{"snap-refresh-observe"}},
 		WriteAccess: authenticatedAccess{Polkit: polkitActionManage},
 	}
