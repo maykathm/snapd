@@ -55,6 +55,7 @@ var (
 		Path:        "/v2/interfaces/requests/rules",
 		GET:         getRules,
 		POST:        postRules,
+		Actions:     []string{"add", "remove"},
 		ReadAccess:  interfaceOpenAccess{Interfaces: []string{"snap-interfaces-requests-control"}},
 		WriteAccess: interfaceAuthenticatedAccess{Interfaces: []string{"snap-interfaces-requests-control"}, Polkit: polkitActionManage},
 	}
@@ -63,6 +64,7 @@ var (
 		Path:        "/v2/interfaces/requests/rules/{id}",
 		GET:         getRule,
 		POST:        postRule,
+		Actions:     []string{"patch", "remove"},
 		ReadAccess:  interfaceOpenAccess{Interfaces: []string{"snap-interfaces-requests-control"}},
 		WriteAccess: interfaceAuthenticatedAccess{Interfaces: []string{"snap-interfaces-requests-control"}, Polkit: polkitActionManage},
 	}

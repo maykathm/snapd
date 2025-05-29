@@ -62,6 +62,7 @@ var systemsActionCmd = &Command{
 	ReadAccess: rootAccess{},
 
 	POST:        postSystemsAction,
+	Actions:     []string{"do", "reboot", "install", "create", "remove", "check-passphrase", "check-pin"},
 	WriteAccess: rootAccess{},
 }
 
