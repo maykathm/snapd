@@ -23,6 +23,7 @@ import (
 	"net/http"
 
 	"github.com/snapcore/snapd/overlord/auth"
+	"github.com/snapcore/snapd/overlord/swfeats"
 )
 
 var snapFeaturesCmd = &Command{
@@ -32,9 +33,11 @@ var snapFeaturesCmd = &Command{
 }
 
 type featureResponse struct {
-	Tasks      []string          `json:"tasks"`
-	Interfaces []string          `json:"interfaces"`
-	Endpoints  []featureEndpoint `json:"endpoints"`
+	Tasks      []string              `json:"tasks"`
+	Interfaces []string              `json:"interfaces"`
+	Endpoints  []featureEndpoint     `json:"endpoints"`
+	Changes    []string              `json:"changes"`
+	Ensures    []swfeats.EnsureEntry `json:"ensures"`
 }
 
 func getFeatures(c *Command, r *http.Request, user *auth.UserState) Response {
@@ -46,7 +49,10 @@ func getFeatures(c *Command, r *http.Request, user *auth.UserState) Response {
 	for i, iface := range ifaces {
 		inames[i] = iface.Name()
 	}
+	changes := swfeats.ChangeReg.KnownChangeKinds()
 
-	resp := featureResponse{Tasks: tasks, Interfaces: inames, Endpoints: featureList}
+	ensures := swfeats.EnsureReg.KnownEnsures()
+
+	resp := featureResponse{Tasks: tasks, Interfaces: inames, Endpoints: featureList, Changes: changes, Ensures: ensures}
 	return SyncResponse(resp)
 }
