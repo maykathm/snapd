@@ -51,6 +51,7 @@ import (
 )
 
 func init() {
+
 	// set User-Agent for when 'snap' talks to the store directly (snap download etc...)
 	snapdenv.SetUserAgentFromVersion(snapdtool.Version, nil, "snap")
 
@@ -64,6 +65,7 @@ var (
 	Stdin  io.Reader = os.Stdin
 	Stdout io.Writer = os.Stdout
 	Stderr io.Writer = os.Stderr
+	// stuff
 	// overridden for testing
 	ReadPassword = terminal.ReadPassword
 )
