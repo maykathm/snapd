@@ -64,6 +64,7 @@ var (
 	Stdin  io.Reader = os.Stdin
 	Stdout io.Writer = os.Stdout
 	Stderr io.Writer = os.Stderr
+	// stuff
 	// overridden for testing
 	ReadPassword = terminal.ReadPassword
 )
