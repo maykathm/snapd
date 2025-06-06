@@ -51,6 +51,7 @@ import (
 )
 
 func init() {
+
 	// set User-Agent for when 'snap' talks to the store directly (snap download etc...)
 	snapdenv.SetUserAgentFromVersion(snapdtool.Version, nil, "snap")
 
