@@ -1,0 +1,104 @@
+#!/bin/bash -eu
+
+get_changeword() {
+    local code="$1"
+    if [[ $code =~ ([a-zA-Z0-9_]*ChangeKind) ]]; then
+        echo "${BASH_REMATCH[1]}"
+    else
+        echo ""
+    fi
+}
+
+get_function_lines() {
+    local filename="$1"
+    local code="$2"
+    matched_line_number=$(grep -nF "$code" "$filename" | head -1 | cut -d: -f1)
+    if [[ -n "$matched_line_number" ]]; then
+        awk -v L="$matched_line_number" '
+            NR <= L { lines[NR] = $0 }
+            NR == L {
+            for (i = L; i > 0; i--) if (lines[i] ~ /^[[:space:]]*func/) break
+            for (j = i; j <= L; j++) print lines[j]
+            exit
+            }
+        ' "$filename"
+    fi
+}
+
+declare -a combos=()
+declare -a changevar=()
+
+while IFS= read -r line; do
+    filename="${line%%:*}"
+    dir="${filename%/*}"
+    code="${line#*:}"
+    code="${code#"${code%%[![:space:]]*}"}"
+    variable=$(grep -oP '\b\w+(?=\s*=)' <<<$code)
+    combos+=("$dir:$variable")
+    changevar+=("$variable")
+done < <(grep -r 'swfeats.ChangeReg.Add(' . | grep -v 'run-checks')
+
+
+contains_var() {
+    local code="$1"
+    for var in "${changevar[@]}"; do
+        if grep -q "$var" <<<"$code"; then
+            return 0
+        fi
+    done
+    return 1
+}
+
+while IFS= read -r line; do
+    # Split on the first colon
+    filename="${line%%:*}"
+    code="${line#*:}"
+    # Trim leading whitespace from code
+    code="${code#"${code%%[![:space:]]*}"}"
+
+    dir="${filename%/*}"
+
+    if ! contains_var "$code"; then
+        echo "Cannot find var in $filename $code"
+        var=$(grep -oP 'NewChange\(\K[^,)]+' <<<"$code")
+        block=$(get_function_lines "$filename" "$code")
+        
+        # if grep -Eq "func.*$var" <<<$block; then
+        #     echo "We have another function call to examine for $filename $code"
+        # fi
+    fi
+done < <(grep -irE 'newchange\(' . | grep '.go' | grep -vEi 'test.*\.go|state\.go|\) newchange\(|func newchange\(')
+
+
+ # changeword=$(get_changeword "$code")
+
+    # if [ -z "$changeword" ]; then
+    #     block=$(get_function_lines "$filename" "$code")
+    #     echo "no changeword for $filename $code"
+    #     grep 'func ' <<<$block
+    # fi
+
+    # if [[ $code =~ ([a-zA-Z0-9_]*ChangeKind) ]]; then
+    #     changekind_word="${BASH_REMATCH[1]}"
+    # else
+    #     changekind_word=""
+    #     echo "did not find changekind word for $filename $code"
+    #     matched_line_number=$(grep -nF "$code" "$filename" | head -1 | cut -d: -f1)
+    #     if [[ -n "$matched_line_number" ]]; then
+    #         extracted_block=$(awk -v L="$matched_line_number" '
+    #             NR <= L { lines[NR] = $0 }
+    #             NR == L {
+    #             for (i = L; i > 0; i--) if (lines[i] ~ /^[[:space:]]*func/) break
+    #             for (j = i; j <= L; j++) print lines[j]
+    #             exit
+    #             }
+    #         ' "$filename")
+    #     fi
+    #     if grep -qi 'func.*newchange(' <<<$extracted_block; then
+    #         echo "all is well for $filename $code"
+    #     fi
+    # fi
+
+    # if ! grep -rq "$changekind_word.*=.*swfeats.ChangeReg.Add" "$dir"; then
+    #     echo "Did not find entry for $filename with $code"
+    # fi
