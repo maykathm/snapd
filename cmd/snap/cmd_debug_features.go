@@ -23,8 +23,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/jessevdk/go-flags"
+	"github.com/snapcore/snapd/client"
+	"github.com/snapcore/snapd/snapdenv"
 )
 
 type cmdDebugFeatures struct {
@@ -54,26 +57,7 @@ func (x *cmdDebugFeatures) Execute(args []string) error {
 		return err
 	}
 	result := temp["result"].(map[string]any)
-	result["commands"] = map[string][]string{}
-	commandsResults := result["commands"].(map[string][]string)
-	for _, cmd := range commands {
-		commandsResults[cmd.name] = []string{}
-		for _, args := range cmd.argDescs {
-			commandsResults[cmd.name] = append(commandsResults[cmd.name], args.name)
-		}
-	}
-	for _, cmd := range debugCommands {
-		commandsResults[cmd.name] = []string{}
-		for _, args := range cmd.argDescs {
-			commandsResults[cmd.name] = append(commandsResults[cmd.name], args.name)
-		}
-	}
-	for _, cmd := range routineCommands {
-		commandsResults[cmd.name] = []string{}
-		for _, args := range cmd.argDescs {
-			commandsResults[cmd.name] = append(commandsResults[cmd.name], args.name)
-		}
-	}
+	result["commands"] = getCommandNames()
 	enc := json.NewEncoder(Stdout)
 	enc.SetIndent("", "  ")
 	if err := enc.Encode(temp); err != nil {
@@ -85,4 +69,50 @@ func (x *cmdDebugFeatures) Execute(args []string) error {
 		return fmt.Errorf("request failed with status %v", rsp.Status)
 	}
 	return nil
+}
+
+func getCommandNames() []string {
+	cfg := &ClientConfig
+	// Set client user-agent when talking to the snapd daemon to the
+	// same value as when talking to the store.
+	cfg.UserAgent = snapdenv.UserAgent()
+
+	cli := client.New(cfg)
+	parser := Parser(cli)
+	commands := parser.Command.Commands()
+	names := []string{}
+	for _, cmd := range commands {
+		subcommands := cmd.Commands()
+		if len(subcommands) == 0 {
+			names = append(names, cmd.Name)
+		} else {
+			names = append(names, getSubCommandNames(subcommands, []any{cmd.Name})...)
+		}
+	}
+	return names
+}
+
+func getSubCommandNames(commands []*flags.Command, names []any) []string {
+	template := composeFormatString(len(names) + 1)
+	composedNames := []string{}
+	for _, cmd := range commands {
+		subcommands := cmd.Commands()
+		if len(subcommands) == 0 {
+			composedNames = append(composedNames, fmt.Sprintf(template, append(names, cmd.Name)...))
+		} else {
+			composedNames = append(composedNames, getSubCommandNames(subcommands, append(names, cmd.Name))...)
+		}
+	}
+	return composedNames
+}
+
+func composeFormatString(n int) string {
+	if n <= 0 {
+		return ""
+	}
+	parts := make([]string, n)
+	for i := 0; i < n; i++ {
+		parts[i] = "%s"
+	}
+	return strings.Join(parts, " ")
 }
