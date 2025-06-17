@@ -34,6 +34,7 @@ import (
 	"github.com/snapcore/snapd/overlord/devicestate"
 	"github.com/snapcore/snapd/overlord/snapstate"
 	"github.com/snapcore/snapd/overlord/state"
+	"github.com/snapcore/snapd/overlord/swfeats"
 	"github.com/snapcore/snapd/timings"
 )
 
@@ -338,6 +339,31 @@ func createRecovery(st *state.State, label string) Response {
 	return AsyncResponse(nil, chg.ID())
 }
 
+type featureResponse struct {
+	Tasks      []string              `json:"tasks"`
+	Interfaces []string              `json:"interfaces"`
+	Endpoints  []featureEndpoint     `json:"endpoints"`
+	Changes    []string              `json:"changes"`
+	Ensures    []swfeats.EnsureEntry `json:"ensures"`
+}
+
+func getFeatures(c *Command) Response {
+	runner := c.d.overlord.TaskRunner()
+	tasks := runner.KnownTaskKinds()
+
+	ifaces := c.d.overlord.InterfaceManager().Repository().AllInterfaces()
+	inames := make([]string, len(ifaces))
+	for i, iface := range ifaces {
+		inames[i] = iface.Name()
+	}
+	changes := swfeats.ChangeReg.KnownChangeKinds()
+
+	ensures := swfeats.EnsureReg.KnownEnsures()
+
+	resp := featureResponse{Tasks: tasks, Interfaces: inames, Endpoints: featureList, Changes: changes, Ensures: ensures}
+	return SyncResponse(resp)
+}
+
 func getDebug(c *Command, r *http.Request, user *auth.UserState) Response {
 	query := r.URL.Query()
 	aspect := query.Get("aspect")
@@ -372,6 +398,8 @@ func getDebug(c *Command, r *http.Request, user *auth.UserState) Response {
 		return getDisks(st)
 	case "raa":
 		return getRAAInfo(st)
+	case "features":
+		return getFeatures(c)
 	default:
 		return BadRequest("unknown debug aspect %q", aspect)
 	}
