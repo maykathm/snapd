@@ -2,6 +2,7 @@
 
 from abc import abstractmethod, ABC
 import argparse
+import bisect
 from collections import defaultdict
 import concurrent.futures
 from contextlib import closing
@@ -13,7 +14,7 @@ import pymongo.collection
 import sys
 from typing import Any, Iterable
 
-from features import SystemFeatures
+from features import SystemFeatures, Cmd, Endpoint, Status, Task, Change, Interface
 
 
 KNOWN_FEATURES = ['cmds', 'endpoints',
@@ -327,6 +328,31 @@ def diff(retriever: Retriever, timestamp1: str, system1: str, timestamp2: str, s
     return mns
 
 
+def all_features(retriever: Retriever, timestamp:str) -> dict:
+    all_features = retriever.get_all_features(timestamp)
+    all_endpoints = []
+    for endpoint in all_features['endpoints']:
+        if 'Actions' in endpoint and endpoint['Actions']:
+            for action in endpoint['Actions']:
+                all_endpoints.append(Endpoint(method=endpoint['Method'], path=endpoint['Path'], action=action))
+        else:
+            all_endpoints.append(Endpoint(method=endpoint['Method'], path=endpoint['Path']))
+    all_cmds = [Cmd(cmd=cmd) for cmd in all_features['commands']]
+    all_tasks = [Task(kind=task, last_status=status) 
+                 for task in all_features['tasks'] 
+                 for status in [Status.done, Status.undone, Status.error]]
+    all_changes = [Change(kind=change) for change in all_features['changes']]
+    all_interfaces = [Interface(name=iface) for iface in all_features['interfaces']]
+    return {
+        'cmds': all_cmds,
+        'ensures': all_features['ensures'],
+        'tasks': all_tasks,
+        'changes': all_changes,
+        'endpoints': all_endpoints,
+        'interfaces': all_interfaces,
+    }
+
+
 def diff_all_features(retriever: Retriever, timestamp: str, system: str, remove_failed: bool) -> dict:
     '''
     Calculates set(coverage_features) - set(system_features), at the indicated timestamp. 
@@ -334,8 +360,32 @@ def diff_all_features(retriever: Retriever, timestamp: str, system: str, remove_
     :param remove_failed: if true, will remove all instances of tests where success == False
     '''
     sys_features = feat_sys(retriever, timestamp, system, remove_failed)
-    mns = minus(retriever.get_all_features(timestamp), sys_features)
-    return mns
+    all_features = retriever.get_all_features(timestamp)
+    all_endpoints = []
+    for endpoint in all_features['endpoints']:
+        if 'Actions' in endpoint and endpoint['Actions']:
+            for action in endpoint['Actions']:
+                all_endpoints.append(Endpoint(method=endpoint['Method'], path=endpoint['Path'], action=action))
+        else:
+            all_endpoints.append(Endpoint(method=endpoint['Method'], path=endpoint['Path']))
+    all_cmds = [Cmd(cmd=cmd) for cmd in all_features['commands']]
+    diff = minus({'cmds': all_cmds, 'ensures': all_features['ensures'], 'endpoints': all_endpoints}, sys_features)
+    tasks = []
+    for task in all_features['tasks']:
+        filtered = filter(lambda x: x['kind'] == task, sys_features['tasks'])
+        for status in [Status.done, Status.undone, Status.error]:
+            if not any(task for task in filtered if task['last_status'] == status):
+                tasks.append(Task(kind=task, last_status=status))
+    changes = [Change(kind=change) for change in all_features['changes'] if not any([feat for feat in sys_features['changes'] if feat['kind'] == change])]
+    interfaces = [Interface(name=iface) for iface in all_features['interfaces'] if not any([feat for feat in sys_features['interfaces'] if feat['name'] == iface])]
+
+    if tasks:
+        diff['tasks'] = tasks
+    if changes:
+        diff['changes'] = changes
+    if interfaces:
+        diff['interfaces'] = interfaces
+    return diff
 
 
 def feat_sys(retriever: Retriever, timestamp: str, system: str, remove_failed: bool, suite: str = None, task: str = None, variant: str = None) -> dict:
@@ -360,7 +410,23 @@ def feat_sys(retriever: Retriever, timestamp: str, system: str, remove_failed: b
         system_json, include_tasks=include_tasks)
 
 
-def find_feat(retriever: Retriever, timestamp: str, feat: dict, remove_failed: bool, system: str = None) -> dict[str, list[TaskIdVariant]]:
+def get_feature_name_from_feature(feat: dict) -> str:
+    if 'cmd' in feat and len(feat) == 1:
+        return 'cmds'
+    elif 'method' in feat and 'path' in feat and (len(feat) == 2 or len(feat) == 3):
+        return 'endpoints'
+    elif 'manager' in feat and 'function' in feat and len(feat) == 2:
+        return 'ensures'
+    elif 'kind' in feat and 'last_status' in feat:
+        return 'tasks'
+    elif 'name' in feat:
+        return 'interfaces'
+    elif 'kind' in feat:
+        return 'changes'
+    return ''
+
+
+def find_feat(retriever: Retriever, timestamp: str, feat: dict, remove_failed: bool, system: str = None) -> dict[str, TaskIdVariant]:
     '''
     Given a timestamp, a feature, and optionally a system, finds
     all tests that contain the indicated feature. If no system
@@ -371,9 +437,24 @@ def find_feat(retriever: Retriever, timestamp: str, feat: dict, remove_failed: b
     :returns: dictionary where each key is a system and each value is a list of tests that contain the feature
     '''
 
+    feat_name = get_feature_name_from_feature(feat)
+    if not feat_name:
+        raise RuntimeError(f'feature {feat} not a recognized feature')
+
     def feat_in_test(test: dict) -> bool:
-        for known_feature in KNOWN_FEATURES:
-            if known_feature in test and feat in test[known_feature]:
+        if feat_name == 'cmds' or feat_name == 'ensures':
+            return feat_name in test and feat in test[feat_name]
+        if feat_name == 'endpoints':
+            if 'endpoints' in test and any(e for e in test['endpoints'] if feat['method'] == e['method'] and feat['path'] == e['path'] and ('action' not in feat or ('action' in e and e['action'] == feat['action']))):
+                return True
+        if feat_name == 'tasks':
+            if 'tasks' in test and any(t for t in test['tasks'] if t['kind'] == feat['kind'] and t['last_status'] == feat['last_status']):
+                return True
+        if feat_name == 'changes':
+            if 'changes' in test and any(c for c in test['changes'] if c['kind'] == feat['kind']):
+                return True
+        if feat_name == 'interfaces':
+            if 'interfaces' in test and any(i for i in test['interfaces'] if i['name'] == feat['name']):
                 return True
         return False
 
@@ -450,35 +531,28 @@ def export(retriever: Retriever, output: str, timestamps: list[str], systems: li
             print(f'could not find all features at timestamp {timestamp}', file=sys.stderr)
 
 
-def add_data_source_args(parser: argparse.ArgumentParser) -> None:
+def task_list(retriever: Retriever, timestamp: str) -> list[TaskIdVariant]:
+    '''
+    Given a timestamp, gets the complete list of tasks (suite, task, and variant names)
+    '''
+    all_data = retriever.get_systems(timestamp)
+    tasks = set()
+    for data in all_data:
+        if 'tests' not in data:
+            continue
+        system_data = {TaskIdVariant(suite=d['suite'], task_name=d['task_name'], variant=d['variant']) for d in data['tests']}
+        if not tasks:
+            tasks = set(system_data)
+            continue
+        for task in system_data:
+            if not task in tasks:
+                tasks.add(task)
+    return tasks
+
+
+def add_data_source_args(parser: argparse.ArgumentParser):
     parser.add_argument('-f', '--file', help='json file containing creds for mongodb', type=argparse.FileType('r', encoding='utf-8'))
     parser.add_argument('-d', '--dir', help='folder containing feature data', type=str)
-
-
-def add_diff_parser(subparsers: argparse._SubParsersAction) -> str:
-    diff_description = '''
-        Calculates feature diff between two systems: set(features_1) - set(features_2).
-        You can specify either a json file with credentials for mongodb or a directory with features output.
-        If using a directory, the directory format must be <dir>/<timestamp1>/<system1>.json and 
-        <dir>/<timestamp2>/<system2>.json.
-
-        By default, it will compare all features across both systems. If you wish to restrict the comparison
-        to only tasks that were successful, use the --remove-failed flag. If you wish to restrict the
-        comparison to only tasks that executed on both systems, use the --only-same flag.
-
-        If you wish to create a directory from mongo data, use the export command instead of diff first.
-    '''
-    cmd = 'diff'
-    diff: argparse.ArgumentParser = subparsers.add_parser(cmd, help='calculate diff between system features',
-                                 description=diff_description, formatter_class=argparse.RawDescriptionHelpFormatter)
-    add_data_source_args(diff)
-    diff.add_argument('-t1', '--timestamp1', help='timestamp of first execution', type=str, required=True)
-    diff.add_argument('-s1', '--system1', help='system of first execution', type=str, required=True)
-    diff.add_argument('-t2', '--timestamp2', help='timestamp of second execution', type=str, required=True)
-    diff.add_argument('-s2', '--system2', help='system of second execution', type=str, required=True)
-    diff.add_argument('--remove-failed', help='remove all tasks that failed', action='store_true')
-    diff.add_argument('--only-same', help='only compare tasks that were executed on both systems', action='store_true')
-    return cmd
 
 
 def add_diff_parsers(subparsers: argparse._SubParsersAction) -> tuple[str, str, str]:
