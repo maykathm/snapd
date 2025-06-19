@@ -26,8 +26,8 @@ features_after_nested_task() {
     task_dir="$(_prepare_artifacts_path feature-tags)"
 
     "$TESTSTOOLS"/remote.exec "sudo journalctl --no-pager | grep -oP 'snapd?\[\d+\]: \K.*' | sed -e ':a' -e '/^{.*\\\"TRACE\\\".*[^}]$/ { N; s/\n//; ba }' | grep '\"TRACE\"'" > "$task_dir"/journal.txt
-    "$TESTSTOOLS"/remote.exec "sudo chmod 777 /var/lib/snapd/state.json"
-    "$TESTSTOOLS"/remote.pull "/var/lib/snapd/state.json" "$task_dir"
+    "$TESTSTOOLS"/remote.exec "sudo chmod 777 /var/lib/snapd/state.json" || true
+    "$TESTSTOOLS"/remote.pull "/var/lib/snapd/state.json" "$task_dir" || true
 }
 
 locks(){
