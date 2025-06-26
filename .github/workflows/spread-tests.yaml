@@ -99,7 +99,7 @@ jobs:
             echo "$env" >> $GITHUB_ENV
           done
 
-    - name: Set PR labels as environment variables
+    - name: Check PR labels
       if: ${{ github.event.pull_request.number }}
       run: |
           labels=$(gh pr view ${{ github.event.pull_request.number }} --repo github.com/canonical/snapd --json labels | jq -r '.labels[].name')
@@ -111,6 +111,13 @@ jobs:
           fi
           if grep -q '^Run nested$' <<<$labels; then
             echo "RUN_NESTED_LABEL=true" >> $GITHUB_ENV
+          fi
+
+          if grep -q '^Run only one system$' <<<$labels; then
+            if [[ "${{ inputs.backend }}" !~ "ubuntu-24.04-64" ]] && (! grep -q '^Run nested$' <<<$labels || [[ "${{ inputs.backend }}" =~ "-nested" ]]); then
+              echo "Failing test"
+              exit 1
+            fi
           fi
 
     - name: Get previous attempt
