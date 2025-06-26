@@ -26,34 +26,34 @@ jobs:
           include-snapd-build-fips-go-channel: true
           include-latest-go-channel: false
 
-  # snap-builds:
-  #   uses: ./.github/workflows/snap-builds.yaml
-  #   with:
-  #     runs-on: ${{ matrix.runs-on }}
-  #     toolchain: ${{ matrix.toolchain }}
-  #     variant: ${{ matrix.variant }}
-  #   strategy:
-  #     matrix:
-  #       runs-on:
-  #         - '["ubuntu-22.04"]'
-  #         - '["ubuntu-22.04-arm"]'
-  #       toolchain:
-  #         - default
-  #         - FIPS
-  #       variant:
-  #         # test version is a build of snapd with test keys and should
-  #         # only be installed by test runners. The pristine versions
-  #         # are the build that should be installed by human users.
-  #         - pristine
-  #         - test
-  #       # Exclude building everything for ARM but the version for testing
-  #       # to keep the number of builds down as we currently don't have a
-  #       # clear need for these excluded builds.
-  #       exclude:
-  #         - runs-on: '["ubuntu-22.04-arm"]'
-  #           toolchain: FIPS
-  #         - runs-on: '["ubuntu-22.04-arm"]'
-  #           variant: pristine
+  snap-builds:
+    uses: ./.github/workflows/snap-builds.yaml
+    with:
+      runs-on: ${{ matrix.runs-on }}
+      toolchain: ${{ matrix.toolchain }}
+      variant: ${{ matrix.variant }}
+    strategy:
+      matrix:
+        runs-on:
+          - '["ubuntu-22.04"]'
+          - '["ubuntu-22.04-arm"]'
+        toolchain:
+          - default
+          - FIPS
+        variant:
+          # test version is a build of snapd with test keys and should
+          # only be installed by test runners. The pristine versions
+          # are the build that should be installed by human users.
+          - pristine
+          - test
+        # Exclude building everything for ARM but the version for testing
+        # to keep the number of builds down as we currently don't have a
+        # clear need for these excluded builds.
+        exclude:
+          - runs-on: '["ubuntu-22.04-arm"]'
+            toolchain: FIPS
+          - runs-on: '["ubuntu-22.04-arm"]'
+            variant: pristine
 
   cache-build-deps:
     runs-on: ubuntu-latest
