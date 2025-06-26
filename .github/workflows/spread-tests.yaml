@@ -113,10 +113,8 @@ jobs:
             echo "RUN_NESTED_LABEL=true" >> $GITHUB_ENV
           fi
 
-          grep '^Run nested$' <<<$labels || true
-
           if grep -q '^Run only one system$' <<<$labels; then
-            if (! [[ "${{ inputs.systems }}" =~ "ubuntu-24.04-64" ]] && [[ ! "${{ inputs.backend }}" =~ "-nested" ]]) && ! (grep -q '^Run nested$' <<<$labels && [[ "${{ inputs.backend }}" =~ "-nested" ]]); then
+            if ! ([[ "${{ inputs.systems }}" =~ "ubuntu-24.04-64" ]] && [[ ! "${{ inputs.backend }}" =~ "-nested" ]]) && ! (grep -q '^Run nested$' <<<$labels && [[ "${{ inputs.backend }}" =~ "-nested" ]]); then
               echo "Failing test"
               exit 1
             fi
