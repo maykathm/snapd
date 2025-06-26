@@ -101,6 +101,7 @@ jobs:
 
     - name: Check PR labels
       if: ${{ github.event.pull_request.number }}
+      shell: bash
       run: |
           labels=$(gh pr view ${{ github.event.pull_request.number }} --repo github.com/canonical/snapd --json labels | jq -r '.labels[].name')
           if grep -q '^Skip spread$' <<<$labels; then
