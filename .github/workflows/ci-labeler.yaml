@@ -13,3 +13,8 @@ jobs:
       with:
         repo-token: "${{ secrets.GITHUB_TOKEN }}"
         sync-labels: "true"
+    - name: Apply draft label using gh CLI
+      env:
+        GH_TOKEN: ${{ github.token }}
+      if: github.event.action == 'opened' && github.event.pull_request.draft == true
+      run: gh pr edit ${{ github.event.pull_request.number }} --add-label 'Run only one system'
