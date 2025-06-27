@@ -1,6 +1,7 @@
 import dash
 from dash import Dash, html, dcc, Output, Input, dash_table, State, MATCH
 import dash_bootstrap_components as dbc
+import dash_daq as daq
 import json
 import os
 import sys
@@ -93,6 +94,14 @@ app.layout = html.Div([
                 options=[],
                 placeholder="Select system"
             ),
+            daq.BooleanSwitch(
+                id='remove-failed-switch',
+                on=False, label="Remove failed tests"
+            ),
+            daq.BooleanSwitch(
+                id='only-same-switch',
+                on=False, label='Only compare features across tests that are present in both systems'
+            ),
             html.Div(
                 id='coverage-diff-container'
             ),
@@ -108,6 +117,10 @@ app.layout = html.Div([
                 id={'type': 'timestamp-dropdown', 'index': 4},
                 options=timestamp_options,
                 placeholder="Select timestamp"
+            ),
+            daq.BooleanSwitch(
+                id='coverage-remove-failed-switch',
+                on=False, label="Remove failed tests"
             ),
             html.Div([
                 dash_table.DataTable(
@@ -236,12 +249,14 @@ def display_column_details(active_cell, columns, data):
     Input({'type': 'systems-dropdown', 'index': 2}, 'value'),
     Input({'type': 'timestamp-dropdown', 'index': 3}, 'value'),
     Input({'type': 'systems-dropdown', 'index': 3}, 'value'),
+    Input('remove-failed-switch', 'on'),
+    Input('only-same-switch', 'on'),
 )
-def update_totals_table(ts_2, sys_2, ts_3, sys_3):
+def update_totals_table(ts_2, sys_2, ts_3, sys_3, remove_failed_value, only_same_value):
     if not ts_2 or not sys_2 or not ts_3 or not sys_3:
         return []
     
-    diff = qf.diff(retriever, ts_2, sys_2, ts_3, sys_3, False, False)
+    diff = qf.diff(retriever, ts_2, sys_2, ts_3, sys_3, remove_failed_value, only_same_value)
 
     
     tables = []
@@ -287,11 +302,9 @@ def switch_dropdown_values(n_clicks, ts2, sys2, ts3, sys3):
     Output('coverage-matrix-table', 'columns'),
     Output('coverage-matrix-table', 'data'),
     Input({'type': 'timestamp-dropdown', 'index': 4}, 'value'),
+    Input('coverage-remove-failed-switch', 'on'),
 )
-def create_coverage_matrix(timestamp):
-    columns = [{"name": "System", "id": "system"}] + [{"name": key, "id": key} for key in qf.KNOWN_FEATURES]
-    # TODO if timestamp in coverage_matrix, just recalculate the matrix data
-    
+def create_coverage_matrix(timestamp, remove_failed):
     systems = None
     for ts in timestamps:
         if ts['timestamp'] == timestamp:
@@ -299,10 +312,11 @@ def create_coverage_matrix(timestamp):
     if not systems:
         return [], []
     
+    columns = [{"name": "System", "id": "system"}] + [{"name": key, "id": key} for key in qf.KNOWN_FEATURES]
     coverage_matrix[timestamp] = [{'system': system, **{key: 0 for key in qf.KNOWN_FEATURES}} for system in systems]
     matrix = [{'system': system, **{key: 0 for key in qf.KNOWN_FEATURES}} for system in systems]
     for i, system in enumerate(systems):
-        feats = qf.feat_sys(retriever, timestamp, system, False)
+        feats = qf.feat_sys(retriever, timestamp, system, remove_failed)
         coverage_matrix[timestamp][i].update(feats)
         for feature in qf.KNOWN_FEATURES:
             matrix[i][feature] = len(feats[feature])
