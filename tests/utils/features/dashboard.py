@@ -93,7 +93,18 @@ app.layout = html.Div([
                 options=[],
                 placeholder="Select system"
             ),
-            html.Div(children="System 2", style={'marginTop': '20px', 'marginBottom': '20px'}),
+            html.Div(children="", style={'marginBottom': '10px'}),
+            html.Button(
+                "🔄",
+                id='switch-button',
+                n_clicks=0,
+                style={'fontSize': '20px','padding': '4px 8px','margin': '0 10px',
+                    'borderRadius': '50%','border': '1px solid #ccc','backgroundColor': 'white',
+                    'cursor': 'pointer','lineHeight': '1','display': 'inline-flex',
+                    'alignItems': 'center','justifyContent': 'center','width': '32px','height': '32px',
+                }
+            ),
+            html.Div(children="System 2", style={'marginTop': '10px', 'marginBottom': '20px'}),
             dcc.Dropdown(
                 id={'type': 'timestamp-dropdown', 'index': 3},
                 options=timestamp_options,
@@ -248,6 +259,26 @@ def update_totals_table(ts_2, sys_2, ts_3, sys_3):
 
 
 @app.callback(
+    Output({'type': 'timestamp-dropdown', 'index': 2}, 'value'),
+    Output({'type': 'systems-dropdown', 'index': 2}, 'value'),
+    Output({'type': 'timestamp-dropdown', 'index': 3}, 'value'),
+    Output({'type': 'systems-dropdown', 'index': 3}, 'value'),
+    Input('switch-button', 'n_clicks'),
+    State({'type': 'timestamp-dropdown', 'index': 2}, 'value'),
+    State({'type': 'systems-dropdown', 'index': 2}, 'value'),
+    State({'type': 'timestamp-dropdown', 'index': 3}, 'value'),
+    State({'type': 'systems-dropdown', 'index': 3}, 'value'),
+)
+def switch_dropdown_values(n_clicks, ts2, sys2, ts3, sys3):
+    if n_clicks is None or n_clicks == 0:
+        # No clicks yet, do nothing
+        raise dash.exceptions.PreventUpdate
+
+    # Swap values
+    return ts3, sys3, ts2, sys2
+
+
+@app.callback(
     Output('coverage-matrix-table', 'columns'),
     Output('coverage-matrix-table', 'data'),
     Input({'type': 'timestamp-dropdown', 'index': 4}, 'value'),
@@ -262,7 +293,7 @@ def create_coverage_matrix(timestamp):
         if ts['timestamp'] == timestamp:
             systems = ts['systems']
     if not systems:
-        return []
+        return [], []
     
     coverage_matrix[timestamp] = [{'system': system, **{key: 0 for key in qf.KNOWN_FEATURES}} for system in systems]
     matrix = [{'system': system, **{key: 0 for key in qf.KNOWN_FEATURES}} for system in systems]
