@@ -11,39 +11,18 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 import query_features as qf
 
-retriever = qf.DirRetriever('/home/katie/Desktop/features')
-timestamps = retriever.get_sorted_timestamps_and_systems()
-
-coverage_matrix = {}
 
 
 suppress_callback_exceptions=True
 # app = Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
 app = Dash(external_stylesheets=[dbc.themes.BOOTSTRAP])
 
+
+retriever = qf.DirRetriever('/home/katie/Desktop/features')
+timestamps = retriever.get_sorted_timestamps_and_systems()
+
+coverage_matrix = {}
 timestamp_options = [{"label": item["timestamp"], "value": item["timestamp"]} for item in timestamps]
-
-def calculate_feature_diff(selected_ts):
-    for timestamp in timestamps:
-        if timestamp['timestamp'] != selected_ts:
-            continue
-        diff_data = []
-        for system in timestamp['systems']:
-            diff = qf.diff_all_features(retriever, selected_ts, system, False)
-            d = {key: len(value) for key, value in diff.items()}
-            d['system'] = system
-            diff_data.append(d)
-        return diff_data
-
-
-def make_dict_table_friendly(features):
-    processed = []
-    for feature in features:
-        feat_dict = {}
-        for k, v in feature.items():
-            feat_dict[k] = json.dumps(v) if isinstance(v, list) else v
-        processed.append(feat_dict)
-    return processed
 
 
 app.layout = html.Div([
@@ -156,6 +135,34 @@ app.layout = html.Div([
     ),
 ])
 
+
+def calculate_feature_diff(selected_ts):
+    for timestamp in timestamps:
+        if timestamp['timestamp'] != selected_ts:
+            continue
+        diff_data = []
+        for system in timestamp['systems']:
+            diff = qf.diff_all_features(retriever, selected_ts, system, False)
+            d = {key: len(value) for key, value in diff.items()}
+            d['system'] = system
+            diff_data.append(d)
+        return diff_data
+
+
+def get_columns_from_list_of_dicts(features):
+    i, _ = max(enumerate(features), key=lambda x: len(x[1]))
+    return [{"name": key, "id": key} for key in features[i].keys()]
+
+
+def make_dict_table_friendly(features):
+    processed = []
+    for feature in features:
+        feat_dict = {}
+        for k, v in feature.items():
+            feat_dict[k] = json.dumps(v) if isinstance(v, list) else v
+        processed.append(feat_dict)
+    return processed
+
 @app.callback(
     Output({'type': 'collapse', 'index': MATCH}, "is_open"),
     Input({'type': 'toggle-button', 'index': MATCH}, "n_clicks"),
@@ -240,7 +247,6 @@ def update_totals_table(ts_2, sys_2, ts_3, sys_3):
     
     tables = []
     for feature_name, features in diff.items():
-        columns = [{"name": key, "id": key} for key in features[0].keys()]
         processed = []
         for feature in features:
             feat_dict = {}
@@ -249,7 +255,7 @@ def update_totals_table(ts_2, sys_2, ts_3, sys_3):
             processed.append(feat_dict)
         table = dash_table.DataTable(
             data=processed, 
-            columns=columns,
+            columns=get_columns_from_list_of_dicts(features),
             style_cell={'textAlign': 'center', 'minWidth': '100px', 'maxWidth': '200px', 'whiteSpace': 'normal'},
             style_table={'overflowX': 'auto', 'maxWidth': '900px', 'margin': 'auto'},
         )
@@ -330,10 +336,9 @@ def display_cell_data(active_cell, table_data, timestamp):
     if len(features) == 0:
         return "No data found for the selected cell."
     
-    cols = [{"name": key, "id": key} for key in features[0].keys()]
     table = dash_table.DataTable(
             data=make_dict_table_friendly(features),
-            columns=cols,
+            columns=get_columns_from_list_of_dicts(features),
             filter_action='native',
             sort_action='native',
             style_cell={'textAlign': 'center', 'minWidth': '100px', 'maxWidth': '200px', 'whiteSpace': 'normal'},
