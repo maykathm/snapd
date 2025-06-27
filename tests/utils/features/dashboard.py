@@ -14,8 +14,7 @@ import query_features as qf
 
 
 suppress_callback_exceptions=True
-# app = Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
-app = Dash(external_stylesheets=[dbc.themes.BOOTSTRAP])
+app = Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
 
 
 retriever = qf.DirRetriever('/home/katie/Desktop/features')
@@ -291,8 +290,7 @@ def switch_dropdown_values(n_clicks, ts2, sys2, ts3, sys3):
 )
 def create_coverage_matrix(timestamp):
     columns = [{"name": "System", "id": "system"}] + [{"name": key, "id": key} for key in qf.KNOWN_FEATURES]
-    if timestamp in coverage_matrix:
-        columns, coverage_matrix[timestamp]
+    # TODO if timestamp in coverage_matrix, just recalculate the matrix data
     
     systems = None
     for ts in timestamps:
