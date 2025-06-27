@@ -14,6 +14,8 @@ import query_features as qf
 retriever = qf.DirRetriever('/home/katie/Desktop/features')
 timestamps = retriever.get_sorted_timestamps_and_systems()
 
+coverage_matrix = {}
+
 
 suppress_callback_exceptions=True
 # app = Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
@@ -32,6 +34,16 @@ def calculate_feature_diff(selected_ts):
             d['system'] = system
             diff_data.append(d)
         return diff_data
+
+
+def make_dict_table_friendly(features):
+    processed = []
+    for feature in features:
+        feat_dict = {}
+        for k, v in feature.items():
+            feat_dict[k] = json.dumps(v) if isinstance(v, list) else v
+        processed.append(feat_dict)
+    return processed
 
 
 app.layout = html.Div([
@@ -108,8 +120,26 @@ app.layout = html.Div([
                 options=timestamp_options,
                 placeholder="Select timestamp"
             ),
-            html.Div(
-                id='coverage-matrix-container'
+            html.Div([
+                dash_table.DataTable(
+                    id='coverage-matrix-table',
+                    filter_action='native',
+                    sort_action='native',
+                    style_cell={'textAlign': 'center', 'minWidth': '100px', 'maxWidth': '200px', 'whiteSpace': 'normal'},
+                    style_table={'overflowX': 'auto', 'maxWidth': '900px', 'margin': 'auto'},
+                ),
+                html.Div(id='cell-data-container', 
+                         style={'display': 'inline-block', 'marginLeft': '20px', 'verticalAlign': 'top', 'flex': 1, 'overflow': 'auto', 'maxWidth':'900px'})
+                ],
+                id='coverage-matrix-container',
+                style={
+                    'display': 'flex',
+                    'justifyContent': 'center',  # center the tables horizontally
+                    'alignItems': 'flex-start',  # align tables at the top
+                    'gap': '20px',               # gap between tables (alternative to marginLeft)
+                    'maxWidth': '1900px',        # total max width to fit both tables nicely
+                    'margin': 'auto'
+                }
             ),
         ]), id={'type': 'collapse', 'index': 3}, is_open=False
     ),
@@ -218,20 +248,74 @@ def update_totals_table(ts_2, sys_2, ts_3, sys_3):
 
 
 @app.callback(
-    Output('coverage-matrix-container', 'children'),
+    Output('coverage-matrix-table', 'columns'),
+    Output('coverage-matrix-table', 'data'),
     Input({'type': 'timestamp-dropdown', 'index': 4}, 'value'),
 )
 def create_coverage_matrix(timestamp):
-    pass
-
-    # if not selected_timestamp:
-    #     return [], []
+    columns = [{"name": "System", "id": "system"}] + [{"name": key, "id": key} for key in qf.KNOWN_FEATURES]
+    if timestamp in coverage_matrix:
+        columns, coverage_matrix[timestamp]
     
-    # diff_data = calculate_feature_diff(selected_timestamp)
+    systems = None
+    for ts in timestamps:
+        if ts['timestamp'] == timestamp:
+            systems = ts['systems']
+    if not systems:
+        return []
+    
+    coverage_matrix[timestamp] = [{'system': system, **{key: 0 for key in qf.KNOWN_FEATURES}} for system in systems]
+    matrix = [{'system': system, **{key: 0 for key in qf.KNOWN_FEATURES}} for system in systems]
+    for i, system in enumerate(systems):
+        feats = qf.feat_sys(retriever, timestamp, system, False)
+        coverage_matrix[timestamp][i].update(feats)
+        for feature in qf.KNOWN_FEATURES:
+            matrix[i][feature] = len(feats[feature])
 
-    # columns = [{"name": "System", "id": "system"}] + [{"name": key, "id": key} for key in qf.KNOWN_FEATURES]
+    return columns, matrix
 
-    # return columns, diff_data
+
+@app.callback(
+    Output('cell-data-container', 'children'),
+    Input('coverage-matrix-table', 'active_cell'),
+    State('coverage-matrix-table', 'data'),
+    State({'type': 'timestamp-dropdown', 'index': 4}, 'value')
+)
+def display_cell_data(active_cell, table_data, timestamp):
+    if not active_cell or not table_data or not timestamp:
+        return "Click on a cell to see feature data"
+
+    row_idx = active_cell['row']
+    col_idx = active_cell['column_id']
+
+    # Get the system name from the row data
+    system = table_data[row_idx]['system']
+
+    system_data = next((item for item in coverage_matrix[timestamp] if item['system'] == system), None)
+    if not system_data:
+        return "No data found for the selected cell."
+    
+    features = system_data[col_idx]
+    if len(features) == 0:
+        return "No data found for the selected cell."
+    
+    cols = [{"name": key, "id": key} for key in features[0].keys()]
+    table = dash_table.DataTable(
+            data=make_dict_table_friendly(features),
+            columns=cols,
+            filter_action='native',
+            sort_action='native',
+            style_cell={'textAlign': 'center', 'minWidth': '100px', 'maxWidth': '200px', 'whiteSpace': 'normal'},
+            style_table={'overflowX': 'auto', 'maxWidth': '900px', 'margin': 'auto'},
+        )
+    return html.Div([html.H4(f"{system} ---- {col_idx}:", style={'textAlign':'center'}), table], style={'maxWidth': '900px', 'margin': 'auto'})
+
+    # value = system_data.get(col_idx, "N/A")
+
+    # return html.Div([
+    #     html.H5(f"Details for system '{system}', feature '{col_idx}':"),
+    #     html.Pre(str(value), style={'whiteSpace': 'pre-wrap', 'wordBreak': 'break-word', 'border': '1px solid #ccc', 'padding': '10px', 'backgroundColor': '#f9f9f9'})
+    # ])
 
 # @app.callback(
 #     Output('collapsed-state', 'data'),
