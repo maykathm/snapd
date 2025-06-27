@@ -315,7 +315,7 @@ def create_coverage_matrix(timestamp):
 @app.callback(
     Output('cell-data-container', 'children'),
     Input('coverage-matrix-table', 'active_cell'),
-    State('coverage-matrix-table', 'data'),
+    State('coverage-matrix-table', 'derived_viewport_data'),
     State({'type': 'timestamp-dropdown', 'index': 4}, 'value')
 )
 def display_cell_data(active_cell, table_data, timestamp):
