@@ -61,47 +61,49 @@ app.layout = html.Div([
     dbc.Collapse(
         html.Div([
             html.Div(children="Calculates difference in coverage between set(system_1_features) - set(system_2_features)", style={'fontSize': '20px', 'marginBottom': '20px'}),
-            html.Div(children="System 1", style={'marginBottom': '20px'}),
-            dcc.Dropdown(
-                id={'type': 'timestamp-dropdown', 'index': 2},
-                options=timestamp_options,
-                placeholder="Select timestamp"
-            ),
-            dcc.Dropdown(
-                id={'type': 'systems-dropdown', 'index': 2},
-                options=[],
-                placeholder="Select system"
-            ),
-            html.Div(children="", style={'marginBottom': '10px'}),
-            html.Button(
-                "🔄",
-                id='switch-button',
-                n_clicks=0,
-                style={'fontSize': '20px','padding': '4px 8px','margin': '0 10px',
-                    'borderRadius': '50%','border': '1px solid #ccc','backgroundColor': 'white',
-                    'cursor': 'pointer','lineHeight': '1','display': 'inline-flex',
-                    'alignItems': 'center','justifyContent': 'center','width': '32px','height': '32px',
-                }
-            ),
-            html.Div(children="System 2", style={'marginTop': '10px', 'marginBottom': '20px'}),
-            dcc.Dropdown(
-                id={'type': 'timestamp-dropdown', 'index': 3},
-                options=timestamp_options,
-                placeholder="Select timestamp"
-            ),
-            dcc.Dropdown(
-                id={'type': 'systems-dropdown', 'index': 3},
-                options=[],
-                placeholder="Select system"
-            ),
-            daq.BooleanSwitch(
-                id='remove-failed-switch',
-                on=False, label="Remove failed tests"
-            ),
-            daq.BooleanSwitch(
-                id='only-same-switch',
-                on=False, label='Only compare features across tests that are present in both systems'
-            ),
+            html.Div([
+                html.Div(children="System 1", style={'marginBottom': '20px'}),
+                dcc.Dropdown(
+                    id={'type': 'timestamp-dropdown', 'index': 2},
+                    options=timestamp_options,
+                    placeholder="Select timestamp"
+                ),
+                dcc.Dropdown(
+                    id={'type': 'systems-dropdown', 'index': 2},
+                    options=[],
+                    placeholder="Select system"
+                ),
+                html.Div(children="", style={'marginBottom': '10px'}),
+                html.Button(
+                    "🔄",
+                    id='switch-button',
+                    n_clicks=0,
+                    style={'fontSize': '20px','padding': '4px 8px','margin': '0 10px',
+                        'borderRadius': '50%','border': '1px solid #ccc','backgroundColor': 'white',
+                        'cursor': 'pointer','lineHeight': '1','display': 'inline-flex',
+                        'alignItems': 'center','justifyContent': 'center','width': '32px','height': '32px',
+                    }
+                ),
+                html.Div(children="System 2", style={'marginTop': '10px', 'marginBottom': '20px'}),
+                dcc.Dropdown(
+                    id={'type': 'timestamp-dropdown', 'index': 3},
+                    options=timestamp_options,
+                    placeholder="Select timestamp"
+                ),
+                dcc.Dropdown(
+                    id={'type': 'systems-dropdown', 'index': 3},
+                    options=[],
+                    placeholder="Select system"
+                ),
+                daq.BooleanSwitch(
+                    id='remove-failed-switch',
+                    on=False, label="Remove failed tests"
+                ),
+                daq.BooleanSwitch(
+                    id='only-same-switch',
+                    on=False, label='Only compare features across tests that are present in both systems'
+                ),
+            ], style={'width':'25%'}),
             html.Div(
                 id='coverage-diff-container'
             ),
@@ -113,20 +115,36 @@ app.layout = html.Div([
         html.Div([
             html.Div(children="Calculates difference in feature coverage matrix between all systems", style={'fontSize': '20px', 'marginBottom': '20px'}),
             html.Div(children="Timestamp", style={'marginBottom': '20px'}),
-            dcc.Dropdown(
-                id={'type': 'timestamp-dropdown', 'index': 4},
-                options=timestamp_options,
-                placeholder="Select timestamp"
-            ),
-            html.Div(children="Filter coverage data", style={'fontSize': '16px', 'marginTop': '20px', 'marginBottom': '20px'}),
-            dcc.Input(id='suite-input', type='text', value=None, placeholder='Enter suite name here', style={'margin': '10px'}),
-            dcc.Input(id='task-input', type='text', value=None, placeholder='Enter task name here', style={'margin': '10px'}),
-            dcc.Input(id='variant-input', type='text', value=None, placeholder='Enter variant name here', style={'margin': '10px'}),
-            html.Button('apply filter', id='filter-button', style={'margin':'10px'}),
-            daq.BooleanSwitch(
-                id='coverage-remove-failed-switch',
-                on=False, label="Remove failed tests"
-            ),
+            html.Div([
+                dcc.Dropdown(
+                    id={'type': 'timestamp-dropdown', 'index': 4},
+                    options=timestamp_options,
+                    placeholder="Select timestamp"
+                ),
+                html.Div(children="coverage data filter", style={'fontSize': '16px', 'marginTop': '20px', 'marginBottom': '20px'}),
+                dcc.Dropdown(
+                    id='suite-dropdown-filter',
+                    options=[],
+                    placeholder="Select suite",
+                    clearable=True
+                    ),
+                dcc.Dropdown(
+                    id='task-dropdown-filter',
+                    options=[],
+                    placeholder="Select task",
+                    clearable=True
+                    ),
+                dcc.Dropdown(
+                    id='variant-dropdown-filter',
+                    options=[],
+                    placeholder="Select variant",
+                    clearable=True
+                    ),
+                daq.BooleanSwitch(
+                    id='coverage-remove-failed-switch',
+                    on=False, label="Remove failed tests"
+                ),
+            ], style={'width':'25%'}),
             html.Div([
                 dash_table.DataTable(
                     id='coverage-matrix-table',
@@ -275,6 +293,8 @@ def update_totals_table(ts_2, sys_2, ts_3, sys_3, remove_failed_value, only_same
         table = dash_table.DataTable(
             data=processed, 
             columns=get_columns_from_list_of_dicts(features),
+            filter_action='native',
+            sort_action='native',
             style_cell={'textAlign': 'center', 'minWidth': '100px', 'maxWidth': '200px', 'whiteSpace': 'normal'},
             style_table={'overflowX': 'auto', 'maxWidth': '900px', 'margin': 'auto'},
         )
@@ -304,16 +324,31 @@ def switch_dropdown_values(n_clicks, ts2, sys2, ts3, sys3):
 
 
 @app.callback(
+    Output('suite-dropdown-filter', 'options'),
+    Output('task-dropdown-filter', 'options'),
+    Output('variant-dropdown-filter', 'options'),
+    Input({'type': 'timestamp-dropdown', 'index': 4}, 'value'),
+)
+def update_systems_dropdown(selected_timestamp):
+    if not selected_timestamp:
+        raise dash.exceptions.PreventUpdate
+    task_list = qf.task_list(retriever, selected_timestamp)
+    suites = set([task.suite for task in task_list])
+    tasks = set([task.task_name for task in task_list])
+    variants = set([task.variant for task in task_list])
+    return list(suites), list(tasks), list(variants)
+
+
+@app.callback(
     Output('coverage-matrix-table', 'columns'),
     Output('coverage-matrix-table', 'data'),
     Input({'type': 'timestamp-dropdown', 'index': 4}, 'value'),
     Input('coverage-remove-failed-switch', 'on'),
-    Input('filter-button', 'n_clicks'),
-    State('suite-input', 'value'),
-    State('task-input', 'value'),
-    State('variant-input', 'value'),
+    Input('suite-dropdown-filter', 'value'),
+    Input('task-dropdown-filter', 'value'),
+    Input('variant-dropdown-filter', 'value'),
 )
-def create_coverage_matrix(timestamp, remove_failed, _, suite, task, variant):
+def create_coverage_matrix(timestamp, remove_failed, suite, task, variant):
     ctx = dash.callback_context
     if not ctx.triggered:
         raise dash.exceptions.PreventUpdate

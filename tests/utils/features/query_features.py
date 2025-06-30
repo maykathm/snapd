@@ -2,6 +2,7 @@
 
 from abc import abstractmethod, ABC
 import argparse
+import bisect
 from collections import defaultdict
 import concurrent.futures
 from contextlib import closing
@@ -445,6 +446,26 @@ def export(retriever: Retriever, output: str, timestamps: list[str], systems: li
                 json.dump(all_features, f, cls=DateTimeEncoder)
         except Exception as e:
             print(f'could not find all features at timestamp {timestamp}', file=sys.stderr)
+
+
+def task_list(retriever: Retriever, timestamp: str) -> list[TaskIdVariant]:
+    '''
+    Given a timestamp, gets the complete list of tasks (suite, task, and variant names)
+    '''
+    all_data = retriever.get_systems(timestamp)
+    tasks = set()
+    for data in all_data:
+        if 'tests' not in data:
+            continue
+        system_data = {TaskIdVariant(suite=d['suite'], task_name=d['task_name'], variant=d['variant']) for d in data['tests']}
+        if not tasks:
+            tasks = set(system_data)
+            continue
+        for task in system_data:
+            if not task in tasks:
+                tasks.add(task)
+    return tasks
+
 
 
 def add_data_source_args(parser: argparse.ArgumentParser):
