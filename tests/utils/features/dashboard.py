@@ -24,6 +24,7 @@ timestamps = retriever.get_sorted_timestamps_and_systems()
 coverage_matrix = {}
 timestamp_options = [{"label": item["timestamp"], "value": item["timestamp"]} for item in timestamps]
 cached_duplicates = {}
+cached_all_features_diff = {}
 
 
 app.layout = html.Div([
@@ -35,11 +36,6 @@ app.layout = html.Div([
                 id={'type': 'timestamp-dropdown', 'index': 1},
                 options=timestamp_options,
                 placeholder="Select timestamp"
-            ),
-            dcc.Dropdown(
-                id={'type': 'systems-dropdown', 'index': 1},
-                options=[],
-                placeholder="Select system"
             ),
             html.Div(
                 dash_table.DataTable(
@@ -216,19 +212,6 @@ app.layout = html.Div([
 ])
 
 
-def calculate_feature_diff(selected_ts):
-    for timestamp in timestamps:
-        if timestamp['timestamp'] != selected_ts:
-            continue
-        diff_data = []
-        for system in timestamp['systems']:
-            diff = qf.diff_all_features(retriever, selected_ts, system, False)
-            d = {key: len(value) for key, value in diff.items()}
-            d['system'] = system
-            diff_data.append(d)
-        return diff_data
-
-
 def get_columns_from_list_of_dicts(features):
     i, _ = max(enumerate(features), key=lambda x: len(x[1]))
     return [{"name": key, "id": key} for key in features[i].keys()]
@@ -273,9 +256,24 @@ def update_systems_dropdown(selected_timestamp):
 )
 def update_totals_table(selected_timestamp):
     if not selected_timestamp:
-        return [], []
+        return [], []    
     
-    diff_data = calculate_feature_diff(selected_timestamp)
+    diff_data = []
+    for timestamp in timestamps:
+        if timestamp['timestamp'] != selected_timestamp:
+            continue
+        for system in timestamp['systems']:
+            if selected_timestamp in cached_all_features_diff and system in cached_all_features_diff[selected_timestamp]:
+                diff = cached_all_features_diff[selected_timestamp][system]
+            else:
+                diff = qf.diff_all_features(retriever, selected_timestamp, system, False)
+                if selected_timestamp not in cached_all_features_diff:
+                    cached_all_features_diff[selected_timestamp] = {}
+                cached_all_features_diff[selected_timestamp][system] = diff
+
+            d = {key: len(value) for key, value in diff.items()}
+            d['system'] = system
+            diff_data.append(d)
 
     columns = [{"name": "System", "id": "system"}] + [{"name": key, "id": key} for key in qf.KNOWN_FEATURES]
 
