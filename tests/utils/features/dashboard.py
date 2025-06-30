@@ -168,6 +168,42 @@ app.layout = html.Div([
             ),
         ]), id={'type': 'collapse', 'index': 3}, is_open=False
     ),
+    html.Div(children="", style={'fontSize': '24px', 'marginBottom': '20px'}),
+    dbc.Button("Duplicate features", id={'type': "toggle-button", 'index': 4}, n_clicks=0, className="mb-3"),
+    dbc.Collapse(
+        html.Div([
+            # html.Div(children="Calculates difference in feature coverage matrix between all systems", style={'fontSize': '20px', 'marginBottom': '20px'}),
+            html.Div(children="Timestamp", style={'marginBottom': '20px'}),
+            dcc.Dropdown(
+                id={'type': 'timestamp-dropdown', 'index': 5},
+                options=timestamp_options,
+                placeholder="Select timestamp"
+            ),
+            dcc.Dropdown(
+                id={'type': 'systems-dropdown', 'index': 5},
+                options=[],
+                placeholder="Select system"
+            ),
+            html.Div([
+                dash_table.DataTable(
+                    id='duplicate-table',
+                    filter_action='native',
+                    sort_action='native',
+                    style_cell={'textAlign': 'center', 'minWidth': '100px', 'maxWidth': '200px', 'whiteSpace': 'normal'},
+                    style_table={'overflowX': 'auto', 'maxWidth': '900px', 'margin': 'auto'},
+                )],
+                id='duplicate-matrix-container',
+                style={
+                    'display': 'flex',
+                    'justifyContent': 'center',  # center the tables horizontally
+                    'alignItems': 'flex-start',  # align tables at the top
+                    'gap': '20px',               # gap between tables (alternative to marginLeft)
+                    'maxWidth': '1900px',        # total max width to fit both tables nicely
+                    'margin': 'auto'
+                }
+            ),
+        ]), id={'type': 'collapse', 'index': 4}, is_open=False
+    ),
 ])
 
 
@@ -405,6 +441,27 @@ def display_cell_data(active_cell, table_data, timestamp):
             style_table={'overflowX': 'auto', 'maxWidth': '900px', 'margin': 'auto'},
         )
     return html.Div([html.H4(f"{system} ---- {col_idx}:", style={'textAlign':'center'}), table], style={'maxWidth': '900px', 'margin': 'auto'})
+
+
+@app.callback(
+    Output('duplicate-table', 'columns'),
+    Output('duplicate-table', 'data'),
+    Input({'type': 'timestamp-dropdown', 'index': 5}, 'value'),
+    Input({'type': 'systems-dropdown', 'index': 5}, 'value'),
+)
+def calculate_duplicate_systems(timestamp, system):
+
+    if not timestamp or not system:
+        return [], []
+
+    duplicates = qf.dup(retriever, timestamp, system, False)
+
+    columns = [{"name": "suite", "id": "suite"}, {"name": "task", "id": "task"}, {"name": "variant", "id": "variant"}]
+
+    rows = [{"suite": d.suite, "task": d.task_name, "variant": d.variant} for d in duplicates]
+
+    return columns, rows
+
 
     # value = system_data.get(col_idx, "N/A")
 
