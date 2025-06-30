@@ -14,7 +14,7 @@ import pymongo.collection
 import sys
 from typing import Any, Iterable
 
-from features import SystemFeatures
+from features import SystemFeatures, Cmd, Endpoint, Status, Task, Change, Interface
 
 
 KNOWN_FEATURES = ['cmds', 'endpoints',
@@ -332,8 +332,32 @@ def diff_all_features(retriever: Retriever, timestamp: str, system: str, remove_
     :param remove_failed: if true, will remove all instances of tests where success == False
     '''
     sys_features = feat_sys(retriever, timestamp, system, remove_failed)
-    mns = minus(retriever.get_all_features(timestamp), sys_features)
-    return mns
+    all_features = retriever.get_all_features(timestamp)
+    all_endpoints = []
+    for endpoint in all_features['endpoints']:
+        if 'Actions' in endpoint and endpoint['Actions']:
+            for action in endpoint['Actions']:
+                all_endpoints.append(Endpoint(method=endpoint['Method'], path=endpoint['Path'], action=endpoint['Actions']))
+        else:
+            all_endpoints.append(Endpoint(method=endpoint['Method'], path=endpoint['Path']))
+    all_cmds = [Cmd(cmd=cmd) for cmd in all_features['commands']]
+    diff = minus({'cmds': all_cmds, 'ensures': all_features['ensures'], 'endpoints': all_endpoints}, sys_features)
+    tasks = []
+    for task in all_features['tasks']:
+        filtered = filter(lambda x: x['kind'] == task, sys_features['tasks'])
+        for status in [Status.done, Status.undone, Status.error]:
+            if not any(task for task in filtered if task['last_status'] == status):
+                tasks.append(Task(kind=task, last_status=status))
+    changes = [Change(kind=change) for change in all_features['changes'] if not any([feat for feat in sys_features['changes'] if feat['kind'] == change])]
+    interfaces = [Interface(name=iface) for iface in all_features['changes'] if not any([feat for feat in sys_features['interfaces'] if feat['name'] == iface])]
+
+    if tasks:
+        diff['tasks'] = tasks
+    if changes:
+        diff['changes'] = changes
+    if interfaces:
+        diff['interfaces'] = interfaces
+    return diff
 
 
 def feat_sys(retriever: Retriever, timestamp: str, system: str, remove_failed: bool, suite: str = None, task: str = None, variant: str = None) -> dict:
