@@ -23,6 +23,7 @@ timestamps = retriever.get_sorted_timestamps_and_systems()
 
 coverage_matrix = {}
 timestamp_options = [{"label": item["timestamp"], "value": item["timestamp"]} for item in timestamps]
+cached_duplicates = {}
 
 
 app.layout = html.Div([
@@ -97,15 +98,17 @@ app.layout = html.Div([
                 ),
                 daq.BooleanSwitch(
                     id='remove-failed-switch',
-                    on=False, label="Remove failed tests"
+                    label="Remove failed tests",
                 ),
                 daq.BooleanSwitch(
                     id='only-same-switch',
-                    on=False, label='Only compare features across tests that are present in both systems'
+                    label='Only compare features across tests that are present in both systems',
                 ),
             ], style={'width':'25%'}),
-            html.Div(
-                id='coverage-diff-container'
+            dcc.Loading(
+                html.Div(
+                    id='coverage-diff-container'
+                ),
             ),
         ]), id={'type': 'collapse', 'index': 2}, is_open=False
     ),
@@ -142,29 +145,31 @@ app.layout = html.Div([
                     ),
                 daq.BooleanSwitch(
                     id='coverage-remove-failed-switch',
-                    on=False, label="Remove failed tests"
+                    label="Remove failed tests",
                 ),
             ], style={'width':'25%'}),
-            html.Div([
-                dash_table.DataTable(
-                    id='coverage-matrix-table',
-                    filter_action='native',
-                    sort_action='native',
-                    style_cell={'textAlign': 'center', 'minWidth': '100px', 'maxWidth': '200px', 'whiteSpace': 'normal'},
-                    style_table={'overflowX': 'auto', 'maxWidth': '900px', 'margin': 'auto'},
+            dcc.Loading(
+                html.Div([
+                    dash_table.DataTable(
+                        id='coverage-matrix-table',
+                        filter_action='native',
+                        sort_action='native',
+                        style_cell={'textAlign': 'center', 'minWidth': '100px', 'maxWidth': '200px', 'whiteSpace': 'normal'},
+                        style_table={'overflowX': 'auto', 'maxWidth': '900px', 'margin': 'auto'},
+                    ),
+                    html.Div(id='cell-data-container', 
+                            style={'display': 'inline-block', 'marginLeft': '20px', 'verticalAlign': 'top', 'flex': 1, 'overflow': 'auto', 'maxWidth':'900px'})
+                    ],
+                    id='coverage-matrix-container',
+                    style={
+                        'display': 'flex',
+                        'justifyContent': 'center',  # center the tables horizontally
+                        'alignItems': 'flex-start',  # align tables at the top
+                        'gap': '20px',               # gap between tables (alternative to marginLeft)
+                        'maxWidth': '1900px',        # total max width to fit both tables nicely
+                        'margin': 'auto'
+                    }
                 ),
-                html.Div(id='cell-data-container', 
-                         style={'display': 'inline-block', 'marginLeft': '20px', 'verticalAlign': 'top', 'flex': 1, 'overflow': 'auto', 'maxWidth':'900px'})
-                ],
-                id='coverage-matrix-container',
-                style={
-                    'display': 'flex',
-                    'justifyContent': 'center',  # center the tables horizontally
-                    'alignItems': 'flex-start',  # align tables at the top
-                    'gap': '20px',               # gap between tables (alternative to marginLeft)
-                    'maxWidth': '1900px',        # total max width to fit both tables nicely
-                    'margin': 'auto'
-                }
             ),
         ]), id={'type': 'collapse', 'index': 3}, is_open=False
     ),
@@ -172,7 +177,6 @@ app.layout = html.Div([
     dbc.Button("Duplicate features", id={'type': "toggle-button", 'index': 4}, n_clicks=0, className="mb-3"),
     dbc.Collapse(
         html.Div([
-            # html.Div(children="Calculates difference in feature coverage matrix between all systems", style={'fontSize': '20px', 'marginBottom': '20px'}),
             html.Div(children="Timestamp", style={'marginBottom': '20px'}),
             dcc.Dropdown(
                 id={'type': 'timestamp-dropdown', 'index': 5},
@@ -185,12 +189,17 @@ app.layout = html.Div([
                 placeholder="Select system"
             ),
             html.Div([
-                dash_table.DataTable(
-                    id='duplicate-table',
-                    filter_action='native',
-                    sort_action='native',
-                    style_cell={'textAlign': 'center', 'minWidth': '100px', 'maxWidth': '200px', 'whiteSpace': 'normal'},
-                    style_table={'overflowX': 'auto', 'maxWidth': '900px', 'margin': 'auto'},
+                dcc.Loading(
+                    dash_table.DataTable(
+                        id='duplicate-table',
+                        filter_action='native',
+                        sort_action='native',
+                        style_cell={'textAlign': 'center', 'minWidth': '100px', 'maxWidth': '200px', 'whiteSpace': 'normal'},
+                        style_table={'overflowX': 'auto', 'maxWidth': '900px', 'margin': 'auto'},
+                    ),
+                ),
+                html.Div(id='cell-duplicate-container', 
+                        style={'display': 'inline-block', 'marginLeft': '20px', 'verticalAlign': 'top', 'flex': 1, 'overflow': 'auto', 'maxWidth':'900px'}
                 )],
                 id='duplicate-matrix-container',
                 style={
@@ -453,8 +462,15 @@ def calculate_duplicate_systems(timestamp, system):
 
     if not timestamp or not system:
         return [], []
-
-    duplicates = qf.dup(retriever, timestamp, system, False)
+    
+    if timestamp in cached_duplicates and system in cached_duplicates[timestamp]:
+        duplicates = cached_duplicates[timestamp][system]
+    else:
+        duplicates = qf.dup(retriever, timestamp, system, False)
+        if timestamp in cached_duplicates:
+            cached_duplicates[timestamp][system] = duplicates
+        else:
+            cached_duplicates[timestamp] = {system: duplicates}
 
     columns = [{"name": "suite", "id": "suite"}, {"name": "task", "id": "task"}, {"name": "variant", "id": "variant"}]
 
@@ -463,50 +479,43 @@ def calculate_duplicate_systems(timestamp, system):
     return columns, rows
 
 
-    # value = system_data.get(col_idx, "N/A")
+@app.callback(
+    Output('cell-duplicate-container', 'children'),
+    Input('duplicate-table', 'active_cell'),
+    State('duplicate-table', 'derived_viewport_data'),
+    State({'type': 'timestamp-dropdown', 'index': 5}, 'value'),
+    State({'type': 'systems-dropdown', 'index': 5}, 'value')
+)
+def display_duplicate_cell_data(active_cell, table_data, timestamp, system):
+    if not active_cell or not table_data or not timestamp:
+        return "Click on a cell to see feature data"
 
-    # return html.Div([
-    #     html.H5(f"Details for system '{system}', feature '{col_idx}':"),
-    #     html.Pre(str(value), style={'whiteSpace': 'pre-wrap', 'wordBreak': 'break-word', 'border': '1px solid #ccc', 'padding': '10px', 'backgroundColor': '#f9f9f9'})
-    # ])
+    row_idx = active_cell['row']
 
-# @app.callback(
-#     Output('collapsed-state', 'data'),
-#     Input('toggle-table-btn', 'n_clicks'),
-#     Input('totals-table', 'active_cell'),
-#     State('collapsed-state', 'data'),
-#     State('totals-table', 'columns')
-# )
-# def update_collapsed_state(n_clicks, active_cell, collapsed, columns):
-#     ctx = dash.callback_context
+    test = table_data[row_idx]
 
-#     if not ctx.triggered:
-#         return collapsed
+    features = qf.feat_sys(retriever, timestamp, system, False, suite=test['suite'], task=test['task'], variant=test['variant'])
 
-#     triggered_id = ctx.triggered[0]['prop_id'].split('.')[0]
+    tables = [html.H4(f"{system}:{str(qf.TaskIdVariant(test['suite'], test['task'], test['variant']))}", style={'textAlign':'center'})]
+    for feature_name, feature_data in features.items():
+        processed = []
+        for feature in feature_data:
+            feat_dict = {}
+            for k, v in feature.items():
+                feat_dict[k] = json.dumps(v) if isinstance(v, list) else v
+            processed.append(feat_dict)
+        table = dash_table.DataTable(
+            data=processed, 
+            columns=get_columns_from_list_of_dicts(feature_data),
+            filter_action='native',
+            sort_action='native',
+            style_cell={'textAlign': 'center', 'minWidth': '100px', 'maxWidth': '200px', 'whiteSpace': 'normal'},
+            style_table={'overflowX': 'auto', 'maxWidth': '900px', 'margin': 'auto'},
+        )
+        tables.append(html.Div([html.H4(feature_name), table], style={'maxWidth': '900px', 'margin': 'auto'}))
+    
+    return tables
 
-#     # If user clicked a total column cell -> collapse table
-#     if triggered_id == 'totals-table' and active_cell is not None:
-#         col_idx = active_cell['column']
-#         # Check if clicked column is NOT the 'system' column
-#         if columns and columns[col_idx]['id'] != 'system':
-#             return True  # Collapse table
-
-#     # If user clicked toggle button -> toggle collapse state
-#     if triggered_id == 'toggle-table-btn':
-#         return not collapsed
-
-#     return collapsed
-
-# @app.callback(
-#     Output('table-container', 'style'),
-#     Input('collapsed-state', 'data')
-# )
-# def toggle_table_visibility(collapsed):
-#     if collapsed:
-#         return {'display': 'none', 'marginTop': '10px'}
-#     else:
-#         return {'display': 'block', 'marginTop': '10px'}
 
 if __name__ == '__main__':
     app.run(debug=False)
