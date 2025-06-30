@@ -118,6 +118,11 @@ app.layout = html.Div([
                 options=timestamp_options,
                 placeholder="Select timestamp"
             ),
+            html.Div(children="Filter coverage data", style={'fontSize': '16px', 'marginTop': '20px', 'marginBottom': '20px'}),
+            dcc.Input(id='suite-input', type='text', value=None, placeholder='Enter suite name here', style={'margin': '10px'}),
+            dcc.Input(id='task-input', type='text', value=None, placeholder='Enter task name here', style={'margin': '10px'}),
+            dcc.Input(id='variant-input', type='text', value=None, placeholder='Enter variant name here', style={'margin': '10px'}),
+            html.Button('apply filter', id='filter-button', style={'margin':'10px'}),
             daq.BooleanSwitch(
                 id='coverage-remove-failed-switch',
                 on=False, label="Remove failed tests"
@@ -303,8 +308,16 @@ def switch_dropdown_values(n_clicks, ts2, sys2, ts3, sys3):
     Output('coverage-matrix-table', 'data'),
     Input({'type': 'timestamp-dropdown', 'index': 4}, 'value'),
     Input('coverage-remove-failed-switch', 'on'),
+    Input('filter-button', 'n_clicks'),
+    State('suite-input', 'value'),
+    State('task-input', 'value'),
+    State('variant-input', 'value'),
 )
-def create_coverage_matrix(timestamp, remove_failed):
+def create_coverage_matrix(timestamp, remove_failed, _, suite, task, variant):
+    ctx = dash.callback_context
+    if not ctx.triggered:
+        raise dash.exceptions.PreventUpdate
+    
     systems = None
     for ts in timestamps:
         if ts['timestamp'] == timestamp:
@@ -316,7 +329,7 @@ def create_coverage_matrix(timestamp, remove_failed):
     coverage_matrix[timestamp] = [{'system': system, **{key: 0 for key in qf.KNOWN_FEATURES}} for system in systems]
     matrix = [{'system': system, **{key: 0 for key in qf.KNOWN_FEATURES}} for system in systems]
     for i, system in enumerate(systems):
-        feats = qf.feat_sys(retriever, timestamp, system, remove_failed)
+        feats = qf.feat_sys(retriever, timestamp, system, remove_failed, suite, task, variant)
         coverage_matrix[timestamp][i].update(feats)
         for feature in qf.KNOWN_FEATURES:
             matrix[i][feature] = len(feats[feature])
