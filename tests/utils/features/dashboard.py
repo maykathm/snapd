@@ -37,9 +37,10 @@ app.layout = html.Div([
                 options=timestamp_options,
                 placeholder="Select timestamp"
             ),
-            html.Div(
-                dash_table.DataTable(
-                    id='totals-table',
+            dcc.Loading(
+                html.Div([
+                    dash_table.DataTable(
+                    id='all-features-diff-table',
                     columns=[],
                     data=[],
                     active_cell=None,
@@ -47,10 +48,34 @@ app.layout = html.Div([
                     style_cell={'textAlign': 'left', 'padding': '5px'},
                     style_header={'backgroundColor': 'lightgrey', 'fontWeight': 'bold'}
                 ),
-                id='table-container',
-                style={'display': 'block', 'marginTop': '10px'}
+                html.Div(id='all-features-diff-cell-data-container', 
+                        style={'display': 'inline-block', 'marginLeft': '20px', 'verticalAlign': 'top', 'flex': 1, 'overflow': 'auto', 'maxWidth':'900px'})
+                ],
+                id='all-features-diff-container',
+                style={
+                    'display': 'flex',
+                    'justifyContent': 'center',  # center the tables horizontally
+                    'alignItems': 'flex-start',  # align tables at the top
+                    'gap': '20px',               # gap between tables (alternative to marginLeft)
+                    'maxWidth': '1900px',        # total max width to fit both tables nicely
+                    'margin': 'auto'
+                }
+                ),
             ),
-            html.Div(id='details-output', style={'marginTop': '20px'}),
+            # html.Div(
+            #     dash_table.DataTable(
+            #         id='totals-table',
+            #         columns=[],
+            #         data=[],
+            #         active_cell=None,
+            #         style_table={'overflowX': 'auto'},
+            #         style_cell={'textAlign': 'left', 'padding': '5px'},
+            #         style_header={'backgroundColor': 'lightgrey', 'fontWeight': 'bold'}
+            #     ),
+            #     id='table-container',
+            #     style={'display': 'block', 'marginTop': '10px'}
+            # ),
+            # html.Div(id='details-output', style={'marginTop': '20px'}),
         ]), id={'type': 'collapse', 'index': 1}, is_open=False
     ),
     html.Div(children="", style={'fontSize': '24px', 'marginBottom': '20px'}),
@@ -250,8 +275,8 @@ def update_systems_dropdown(selected_timestamp):
 
 
 @app.callback(
-    Output('totals-table', 'columns'),
-    Output('totals-table', 'data'),
+    Output('all-features-diff-table', 'columns'),
+    Output('all-features-diff-table', 'data'),
     Input({'type': 'timestamp-dropdown', 'index': 1}, 'value')
 )
 def update_totals_table(selected_timestamp):
@@ -281,10 +306,10 @@ def update_totals_table(selected_timestamp):
 
 
 @app.callback(
-    Output('details-output', 'children'),
-    Input('totals-table', 'active_cell'),
-    State('totals-table', 'columns'),
-    State('totals-table', 'data')
+    Output('all-features-diff-cell-data-container', 'children'),
+    Input('all-features-diff-table', 'active_cell'),
+    State('all-features-diff-table', 'columns'),
+    State('all-features-diff-table', 'data')
 )
 def display_column_details(active_cell, columns, data):
     if active_cell is None:
