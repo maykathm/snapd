@@ -386,6 +386,7 @@ jobs:
             labels=$(gh pr view ${{ github.event.pull_request.number }} --json labels | jq -r '.labels[].name')
             echo "labels are $labels"
             if grep -q '^Run only one system$' <<<$labels; then
+              echo "inside here"
               echo "fundamental_systems=$(jq -c ".include |= map(select(.systems == \"ubuntu-24.04-64\"))" .github/workflows/data-fundamental-systems.json)" >> $GITHUB_ENV
               echo "non-fundamental-systems=" >> $GITHUB_OUTPUT
               if ! grep -q '^Run nested$' <<<$labels; then
