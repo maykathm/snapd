@@ -325,6 +325,31 @@ def diff(retriever: Retriever, timestamp1: str, system1: str, timestamp2: str, s
     return mns
 
 
+def all_features(retriever: Retriever, timestamp:str) -> dict:
+    all_features = retriever.get_all_features(timestamp)
+    all_endpoints = []
+    for endpoint in all_features['endpoints']:
+        if 'Actions' in endpoint and endpoint['Actions']:
+            for action in endpoint['Actions']:
+                all_endpoints.append(Endpoint(method=endpoint['Method'], path=endpoint['Path'], action=action))
+        else:
+            all_endpoints.append(Endpoint(method=endpoint['Method'], path=endpoint['Path']))
+    all_cmds = [Cmd(cmd=cmd) for cmd in all_features['commands']]
+    all_tasks = [Task(kind=task, last_status=status) 
+                 for task in all_features['tasks'] 
+                 for status in [Status.done, Status.undone, Status.error]]
+    all_changes = [Change(kind=change) for change in all_features['changes']]
+    all_interfaces = [Interface(name=iface) for iface in all_features['interfaces']]
+    return {
+        'cmds': all_cmds,
+        'ensures': all_features['ensures'],
+        'tasks': all_tasks,
+        'changes': all_changes,
+        'endpoints': all_endpoints,
+        'interfaces': all_interfaces,
+    }
+
+
 def diff_all_features(retriever: Retriever, timestamp: str, system: str, remove_failed: bool) -> dict:
     '''
     Calculates set(coverage_features) - set(system_features), at the indicated timestamp. 
@@ -337,7 +362,7 @@ def diff_all_features(retriever: Retriever, timestamp: str, system: str, remove_
     for endpoint in all_features['endpoints']:
         if 'Actions' in endpoint and endpoint['Actions']:
             for action in endpoint['Actions']:
-                all_endpoints.append(Endpoint(method=endpoint['Method'], path=endpoint['Path'], action=endpoint['Actions']))
+                all_endpoints.append(Endpoint(method=endpoint['Method'], path=endpoint['Path'], action=action))
         else:
             all_endpoints.append(Endpoint(method=endpoint['Method'], path=endpoint['Path']))
     all_cmds = [Cmd(cmd=cmd) for cmd in all_features['commands']]
@@ -349,7 +374,7 @@ def diff_all_features(retriever: Retriever, timestamp: str, system: str, remove_
             if not any(task for task in filtered if task['last_status'] == status):
                 tasks.append(Task(kind=task, last_status=status))
     changes = [Change(kind=change) for change in all_features['changes'] if not any([feat for feat in sys_features['changes'] if feat['kind'] == change])]
-    interfaces = [Interface(name=iface) for iface in all_features['changes'] if not any([feat for feat in sys_features['interfaces'] if feat['name'] == iface])]
+    interfaces = [Interface(name=iface) for iface in all_features['interfaces'] if not any([feat for feat in sys_features['interfaces'] if feat['name'] == iface])]
 
     if tasks:
         diff['tasks'] = tasks

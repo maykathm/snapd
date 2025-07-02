@@ -23,6 +23,7 @@ timestamps = retriever.get_sorted_timestamps_and_systems()
 
 coverage_matrix = {}
 timestamp_options = [{"label": item["timestamp"], "value": item["timestamp"]} for item in timestamps]
+feature_options = [{"label": item, "value": item} for item in qf.KNOWN_FEATURES]
 cached_duplicates = {}
 cached_all_features_diff = {}
 
@@ -32,6 +33,12 @@ app.layout = html.Div([
     dbc.Button("Systems coverage vs. all features", id={'type': "toggle-button", 'index': 1}, n_clicks=0, className="mb-3"),
     dbc.Collapse(
         html.Div([
+            html.H4("Calculates the difference between all features and each system's features"),
+            html.H5("Calculated as follows:"),
+            html.H6("commands, ensures, endpoints: the entire feature data is used for equality check"),
+            html.H6("tasks: only kind and last_status are used for equality check"),
+            html.H6("changes: only kind is used for equality check"),
+            html.H6("interfaces: only name is used for equality check"),
             dcc.Dropdown(
                 id={'type': 'timestamp-dropdown', 'index': 1},
                 options=timestamp_options,
@@ -43,10 +50,11 @@ app.layout = html.Div([
                     id='all-features-diff-table',
                     columns=[],
                     data=[],
+                    filter_action='native',
+                    sort_action='native',
                     active_cell=None,
-                    style_table={'overflowX': 'auto'},
-                    style_cell={'textAlign': 'left', 'padding': '5px'},
-                    style_header={'backgroundColor': 'lightgrey', 'fontWeight': 'bold'}
+                    style_cell={'textAlign': 'center', 'minWidth': '100px', 'maxWidth': '200px', 'whiteSpace': 'normal'},
+                    style_table={'overflowX': 'auto', 'maxWidth': '900px', 'margin': 'auto'},
                 ),
                 html.Div(id='all-features-diff-cell-data-container', 
                         style={'display': 'inline-block', 'marginLeft': '20px', 'verticalAlign': 'top', 'flex': 1, 'overflow': 'auto', 'maxWidth':'900px'})
@@ -62,20 +70,6 @@ app.layout = html.Div([
                 }
                 ),
             ),
-            # html.Div(
-            #     dash_table.DataTable(
-            #         id='totals-table',
-            #         columns=[],
-            #         data=[],
-            #         active_cell=None,
-            #         style_table={'overflowX': 'auto'},
-            #         style_cell={'textAlign': 'left', 'padding': '5px'},
-            #         style_header={'backgroundColor': 'lightgrey', 'fontWeight': 'bold'}
-            #     ),
-            #     id='table-container',
-            #     style={'display': 'block', 'marginTop': '10px'}
-            # ),
-            # html.Div(id='details-output', style={'marginTop': '20px'}),
         ]), id={'type': 'collapse', 'index': 1}, is_open=False
     ),
     html.Div(children="", style={'fontSize': '24px', 'marginBottom': '20px'}),
@@ -134,10 +128,10 @@ app.layout = html.Div([
         ]), id={'type': 'collapse', 'index': 2}, is_open=False
     ),
     html.Div(children="", style={'fontSize': '24px', 'marginBottom': '20px'}),
-    dbc.Button("Feature coverage matrix per system comparison", id={'type': "toggle-button", 'index': 3}, n_clicks=0, className="mb-3"),
+    dbc.Button("Feature coverage matrix per system", id={'type': "toggle-button", 'index': 3}, n_clicks=0, className="mb-3"),
     dbc.Collapse(
         html.Div([
-            html.Div(children="Calculates difference in feature coverage matrix between all systems", style={'fontSize': '20px', 'marginBottom': '20px'}),
+            html.Div(children="Calculates the feature coverage matrix for all systems", style={'fontSize': '20px', 'marginBottom': '20px'}),
             html.Div(children="Timestamp", style={'marginBottom': '20px'}),
             html.Div([
                 dcc.Dropdown(
@@ -234,6 +228,46 @@ app.layout = html.Div([
             ),
         ]), id={'type': 'collapse', 'index': 4}, is_open=False
     ),
+    html.Div(children="", style={'fontSize': '24px', 'marginBottom': '20px'}),
+    dbc.Button("Explore by feature", id={'type': "toggle-button", 'index': 5}, n_clicks=0, className="mb-3"),
+    dbc.Collapse(
+        html.Div([
+            html.Div(children="Timestamp", style={'marginBottom': '20px'}),
+            dcc.Dropdown(
+                id={'type': 'timestamp-dropdown', 'index': 6},
+                options=timestamp_options,
+                placeholder="Select timestamp"
+            ),
+            dcc.Dropdown(
+                id='features-dropdown',
+                options=feature_options,
+                placeholder='Select feature'
+            ),
+            html.Div([
+                dcc.Loading(
+                    dash_table.DataTable(
+                        id='explore-by-feature-table',
+                        filter_action='native',
+                        sort_action='native',
+                        style_cell={'textAlign': 'center', 'minWidth': '100px', 'maxWidth': '200px', 'whiteSpace': 'normal'},
+                        style_table={'overflowX': 'auto', 'maxWidth': '900px', 'margin': 'auto'},
+                    ),
+                ),
+                html.Div(id='explore-by-feature-data-container', 
+                        style={'display': 'inline-block', 'marginLeft': '20px', 'verticalAlign': 'top', 'flex': 1, 'overflow': 'auto', 'maxWidth':'900px'}
+                )],
+                id='explore-by-feature-container',
+                style={
+                    'display': 'flex',
+                    'justifyContent': 'center',  # center the tables horizontally
+                    'alignItems': 'flex-start',  # align tables at the top
+                    'gap': '20px',               # gap between tables (alternative to marginLeft)
+                    'maxWidth': '1900px',        # total max width to fit both tables nicely
+                    'margin': 'auto'
+                }
+            ),
+        ]), id={'type': 'collapse', 'index': 5}, is_open=False
+    ),
 ])
 
 
@@ -308,31 +342,36 @@ def update_totals_table(selected_timestamp):
 @app.callback(
     Output('all-features-diff-cell-data-container', 'children'),
     Input('all-features-diff-table', 'active_cell'),
-    State('all-features-diff-table', 'columns'),
-    State('all-features-diff-table', 'data')
+    State('all-features-diff-table', 'derived_viewport_data'),
+    State({'type': 'timestamp-dropdown', 'index': 1}, 'value')
 )
-def display_column_details(active_cell, columns, data):
+def display_column_details(active_cell, table_data, timestamp):
     if active_cell is None:
         return "Click a column cell to see details."
 
-    col_idx = active_cell['column']
-    col_id = columns[col_idx]['id']
+    row_idx = active_cell['row']
+    col_name = active_cell['column_id']
+    test = table_data[row_idx]
 
-    # If user clicked on the "system" column, ignore or handle differently
-    if col_id == 'system':
-        return "Please click on a total column to see details."
+    features = cached_all_features_diff[timestamp][test['system']][col_name]
+    processed = []
+    for feature in features:
+        feat_dict = {}
+        for k, v in feature.items():
+            feat_dict[k] = json.dumps(v) if isinstance(v, list) else v
+        processed.append(feat_dict)
 
-    # Extract details for the clicked column
-    details_list = []
-    for row in data:
-        system = row['system']
-        value = row.get(col_id, 'N/A')
-        details_list.append(html.Div(f"{system}: {value}"))
+    table = dash_table.DataTable(
+        data=processed, 
+        columns=get_columns_from_list_of_dicts(features),
+        filter_action='native',
+        sort_action='native',
+        style_cell={'textAlign': 'center', 'minWidth': '100px', 'maxWidth': '200px', 'whiteSpace': 'normal'},
+        style_table={'overflowX': 'auto', 'maxWidth': '900px', 'margin': 'auto'},
+    )
 
-    return html.Div([
-        html.H4(f"Details for column: {col_id}"),
-        *details_list
-    ])
+    return [html.H4(f"{test['system']} -- {col_name}"), table]
+
 
 @app.callback(
     Output('coverage-diff-container', 'children'),
@@ -538,6 +577,27 @@ def display_duplicate_cell_data(active_cell, table_data, timestamp, system):
         tables.append(html.Div([html.H4(feature_name), table], style={'maxWidth': '900px', 'margin': 'auto'}))
     
     return tables
+
+
+@app.callback(
+    Output('explore-by-feature-table', 'columns'),
+    Output('explore-by-feature-table', 'data'),
+    Input({'type': 'timestamp-dropdown', 'index': 6}, 'value'),
+    Input('features-dropdown', 'value'),
+)
+def populate_feature_table(timestamp, selected_feature):
+    if not timestamp or not selected_feature:
+        return [], []
+
+    features = qf.all_features(retriever, timestamp)
+    feature_data = features[selected_feature]
+    processed = []
+    for feature in feature_data:
+        feat_dict = {}
+        for k, v in feature.items():
+            feat_dict[k] = json.dumps(v) if isinstance(v, list) else v
+        processed.append(feat_dict)
+    return get_columns_from_list_of_dicts(feature_data), processed
 
 
 if __name__ == '__main__':
