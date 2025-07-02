@@ -407,6 +407,22 @@ def feat_sys(retriever: Retriever, timestamp: str, system: str, remove_failed: b
         system_json, include_tasks=include_tasks)
 
 
+def get_feature_name_from_feature(feat: dict) -> str:
+    if 'cmd' in feat and len(feat) == 1:
+        return 'cmds'
+    elif 'method' in feat and 'path' in feat and (len(feat) == 2 or len(feat) == 3):
+        return 'endpoints'
+    elif 'manager' in feat and 'function' in feat and len(feat) == 2:
+        return 'ensures'
+    elif 'kind' in feat and 'last_status' in feat:
+        return 'tasks'
+    elif 'name' in feat:
+        return 'interfaces'
+    elif 'kind' in feat:
+        return 'changes'
+    return ''
+
+
 def find_feat(retriever: Retriever, timestamp: str, feat: dict, remove_failed: bool, system: str = None) -> dict[str, TaskIdVariant]:
     '''
     Given a timestamp, a feature, and optionally a system, finds
@@ -418,9 +434,24 @@ def find_feat(retriever: Retriever, timestamp: str, feat: dict, remove_failed: b
     :returns: dictionary where each key is a system and each value is a list of tests that contain the feature
     '''
 
+    feat_name = get_feature_name_from_feature(feat)
+    if not feat_name:
+        raise RuntimeError(f'feature {feat} not a recognized feature')
+
     def feat_in_test(test: dict) -> bool:
-        for known_feature in KNOWN_FEATURES:
-            if known_feature in test and feat in test[known_feature]:
+        if feat_name == 'cmds' or feat_name == 'ensures':
+            return feat_name in test and feat in test[feat_name]
+        if feat_name == 'endpoints':
+            if 'endpoints' in test and any(e for e in test['endpoints'] if feat['method'] == e['method'] and feat['path'] == e['path'] and ('action' not in feat or ('action' in e and e['action'] == feat['action']))):
+                return True
+        if feat_name == 'tasks':
+            if 'tasks' in test and any(t for t in test['tasks'] if t['kind'] == feat['kind'] and t['last_status'] == feat['last_status']):
+                return True
+        if feat_name == 'changes':
+            if 'changes' in test and any(c for c in test['changes'] if c['kind'] == feat['kind']):
+                return True
+        if feat_name == 'interfaces':
+            if 'interfaces' in test and any(i for i in test['interfaces'] if i['name'] == feat['name']):
                 return True
         return False
 

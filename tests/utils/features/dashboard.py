@@ -249,7 +249,7 @@ app.layout = html.Div([
                         id='explore-by-feature-table',
                         filter_action='native',
                         sort_action='native',
-                        style_cell={'textAlign': 'center', 'minWidth': '100px', 'maxWidth': '200px', 'whiteSpace': 'normal'},
+                        style_cell={'textAlign': 'center', 'minWidth': '100px', 'maxWidth': '500px', 'whiteSpace': 'normal'},
                         style_table={'overflowX': 'auto', 'maxWidth': '900px', 'margin': 'auto'},
                     ),
                 ),
@@ -598,6 +598,43 @@ def populate_feature_table(timestamp, selected_feature):
             feat_dict[k] = json.dumps(v) if isinstance(v, list) else v
         processed.append(feat_dict)
     return get_columns_from_list_of_dicts(feature_data), processed
+
+
+@app.callback(
+    Output('explore-by-feature-data-container', 'children'),
+    Input('explore-by-feature-table', 'active_cell'),
+    State('explore-by-feature-table', 'derived_viewport_data'),
+    State({'type': 'timestamp-dropdown', 'index': 6}, 'value'),
+    State('features-dropdown', 'value'),
+)
+def update_test_list(active_cell, table_data, timestamp, selected_feature):
+    if not active_cell or not table_data or not timestamp or not selected_feature:
+        return "Click on a cell to see tests"
+
+    row_idx = active_cell['row']
+
+    feature = table_data[row_idx]
+
+    tests = qf.find_feat(retriever, timestamp, feature, False)
+
+    processed = []
+    for _, test_list in tests.items():
+        for test in test_list:
+            d = {'suite': test.suite, 'test': test.task_name, 'variant': test.variant}
+            if d not in processed:
+                processed.append(d)
+
+    return [
+        html.H4(f'Tests that contian feature {feature}'),
+        dash_table.DataTable(
+            data=processed, 
+            columns=[{"name": "suite", "id": "suite"},{"name": "test", "id": "test"},{"name": "variant", "id": "variant"}],
+            filter_action='native',
+            sort_action='native',
+            style_cell={'textAlign': 'center', 'minWidth': '100px', 'maxWidth': '200px', 'whiteSpace': 'normal'},
+            style_table={'overflowX': 'auto', 'maxWidth': '900px', 'margin': 'auto'},
+        )
+    ]
 
 
 if __name__ == '__main__':
