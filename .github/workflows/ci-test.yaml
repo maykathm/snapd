@@ -29,6 +29,7 @@ jobs:
       - name: cat things
         run: |
           cat .github/workflows/fake-logs.log
+          exit 1
 
   # The spread-results-reporter needs the PR number to be able to 
   # comment on the relevant PR with spread failures. Because the PR 
