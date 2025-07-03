@@ -5,8 +5,14 @@ on:
     inputs:
       run_id:
         required: true
+  workflow_run:
+    workflows: [Tests]
+    types:
+      - completed
+
 jobs:
   rerun:
+    if: github.event.workflow_dispatch
     permissions: 
       actions: write
     runs-on: ubuntu-latest
@@ -18,3 +24,51 @@ jobs:
         run: |
           gh run watch ${{ inputs.run_id }} > /dev/null 2>&1
           gh run rerun ${{ inputs.run_id }} --failed
+
+  rerun-pr:
+    if: github.event.workflow_run && github.event.workflow_run.event == 'pull_request'
+    permissions:
+      actions: write
+    env:
+      GH_REPO: ${{ github.repository }}
+      GH_TOKEN: ${{ github.token }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Get PR number
+        uses: actions/github-script@v7
+        with:
+          script: |
+            let allArtifacts = await github.rest.actions.listWorkflowRunArtifacts({
+               owner: context.repo.owner,
+               repo: context.repo.repo,
+               run_id: context.payload.workflow_run.id,
+            });
+            let matchArtifact = allArtifacts.data.artifacts.filter((artifact) => {
+              return artifact.name == "pr_number"
+            })[0];
+            let download = await github.rest.actions.downloadArtifact({
+               owner: context.repo.owner,
+               repo: context.repo.repo,
+               artifact_id: matchArtifact.id,
+               archive_format: 'zip',
+            });
+            let fs = require('fs');
+            fs.writeFileSync(`${process.env.GITHUB_WORKSPACE}/pr_number.zip`, Buffer.from(download.data));
+           
+      - name: Unzip PR number
+        run: unzip pr_number.zip
+
+      - name: Check for rerun label
+        run: |
+          labels=$(gh pr view $(cat pr_number) --json labels | jq -r '.labels[].name')
+          if grep -q '^Auto rerun spread$' <<<$labels; then
+            echo "AUTO_RERUN=true" >> $GITHUB_ENV
+          fi
+      
+      - name: Rerun workflow
+        if: env.AUTO_RERUN == 'true' && github.event.workflow_run.run_attempt < 5
+        run: |
+          gh run rerun ${{ github.event.workflow_run.run_number }} --failed
