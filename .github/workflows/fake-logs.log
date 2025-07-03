@@ -127,6 +127,6 @@ cloud-init finished with error 127
 2025-07-03 08:31:44 Discarding google-distro-2:centos-9-64 (jul030812-275248)...
 2025-07-03 08:31:46 Successful tasks: 0
 2025-07-03 08:31:46 Aborted tasks: 0
-2025-07-03 08:31:46 Failed tasks: 2
+2025-07-03 08:31:46 Failed tasks: 22
 - google-distro-2:centos-9-64:tests/main/interfaces-posix-mq
 - google-distro-2:centos-9-64:tests/main/selinux-lxd
