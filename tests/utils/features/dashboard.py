@@ -390,7 +390,7 @@ def update_totals_table(ts_2, sys_2, ts_3, sys_3, remove_failed_value, only_same
 
     
     tables = []
-    for feature_name, features in diff.items():
+    for feature_name, features in reversed(diff.items()):
         processed = []
         for feature in features:
             feat_dict = {}
@@ -625,7 +625,7 @@ def update_test_list(active_cell, table_data, timestamp, selected_feature):
                 processed.append(d)
 
     return [
-        html.H4(f'Tests that contian feature {feature}'),
+        html.H4(f'Tests that contain feature {feature}'),
         dash_table.DataTable(
             data=processed, 
             columns=[{"name": "suite", "id": "suite"},{"name": "test", "id": "test"},{"name": "variant", "id": "variant"}],
