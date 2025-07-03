@@ -19,6 +19,17 @@ jobs:
           sleep 4
           exit 1
 
+  testing:
+    name: "spread ubuntu (fundamental)"  
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: cat things
+        run: |
+          cat .github/workflows/fake-logs.log
+
   # The spread-results-reporter needs the PR number to be able to 
   # comment on the relevant PR with spread failures. Because the PR 
   # number is not in the github.event object during the 
