@@ -1,0 +1,132 @@
+
+2025-07-03 08:12:29 Project content is packed for delivery (52.89MB).
+2025-07-03 08:12:29 If killed, discard servers with: spread -reuse-pid=257099 -discard
+2025-07-03 08:12:29 Allocating google-distro-2:centos-9-64...
+2025-07-03 08:12:29 Allocating google-distro-2:centos-9-64...
+2025-07-03 08:12:46 Waiting for google-distro-2:centos-9-64 (jul030812-274735) to boot at 34.34.95.134...
+2025-07-03 08:12:47 Waiting for google-distro-2:centos-9-64 (jul030812-275248) to boot at 35.204.195.187...
+2025-07-03 08:13:25 Allocated google-distro-2:centos-9-64 (jul030812-274735).
+2025-07-03 08:13:26 Allocated google-distro-2:centos-9-64 (jul030812-275248).
+2025-07-03 08:13:26 Connecting to google-distro-2:centos-9-64 (jul030812-274735)...
+2025-07-03 08:13:26 Connecting to google-distro-2:centos-9-64 (jul030812-275248)...
+2025-07-03 08:13:26 Connected to google-distro-2:centos-9-64 (jul030812-274735) at 34.34.95.134.
+2025-07-03 08:13:26 Sending project content to google-distro-2:centos-9-64 (jul030812-274735)...
+2025-07-03 08:13:26 Connected to google-distro-2:centos-9-64 (jul030812-275248) at 35.204.195.187.
+2025-07-03 08:13:26 Sending project content to google-distro-2:centos-9-64 (jul030812-275248)...
+2025-07-03 08:13:29 Preparing google-distro-2:centos-9-64 (jul030812-274735)...
+2025-07-03 08:13:30 Preparing google-distro-2:centos-9-64 (jul030812-275248)...
+2025-07-03 08:18:29 WARNING: jul030812-274735 (google-distro-2:centos-9-64) running late. Current output:
+-----
+(... 640 lines above ...)
+gcc -Wall -Wextra -Wmissing-prototypes -Wstrict-prototypes -Wno-unused-parameter -Werror  -O2 -flto=auto -ffat-lto-objects -fexceptions -g -grecord-gcc-switches -pipe -Wall -Werror=format-security -Wp,-D_FORTIFY_SOURCE=2 -Wp,-D_GLIBCXX_ASSERTIONS -specs=/usr/lib/rpm/redhat/redhat-hardened-cc1 -fstack-protector-strong -specs=/usr/lib/rpm/redhat/redhat-annobin-cc1  -m64 -march=x86-64-v2 -mtune=generic -fasynchronous-unwind-tables -fstack-clash-protection -fcf-protection    -Wl,-z,relro -Wl,--as-needed  -Wl,-z,now -specs=/usr/lib/rpm/redhat/redhat-hardened-ld -specs=/usr/lib/rpm/redhat/redhat-annobin-cc1  -o snap-device-helper/snap-device-helper snap-device-helper/main.o snap-device-helper/snap-device-helper.o libsnap-confine-private.a
+gcc -DHAVE_CONFIG_H -I.    -Wall -Wextra -Wmissing-prototypes -Wstrict-prototypes -Wno-unused-parameter -Werror  -O2 -flto=auto -ffat-lto-objects -fexceptions -g -grecord-gcc-switches -pipe -Wall -Werror=format-security -Wp,-D_FORTIFY_SOURCE=2 -Wp,-D_GLIBCXX_ASSERTIONS -specs=/usr/lib/rpm/redhat/redhat-hardened-cc1 -fstack-protector-strong -specs=/usr/lib/rpm/redhat/redhat-annobin-cc1  -m64 -march=x86-64-v2 -mtune=generic -fasynchronous-unwind-tables -fstack-clash-protection -fcf-protection -c -o snap-discard-ns/snap-discard-ns.o snap-discard-ns/snap-discard-ns.c
+gcc -Wall -Wextra -Wmissing-prototypes -Wstrict-prototypes -Wno-unused-parameter -Werror  -O2 -flto=auto -ffat-lto-objects -fexceptions -g -grecord-gcc-switches -pipe -Wall -Werror=format-security -Wp,-D_FORTIFY_SOURCE=2 -Wp,-D_GLIBCXX_ASSERTIONS -specs=/usr/lib/rpm/redhat/redhat-hardened-cc1 -fstack-protector-strong -specs=/usr/lib/rpm/redhat/redhat-annobin-cc1  -m64 -march=x86-64-v2 -mtune=generic -fasynchronous-unwind-tables -fstack-clash-protection -fcf-protection    -Wl,-z,relro -Wl,--as-needed  -Wl,-z,now -specs=/usr/lib/rpm/redhat/redhat-hardened-ld -specs=/usr/lib/rpm/redhat/redhat-annobin-cc1  -o snap-discard-ns/snap-discard-ns snap-discard-ns/snap-discard-ns.o libsnap-confine-private.a -lcap -Wl,-Bstatic  -Wl,-Bdynamic -pthread
+gcc -DHAVE_CONFIG_H -I.    -Wall -Wextra -Wmissing-prototypes -Wstrict-prototypes -Wno-unused-parameter -Werror  -O2 -flto=auto -ffat-lto-objects -fexceptions -g -grecord-gcc-switches -pipe -Wall -Werror=format-security -Wp,-D_FORTIFY_SOURCE=2 -Wp,-D_GLIBCXX_ASSERTIONS -specs=/usr/lib/rpm/redhat/redhat-hardened-cc1 -fstack-protector-strong -specs=/usr/lib/rpm/redhat/redhat-annobin-cc1  -m64 -march=x86-64-v2 -mtune=generic -fasynchronous-unwind-tables -fstack-clash-protection -fcf-protection -c -o system-shutdown/system-shutdown-utils.o system-shutdown/system-shutdown-utils.c
+gcc -DHAVE_CONFIG_H -I.    -Wall -Wextra -Wmissing-prototypes -Wstrict-prototypes -Wno-unused-parameter -Werror  -O2 -flto=auto -ffat-lto-objects -fexceptions -g -grecord-gcc-switches -pipe -Wall -Werror=format-security -Wp,-D_FORTIFY_SOURCE=2 -Wp,-D_GLIBCXX_ASSERTIONS -specs=/usr/lib/rpm/redhat/redhat-hardened-cc1 -fstack-protector-strong -specs=/usr/lib/rpm/redhat/redhat-annobin-cc1  -m64 -march=x86-64-v2 -mtune=generic -fasynchronous-unwind-tables -fstack-clash-protection -fcf-protection -c -o system-shutdown/system-shutdown.o system-shutdown/system-shutdown.c
+gcc -Wall -Wextra -Wmissing-prototypes -Wstrict-prototypes -Wno-unused-parameter -Werror  -O2 -flto=auto -ffat-lto-objects -fexceptions -g -grecord-gcc-switches -pipe -Wall -Werror=format-security -Wp,-D_FORTIFY_SOURCE=2 -Wp,-D_GLIBCXX_ASSERTIONS -specs=/usr/lib/rpm/redhat/redhat-hardened-cc1 -fstack-protector-strong -specs=/usr/lib/rpm/redhat/redhat-annobin-cc1  -m64 -march=x86-64-v2 -mtune=generic -fasynchronous-unwind-tables -fstack-clash-protection -fcf-protection  -Wl,-z,relro -Wl,--as-needed  -Wl,-z,now -specs=/usr/lib/rpm/redhat/redhat-hardened-ld -specs=/usr/lib/rpm/redhat/redhat-annobin-cc1  -o system-shutdown/system-shutdown system-shutdown/system-shutdown-utils.o system-shutdown/system-shutdown.o libsnap-confine-private.a
+gcc -DHAVE_CONFIG_H -I.    -Wall -Wextra -Wmissing-prototypes -Wstrict-prototypes -Wno-unused-parameter -Werror  -O2 -flto=auto -ffat-lto-objects -fexceptions -g -grecord-gcc-switches -pipe -Wall -Werror=format-security -Wp,-D_FORTIFY_SOURCE=2 -Wp,-D_GLIBCXX_ASSERTIONS -specs=/usr/lib/rpm/redhat/redhat-hardened-cc1 -fstack-protector-strong -specs=/usr/lib/rpm/redhat/redhat-annobin-cc1  -m64 -march=x86-64-v2 -mtune=generic -fasynchronous-unwind-tables -fstack-clash-protection -fcf-protection -c -o snap-gdb-shim/snap-gdb-shim.o snap-gdb-shim/snap-gdb-shim.c
+gcc -Wall -Wextra -Wmissing-prototypes -Wstrict-prototypes -Wno-unused-parameter -Werror  -O2 -flto=auto -ffat-lto-objects -fexceptions -g -grecord-gcc-switches -pipe -Wall -Werror=format-security -Wp,-D_FORTIFY_SOURCE=2 -Wp,-D_GLIBCXX_ASSERTIONS -specs=/usr/lib/rpm/redhat/redhat-hardened-cc1 -fstack-protector-strong -specs=/usr/lib/rpm/redhat/redhat-annobin-cc1  -m64 -march=x86-64-v2 -mtune=generic -fasynchronous-unwind-tables -fstack-clash-protection -fcf-protection -static -Wl,-z,relro -Wl,--as-needed  -Wl,-z,now -specs=/usr/lib/rpm/redhat/redhat-hardened-ld -specs=/usr/lib/rpm/redhat/redhat-annobin-cc1  -o snap-gdb-shim/snap-gdb-shim snap-gdb-shim/snap-gdb-shim.o libsnap-confine-private.a
+gcc -DHAVE_CONFIG_H -I.    -Wall -Wextra -Wmissing-prototypes -Wstrict-prototypes -Wno-unused-parameter -Werror  -O2 -flto=auto -ffat-lto-objects -fexceptions -g -grecord-gcc-switches -pipe -Wall -Werror=format-security -Wp,-D_FORTIFY_SOURCE=2 -Wp,-D_GLIBCXX_ASSERTIONS -specs=/usr/lib/rpm/redhat/redhat-hardened-cc1 -fstack-protector-strong -specs=/usr/lib/rpm/redhat/redhat-annobin-cc1  -m64 -march=x86-64-v2 -mtune=generic -fasynchronous-unwind-tables -fstack-clash-protection -fcf-protection -c -o snap-gdb-shim/snap-gdbserver-shim.o snap-gdb-shim/snap-gdbserver-shim.c
+gcc -Wall -Wextra -Wmissing-prototypes -Wstrict-prototypes -Wno-unused-parameter -Werror  -O2 -flto=auto -ffat-lto-objects -fexceptions -g -grecord-gcc-switches -pipe -Wall -Werror=format-security -Wp,-D_FORTIFY_SOURCE=2 -Wp,-D_GLIBCXX_ASSERTIONS -specs=/usr/lib/rpm/redhat/redhat-hardened-cc1 -fstack-protector-strong -specs=/usr/lib/rpm/redhat/redhat-annobin-cc1  -m64 -march=x86-64-v2 -mtune=generic -fasynchronous-unwind-tables -fstack-clash-protection -fcf-protection -static -Wl,-z,relro -Wl,--as-needed  -Wl,-z,now -specs=/usr/lib/rpm/redhat/redhat-hardened-ld -specs=/usr/lib/rpm/redhat/redhat-annobin-cc1  -o snap-gdb-shim/snap-gdbserver-shim snap-gdb-shim/snap-gdbserver-shim.o libsnap-confine-private.a
+-----
+.
+2025-07-03 08:18:30 WARNING: jul030812-275248 (google-distro-2:centos-9-64) running late. Current output:
+-----
+(... 389 lines above ...)
+error: unsuccessful run
+rm tmp/snappy.mod.fc tmp/snappy.mod
+make[1]: Leaving directory '/root/rpmbuild/BUILD/snapd-1337.2.70/data/selinux'
+Compressing snappy.pp - snappy.pp.bz2
+bzip2 -9 snappy.pp
++ pushd ./cmd
+~/rpmbuild/BUILD/snapd-1337.2.70/cmd ~/rpmbuild/BUILD/snapd-1337.2.70
++ autoreconf --force --install --verbose
+autoreconf: Entering directory `.'
+autoreconf: configure.ac: not using Gettext
+autoreconf: running: aclocal --force
+-----
+.
+2025-07-03 08:23:29 WARNING: jul030812-274735 (google-distro-2:centos-9-64) running late. Current output:
+-----
+(... 43134 lines above ...)
+Requires(rpmlib): rpmlib(CompressedFileNames) <= 3.0.4-1 rpmlib(FileDigests) <= 4.6.0-1 rpmlib(PayloadFilesHavePrefix) <= 4.0-1
+Processing files: snapd-debuginfo-1337.2.70-0.el9.x86_64
+Provides: debuginfo(build-id) = ca6e91e6a95e9944b6d75a69f257474d2b4b5f2d debuginfo(build-id) = e0493b169b1ada025b630affda17cbf10f876b58 debuginfo(build-id) = e94e542039e89b694ac173237f0f0f32b2abb41b debuginfo(build-id) = eb920056825ec9a9f3f9e402fd9e30e5e427d647 debuginfo(build-id) = ebbdde16622d4add783787b6f5709806f705e979 debuginfo(build-id) = f7e568618df11477676f783d171243fc98887046 snapd-debuginfo = 1337.2.70-0.el9 snapd-debuginfo(x86-64) = 1337.2.70-0.el9
+Requires(rpmlib): rpmlib(CompressedFileNames) <= 3.0.4-1 rpmlib(FileDigests) <= 4.6.0-1 rpmlib(PayloadFilesHavePrefix) <= 4.0-1
+Recommends: snapd-debugsource(x86-64) = 1337.2.70-0.el9
+Processing files: snap-confine-debuginfo-1337.2.70-0.el9.x86_64
+Provides: debuginfo(build-id) = 1d93204df4fd93c74fceadfd067ed8a6ca1ad8a5 debuginfo(build-id) = 41f1a92948b5110489ef69671f1d76aee680f203 debuginfo(build-id) = 4766544654731317d0045a34d5105699a8b51663 debuginfo(build-id) = 5838c2483abe78eaeab5c9ad7d9d65cb2f5c628b debuginfo(build-id) = 79e016ee7a554847883c02fa5baba64a3796eb58 debuginfo(build-id) = 8716aa7afea871a39503d168bc94613c5c02331d debuginfo(build-id) = ad34b2216988fcc6616de0b03a5c0e79e63b6f4e debuginfo(build-id) = bd4f347cfb55e0f7b5f96e128489801e36b0657b snap-confine-debuginfo = 1337.2.70-0.el9 snap-confine-debuginfo(x86-64) = 1337.2.70-0.el9
+Requires(rpmlib): rpmlib(CompressedFileNames) <= 3.0.4-1 rpmlib(FileDigests) <= 4.6.0-1 rpmlib(PayloadFilesHavePrefix) <= 4.0-1
+Recommends: snapd-debugsource(x86-64) = 1337.2.70-0.el9
+Checking for unpackaged file(s): /usr/lib/rpm/check-files /root/rpmbuild/BUILDROOT/snapd-1337.2.70-0.el9.x86_64
+-----
+.
+2025-07-03 08:23:30 WARNING: jul030812-275248 (google-distro-2:centos-9-64) running late. Current output:
+-----
+(... 43214 lines above ...)
+warning: Unsupported auto-load script at offset 0 in section .debug_gdb_scripts
+of file /root/rpmbuild/BUILDROOT/snapd-1337.2.70-0.el9.x86_64/usr/libexec/snapd/snap-update-ns.
+Use `info auto-load python-scripts [REGEXP]' to list them.
+nm: /root/rpmbuild/BUILDROOT/snapd-1337.2.70-0.el9.x86_64/usr/libexec/snapd/snap-update-ns: no symbols
+extracting debug info from /root/rpmbuild/BUILDROOT/snapd-1337.2.70-0.el9.x86_64/usr/libexec/snapd/snapctl
+warning: Unsupported auto-load script at offset 0 in section .debug_gdb_scripts
+of file /root/rpmbuild/BUILDROOT/snapd-1337.2.70-0.el9.x86_64/usr/libexec/snapd/snapctl.
+Use `info auto-load python-scripts [REGEXP]' to list them.
+nm: /root/rpmbuild/BUILDROOT/snapd-1337.2.70-0.el9.x86_64/usr/libexec/snapd/snapctl: no symbols
+extracting debug info from /root/rpmbuild/BUILDROOT/snapd-1337.2.70-0.el9.x86_64/usr/libexec/snapd/snapd
+-----
+.
+2025-07-03 08:25:28 Preparing google-distro-2:centos-9-64:tests/main/ (jul030812-274735)...
+2025-07-03 08:26:43 Preparing google-distro-2:centos-9-64:tests/main/ (jul030812-275248)...
+2025-07-03 08:27:48 Preparing google-distro-2:centos-9-64:tests/main/interfaces-posix-mq (jul030812-274735)...
+2025-07-03 08:27:58 Executing google-distro-2:centos-9-64:tests/main/interfaces-posix-mq (jul030812-274735) (1/2)...
+2025-07-03 08:28:00 Error executing google-distro-2:centos-9-64:tests/main/interfaces-posix-mq (jul030812-274735) :
+-----
++ not test-snapd-posix-mq.mqctl create /test read-only 600 max-size=16,max-count=10
+mq_open failed: Operation not permitted (1)
++ not snap run --shell test-snapd-posix-mq.mqctl -c 'stat /dev/mqueue'
+File: /dev/mqueue
+Size: 40        	Blocks: 0          IO Block: 4096   directory
+Device: 0,18	Inode: 11163       Links: 2
+Access: (1777/drwxrwxrwt)  Uid: (    0/    root)   Gid: (    0/    root)
+Context: system_u:object_r:tmpfs_t:s0
+Access: 2025-07-03 08:12:52.000000000 +0000
+Modify: 2025-07-03 08:12:52.000000000 +0000
+Change: 2025-07-03 08:12:52.000000000 +0000
+Birth: -
+-----
+.
+2025-07-03 08:28:00 Debug output for google-distro-2:centos-9-64:tests/main/interfaces-posix-mq (jul030812-274735) : saved to file spread-logs/google-distro-2_centos-9-64_tests_main_interfaces-posix-mq.debug.log
+2025-07-03 08:28:00 Restoring google-distro-2:centos-9-64:tests/main/interfaces-posix-mq (jul030812-274735)...
+2025-07-03 08:28:10 Restoring google-distro-2:centos-9-64:tests/main/ (jul030812-274735)...
+2025-07-03 08:28:18 Restoring google-distro-2:centos-9-64 (jul030812-274735)...
+2025-07-03 08:28:19 Discarding google-distro-2:centos-9-64 (jul030812-274735)...
+2025-07-03 08:29:19 Preparing google-distro-2:centos-9-64:tests/main/selinux-lxd (jul030812-275248)...
+2025-07-03 08:29:22 Executing google-distro-2:centos-9-64:tests/main/selinux-lxd (jul030812-275248) (2/2)...
+2025-07-03 08:30:25 Error executing google-distro-2:centos-9-64:tests/main/selinux-lxd (jul030812-275248) :
+-----
++ /home/gopath/src/github.com/snapcore/snapd/tests/lib/tools/lxd-state prepare-snap
+lxd-state: installing lxd snap
+lxd (candidate) 6.4-4915a37 from Canonical** installed
+lxd-state: initializing lxd
+lxd-state: setting up proxy for lxc
+To start your first container, try: lxc launch ubuntu:24.04
+Or for a virtual machine: lxc launch ubuntu:24.04 --vm
+
++ MATCH 'no matches'
++ ausearch -i --checkpoint stamp --start checkpoint -m AVC
++ /home/gopath/src/github.com/snapcore/snapd/tests/lib/tools/lxd-state launch --remote ubuntu --image 22.04 --name my-ubuntu
+/home/gopath/src/github.com/snapcore/snapd/tests/lib/tools/lxd-state: line 89: cloud-init: command not found
+cloud-init finished with error 127
+-----
+.
+2025-07-03 08:30:29 Debug output for google-distro-2:centos-9-64:tests/main/selinux-lxd (jul030812-275248) : saved to file spread-logs/google-distro-2_centos-9-64_tests_main_selinux-lxd.debug.log
+2025-07-03 08:30:29 Restoring google-distro-2:centos-9-64:tests/main/selinux-lxd (jul030812-275248)...
+2025-07-03 08:31:32 Restoring google-distro-2:centos-9-64:tests/main/ (jul030812-275248)...
+2025-07-03 08:31:43 Restoring google-distro-2:centos-9-64 (jul030812-275248)...
+2025-07-03 08:31:44 Discarding google-distro-2:centos-9-64 (jul030812-275248)...
+2025-07-03 08:31:46 Successful tasks: 0
+2025-07-03 08:31:46 Aborted tasks: 0
+2025-07-03 08:31:46 Failed tasks: 2
+- google-distro-2:centos-9-64:tests/main/interfaces-posix-mq
+- google-distro-2:centos-9-64:tests/main/selinux-lxd
