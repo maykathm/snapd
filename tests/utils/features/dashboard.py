@@ -1,3 +1,4 @@
+import copy
 import dash
 from dash import Dash, html, dcc, Output, Input, dash_table, State, MATCH
 import dash_bootstrap_components as dbc
@@ -26,6 +27,7 @@ timestamp_options = [{"label": item["timestamp"], "value": item["timestamp"]} fo
 feature_options = [{"label": item, "value": item} for item in qf.KNOWN_FEATURES]
 cached_duplicates = {}
 cached_all_features_diff = {}
+cached_feat_explore = {}
 
 
 app.layout = html.Div([
@@ -242,6 +244,10 @@ app.layout = html.Div([
                 id='features-dropdown',
                 options=feature_options,
                 placeholder='Select feature'
+            ),
+            daq.BooleanSwitch(
+                id='add-frequency-numbers-switch',
+                label="Add column with number of tests that have feature",
             ),
             html.Div([
                 dcc.Loading(
@@ -579,25 +585,46 @@ def display_duplicate_cell_data(active_cell, table_data, timestamp, system):
     return tables
 
 
+def get_task_list_from_dict(tests: dict[str, qf.TaskIdVariant]) -> list[dict]:
+    processed = []
+    for _, test_list in tests.items():
+        for test in test_list:
+            d = {'suite': test.suite, 'test': test.task_name, 'variant': test.variant}
+            if d not in processed:
+                processed.append(d)
+    return processed
+
+
 @app.callback(
     Output('explore-by-feature-table', 'columns'),
     Output('explore-by-feature-table', 'data'),
     Input({'type': 'timestamp-dropdown', 'index': 6}, 'value'),
     Input('features-dropdown', 'value'),
+    Input('add-frequency-numbers-switch', 'on')
 )
-def populate_feature_table(timestamp, selected_feature):
+def populate_feature_table(timestamp, selected_feature, add_freq):
     if not timestamp or not selected_feature:
         return [], []
+    
+    if timestamp in cached_feat_explore and selected_feature in cached_feat_explore[timestamp]:
+        pass
+
+    # cached_feat_explore[timestamp] = {selected_feature: {}}
 
     features = qf.all_features(retriever, timestamp)
     feature_data = features[selected_feature]
     processed = []
     for feature in feature_data:
         feat_dict = {}
+        if add_freq:
+            feat_dict['#'] = len(get_task_list_from_dict(qf.find_feat(retriever, timestamp, feature, False)))
         for k, v in feature.items():
             feat_dict[k] = json.dumps(v) if isinstance(v, list) else v
         processed.append(feat_dict)
-    return get_columns_from_list_of_dicts(feature_data), processed
+    cols = get_columns_from_list_of_dicts(feature_data)
+    if add_freq:
+        cols = [{'name': '#', 'id': '#'}] + cols
+    return cols, processed
 
 
 @app.callback(
@@ -613,7 +640,9 @@ def update_test_list(active_cell, table_data, timestamp, selected_feature):
 
     row_idx = active_cell['row']
 
-    feature = table_data[row_idx]
+    feature = copy.deepcopy(table_data[row_idx])
+    if '#' in feature:
+        del feature['#']
 
     tests = qf.find_feat(retriever, timestamp, feature, False)
 
