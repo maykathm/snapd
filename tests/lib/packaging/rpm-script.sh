@@ -9,10 +9,11 @@ version="1337.$base_version"
 packaging_path=packaging/"$pkg"
 
 sed -i -e "s/^Version:.*$/Version: $version/g" "$packaging_path/snapd.spec"
+sed -i -e "s/^BuildRequires:.*fakeroot/# BuildRequires: fakeroot/" "$packaging_path/snapd.spec"
 
 mkdir -p "$rpm_dir/SOURCES"
 cp "$packaging_path"/* "$rpm_dir/SOURCES/"
-mkdir vendor
+mkdir -p vendor
 
 ./packaging/pack-source -v "$version" -o "$rpm_dir/SOURCES"
 rpmbuild --with testkeys -bs "$rpm_dir/SOURCES/snapd.spec"

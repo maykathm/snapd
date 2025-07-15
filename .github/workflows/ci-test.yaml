@@ -95,6 +95,15 @@ jobs:
         path: /tmp/mock
         key: mock-cache-${{ hashFiles('packaging/fedora-41/**') }}
 
+    - name: Build rpm package
+      run: |
+        docker run --privileged --rm \
+          --mount type=bind,src=/tmp/mock,dst=/var/cache/mock \
+          --mount type=bind,src=$(pwd),dst=/home/mockbuilder/snapd \
+          mock-base:latest \
+          ./tests/lib/packaging/rpm-script.sh fedora-41 && \
+          mock -r /etc/mock/fedora-41-x86_64.cfg --no-clean --enable-network --nocheck --with testkeys /home/mockbuilder/rpmbuild/SRPMS/snapd-*.src.rpm
+
   # cache-build-deps:
   #   runs-on: ubuntu-latest
   #   steps:
