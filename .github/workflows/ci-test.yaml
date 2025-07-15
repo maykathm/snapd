@@ -78,11 +78,12 @@ jobs:
     - name: Restore mock cache
       uses: actions/cache@v3
       with:
-        path: /tmp/mock.tar.gz
+        path: /tmp/mock
         key: mock-cache-${{ hashFiles('packaging/fedora-41/**') }}
 
     - name: Run mock inside container
       run: |
+        mkdir -p /tmp/mock
         docker run --privileged --rm \
           --mount type=bind,src=/tmp/mock,dst=/var/cache/mock \
           mock-base:latest \
