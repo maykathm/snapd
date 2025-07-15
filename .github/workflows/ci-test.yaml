@@ -76,6 +76,7 @@ jobs:
 
     - name: Run mock inside container
       run: |
+        mkdir /tmp/mock
         docker run --privileged --rm \
           --mount type=bind,src=/tmp/mock,dst=/var/lib/mock \
           mock-base:latest \
