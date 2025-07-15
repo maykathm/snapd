@@ -84,26 +84,25 @@ jobs:
     - name: Run mock inside container
       run: |
         mkdir -p /tmp/mock
+        mkdir -p builds
         docker run --privileged --rm \
           --mount type=bind,src=/tmp/mock,dst=/var/cache/mock \
+          --mount type=bind,src=$(pwd),dst=/home/mockbuilder/snapd \
+          --mount type=bind,src=builds,dst=/home/mockbuilder/builds \
           mock-base:latest \
-          mock -r /etc/mock/fedora-41-x86_64.cfg --install git
+          bash -c "
+            mock -r /etc/mock/fedora-41-x86_64.cfg --install git && \
+            cd /home/mockbuilder/snapd && \
+            ./tests/lib/packaging/rpm-script.sh fedora-41 && \
+            mock -r /etc/mock/fedora-41-x86_64.cfg --no-clean --enable-network --nocheck --with testkeys --resultdir /home/mockbuilder/builds /home/mockbuilder/rpmbuild/SRPMS/snapd-*.src.rpm
+          "
+        ls builds
 
     - name: Save mock cache
       uses: actions/cache@v3
       with:
         path: /tmp/mock
         key: mock-cache-${{ hashFiles('packaging/fedora-41/**') }}
-
-    - name: Build rpm package
-      run: |
-        docker run --privileged --rm \
-          --mount type=bind,src=/tmp/mock,dst=/var/cache/mock \
-          --mount type=bind,src=$(pwd),dst=/home/mockbuilder/snapd \
-          mock-base:latest \
-          cd /home/mockbuilder/snapd && \
-          ./tests/lib/packaging/rpm-script.sh fedora-41 && \
-          mock -r /etc/mock/fedora-41-x86_64.cfg --no-clean --enable-network --nocheck --with testkeys /home/mockbuilder/rpmbuild/SRPMS/snapd-*.src.rpm
 
   # cache-build-deps:
   #   runs-on: ubuntu-latest
