@@ -75,6 +75,12 @@ jobs:
         cache-from: type=gha
         cache-to: type=gha,mode=max
 
+    - name: Restore mock cache
+      uses: actions/cache@v3
+      with:
+        path: /tmp/mock
+        key: mock-cache-${{ hashFiles('packaging/fedora-41/**') }}
+
     - name: Run mock inside container
       run: |
         mkdir /tmp/mock
@@ -82,6 +88,12 @@ jobs:
           --mount type=bind,src=/tmp/mock,dst=/var/lib/mock \
           mock-base:latest \
           mock -r /etc/mock/fedora-41-x86_64.cfg --install git
+
+    - name: Save mock cache
+      uses: actions/cache@v3
+      with:
+        path: /tmp/mock
+        key: mock-cache-${{ hashFiles('packaging/fedora-41/**') }}
 
   # cache-build-deps:
   #   runs-on: ubuntu-latest
