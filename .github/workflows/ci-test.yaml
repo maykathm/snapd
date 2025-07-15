@@ -69,6 +69,7 @@ jobs:
       with:
         context: .
         push: false
+        load: true
         file: tests/lib/packaging/fedora.dockerfile
         tags: mock-base:latest
         cache-from: type=gha
