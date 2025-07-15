@@ -83,6 +83,7 @@ jobs:
 
     - name: Run mock inside container
       run: |
+        chmod -R 777 .
         mkdir -p /tmp/mock
         mkdir -p /tmp/builds
         docker run --privileged --rm \
