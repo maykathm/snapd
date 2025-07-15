@@ -83,11 +83,6 @@ jobs:
 
     - name: Run mock inside container
       run: |
-        if [ -f /tmp/mock.tar.gz ]; then
-
-        else
-          mkdir /tmp/mock
-        fi
         docker run --privileged --rm \
           --mount type=bind,src=/tmp/mock,dst=/var/cache/mock \
           mock-base:latest \
