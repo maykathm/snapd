@@ -12,7 +12,6 @@ sed -i -e "s/^BuildRequires:.*fakeroot/# BuildRequires: fakeroot/" "$packaging_p
 
 mkdir -p "$rpm_dir/SOURCES"
 cp "$packaging_path"/* "$rpm_dir/SOURCES/"
-mkdir -p vendor
 
 pack_args=
 if [[ "$pkg" =~ "opensuse" ]]; then
