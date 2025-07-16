@@ -15,7 +15,7 @@ cp "$packaging_path"/* "$rpm_dir/SOURCES/"
 mkdir -p vendor
 
 pack_args=
-if [ "$pkg" == "opensuse*" ]; then
+if [[ "$pkg" =~ "opensuse" ]]; then
     pack_args=-s
 fi
 

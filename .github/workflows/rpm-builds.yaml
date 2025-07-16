@@ -63,6 +63,7 @@ jobs:
         
 
     - name: Save mock cache
+      if: always()
       uses: actions/cache@v3
       with:
         path: /tmp/mock
