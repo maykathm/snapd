@@ -2,7 +2,6 @@
 
 pkg=$1
 rpm_dir=$(rpm --eval "%_topdir")
-rm -r "$rpm_dir"/*
 
 base_version="$(head -1 debian/changelog | awk -F '[()]' '{print $2}')"
 version="1337.$base_version"
@@ -15,5 +14,10 @@ mkdir -p "$rpm_dir/SOURCES"
 cp "$packaging_path"/* "$rpm_dir/SOURCES/"
 mkdir -p vendor
 
-./packaging/pack-source -v "$version" -o "$rpm_dir/SOURCES"
+pack_args=
+if [ "$pkg" == "opensuse*" ]; then
+    pack_args=-s
+fi
+
+./packaging/pack-source -v "$version" -o "$rpm_dir/SOURCES" $pack_args
 rpmbuild --with testkeys -bs "$rpm_dir/SOURCES/snapd.spec"
