@@ -72,7 +72,7 @@ jobs:
       if: failure()
       run: |
         if [ -f /tmp/builds/build.log ]; then
-          cat /tmp/builds/biuld.log
+          cat /tmp/builds/build.log
         fi
 
     - name: upload packages
