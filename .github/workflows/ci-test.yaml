@@ -79,7 +79,7 @@ jobs:
       uses: actions/cache@v3
       with:
         path: /tmp/mock
-        key: mock-cache-${{ hashFiles('packaging/fedora-41/**') }}
+        key: mock-cache-fedora-41
 
     - name: Run mock inside container
       run: |
@@ -99,13 +99,19 @@ jobs:
             ./tests/lib/packaging/rpm-script.sh fedora-41 && \
             mock -r /etc/mock/fedora-41-x86_64.cfg --no-clean --enable-network --nocheck --with testkeys --resultdir /home/mockbuilder/builds /home/mockbuilder/rpmbuild/SRPMS/snapd-*.src.rpm
           "
-        ls /tmp/builds
+        sudo tar cvf fedora-41-rpm.tar /tmp/builds
 
     - name: Save mock cache
       uses: actions/cache@v3
       with:
         path: /tmp/mock
-        key: mock-cache-${{ hashFiles('packaging/fedora-41/**') }}
+        key: mock-cache-fedora-41
+
+    - name: upload packages
+      uses: actions/upload-artifact@v4
+      with:
+        name: rpm-pacakge
+        path: ./fedora-41-rpm.tar
 
   # cache-build-deps:
   #   runs-on: ubuntu-latest
