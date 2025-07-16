@@ -56,65 +56,15 @@ jobs:
   #           variant: pristine
 
   package-snapd-rpm:
-    runs-on: ubuntu-latest
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+    uses: ./.github/workflows/rpm-builds.yaml
+    with:
+      runs-on: '["ubuntu-latest"]'
+      system: ${{ matrix.system }}
+    strategy:
+      matrix:
+        system:
+          - fedora-41
 
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v3
-
-    - name: Build Docker image with cache support
-      uses: docker/build-push-action@v5
-      with:
-        context: .
-        push: false
-        load: true
-        file: tests/lib/packaging/fedora.dockerfile
-        tags: mock-base:latest
-        cache-from: type=gha
-        cache-to: type=gha,mode=max
-
-    - name: Restore mock cache
-      uses: actions/cache@v3
-      with:
-        path: /tmp/mock
-        key: mock-cache-fedora-41
-
-    - name: Run mock inside container
-      run: |
-        pwd
-        chmod -R 777 .
-        mkdir -p /tmp/mock
-        mkdir -p /tmp/builds
-        chmod -R 777 /tmp/builds
-        docker run --privileged --rm \
-          --mount type=bind,src=/tmp/mock,dst=/var/cache/mock \
-          --mount type=bind,src=$(pwd),dst=/home/mockbuilder/snapd \
-          --mount type=bind,src=/tmp/builds,dst=/home/mockbuilder/builds \
-          mock-base:latest \
-          bash -c "
-            mock -r /etc/mock/fedora-41-x86_64.cfg --install git && \
-            cd /home/mockbuilder/snapd && \
-            ./tests/lib/packaging/rpm-script.sh fedora-41 && \
-            mock -r /etc/mock/fedora-41-x86_64.cfg --no-clean --enable-network --nocheck --with testkeys --resultdir /home/mockbuilder/builds /home/mockbuilder/rpmbuild/SRPMS/snapd-*.src.rpm
-          "
-        find /tmp/builds -name '*debug*' -delete
-        cd /tmp/builds
-        find . -name '*.rpm' -exec tar cvf fedora-41-rpm.tar {} +
-        
-
-    - name: Save mock cache
-      uses: actions/cache@v3
-      with:
-        path: /tmp/mock
-        key: mock-cache-fedora-41
-
-    - name: upload packages
-      uses: actions/upload-artifact@v4
-      with:
-        name: rpm-pacakge
-        path: /tmp/builds/fedora-41-rpm.tar
 
   # cache-build-deps:
   #   runs-on: ubuntu-latest
