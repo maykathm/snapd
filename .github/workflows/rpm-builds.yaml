@@ -69,7 +69,7 @@ jobs:
         key: mock-cache-${{ inputs.system }}
 
     - name: Check logs if build failed
-      if: failed()
+      if: failure()
       run: |
         if [ -f /tmp/builds/build.log ]; then
           cat /tmp/builds/biuld.log
