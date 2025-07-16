@@ -99,7 +99,8 @@ jobs:
             ./tests/lib/packaging/rpm-script.sh fedora-41 && \
             mock -r /etc/mock/fedora-41-x86_64.cfg --no-clean --enable-network --nocheck --with testkeys --resultdir /home/mockbuilder/builds /home/mockbuilder/rpmbuild/SRPMS/snapd-*.src.rpm
           "
-        sudo tar cvf fedora-41-rpm.tar /tmp/builds
+        find /tmp/builds -name '*debug*' -delete
+        find /tmp/builds -name '*.rpm' -exec tar cvf fedora-41-rpm.tar {} +
 
     - name: Save mock cache
       uses: actions/cache@v3
