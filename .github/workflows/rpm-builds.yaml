@@ -79,5 +79,5 @@ jobs:
     - name: upload packages
       uses: actions/upload-artifact@v4
       with:
-        name: rpm-pacakge
+        name: rpm-package-${{ inputs.system }}
         path: /tmp/builds/${{ inputs.system }}-rpm.tar
