@@ -57,6 +57,7 @@ jobs:
 
   package-snapd-rpm:
     uses: ./.github/workflows/rpm-builds.yaml
+    name: Package ${{ matrix.system }}
     with:
       runs-on: '["ubuntu-latest"]'
       system: ${{ matrix.system }}
@@ -64,6 +65,8 @@ jobs:
       matrix:
         system:
           - fedora-41
+          - fedora-42
+          - opensuse-tumbleweed
 
 
   # cache-build-deps:
