@@ -60,7 +60,6 @@ jobs:
         find /tmp/builds -name '*debug*' -delete
         cd /tmp/builds
         find . -name '*.rpm' -exec tar cvf ${{ inputs.system }}-rpm.tar {} +
-        
 
     - name: Save mock cache
       if: always()
@@ -68,6 +67,13 @@ jobs:
       with:
         path: /tmp/mock
         key: mock-cache-${{ inputs.system }}
+
+    - name: Check logs if build failed
+      if: failed()
+      run: |
+        if [ -f /tmp/builds/build.log ]; then
+          cat /tmp/builds/biuld.log
+        fi
 
     - name: upload packages
       uses: actions/upload-artifact@v4
