@@ -58,6 +58,7 @@ jobs:
   package-snapd-rpm:
     uses: ./.github/workflows/rpm-builds.yaml
     name: Package ${{ matrix.system }}
+    fail-fast: false
     with:
       runs-on: '["ubuntu-latest"]'
       system: ${{ matrix.build-config.system }}
