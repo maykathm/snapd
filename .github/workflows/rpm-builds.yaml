@@ -11,6 +11,10 @@ on:
         description: 'The system to build the rpm package for'
         required: true
         type: string
+      config:
+        description: 'The name of the mock config file'
+        required: true
+        type: string
 
 jobs:
   build-rpm:
@@ -52,11 +56,11 @@ jobs:
           --mount type=bind,src=/tmp/builds,dst=/home/mockbuilder/builds \
           mock-base:latest \
           bash -c "
-            mock -r /etc/mock/${{ inputs.system }}-x86_64.cfg --install git && \
+            mock -r /etc/mock/${{ inputs.config }}.cfg --install git && \
             cd /home/mockbuilder/snapd && \
             go mod vendor && \
             ./tests/lib/packaging/rpm-script.sh ${{ inputs.system }} && \
-            mock -r /etc/mock/${{ inputs.system }}-x86_64.cfg --no-clean --no-cleanup-after --enable-network --nocheck --with testkeys --resultdir /home/mockbuilder/builds /home/mockbuilder/rpmbuild/SRPMS/snapd-*.src.rpm
+            mock -r /etc/mock/${{ inputs.config }}.cfg --no-clean --no-cleanup-after --enable-network --nocheck --with testkeys --resultdir /home/mockbuilder/builds /home/mockbuilder/rpmbuild/SRPMS/snapd-*.src.rpm
           "
         find /tmp/builds -name '*debug*' -delete
         cd /tmp/builds
