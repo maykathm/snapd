@@ -19,4 +19,4 @@ if [[ "$pkg" =~ "opensuse" ]]; then
 fi
 
 ./packaging/pack-source -v "$version" -o "$rpm_dir/SOURCES" $pack_args
-rpmbuild --with testkeys -bs "$rpm_dir/SOURCES/snapd.spec" || true
+rpmbuild --with testkeys -bs "$rpm_dir/SOURCES/snapd.spec"
