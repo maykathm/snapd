@@ -58,12 +58,12 @@ jobs:
   package-snapd-rpm:
     uses: ./.github/workflows/rpm-builds.yaml
     name: Package ${{ matrix.system }}
-    fail-fast: false
     with:
       runs-on: '["ubuntu-latest"]'
       system: ${{ matrix.build-config.system }}
       config: ${{ matrix.build-config.config }}
     strategy:
+      fail-fast: false
       matrix:
         build-config:
           - { system: fedora-41,           config: fedora-41-x86_64 }
