@@ -60,8 +60,8 @@ jobs:
             go mod vendor && \
             cd c-vendor && \
             ./vendor.sh && \
-            chmod -R a+w . && \
             cd .. && \
+            chown -R test . && \
             newver=\"$(dpkg-parsechangelog --show-field Version)\" && \
             dch --newversion \"1337.$newver\" \"testing build\" && \
             unshare -n -- su -l -c \"cd /home/test/snapd && DEB_BUILD_OPTIONS='nocheck testkeys ${FIPS_BUILD_OPTION}' dpkg-buildpackage -tc -b -Zgzip -uc -us\" test && \
