@@ -57,7 +57,6 @@ jobs:
           deb-base:latest \
           bash -c "
             cd /home/test/snapd && \
-            # go mod vendor && \
             cd c-vendor && \
             ./vendor.sh && \
             chmod -R a+w . && \
