@@ -12,7 +12,6 @@ RUN pacman -Syu --noconfirm && \
         apparmor \
         autoconf-archive \
         squashfs-tools \
-        base-devel \
-        makepkg
+        base-devel
 
 RUN useradd test -m

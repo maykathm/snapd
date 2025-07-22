@@ -51,15 +51,15 @@ jobs:
             mkdir -p /tmp/pkg/ && \
             cp -av packaging/arch/* /tmp/pkg && \
             
-            ./packaging/pack-source -v "$version" -o "/tmp/pkg/" -s && \
+            ./packaging/pack-source -v \"$version\" -o \"/tmp/pkg/\" -s && \
 
             sed -i \
-                -e "s/pkgver=.*/pkgver=$version/" \
+                -e \"s/pkgver=.*/pkgver=$version/\" \
                 /tmp/pkg/PKGBUILD && \
 
             chown -R test:test /tmp/pkg && \
             unshare -n -- \
-                    su -l -c "cd /tmp/pkg && WITH_TEST_KEYS=1 makepkg -f --nocheck" test && \
+                    su -l -c \"cd /tmp/pkg && WITH_TEST_KEYS=1 makepkg -f --nocheck\" test && \
             cp /tmp/pkg/snapd*.pkg.tar.* /tmp/builds
           "
         cd /tmp/builds
