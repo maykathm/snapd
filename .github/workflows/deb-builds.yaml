@@ -56,13 +56,11 @@ jobs:
           -e DEBIAN_FRONTEND=noninteractive \
           deb-base:latest \
           bash -c "
-            ls -la /home/test && \
-            ls -la /home/test/snapd && \
             cd /home/test/snapd && \
             go mod vendor && \
             cd c-vendor && \
             ./vendor.sh && \
-            ls -la squashfuse && \
+            chmod -R 777 . && \
             cd .. && \
             newver=\"$(dpkg-parsechangelog --show-field Version)\" && \
             dch --newversion \"1337.$newver\" \"testing build\" && \
