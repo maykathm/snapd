@@ -45,18 +45,14 @@ jobs:
             ./vendor.sh && \
             cd .. && \
             chown -R test:test . && \
-
             base_version=\"$(head -1 debian/changelog | awk -F '[()]' '{print $2}')\" && \
             version=\"1337.$base_version\" && \
             mkdir -p /tmp/pkg/ && \
-            cp -av packaging/arch/* /tmp/pkg && \
-            
+            cp -av packaging/arch/* /tmp/pkg && \            
             ./packaging/pack-source -v \"$version\" -o \"/tmp/pkg/\" -s && \
-
             sed -i \
                 -e \"s/pkgver=.*/pkgver=$version/\" \
                 /tmp/pkg/PKGBUILD && \
-
             chown -R test:test /tmp/pkg && \
             unshare -n -- \
                     su -l -c \"cd /tmp/pkg && WITH_TEST_KEYS=1 makepkg -f --nocheck\" test && \
