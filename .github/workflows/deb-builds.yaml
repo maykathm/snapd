@@ -47,9 +47,9 @@ jobs:
 
     - name: Build deb
       run: |
-        chmod -R 777 .
+        chmod -R a+w .
         mkdir -p /tmp/builds
-        chmod -R 777 /tmp/builds
+        chmod -R a+2 /tmp/builds
         docker run --cap-add SYS_ADMIN --rm \
           --mount type=bind,src=$(pwd),dst=/home/test/snapd \
           --mount type=bind,src=/tmp/builds,dst=/tmp/builds \
@@ -60,7 +60,7 @@ jobs:
             go mod vendor && \
             cd c-vendor && \
             ./vendor.sh && \
-            chmod -R 777 . && \
+            chmod -R a+w . && \
             cd .. && \
             newver=\"$(dpkg-parsechangelog --show-field Version)\" && \
             dch --newversion \"1337.$newver\" \"testing build\" && \
