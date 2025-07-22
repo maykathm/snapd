@@ -62,6 +62,7 @@ jobs:
             go mod vendor && \
             cd c-vendor && \
             ./vendor.sh && \
+            ls -la squashfuse && \
             cd .. && \
             newver=\"$(dpkg-parsechangelog --show-field Version)\" && \
             dch --newversion \"1337.$newver\" \"testing build\" && \
