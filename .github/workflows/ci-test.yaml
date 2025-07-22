@@ -84,9 +84,9 @@ jobs:
       fail-fast: false
       matrix:
         build-config:
-          # - { system: ubuntu, system-version: '24.04', golang-version: '1.18' }
-          # - { system: ubuntu, system-version: '18.04', golang-version: '1.18' }
-          # - { system: debian, system-version: '12', golang-version: '1.18' }
+          - { system: ubuntu, system-version: '24.04', golang-version: '1.18' }
+          - { system: ubuntu, system-version: '18.04', golang-version: '1.18' }
+          - { system: debian, system-version: '12', golang-version: '1.18' }
           - { system: debian, system-version: 'sid', golang-version: '1.18' }
 
   # cache-build-deps:
