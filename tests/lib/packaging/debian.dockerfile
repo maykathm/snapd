@@ -20,5 +20,3 @@ RUN if [ -z "$(command -v go)" ]; then \
     fi
 
 RUN useradd test -m
-
-USER test

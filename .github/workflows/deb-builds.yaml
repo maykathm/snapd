@@ -56,7 +56,7 @@ jobs:
           -e DEBIAN_FRONTEND=noninteractive \
           deb-base:latest \
           bash -c "
-            pwd && ls && \
+            cd /home/test && ls && \
             go mod vendor && \
             cd c-vendor && \
             ./vendor.sh && \
