@@ -55,22 +55,24 @@ jobs:
   #         - runs-on: '["ubuntu-22.04-arm"]'
   #           variant: pristine
 
-  # package-snapd-rpm:
-  #   uses: ./.github/workflows/rpm-builds.yaml
-  #   name: Package ${{ matrix.build-config.system }}
-  #   with:
-  #     runs-on: '["ubuntu-latest"]'
-  #     system: ${{ matrix.build-config.system }}
-  #     config: ${{ matrix.build-config.config }}
-  #   strategy:
-  #     fail-fast: false
-  #     matrix:
-  #       build-config:
-  #         - { system: fedora-41,           config: fedora-41-x86_64 }
-  #         - { system: fedora-42,           config: fedora-42-x86_64 }
-  #         - { system: opensuse-tumbleweed, config: opensuse-tumbleweed-x86_64 }
-  #         - { system: opensuse-15.6,       config: opensuse-leap-15.6-x86_64 }
-  #         - { system: centos-9,            config: centos-stream-9-x86_64 }
+  package-snapd-rpm:
+    uses: ./.github/workflows/rpm-builds.yaml
+    name: Package ${{ matrix.build-config.system }}
+    with:
+      runs-on: '["ubuntu-latest"]'
+      system: ${{ matrix.build-config.system }}
+      config: ${{ matrix.build-config.config }}
+    strategy:
+      fail-fast: false
+      matrix:
+        build-config:
+          - { system: fedora-41,           config: fedora-41-x86_64           }
+          - { system: fedora-42,           config: fedora-42-x86_64           }
+          - { system: opensuse-tumbleweed, config: opensuse-tumbleweed-x86_64 }
+          - { system: opensuse-15.6,       config: opensuse-leap-15.6-x86_64  }
+          - { system: centos-9,            config: centos-stream-9-x86_64     }
+          - { system: amzn-2,              config: amazonlinux-2-x86_64       }
+          - { system: amzn-2023,           config: amazonlinux-2023-x86_64    }
 
   package-snapd-deb:
     uses: ./.github/workflows/deb-builds.yaml
