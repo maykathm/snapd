@@ -11,12 +11,16 @@ on:
         description: 'The system to build the deb package for'
         required: true
         type: string
-      system-version:
+      sys-version:
         description: 'The system version to build the deb package for'
         required: true
         type: string
-      golang-version:
+      go-version:
         description: 'The golang version to build the deb package in'
+        required: true
+        type: string
+      artifact:
+        description: 'What to call the artifact'
         required: true
         type: string
 
@@ -39,8 +43,8 @@ jobs:
         file: tests/lib/packaging/debian.dockerfile
         build-args: |
           SYSTEM=${{ inputs.system }}
-          TAG=${{ inputs.system-version }}
-          GOLANG_VERSION=${{ inputs.golang-version }}
+          TAG=${{ inputs.sys-version }}
+          GOLANG_VERSION=${{ inputs.go-version }}
         tags: deb-base:latest
         cache-from: type=gha
         cache-to: type=gha,mode=max
@@ -68,10 +72,10 @@ jobs:
             cp /home/test/*.deb /tmp/builds
           "
         cd /tmp/builds
-        find . -name '*.deb' -exec tar cvf ${{ inputs.system }}-${{ inputs.system-version }}-deb.tar {} +
+        find . -name '*.deb' -exec tar cvf ${{ inputs.artifact-name }}.tar {} +
 
     - name: upload packages
       uses: actions/upload-artifact@v4
       with:
-        name: deb-package-${{ inputs.system }}-${{ inputs.system-version }}
-        path: /tmp/builds/${{ inputs.system }}-${{ inputs.system-version }}-deb.tar
+        name: ${{ inputs.artifact-name }}
+        path: /tmp/builds/${{ inputs.artifact-name }}.tar

@@ -82,26 +82,27 @@ jobs:
 
   package-snapd-deb:
     uses: ./.github/workflows/deb-builds.yaml
-    name: Package ${{ matrix.build-config.system }}-${{ matrix.build-config.system-version }}
+    name: Package ${{ matrix.build-config.system }}-${{ matrix.build-config.sys-version }}
     with:
       runs-on: ${{ matrix.build-config.runs-on }}
       system: ${{ matrix.build-config.system }}
-      system-version: ${{ matrix.build-config.system-version }}
-      golang-version: ${{ matrix.build-config.golang-version }}
+      sys-version: ${{ matrix.build-config.sys-version }}
+      go-version: ${{ matrix.build-config.go-version }}
+      artifact: ${{ matrix.build-config.artifact }}
     strategy:
       fail-fast: false
       matrix:
         build-config:
-          - { runs-on: '["ubuntu-latest"]',     system: ubuntu, system-version: '25.10', golang-version: '1.18' }
-          - { runs-on: '["ubuntu-latest"]',     system: ubuntu, system-version: '25.04', golang-version: '1.18' }
-          - { runs-on: '["ubuntu-latest"]',     system: ubuntu, system-version: '24.04', golang-version: '1.18' }
-          - { runs-on: '["ubuntu-latest"]',     system: ubuntu, system-version: '22.04', golang-version: '1.18' }
-          - { runs-on: '["ubuntu-latest"]',     system: ubuntu, system-version: '20.04', golang-version: '1.18' }
-          - { runs-on: '["ubuntu-latest"]',     system: ubuntu, system-version: '18.04', golang-version: '1.18' }
-          - { runs-on: '["ubuntu-latest"]',     system: debian, system-version: '12',    golang-version: '1.18' }
-          - { runs-on: '["ubuntu-latest"]',     system: debian, system-version: 'sid',   golang-version: '1.18' }
-          - { runs-on: '["ubuntu-24.04-arm"]',  system: ubuntu, system-version: '24.04', golang-version: '1.18' }
-          - { runs-on: '["ubuntu-24.04-arm"]',  system: ubuntu, system-version: '22.04', golang-version: '1.18' }
+          - { runs-on: '["ubuntu-latest"]',     system: ubuntu, sys-version: '25.10', go-version: '1.18', artifact: "ubuntu-25.10-64"     }
+          - { runs-on: '["ubuntu-latest"]',     system: ubuntu, sys-version: '25.04', go-version: '1.18', artifact: "ubuntu-25.04-64"     }
+          - { runs-on: '["ubuntu-latest"]',     system: ubuntu, sys-version: '24.04', go-version: '1.18', artifact: "ubuntu-24.04-64"     }
+          - { runs-on: '["ubuntu-latest"]',     system: ubuntu, sys-version: '22.04', go-version: '1.18', artifact: "ubuntu-22.04-64"     }
+          - { runs-on: '["ubuntu-latest"]',     system: ubuntu, sys-version: '20.04', go-version: '1.18', artifact: "ubuntu-20.04-64"     }
+          - { runs-on: '["ubuntu-latest"]',     system: ubuntu, sys-version: '18.04', go-version: '1.18', artifact: "ubuntu-18.04-64"     }
+          - { runs-on: '["ubuntu-latest"]',     system: debian, sys-version: '12',    go-version: '1.18', artifact: "debian-12-64"        }
+          - { runs-on: '["ubuntu-latest"]',     system: debian, sys-version: 'sid',   go-version: '1.18', artifact: "debian-sid-64"       }
+          - { runs-on: '["ubuntu-24.04-arm"]',  system: ubuntu, sys-version: '24.04', go-version: '1.18', artifact: "ubuntu-24.04-arm-64" }
+          - { runs-on: '["ubuntu-24.04-arm"]',  system: ubuntu, sys-version: '22.04', go-version: '1.18', artifact: "ubuntu-22.04-arm-64" }
 
   # cache-build-deps:
   #   runs-on: ubuntu-latest
