@@ -50,15 +50,15 @@ jobs:
             version=\"1337.$base_version\" && \
             packaging_path=packaging/arch && \
             mkdir -p /tmp/pkg/ && \
-            cp -a "$packaging_path"/* /tmp/pkg && \
+            cp -a "$packaging_path"/* /tmp/pkg
             
-            ./packaging/pack-source -v "$version" -o "/tmp/pkg/" -s && \
+            # ./packaging/pack-source -v "$version" -o "/tmp/pkg/" -s && \
 
-            sed -i \
-                -e "s/pkgver=.*/pkgver=$version/" \
-                /tmp/pkg/PKGBUILD && \
+            # sed -i \
+            #     -e "s/pkgver=.*/pkgver=$version/" \
+            #     /tmp/pkg/PKGBUILD && \
 
-            chown -R test:test /tmp/pkg
+            # chown -R test:test /tmp/pkg
             # unshare -n -- \
             #         su -l -c "cd /tmp/pkg && WITH_TEST_KEYS=1 makepkg -f --nocheck" test && \
             # cp /tmp/pkg/snapd*.pkg.tar.* /tmp/builds
