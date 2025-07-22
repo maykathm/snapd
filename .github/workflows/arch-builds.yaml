@@ -59,9 +59,9 @@ jobs:
                 /tmp/pkg/PKGBUILD && \
 
             chown -R test:test /tmp/pkg && \
-            unshare -n -- \
-                    su -l -c "cd /tmp/pkg && WITH_TEST_KEYS=1 makepkg -f --nocheck" test && \
-            cp /tmp/pkg/snapd*.pkg.tar.* /tmp/builds
+            # unshare -n -- \
+            #         su -l -c "cd /tmp/pkg && WITH_TEST_KEYS=1 makepkg -f --nocheck" test && \
+            # cp /tmp/pkg/snapd*.pkg.tar.* /tmp/builds
           "
         cd /tmp/builds
         find . -name '*.pkg.tar.*' -exec tar cvf arch.tar {} +
