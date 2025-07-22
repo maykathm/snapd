@@ -51,12 +51,12 @@ jobs:
         mkdir -p /tmp/builds
         chmod -R 777 /tmp/builds
         docker run --cap-add SYS_ADMIN --rm \
-          --mount type=bind,src=$(pwd),dst=/tmp/snapd \
+          --mount type=bind,src=$(pwd),dst=/home/test \
           --mount type=bind,src=/tmp/builds,dst=/tmp/builds \
           -e DEBIAN_FRONTEND=noninteractive \
           deb-base:latest \
           bash -c "
-            cd /tmp/snapd && \
+            pwd && ls && \
             go mod vendor && \
             cd c-vendor && \
             ./vendor.sh && \

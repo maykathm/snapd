@@ -19,4 +19,6 @@ RUN if [ -z "$(command -v go)" ]; then \
         ln -s "/usr/lib/go-${GOLANG_VERSION}/bin/go" /usr/bin/go; \
     fi
 
-RUN useradd test
+RUN useradd test -m
+
+USER test
