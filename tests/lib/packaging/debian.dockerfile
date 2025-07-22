@@ -1,6 +1,6 @@
-ARG SYSTEM
-ARG TAG
-ARG GOLANG_VERSION
+ARG SYSTEM=ubuntu
+ARG TAG=24.04
+ARG GOLANG_VERSION=1.18
 FROM ${SYSTEM}:${TAG}
 
 ARG GOLANG_VERSION
@@ -21,3 +21,5 @@ RUN gdebi --quiet --apt-line control > deps.txt && \
 RUN if [ -z "$(command -v go)" ]; then \
         ln -s "/usr/lib/go-${GOLANG_VERSION}/bin/go" /usr/bin/go; \
     fi
+
+RUN useradd test

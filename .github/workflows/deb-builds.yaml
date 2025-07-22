@@ -1,0 +1,76 @@
+name: Build rpm package
+
+on:
+  workflow_call:
+    inputs:
+      runs-on:
+        description: 'A json list of tags to indicate which runner to use'
+        required: true
+        type: string
+      system:
+        description: 'The system to build the deb package for'
+        required: true
+        type: string
+      system-version:
+        description: 'The system version to build the deb package for'
+        required: true
+        type: string
+      golang-version:
+        description: 'The golang version to build the deb package in'
+        required: true
+        type: string
+
+jobs:
+  build-rpm:
+    runs-on: ${{ fromJSON(inputs.runs-on) }}
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Build Docker image with cache support
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        push: false
+        load: true
+        file: tests/lib/packaging/debian.dockerfile
+        build-args: |
+          SYSTEM=${{ inputs.system }}
+          TAG=${{ inputs.version }}
+          GOLANG_VERSION=${{ inputs.golang-version }}
+        tags: deb-base:latest
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+    - name: Build deb
+      run: |
+        chmod -R 777 .
+        mkdir -p /tmp/builds
+        chmod -R 777 /tmp/builds
+        docker run --cap-add SYS_ADMIN --rm \
+          --mount type=bind,src=$(pwd),dst=/tmp/snapd \
+          --mount type=bind,src=/tmp/builds,dst=/tmp/builds \
+          deb-base:latest \
+          bash -c "
+            cd /tmp/snapd && \
+            go mod vendor && \
+            cd c-vendor && \
+            ./vendor.sh && \
+            cd .. && \
+            newver="$(dpkg-parsechangelog --show-field Version)" && \
+            dch --newversion "1337.$newver" "testing build" && \
+            unshare -n -- \
+                        su -l -c "cd $PWD && DEB_BUILD_OPTIONS='nocheck testkeys ${FIPS_BUILD_OPTION}' dpkg-buildpackage -tc -b -Zgzip -uc -us" test && \
+            cp ../*.deb /tmp/builds
+          "
+        cd /tmp/builds
+        find . -name '*.deb' -exec tar cvf ${{ inputs.system }}-${{ inputs.system-version }}-deb.tar {} +
+
+    - name: upload packages
+      uses: actions/upload-artifact@v4
+      with:
+        name: deb-package-${{ inputs.system }}-${{ inputs.system-version }}
+        path: /tmp/builds/${{ inputs.system }}-${{ inputs.system-version }}-deb.tar
