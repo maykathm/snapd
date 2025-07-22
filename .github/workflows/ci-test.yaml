@@ -76,7 +76,7 @@ jobs:
     uses: ./.github/workflows/deb-builds.yaml
     name: Package ${{ matrix.build-config.system }}-${{ matrix.build-config.system-version }}
     with:
-      runs-on: '["ubuntu-latest"]'
+      runs-on: ${{ matrix.build-config.runs-on }}
       system: ${{ matrix.build-config.system }}
       system-version: ${{ matrix.build-config.system-version }}
       golang-version: ${{ matrix.build-config.golang-version }}
@@ -84,14 +84,16 @@ jobs:
       fail-fast: false
       matrix:
         build-config:
-          - { system: ubuntu, system-version: '25.10', golang-version: '1.18' }
-          - { system: ubuntu, system-version: '25.04', golang-version: '1.18' }
-          - { system: ubuntu, system-version: '24.04', golang-version: '1.18' }
-          - { system: ubuntu, system-version: '22.04', golang-version: '1.18' }
-          - { system: ubuntu, system-version: '20.04', golang-version: '1.18' }
-          - { system: ubuntu, system-version: '18.04', golang-version: '1.18' }
-          - { system: debian, system-version: '12', golang-version: '1.18' }
-          - { system: debian, system-version: 'sid', golang-version: '1.18' }
+          - { runs-on: '["ubuntu-latest"]', system: ubuntu, system-version: '25.10', golang-version: '1.18' }
+          - { runs-on: '["ubuntu-latest"]', system: ubuntu, system-version: '25.04', golang-version: '1.18' }
+          - { runs-on: '["ubuntu-latest"]', system: ubuntu, system-version: '24.04', golang-version: '1.18' }
+          - { runs-on: '["ubuntu-latest"]', system: ubuntu, system-version: '22.04', golang-version: '1.18' }
+          - { runs-on: '["ubuntu-latest"]', system: ubuntu, system-version: '20.04', golang-version: '1.18' }
+          - { runs-on: '["ubuntu-latest"]', system: ubuntu, system-version: '18.04', golang-version: '1.18' }
+          - { runs-on: '["ubuntu-latest"]', system: debian, system-version: '12',    golang-version: '1.18' }
+          - { runs-on: '["ubuntu-latest"]', system: debian, system-version: 'sid',   golang-version: '1.18' }
+          - { runs-on: '["ubuntu-arm"]',    system: ubuntu, system-version: '24.04', golang-version: '1.18' }
+          - { runs-on: '["ubuntu-arm"]',    system: ubuntu, system-version: '22.04', golang-version: '1.18' }
 
   # cache-build-deps:
   #   runs-on: ubuntu-latest
