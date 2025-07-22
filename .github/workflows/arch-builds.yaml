@@ -51,9 +51,7 @@ jobs:
             packaging_path=packaging/arch && \
             mkdir -p /tmp/pkg/ && \
             pwd && \
-            ls -la . && \
-            ls -la packaging && \
-            ls -la packaging/arch
+            ls -la "$packaging_path"/*
             # cp "$packaging_path"/* /tmp/pkg
             
             # ./packaging/pack-source -v "$version" -o "/tmp/pkg/" -s && \
