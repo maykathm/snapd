@@ -1,0 +1,77 @@
+name: Build arch package
+
+on:
+  workflow_call:
+    inputs:
+      runs-on:
+        description: 'A json list of tags to indicate which runner to use'
+        required: true
+        type: string
+      system:
+        description: 'The system to build the deb package for'
+        required: true
+        type: string
+
+jobs:
+  build-arch:
+    runs-on: ${{ fromJSON(inputs.runs-on) }}
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Build Docker image with cache support
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        push: false
+        load: true
+        file: tests/lib/packaging/arch.dockerfile
+        tags: arch-base:latest
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+    - name: Build arch pkg
+      run: |
+        chmod -R a+w .
+        mkdir -p /tmp/builds
+        chmod -R a+w /tmp/builds
+        docker run --cap-add SYS_ADMIN --rm \
+          --mount type=bind,src=$(pwd),dst=/home/test/snapd \
+          --mount type=bind,src=/tmp/builds,dst=/tmp/builds \
+          deb-base:latest \
+          bash -c "
+            cd /home/test/snapd && \
+            go mod vendor && \
+            cd c-vendor && \
+            ./vendor.sh && \
+            cd .. && \
+            chown -R test:test . && \
+
+            base_version=\"$(head -1 debian/changelog | awk -F '[()]' '{print $2}')\" && \
+            version=\"1337.$base_version\" && \
+            packaging_path=packaging/arch && \
+            mkdir -p /tmp/pkg/ && \
+            cp -av "$packaging_path"/* /tmp/pkg && \
+            
+            ./packaging/pack-source -v "$version" -o "/tmp/pkg/" -s && \
+
+            sed -i \
+                -e "s/pkgver=.*/pkgver=$version/" \
+                /tmp/pkg/PKGBUILD && \
+
+            chown -R test:test /tmp/pkg && \
+            unshare -n -- \
+                    su -l -c "cd /tmp/pkg && WITH_TEST_KEYS=1 makepkg -f --nocheck" test && \
+            cp /tmp/pkg/snapd*.pkg.tar.* /tmp/builds
+          "
+        cd /tmp/builds
+        find . -name '*.pkg.tar.*' -exec tar cvf arch.tar {} +
+
+    - name: upload packages
+      uses: actions/upload-artifact@v4
+      with:
+        name: arch-package
+        path: /tmp/builds/arch.tar
