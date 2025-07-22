@@ -47,6 +47,8 @@ jobs:
             version=\"1337.$base_version\" && \
             mkdir -p /tmp/pkg/ && \
             cp -av packaging/arch/* /tmp/pkg # && \    
+            echo \"$base_version\" && \
+            echo \"$version\" 
             # ./packaging/pack-source -v \"$version\" -o \"/tmp/pkg/\" -s && \
             # sed -i \
             #     -e \"s/pkgver=.*/pkgver=$version/\" \
