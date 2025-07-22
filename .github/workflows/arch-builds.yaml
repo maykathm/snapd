@@ -50,7 +50,7 @@ jobs:
             version=\"1337.$base_version\" && \
             packaging_path=packaging/arch && \
             mkdir -p /tmp/pkg/ && \
-            cp -a "$packaging_path"/* /tmp/pkg
+            cp "$packaging_path"/* /tmp/pkg
             
             # ./packaging/pack-source -v "$version" -o "/tmp/pkg/" -s && \
 
