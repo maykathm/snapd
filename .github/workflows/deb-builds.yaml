@@ -72,10 +72,10 @@ jobs:
             cp /home/test/*.deb /tmp/builds
           "
         cd /tmp/builds
-        find . -name '*.deb' -exec tar cvf ${{ inputs.artifact-name }}.tar {} +
+        find . -name '*.deb' -exec tar cvf ${{ inputs.artifact }}.tar {} +
 
     - name: upload packages
       uses: actions/upload-artifact@v4
       with:
-        name: ${{ inputs.artifact-name }}
-        path: /tmp/builds/${{ inputs.artifact-name }}.tar
+        name: ${{ inputs.artifact }}
+        path: /tmp/builds/${{ inputs.artifact }}.tar
