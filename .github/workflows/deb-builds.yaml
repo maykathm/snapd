@@ -39,7 +39,7 @@ jobs:
         file: tests/lib/packaging/debian.dockerfile
         build-args: |
           SYSTEM=${{ inputs.system }}
-          TAG=${{ inputs.version }}
+          TAG=${{ inputs.system-version }}
           GOLANG_VERSION=${{ inputs.golang-version }}
         tags: deb-base:latest
         cache-from: type=gha
