@@ -7,9 +7,10 @@ ARG SYSTEM
 ARG TAG
 ARG GOLANG_VERSION
 ENV DEBIAN_FRONTEND=noninteractive
+
 RUN apt-get update && apt-get upgrade -y
 
-RUN if [ "$SYSTEM" = "ubuntu" ] && [ "$TAG" == "16.04" ]; then \
+RUN if [ "$SYSTEM" = "ubuntu" ] && [ "$TAG" = "16.04" ]; then \
         apt install -y software-properties-common && \
         add-apt-repository ppa:snappy-dev/image && \
         apt update; \
