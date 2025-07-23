@@ -18,8 +18,9 @@ RUN if [ "$SYSTEM" = "ubuntu" ] && [ "$TAG" = "16.04" ]; then \
 
 RUN apt-get install -y \
     sbuild \
-    devscripts && \
-    apt-get install -y golang-${GOLANG_VERSION} || true 
+    devscripts \
+    golang-${GOLANG_VERSION} \
+    git
 
 COPY ./debian/control debian/control
 
