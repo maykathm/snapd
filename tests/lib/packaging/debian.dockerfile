@@ -19,8 +19,11 @@ RUN if [ "$SYSTEM" = "ubuntu" ] && [ "$TAG" = "16.04" ]; then \
 RUN apt-get install -y \
     sbuild \
     devscripts \
-    golang-${GOLANG_VERSION} \
     git
+
+RUN if [ "$GOLANG_VERSION" = "1.21" ]; then \
+        apt-get install -y golang-${GOLANG_VERSION}; \
+    fi
 
 COPY ./debian/control debian/control
 
