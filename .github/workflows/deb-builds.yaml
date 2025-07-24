@@ -60,7 +60,7 @@ jobs:
           -e DEBIAN_FRONTEND=noninteractive \
           deb-base:latest \
           bash -c "
-            ./tests/lib/packaging/deb-script.sh /home/test/snapd test
+            /home/test/snapd/tests/lib/packaging/deb-script.sh /home/test/snapd test
             cp /home/test/*.deb /tmp/builds
           "
         cd /tmp/builds
