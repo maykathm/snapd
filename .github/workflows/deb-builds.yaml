@@ -60,15 +60,7 @@ jobs:
           -e DEBIAN_FRONTEND=noninteractive \
           deb-base:latest \
           bash -c "
-            cd /home/test/snapd && \
-            go mod vendor && \
-            cd c-vendor && \
-            ./vendor.sh && \
-            cd .. && \
-            chown -R test . && \
-            newver=\"$(dpkg-parsechangelog --show-field Version)\" && \
-            dch --newversion \"1337.$newver\" \"testing build\" && \
-            unshare -n -- su -l -c \"cd /home/test/snapd && DEB_BUILD_OPTIONS='nocheck testkeys ${FIPS_BUILD_OPTION}' dpkg-buildpackage -tc -b -Zgzip -uc -us\" test && \
+            ./tests/lib/packaging/deb-script.sh /home/test/snapd test
             cp /home/test/*.deb /tmp/builds
           "
         cd /tmp/builds
