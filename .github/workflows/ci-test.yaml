@@ -168,28 +168,29 @@ jobs:
     - name: Calculate results
       shell: bash
       run: |
-        # Possible results are success, failed, cancelled, and skipped
-        echo "${{ toJSON(needs) }}"
-        needs_results=$(echo '${{ toJSON(needs) }}' | jq -r 'to_entries[] | "\(.key) \(.value.result)"')
+        echo "woo"
+        # # Possible results are success, failed, cancelled, and skipped
+        # echo "${{ toJSON(needs) }}"
+        # needs_results=$(echo '${{ toJSON(needs) }}' | jq -r 'to_entries[] | "\(.key) \(.value.result)"')
 
-        if grep -q "success" <<<$needs_results; then
-          # sleep to make sure that when we query the api in the next loop, it has had time to update
-          sleep 1
-          jobs_results=$(gh api repos/{owner}/{repo}/actions/runs/$GITHUB_RUN_ID/jobs)
-          successful=$(jq -r '.jobs[] | select(.name | startswith("Package")) | select(.conclusion == "success") | "\(.name)"' <<<"$jobs_results")
-          echo "successful packaging for systems $successful"
-        fi
+        # if grep -q "success" <<<$needs_results; then
+        #   # sleep to make sure that when we query the api in the next loop, it has had time to update
+        #   sleep 1
+        #   jobs_results=$(gh api repos/{owner}/{repo}/actions/runs/$GITHUB_RUN_ID/jobs)
+        #   successful=$(jq -r '.jobs[] | select(.name | startswith("Package")) | select(.conclusion == "success") | "\(.name)"' <<<"$jobs_results")
+        #   echo "successful packaging for systems $successful"
+        # fi
 
-        echo "Summary:"
-        failed="false"
-        while IFS=" " read -r job result; do
-          if [[ "$result" != "success" ]]; then
-            # jq -r ".jobs[] | select(.name == \"package-snapd-arch\") | \"\(.conclusion)\"" <<<"$jobs_results"
-            echo "- ❌ Job \"$job\" returned result \"$result\""
-          else
-            echo "- ✅ Job \"$job\" returned result \"$result\""
-          fi
-        done <<< "$needs_results"
+        # echo "Summary:"
+        # failed="false"
+        # while IFS=" " read -r job result; do
+        #   if [[ "$result" != "success" ]]; then
+        #     # jq -r ".jobs[] | select(.name == \"package-snapd-arch\") | \"\(.conclusion)\"" <<<"$jobs_results"
+        #     echo "- ❌ Job \"$job\" returned result \"$result\""
+        #   else
+        #     echo "- ✅ Job \"$job\" returned result \"$result\""
+        #   fi
+        # done <<< "$needs_results"
 
   another-job:
     runs-on: ubuntu-latest

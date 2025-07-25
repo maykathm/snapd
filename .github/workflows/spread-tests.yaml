@@ -259,7 +259,7 @@ jobs:
           const path = require('path');
           const os = require('os');
           const child_process = require('child_process');
-          const systems = process.env.INPUT_SYSTEMS.split(' ');
+          const systems = context.payload.inputs.systems.split(' ');
 
           const allArtifacts = await github.rest.actions.listWorkflowRunArtifacts({
             owner: context.repo.owner,
