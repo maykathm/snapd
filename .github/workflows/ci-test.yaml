@@ -210,7 +210,7 @@ jobs:
       group: "ubuntu-noble (fundamental)"
       backend: "openstack-ps7"
       alternative-backend: "google"
-      systems: "ubuntu-24.04-64"
+      systems: "ubuntu-25.04-64"
       tasks: "tests/..."
       rules: "main"
       is-fundamental: true
