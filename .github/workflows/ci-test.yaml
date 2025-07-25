@@ -136,7 +136,9 @@ jobs:
       shell: bash
       run: |
         # Possible results are success, failed, cancelled, and skipped
-        echo "${{ inputs.needs-json }}"
+        echo "Needs is ${{ needs }}"
+        echo "----""
+        echo ${{ toJSON(needs) }}"
         needs_results=$(echo '${{ inputs.needs-json }}' | jq -r 'to_entries[] | "\(.key) \(.value.result)"')
 
         echo "Summary:"
