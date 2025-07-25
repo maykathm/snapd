@@ -157,11 +157,15 @@ jobs:
         echo "${{ toJSON(needs) }}"
         needs_results=$(echo '${{ toJSON(needs) }}' | jq -r 'to_entries[] | "\(.key) \(.value.result)"')
 
+        if grep -q "failed" <<<$needs_results; then
+          echo "found that something failed!"
+          sleep 1
+        fi
+
         echo "Summary:"
         failed="false"
         while IFS=" " read -r job result; do
           if [[ "$result" != "success" ]]; then
-            sleep 1
             gh api repos/{owner}/{repo}/actions/runs/$GITHUB_RUN_ID/jobs | jq .
             failed="true"
             echo "- ❌ Job \"$job\" returned result \"$result\""
