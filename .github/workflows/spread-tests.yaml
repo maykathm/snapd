@@ -281,31 +281,31 @@ jobs:
             }
             console.log(`Found artifact "${artifactName}" with id ${artifact.id}, downloading...`);
 
-            const download = await github.rest.actions.downloadArtifact({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              artifact_id: artifact.id,
-              archive_format: 'zip',
-            });
+            # const download = await github.rest.actions.downloadArtifact({
+            #   owner: context.repo.owner,
+            #   repo: context.repo.repo,
+            #   artifact_id: artifact.id,
+            #   archive_format: 'zip',
+            # });
 
-            const artifactZipPath = path.join(process.env.GITHUB_WORKSPACE, `${artifactName}.zip`);
-            fs.writeFileSync(artifactZipPath, Buffer.from(download.data));
+            # const artifactZipPath = path.join(process.env.GITHUB_WORKSPACE, `${artifactName}.zip`);
+            # fs.writeFileSync(artifactZipPath, Buffer.from(download.data));
 
-            const extractDir = path.join(process.env.GITHUB_WORKSPACE, 'built-pkgs', system);
-            fs.mkdirSync(extractDir, { recursive: true });
-            child_process.execSync(`unzip -q -o ${artifactZipPath} -d ${extractDir}`);
+            # const extractDir = path.join(process.env.GITHUB_WORKSPACE, 'built-pkgs', system);
+            # fs.mkdirSync(extractDir, { recursive: true });
+            # child_process.execSync(`unzip -q -o ${artifactZipPath} -d ${extractDir}`);
 
-            const extractedFiles = fs.readdirSync(extractDir);
-            const tarFile = extractedFiles.find(f => f.endsWith('.tar') || f.endsWith('.tar.gz') || f.endsWith('.tgz'));
-            if (tarFile) {
-              const tarPath = path.join(extractDir, tarFile);
-              console.log(`Untarring ${tarPath}`);
-              child_process.execSync(`tar -xf ${tarPath} -C ${extractDir}`);
-              fs.unlinkSync(tarPath);
-            } else {
-              console.log('No tar file found inside the zip archive.');
-            }
-            fs.unlinkSync(artifactZipPath);
+            # const extractedFiles = fs.readdirSync(extractDir);
+            # const tarFile = extractedFiles.find(f => f.endsWith('.tar') || f.endsWith('.tar.gz') || f.endsWith('.tgz'));
+            # if (tarFile) {
+            #   const tarPath = path.join(extractDir, tarFile);
+            #   console.log(`Untarring ${tarPath}`);
+            #   child_process.execSync(`tar -xf ${tarPath} -C ${extractDir}`);
+            #   fs.unlinkSync(tarPath);
+            # } else {
+            #   console.log('No tar file found inside the zip archive.');
+            # }
+            # fs.unlinkSync(artifactZipPath);
           }
 
     - name: Check contents
