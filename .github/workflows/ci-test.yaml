@@ -157,7 +157,7 @@ jobs:
         echo "${{ toJSON(needs) }}"
         needs_results=$(echo '${{ toJSON(needs) }}' | jq -r 'to_entries[] | "\(.key) \(.value.result)"')
 
-        if grep -q "failed" <<<$needs_results; then
+        if grep -q "failure" <<<$needs_results; then
           echo "found that something failed!"
           sleep 1
         fi
