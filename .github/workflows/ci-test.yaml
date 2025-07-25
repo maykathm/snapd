@@ -127,6 +127,7 @@ jobs:
   
   package-snapd-arch:
     name: Package arch
+    id: arch-package
     runs-on: ubuntu-latest
     steps:
     - name: Step 1
