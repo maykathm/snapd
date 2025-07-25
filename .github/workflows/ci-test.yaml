@@ -56,55 +56,106 @@ jobs:
   #           variant: pristine
 
 
-  package-snapd-rpm:
-    uses: ./.github/workflows/rpm-builds.yaml
-    name: Package ${{ matrix.build-config.system }}
-    with:
-      runs-on: '["ubuntu-latest"]'
-      system: ${{ matrix.build-config.system }}
-      config: ${{ matrix.build-config.config }}
-    strategy:
-      fail-fast: false
-      matrix:
-        build-config:
-          - { system: fedora-41,           config: fedora-41-x86_64           }
-          - { system: fedora-42,           config: fedora-42-x86_64           }
-          - { system: opensuse-tumbleweed, config: opensuse-tumbleweed-x86_64 }
-          - { system: opensuse-15.6,       config: opensuse-leap-15.6-x86_64  }
-          - { system: centos-9,            config: centos-stream-9-x86_64     }
-          - { system: amzn-2,              config: amazonlinux-2-x86_64       }
-          - { system: amzn-2023,           config: amazonlinux-2023-x86_64    }
+  # package-snapd-rpm:
+  #   uses: ./.github/workflows/rpm-builds.yaml
+  #   name: Package ${{ matrix.build-config.system }}
+  #   with:
+  #     runs-on: '["ubuntu-latest"]'
+  #     system: ${{ matrix.build-config.system }}
+  #     config: ${{ matrix.build-config.config }}
+  #   strategy:
+  #     fail-fast: false
+  #     matrix:
+  #       build-config:
+  #         - { system: fedora-41,           config: fedora-41-x86_64           }
+  #         - { system: fedora-42,           config: fedora-42-x86_64           }
+  #         - { system: opensuse-tumbleweed, config: opensuse-tumbleweed-x86_64 }
+  #         - { system: opensuse-15.6,       config: opensuse-leap-15.6-x86_64  }
+  #         - { system: centos-9,            config: centos-stream-9-x86_64     }
+  #         - { system: amzn-2,              config: amazonlinux-2-x86_64       }
+  #         - { system: amzn-2023,           config: amazonlinux-2023-x86_64    }
 
+  # package-snapd-arch:
+  #   uses: ./.github/workflows/arch-builds.yaml
+  #   name: Package arch
+  #   with:
+  #     runs-on: '["ubuntu-latest"]'
+
+  # package-snapd-deb:
+  #   uses: ./.github/workflows/deb-builds.yaml
+  #   name: Package ${{ matrix.build-config.artifact }}
+  #   with:
+  #     runs-on: ${{ matrix.build-config.runs-on }}
+  #     system: ${{ matrix.build-config.system }}
+  #     sys-version: ${{ matrix.build-config.sys-version }}
+  #     go-version: ${{ matrix.build-config.go-version }}
+  #     artifact: ${{ matrix.build-config.artifact }}
+  #   strategy:
+  #     fail-fast: false
+  #     matrix:
+  #       build-config:
+  #         - { runs-on: '["ubuntu-latest"]',     system: ubuntu, sys-version: '25.10', go-version: '1.18', artifact: "ubuntu-25.10-64"     }
+  #         - { runs-on: '["ubuntu-latest"]',     system: ubuntu, sys-version: '25.04', go-version: '1.18', artifact: "ubuntu-25.04-64"     }
+  #         - { runs-on: '["ubuntu-latest"]',     system: ubuntu, sys-version: '24.04', go-version: '1.18', artifact: "ubuntu-24.04-64"     }
+  #         - { runs-on: '["ubuntu-latest"]',     system: ubuntu, sys-version: '22.04', go-version: '1.18', artifact: "ubuntu-22.04-64"     }
+  #         - { runs-on: '["ubuntu-latest"]',     system: ubuntu, sys-version: '20.04', go-version: '1.18', artifact: "ubuntu-20.04-64"     }
+  #         - { runs-on: '["ubuntu-latest"]',     system: ubuntu, sys-version: '18.04', go-version: '1.18', artifact: "ubuntu-18.04-64"     }
+  #         - { runs-on: '["ubuntu-latest"]',     system: ubuntu, sys-version: '16.04', go-version: '1.18', artifact: "ubuntu-16.04-64"     }
+  #         - { runs-on: '["ubuntu-latest"]',     system: debian, sys-version: '12',    go-version: '1.18', artifact: "debian-12-64"        }
+  #         - { runs-on: '["ubuntu-latest"]',     system: debian, sys-version: 'sid',   go-version: '1.18', artifact: "debian-sid-64"       }
+  #         - { runs-on: '["ubuntu-24.04-arm"]',  system: ubuntu, sys-version: '24.04', go-version: '1.18', artifact: "ubuntu-24.04-arm-64" }
+  #         - { runs-on: '["ubuntu-24.04-arm"]',  system: ubuntu, sys-version: '22.04', go-version: '1.18', artifact: "ubuntu-22.04-arm-64" }
+
+  package-snapd-rpm:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Step 1
+      run: exit 1
+  
   package-snapd-arch:
-    uses: ./.github/workflows/arch-builds.yaml
-    name: Package arch
-    with:
-      runs-on: '["ubuntu-latest"]'
+    runs-on: ubuntu-latest
+    steps:
+    - name: Step 1
+      run: exit 0
 
   package-snapd-deb:
-    uses: ./.github/workflows/deb-builds.yaml
-    name: Package ${{ matrix.build-config.artifact }}
-    with:
-      runs-on: ${{ matrix.build-config.runs-on }}
-      system: ${{ matrix.build-config.system }}
-      sys-version: ${{ matrix.build-config.sys-version }}
-      go-version: ${{ matrix.build-config.go-version }}
-      artifact: ${{ matrix.build-config.artifact }}
-    strategy:
-      fail-fast: false
-      matrix:
-        build-config:
-          - { runs-on: '["ubuntu-latest"]',     system: ubuntu, sys-version: '25.10', go-version: '1.18', artifact: "ubuntu-25.10-64"     }
-          - { runs-on: '["ubuntu-latest"]',     system: ubuntu, sys-version: '25.04', go-version: '1.18', artifact: "ubuntu-25.04-64"     }
-          - { runs-on: '["ubuntu-latest"]',     system: ubuntu, sys-version: '24.04', go-version: '1.18', artifact: "ubuntu-24.04-64"     }
-          - { runs-on: '["ubuntu-latest"]',     system: ubuntu, sys-version: '22.04', go-version: '1.18', artifact: "ubuntu-22.04-64"     }
-          - { runs-on: '["ubuntu-latest"]',     system: ubuntu, sys-version: '20.04', go-version: '1.18', artifact: "ubuntu-20.04-64"     }
-          - { runs-on: '["ubuntu-latest"]',     system: ubuntu, sys-version: '18.04', go-version: '1.18', artifact: "ubuntu-18.04-64"     }
-          - { runs-on: '["ubuntu-latest"]',     system: ubuntu, sys-version: '16.04', go-version: '1.18', artifact: "ubuntu-16.04-64"     }
-          - { runs-on: '["ubuntu-latest"]',     system: debian, sys-version: '12',    go-version: '1.18', artifact: "debian-12-64"        }
-          - { runs-on: '["ubuntu-latest"]',     system: debian, sys-version: 'sid',   go-version: '1.18', artifact: "debian-sid-64"       }
-          - { runs-on: '["ubuntu-24.04-arm"]',  system: ubuntu, sys-version: '24.04', go-version: '1.18', artifact: "ubuntu-24.04-arm-64" }
-          - { runs-on: '["ubuntu-24.04-arm"]',  system: ubuntu, sys-version: '22.04', go-version: '1.18', artifact: "ubuntu-22.04-arm-64" }
+    runs-on: ubuntu-latest
+    steps:
+    - name: Step 1
+      run: exit 0
+
+  package-job-conclusion:
+    runs-on: ubuntu-latest
+    needs:
+      - package-snapd-rpm
+      - package-snapd-arch
+      - package-snapd-deb
+    if: always()
+    steps:
+    - name: Calculate results
+      shell: bash
+      run: |
+        # Possible results are success, failed, cancelled, and skipped
+        echo "${{ inputs.needs-json }}"
+        needs_results=$(echo '${{ inputs.needs-json }}' | jq -r 'to_entries[] | "\(.key) \(.value.result)"')
+
+        echo "Summary:"
+        failed="false"
+        while IFS=" " read -r job result; do
+          if [[ "$result" != "success" ]]; then
+            failed="true"
+            echo "- ❌ Job \"$job\" returned result \"$result\""
+          else
+            echo "- ✅ Job \"$job\" returned result \"$result\""
+          fi
+        done <<< "$needs_results"
+        
+        if [[ "$failed" == "false" ]]; then
+          echo "Overall result: success"
+        else
+          echo "Overall result: failure"
+          exit 1
+        fi 
 
   # cache-build-deps:
   #   runs-on: ubuntu-latest
