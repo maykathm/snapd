@@ -149,7 +149,7 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
-      
+
     - name: Calculate results
       shell: bash
       run: |
@@ -161,7 +161,7 @@ jobs:
         failed="false"
         while IFS=" " read -r job result; do
           if [[ "$result" != "success" ]]; then
-            gh api repos/{owner}/{repo}/actions/runs/$GITHUB_RUN_ID/jobs
+            gh api repos/{owner}/{repo}/actions/runs/$GITHUB_RUN_ID/jobs | jq .
             failed="true"
             echo "- ❌ Job \"$job\" returned result \"$result\""
           else
