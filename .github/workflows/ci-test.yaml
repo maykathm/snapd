@@ -210,7 +210,24 @@ jobs:
       group: "ubuntu-noble (fundamental)"
       backend: "openstack-ps7"
       alternative-backend: "google"
-      systems: "ubuntu-25.04-64"
+      systems: "ubuntu-24.04-64"
+      tasks: "tests/..."
+      rules: "main"
+      is-fundamental: true
+        
+  spread-fundamentalz:
+    uses: ./.github/workflows/spread-tests.yaml
+    needs: 
+      - packaging-conclusion
+      - another-job
+    if: "always()" #" && (needs.another-job.job_status=='success')"
+    name: "spread"
+    with:
+      runs-on: '["ubuntu-latest"]'
+      group: "ubuntu-noble (fundamental)"
+      backend: "openstack-ps7"
+      alternative-backend: "google"
+      systems: "ubuntu-25.04-64 ubuntu-24.04-64"
       tasks: "tests/..."
       rules: "main"
       is-fundamental: true
