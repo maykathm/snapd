@@ -252,6 +252,8 @@ jobs:
 
     - name: Download and extract pre-built packages if they exist
       if: ${{ env.SKIP_SPREAD_LABEL != 'true' }}
+      env:
+        SYSTEMS: ${{ inputs.systems }}
       uses: actions/github-script@v7
       with:
         script: |
@@ -261,7 +263,7 @@ jobs:
           const child_process = require('child_process');
           str = JSON.stringify(context);
           console.log(process.env)
-          const systems = context.payload.inputs.systems.split(' ');
+          const systems = process.env.SYSTEMS.split(' ');
 
           const allArtifacts = await github.rest.actions.listWorkflowRunArtifacts({
             owner: context.repo.owner,
