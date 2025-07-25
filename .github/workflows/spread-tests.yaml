@@ -261,8 +261,6 @@ jobs:
           const path = require('path');
           const os = require('os');
           const child_process = require('child_process');
-          str = JSON.stringify(context);
-          console.log(process.env)
           const systems = process.env.SYSTEMS.split(' ');
 
           const allArtifacts = await github.rest.actions.listWorkflowRunArtifacts({
@@ -270,9 +268,12 @@ jobs:
             repo: context.repo.repo,
             run_id: context.payload.runId,
           });
+
+          console.log(`all artifacts are ${allArtifacts}`);
           
           for (const system of systems) {
             const artifactName = `package-${system}`;
+            console.log(`searching for ${artifactName}`);
             const artifact = allArtifacts.data.artifacts.find(a => a.name === artifactName);
             if (!artifact) {
               console.log(`Artifact not found for system: ${system}`);
