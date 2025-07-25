@@ -190,10 +190,19 @@ jobs:
             echo "- ✅ Job \"$job\" returned result \"$result\""
           fi
         done <<< "$needs_results"
+
+  another-job:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Things
+        run: echo "yo"
         
   spread-fundamental:
     uses: ./.github/workflows/spread-tests.yaml
-    needs: [packaging-conclusion]
+    needs: 
+      - packaging-conclusion
+      - another-job
+    if: always() && (needs.another-job.job_status=='success')
     name: "spread"
     with:
       runs-on: '["ubuntu-latest"]'
