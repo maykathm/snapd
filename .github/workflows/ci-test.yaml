@@ -108,13 +108,8 @@ jobs:
 
   package-snapd-rpm:
     runs-on: ubuntu-latest
-    outputs:
-      opensuse: ${{ steps.results-for-opensuse.outputs.result }}
-      fedora: ${{ steps.results-for-fedora.outputs.result }}
-
     steps:
     - name: Step 1
-      id: results-for-${{ matrix.system }}
       run: |
         if [ "${{ matrix.system }}" = "opensuse" ]; then
           echo "result=failed" >> $GITHUB_OUTPUT
@@ -153,9 +148,6 @@ jobs:
     - name: Calculate results
       shell: bash
       run: |
-        echo "RPM OpenSUSE result: ${{ needs.package-snapd-rpm.outputs.opensuse }}"
-        echo "RPM Fedora result: ${{ needs.package-snapd-rpm.outputs.fedora }}"
-
         # Possible results are success, failed, cancelled, and skipped
         echo "${{ toJSON(needs) }}"
         needs_results=$(echo '${{ toJSON(needs) }}' | jq -r 'to_entries[] | "\(.key) \(.value.result)"')
