@@ -110,7 +110,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Step 1
-      run: exit 1
+      run: |
+        if [ "${{ matrix.system }}" = "opensuse" ]; then
+          exit 1
+        fi
+        
+    strategy:
+      fail-fast: false
+      matrix:
+        system: 
+          - opensuse
+          - fedora
+
   
   package-snapd-arch:
     runs-on: ubuntu-latest
