@@ -147,6 +147,9 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
     steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
     - name: Calculate results
       shell: bash
       run: |
