@@ -266,7 +266,7 @@ jobs:
           const allArtifacts = await github.rest.actions.listWorkflowRunArtifacts({
             owner: context.repo.owner,
             repo: context.repo.repo,
-            run_id: context.payload.runId,
+            run_id: context.runId,
           });
 
           console.log(`all artifacts are ${allArtifacts}`);
