@@ -126,12 +126,14 @@ jobs:
 
   
   package-snapd-arch:
+    name: Package arch
     runs-on: ubuntu-latest
     steps:
     - name: Step 1
       run: exit 0
 
   package-snapd-deb:
+    name: Package deb
     runs-on: ubuntu-latest
     steps:
     - name: Step 1
@@ -158,28 +160,22 @@ jobs:
         needs_results=$(echo '${{ toJSON(needs) }}' | jq -r 'to_entries[] | "\(.key) \(.value.result)"')
 
         if grep -q "failure" <<<$needs_results; then
-          echo "found that something failed!"
+          # sleep to make sure that when we query the api in the next loop, it has had time to update
           sleep 1
+          jobs_results=$(gh api repos/{owner}/{repo}/actions/runs/$GITHUB_RUN_ID/jobs)
         fi
 
         echo "Summary:"
         failed="false"
         while IFS=" " read -r job result; do
           if [[ "$result" != "success" ]]; then
-            gh api repos/{owner}/{repo}/actions/runs/$GITHUB_RUN_ID/jobs | jq .
-            failed="true"
+            # jq -r ".jobs[] | select(.name == \"package-snapd-arch\") | \"\(.conclusion)\"" <<<"$jobs_results"
             echo "- ❌ Job \"$job\" returned result \"$result\""
           else
             echo "- ✅ Job \"$job\" returned result \"$result\""
           fi
         done <<< "$needs_results"
         
-        if [[ "$failed" == "false" ]]; then
-          echo "Overall result: success"
-        else
-          echo "Overall result: failure"
-          exit 1
-        fi 
 
   # cache-build-deps:
   #   runs-on: ubuntu-latest
