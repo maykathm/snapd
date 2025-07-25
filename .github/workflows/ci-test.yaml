@@ -162,8 +162,8 @@ jobs:
         if grep -q "failure" <<<$needs_results; then
           # sleep to make sure that when we query the api in the next loop, it has had time to update
           sleep 1
-          jobs_results=$(gh api repos/{owner}/{repo}/actions/runs/$GITHUB_RUN_ID/jobs)
-          gh api repos/{owner}/{repo}/actions/runs/$GITHUB_RUN_ID/jobs
+          # jobs_results=$(gh api repos/{owner}/{repo}/actions/runs/$GITHUB_RUN_ID/jobs)
+          gh api repos/{owner}/{repo}/actions/runs/$GITHUB_RUN_ID/jobs | jq .
         fi
 
         echo "Summary:"
