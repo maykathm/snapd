@@ -203,7 +203,8 @@ jobs:
     needs: 
       - packaging-conclusion
       - another-job
-    if: "always() && (needs.another-job.result == 'success')"
+    if: "always() && 
+        (needs.another-job.result == 'success')"
     name: "spread"
     with:
       runs-on: '["ubuntu-latest"]'
@@ -220,7 +221,7 @@ jobs:
     needs: 
       - packaging-conclusion
       - another-job
-    if: "always()" #" && (needs.another-job.job_status=='success')"
+    if: "always() && (needs.another-job.result == 'success')"
     name: "spread"
     with:
       runs-on: '["ubuntu-latest"]'
