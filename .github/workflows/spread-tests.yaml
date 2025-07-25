@@ -257,24 +257,24 @@ jobs:
       uses: actions/github-script@v7
       with:
         script: |
-          const fs = require('fs');
-          const path = require('path');
-          const os = require('os');
-          const child_process = require('child_process');
-          const systems = process.env.SYSTEMS.split(' ');
+          let fs = require('fs');
+          let path = require('path');
+          let os = require('os');
+          let child_process = require('child_process');
+          let systems = process.env.SYSTEMS.split(' ');
 
-          const allArtifacts = await github.rest.actions.listWorkflowRunArtifacts({
+          let allArtifacts = await github.rest.actions.listWorkflowRunArtifacts({
             owner: context.repo.owner,
             repo: context.repo.repo,
             run_id: context.runId,
           });
 
-          console.log(`all artifacts are ${allArtifacts}`);
+          console.log('all artifacts are', JSON.stringify(allArtifacts));
           
-          for (const system of systems) {
-            const artifactName = `package-${system}`;
+          for (let system of systems) {
+            let artifactName = `package-${system}`;
             console.log(`searching for ${artifactName}`);
-            const artifact = allArtifacts.data.artifacts.find(a => a.name === artifactName);
+            let artifact = allArtifacts.data.artifacts.find(a => a.name === artifactName);
             if (!artifact) {
               console.log(`Artifact not found for system: ${system}`);
               continue;
