@@ -142,10 +142,17 @@ jobs:
     name: Package deb
     runs-on: ubuntu-latest
     steps:
-    - name: Step 1
-      run: exit 0
+    - name: Generate data
+      run: |
+        echo "hello, world" > package
+        tar cvf package.tar package
+    - name: upload packages
+      uses: actions/upload-artifact@v4
+      with:
+        name: package-ubuntu-24.04-64
+        path: package.tar
 
-  package-job-conclusion:
+  packaging-conclusion:
     runs-on: ubuntu-latest
     needs:
       - package-snapd-rpm
@@ -165,12 +172,12 @@ jobs:
         echo "${{ toJSON(needs) }}"
         needs_results=$(echo '${{ toJSON(needs) }}' | jq -r 'to_entries[] | "\(.key) \(.value.result)"')
 
-        if grep -q "failure" <<<$needs_results; then
+        if grep -q "success" <<<$needs_results; then
           # sleep to make sure that when we query the api in the next loop, it has had time to update
           sleep 1
           jobs_results=$(gh api repos/{owner}/{repo}/actions/runs/$GITHUB_RUN_ID/jobs)
-          failed=$(jq -r '.jobs[] | select(.name | startswith("Package")) | select(.conclusion != "success") | "\(.name)"' <<<"$jobs_results")
-          echo "failed packaging for systems $failed"
+          successful=$(jq -r '.jobs[] | select(.name | startswith("Package")) | select(.conclusion == "success") | "\(.name)"' <<<"$jobs_results")
+          echo "successful packaging for systems $successful"
         fi
 
         echo "Summary:"
@@ -184,6 +191,20 @@ jobs:
           fi
         done <<< "$needs_results"
         
+  spread-fundamental:
+    uses: ./.github/workflows/spread-tests.yaml
+    needs: [packaging-conclusion]
+    name: "spread"
+    with:
+      runs-on: '["ubuntu-latest"]'
+      group: "ubuntu-noble (fundamental)"
+      backend: "openstack-ps7"
+      alternative-backend: "google"
+      systems: "ubuntu-24.04-64"
+      tasks: "tests/..."
+      rules: "main"
+      is-fundamental: true
+
 
   # cache-build-deps:
   #   runs-on: ubuntu-latest
