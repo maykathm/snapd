@@ -260,7 +260,7 @@ jobs:
           const os = require('os');
           const child_process = require('child_process');
           str = JSON.stringify(context);
-          console.log(`payload is ${str}`);
+          console.log(process.env)
           const systems = context.payload.inputs.systems.split(' ');
 
           const allArtifacts = await github.rest.actions.listWorkflowRunArtifacts({
