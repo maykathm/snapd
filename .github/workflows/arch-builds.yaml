@@ -49,6 +49,7 @@ jobs:
             /home/test/snapd/tests/lib/packaging/build-arch.sh /home/test/snapd test /tmp/pkg/
           "
         cd /tmp/pkg
+        ls .
         find . -name '*.pkg.tar.*' -exec tar cvf package-arch-linux-64.tar {} +
 
     - name: upload packages
