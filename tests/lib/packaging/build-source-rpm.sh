@@ -7,7 +7,6 @@ vendor_tar_dir=$2
 rpm_dir=$(rpm --eval "%_topdir")
 
 version=$(ls "$vendor_tar_dir" | grep -oP '(?<=snapd_).*(?=\.vendor\.tar\.xz)')
-echo "version is $version"
 packaging_path=packaging/"$pkg"
 
 sed -i -e "s/^Version:.*$/Version: $version/g" "$packaging_path/snapd.spec"
