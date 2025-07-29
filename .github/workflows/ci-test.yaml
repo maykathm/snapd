@@ -68,7 +68,7 @@ jobs:
           /snap/bin/go mod vendor
           (
             cd c-vendor
-            ./vendora.sh
+            ./vendor.sh
           )
           mkdir /tmp/pkg
           base_version="$(head -1 debian/changelog | awk -F '[()]' '{print $2}')"
