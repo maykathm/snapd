@@ -7,8 +7,8 @@ user=$2
 build_dir=$3
 
 cd "$snapd_dir"
-go mod vendor
-su -c "cd $snapd_dir/c-vendor && ./vendor.sh" "$user"
+# go mod vendor
+# su -c "cd $snapd_dir/c-vendor && ./vendor.sh" "$user"
 
 
 base_version="$(head -1 debian/changelog | awk -F '[()]' '{print $2}')"
