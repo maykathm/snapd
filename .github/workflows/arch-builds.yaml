@@ -37,7 +37,6 @@ jobs:
 
     - name: Build arch pkg
       run: |
-        ls /tmp/pkg
         chmod -R a+w .
         mkdir -p /tmp/builds
         chmod -R a+w /tmp/builds
@@ -55,4 +54,4 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: package-arch-linux-64
-        path: /tmp/builds/package-arch-linux-64.tar
+        path: package-arch-linux-64.tar
