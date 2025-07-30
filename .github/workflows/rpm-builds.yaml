@@ -70,8 +70,8 @@ jobs:
             cd /home/mockbuilder/snapd && \
             tests/lib/packaging/build-source-rpm.sh ${{ inputs.pkg-dir }} /tmp/pkg && \
             mock -r /etc/mock/${{ inputs.config }}.cfg --no-clean --no-cleanup-after --enable-network --nocheck --with testkeys --resultdir /home/mockbuilder/builds /home/mockbuilder/rpmbuild/SRPMS/snapd-*.src.rpm && \
-            chmod -R 777 /var/cache/mock
           "
+        chmod -R 777 /tmp/mock
         find /tmp/builds -name '*debug*' -delete
         cd /tmp/builds
         find . -name '*.rpm' -exec tar cvf package-${{ inputs.system }}.tar {} +
