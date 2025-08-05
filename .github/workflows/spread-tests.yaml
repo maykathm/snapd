@@ -364,7 +364,8 @@ jobs:
           #     tee spread.log
           # )
           echo "${{ inputs.upload-artifacts }} and $ARTIFACTS_FOLDER"
-          cat .github/workflows/spread.logs > spread.log
+          # cat .github/workflows/spread.logs > spread.log
+          echo "" > spread.log
           echo "making a folder"
           mkdir -p "spread-artifacts"
           for item in $(cat .github/workflows/tests-with-dir); do 
