@@ -362,10 +362,13 @@ jobs:
           #     ./tests/lib/external/snapd-testing-tools/utils/log-filter $FILTER_PARAMS | \
           #     tee spread.log
           # )
-          cat .github/workflows/spread.logs | tee spread.log
+          cp .github/workflows/spread.logs spread.log
+          echo "making a folder"
           mkdir -p "$ARTIFACTS_FOLDER"
+          echo "making another folder"
           mkdir -p "$ARTIFACTS_FOLDER/spread-artifacts"
           for item in $(cat .github/workflows/tests-with-dir); do 
+              echo "making a folder for $item"
               mkdir -p "$ARTIFACTS_FOLDER/spread-artifacts/$item"
           done
           
