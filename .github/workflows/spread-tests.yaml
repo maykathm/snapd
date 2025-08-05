@@ -363,10 +363,10 @@ jobs:
           #     tee spread.log
           # )
           cat .github/workflows/spread.logs | tee spread.log
-          mkdir "$ARTIFACTS_FOLDER"
-          mkdir "$ARTIFACTS_FOLDER/spread-artifacts"
+          mkdir -p "$ARTIFACTS_FOLDER"
+          mkdir -p "$ARTIFACTS_FOLDER/spread-artifacts"
           for item in $(cat .github/workflows/tests-with-dir); do 
-              mkdir "$ARTIFACTS_FOLDER/spread-artifacts/$item"
+              mkdir -p "$ARTIFACTS_FOLDER/spread-artifacts/$item"
           done
           
 
@@ -408,6 +408,9 @@ jobs:
     - name: Analyze spread test results
       if: always()
       run: |
+          git clone https://github.com/canonical/spread.git
+          cd spread
+          go install ./...
           if [ -f spread.log ]; then
               echo "Running spread log parser"
               ./tests/lib/external/snapd-testing-tools/utils/log-parser spread.log --output spread-results.json
