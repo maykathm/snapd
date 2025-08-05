@@ -364,8 +364,7 @@ jobs:
           #     tee spread.log
           # )
           echo "${{ inputs.upload-artifacts }} and $ARTIFACTS_FOLDER"
-          # cat .github/workflows/spread.logs > spread.log
-          echo "" > spread.log
+          cat .github/workflows/spread.logs > spread.log
           echo "making a folder"
           mkdir -p "spread-artifacts"
           for item in $(cat .github/workflows/tests-with-dir); do 
@@ -447,7 +446,7 @@ jobs:
                       dir="$(find $ARTIFACTS_FOLDER -name "$(sed 's/\//--/g' <<<$test)" -type d 2>/dev/null || true)"
                       echo "result of find $dir"
                       if [ -z "$dir" ] && ! grep -q "$test" "$FAILED_TESTS_FILE"; then
-                          echo " $test " >> "$FAILED_TESTS_FILE"
+                          echo -n " $test " >> "$FAILED_TESTS_FILE"
                       fi
                   done
               fi
