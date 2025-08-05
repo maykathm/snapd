@@ -410,14 +410,14 @@ jobs:
     - name: Analyze spread test results
       if: always()
       run: |
-          (
-            cd /tmp
-            git clone https://github.com/canonical/spread.git
-            cd spread
-            go install ./...
-          )
-          find / -name spread -type f 2>/dev/null
-          echo "after finding spread"
+          # (
+          #   cd /tmp
+          #   git clone https://github.com/canonical/spread.git
+          #   cd spread
+          #   go install ./...
+          # )
+          # find / -name spread -type f 2>/dev/null
+          # echo "after finding spread"
           if [ -f spread.log ]; then
               echo "" > "$FAILED_TESTS_FILE"
               # echo "Running spread log parser"
