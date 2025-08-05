@@ -356,12 +356,19 @@ jobs:
           # propagated; and we use a subshell as this option could trigger
           # undesired changes elsewhere
           echo "Running command: $SPREAD $RUN_TESTS"
-          (
-            set -o pipefail 
-            $SPREAD $SPREAD_FLAGS $RUN_TESTS | \
-              ./tests/lib/external/snapd-testing-tools/utils/log-filter $FILTER_PARAMS | \
-              tee spread.log
-          )
+          # (
+          #   set -o pipefail 
+          #   $SPREAD $SPREAD_FLAGS $RUN_TESTS | \
+          #     ./tests/lib/external/snapd-testing-tools/utils/log-filter $FILTER_PARAMS | \
+          #     tee spread.log
+          # )
+          cat .github/workflows/spread.logs
+          mkdir "$ARTIFACTS_FOLDER"
+          mkdir "$ARTIFACTS_FOLDER/spread-artifacts"
+          for item in $(cat .github/workflows/tests-with-dir); do 
+              mkdir "$ARTIFACTS_FOLDER/spread-artifacts/$item"
+          done
+          
 
     - name: Discard spread workers
       if: always()
