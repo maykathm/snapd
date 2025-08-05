@@ -416,7 +416,7 @@ jobs:
             cd spread
             go install ./...
           )
-          find / -name go -type f 2>/dev/null
+          find / -name spread -type f 2>/dev/null
           # cat .github/workflows/spread.logs > spread.log
           if [ -f spread.log ]; then
               echo "Running spread log parser"
