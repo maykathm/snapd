@@ -250,40 +250,40 @@ jobs:
           # Add start line to filtered log
           echo "GRAFANA START: pr ${CHANGE_ID} attempt ${{ github.run_attempt }} run ${{ github.run_id }} group ${{ inputs.group }}" > "$FILTERED_LOG_FILE"
 
-    - name: Download built snap (amd64)
-      uses: actions/download-artifact@v4
-      if: "${{ env.SKIP_SPREAD_LABEL != 'true' && !inputs.use-snapd-snap-from-master && !contains(inputs.group, '-arm64') && !endsWith(inputs.group, '-fips') }}"
-      with:
-        name: snap-files-amd64-default-test
-        # eg. snapd_1337.2.65.1+g97.d35b459_amd64.snap
-        pattern: snapd_1337.*.snap
-        path: "${{ github.workspace }}/built-snap"
+    # - name: Download built snap (amd64)
+    #   uses: actions/download-artifact@v4
+    #   if: "${{ env.SKIP_SPREAD_LABEL != 'true' && !inputs.use-snapd-snap-from-master && !contains(inputs.group, '-arm64') && !endsWith(inputs.group, '-fips') }}"
+    #   with:
+    #     name: snap-files-amd64-default-test
+    #     # eg. snapd_1337.2.65.1+g97.d35b459_amd64.snap
+    #     pattern: snapd_1337.*.snap
+    #     path: "${{ github.workspace }}/built-snap"
 
-    - name: Download built snap (arm64)
-      if: "${{ env.SKIP_SPREAD_LABEL != 'true' && !inputs.use-snapd-snap-from-master && contains(inputs.group, '-arm64') && !endsWith(inputs.group, '-fips') }}"
-      uses: actions/download-artifact@v4
-      with:
-        name: snap-files-arm64-default-test
-        pattern: snapd_1337.*.snap
-        # eg. snapd_1337.2.65.1+g97.d35b459_amd64.snap
-        path: "${{ github.workspace }}/built-snap"
+    # - name: Download built snap (arm64)
+    #   if: "${{ env.SKIP_SPREAD_LABEL != 'true' && !inputs.use-snapd-snap-from-master && contains(inputs.group, '-arm64') && !endsWith(inputs.group, '-fips') }}"
+    #   uses: actions/download-artifact@v4
+    #   with:
+    #     name: snap-files-arm64-default-test
+    #     pattern: snapd_1337.*.snap
+    #     # eg. snapd_1337.2.65.1+g97.d35b459_amd64.snap
+    #     path: "${{ github.workspace }}/built-snap"
 
-    - name: Download built FIPS snap (amd64)
-      uses: actions/download-artifact@v4
-      # eg. ubuntu-fips
-      if: "${{ env.SKIP_SPREAD_LABEL != 'true' && !inputs.use-snapd-snap-from-master && !contains(inputs.group, '-arm64') && endsWith(inputs.group, '-fips') }}"
-      with:
-        name: snap-files-amd64-FIPS-test
-        # eg. snapd_1337.2.65.1+g97.d35b459-fips_amd64.snap
-        pattern: snapd_1337.*-fips_*.snap
-        path: "${{ github.workspace }}/built-snap"
+    # - name: Download built FIPS snap (amd64)
+    #   uses: actions/download-artifact@v4
+    #   # eg. ubuntu-fips
+    #   if: "${{ env.SKIP_SPREAD_LABEL != 'true' && !inputs.use-snapd-snap-from-master && !contains(inputs.group, '-arm64') && endsWith(inputs.group, '-fips') }}"
+    #   with:
+    #     name: snap-files-amd64-FIPS-test
+    #     # eg. snapd_1337.2.65.1+g97.d35b459-fips_amd64.snap
+    #     pattern: snapd_1337.*-fips_*.snap
+    #     path: "${{ github.workspace }}/built-snap"
 
-    - name: Rename imported snap
-      if: "${{ env.SKIP_SPREAD_LABEL != 'true' && !inputs.use-snapd-snap-from-master }}"
-      run: |
-        for snap in built-snap/snapd_1337.*.snap; do
-          mv -v "${snap}" "${snap}.keep"
-        done
+    # - name: Rename imported snap
+    #   if: "${{ env.SKIP_SPREAD_LABEL != 'true' && !inputs.use-snapd-snap-from-master }}"
+    #   run: |
+    #     for snap in built-snap/snapd_1337.*.snap; do
+    #       mv -v "${snap}" "${snap}.keep"
+    #     done
 
     - name: Run spread tests
       if: ${{ env.SKIP_SPREAD_LABEL != 'true' }}
