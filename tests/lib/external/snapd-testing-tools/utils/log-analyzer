@@ -31,7 +31,7 @@ SpreadLog = Union[SpreadLog_TypePhase, SpreadLog_TypeResult]
 
 
 def filter_with_spread(exec_param: list[str]) -> list[str]:
-    cmd = ["spread", "-list"]
+    cmd = ["/home/runner/go/bin/spread", "-list"]
     cmd.extend(exec_param)
     return subprocess.check_output(cmd, text=True).splitlines()
 
