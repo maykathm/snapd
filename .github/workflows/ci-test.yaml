@@ -413,6 +413,7 @@ jobs:
       systems: ${{ matrix.systems }}
       tasks: ${{ matrix.tasks }}
       rules: ${{ matrix.rules }}
+      upload-artifacts: true
       is-fundamental: true
     strategy:
       # FIXME: enable fail-fast mode once spread can cancel an executing job.
