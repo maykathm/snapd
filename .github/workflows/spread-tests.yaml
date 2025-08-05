@@ -365,12 +365,10 @@ jobs:
           echo "${{ inputs.upload-artifacts }} and $ARTIFACTS_FOLDER"
           cat .github/workflows/spread.logs > spread.log
           echo "making a folder"
-          mkdir -p "$ARTIFACTS_FOLDER"
-          echo "making another folder"
-          mkdir -p "$ARTIFACTS_FOLDER/spread-artifacts"
+          mkdir -p "spread-artifacts"
           for item in $(cat .github/workflows/tests-with-dir); do 
               echo "making a folder for $item"
-              mkdir -p "$ARTIFACTS_FOLDER/spread-artifacts/$item"
+              mkdir -p "spread-artifacts/$item"
           done
           
 
@@ -415,6 +413,7 @@ jobs:
           git clone https://github.com/canonical/spread.git
           cd spread
           go install ./...
+          cat .github/workflows/spread.logs > spread.log
           if [ -f spread.log ]; then
               echo "Running spread log parser"
               ./tests/lib/external/snapd-testing-tools/utils/log-parser spread.log --output spread-results.json
