@@ -63,26 +63,13 @@ jobs:
         sed -i -e "s/^Version:.*$/Version: $(cat /tmp/pkg/version)/g" snapd.spec
         osc build --config ${{ github.workspace }}/oscrc --no-checks --no-service --trust-all-projects --keep-pkgs /tmp/builds ${{ inputs.build-repo }} x86_64
 
-    # - name: Build deb
-    #   run: |
-    #     chmod -R a+w .
-    #     mkdir -p /tmp/builds
-    #     chmod -R a+w /tmp/builds
-    #     docker run --cap-add SYS_ADMIN --rm \
-    #       --mount type=bind,src=$(pwd),dst=/tmp/snapd \
-    #       --mount type=bind,src=/tmp/builds,dst=/tmp/builds \
-    #       deb-base:latest \
-    #       bash -c "
-    #         cp -r /tmp/snapd /home/test/snapd
-    #         chown -R test:test /home/test/snapd && \
-    #         /home/test/snapd/tests/lib/packaging/build-deb.sh /home/test/snapd test && \
-    #         cp /home/test/*.deb /tmp/builds
-    #       "
-    #     cd /tmp/builds
-    #     find . -name '*.deb' -exec tar cvf package-${{ inputs.system }}.tar {} +
+        cd /tmp/builds
+        rm *.src.rpm
+        rm *debug*
+        find . -name '*.rpm' -exec tar cvf package-${{ inputs.system }}.tar {} +
 
-    # - name: upload packages
-    #   uses: actions/upload-artifact@v4
-    #   with:
-    #     name: package-${{ inputs.system }}
-    #     path: /tmp/builds/package-${{ inputs.system }}.tar
+    - name: upload packages
+      uses: actions/upload-artifact@v4
+      with:
+        name: package-${{ inputs.system }}
+        path: /tmp/builds/package-${{ inputs.system }}.tar
