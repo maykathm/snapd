@@ -108,6 +108,13 @@ jobs:
     name: Package opensuse-15.6-64
     with:
       runs-on: '["ubuntu-latest"]'
+      build-repo: ${{ matrix.build-config.build-repo }}
+      system: ${{ matrix.build-config.build-repo }}
+    strategy:
+      fail-fast: false
+      matrix:
+        build-config:
+          - { system: "opensuse-tumbleweed-64", build-repo: "openSUSE_Tumbleweed", runs-on: '["ubuntu-latest"]' }
 
   # package-snapd-arch:
   #   needs: create-vendor-dir

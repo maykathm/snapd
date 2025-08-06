@@ -7,6 +7,14 @@ on:
         description: 'A json list of tags to indicate which runner to use'
         required: true
         type: string
+      build-repo:
+        description: 'The repository name in osc to build'
+        required: true
+        type: string
+      system:
+        description: 'The system name as known by spread'
+        required: true
+        type: string
 
 jobs:
   build-rpm:
@@ -36,6 +44,11 @@ jobs:
         credentials_mgr_class=osc.credentials.PlaintextConfigFileCredentialsManager
         EOF
         osc co --config oscrc system:snappy snapd
+
+    - name: Build rpm
+      run: |
+        cd system:snappy/snapd
+        osc build --config /tmp/osc/oscrc --no-checks --no-service --trust-all-projects --keep-pkgs /tmp/builds ${{ inputs.build-repo }} x86_64
 
     # - name: Build deb
     #   run: |
