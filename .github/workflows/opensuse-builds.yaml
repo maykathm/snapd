@@ -26,9 +26,6 @@ jobs:
         sudo apt install -y osc
 
     - name: Setup osc
-      env:
-        OSC_USER: ${{ secrets.OSC_USER }}
-        OSC_PASSWORD: ${{ secrets.OSC_PASSWORD }}
       run: |
         mkdir ${{ github.workspace }}/.osc-cache
         cat <<EOF > oscrc
@@ -36,8 +33,8 @@ jobs:
         apiurl=https://api.opensuse.org
         packagecachedir = ${{ github.workspace }}/.osc-cache
         [https://api.opensuse.org]
-        user=$OSC_USER
-        pass=$OSC_PASSWORD
+        user=${{ secrets.OSC_USER }}
+        pass=${{ secrets.OSC_PASSWORD }}
         credentials_mgr_class=osc.credentials.PlaintextConfigFileCredentialsManager
         EOF
         osc co --config oscrc system:snappy snapd
