@@ -17,8 +17,6 @@ jobs:
 
     - name: Install dependencies
       run: |
-        sudo apt update
-        sudo apt install -y curl gpg sudo
         curl https://build.opensuse.org/projects/openSUSE:Tools/signing_keys/download?kind=gpg -o openSUSE_Tools.gpg
         sudo gpg --dearmor -o /etc/apt/keyrings/openSUSE_Tools.gpg openSUSE_Tools.gpg
         echo 'deb [signed-by=/etc/apt/keyrings/openSUSE_Tools.gpg] https://download.opensuse.org/repositories/openSUSE:/Tools/xUbuntu_22.10/ ./' | sudo tee /etc/apt/sources.list.d/openBuildService.list
