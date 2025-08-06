@@ -1,0 +1,65 @@
+name: Build deb package
+
+on:
+  workflow_call:
+    inputs:
+      runs-on:
+        description: 'A json list of tags to indicate which runner to use'
+        required: true
+        type: string
+
+jobs:
+  build-rpm:
+    runs-on: ${{ fromJSON(inputs.runs-on) }}
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Install dependencies
+      run: |
+        apt update
+        apt upgrade -y
+        apt instal -y curl gpg sudo
+        curl https://build.opensuse.org/projects/openSUSE:Tools/signing_keys/download?kind=gpg -o openSUSE_Tools.gpg
+        gpg --dearmor -o /etc/apt/keyrings/openSUSE_Tools.gpg openSUSE_Tools.gpg
+        echo 'deb [signed-by=/etc/apt/keyrings/openSUSE_Tools.gpg] https://download.opensuse.org/repositories/openSUSE:/Tools/xUbuntu_22.10/ ./' > /etc/apt/sources.list.d/openBuildService.list
+        apt update
+        apt install -y osc
+
+    - name: Setup osc
+      run: |
+        mkdir ${{ github.workspace }}/.osc-cache
+        cat <<EOF > oscrc
+        [general]
+        apiurl=https://api.opensuse.org
+        packagecachedir = ${{ github.workspace }}/.osc-cache
+        [https://api.opensuse.org]
+        user=${{ secrets.osc_user }}
+        pass=${{ secrets.osc_password }}
+        credentials_mgr_class=osc.credentials.PlaintextConfigFileCredentialsManager
+        EOF
+        osc co --config /tmp/osc/oscrc system:snappy snapd
+
+    # - name: Build deb
+    #   run: |
+    #     chmod -R a+w .
+    #     mkdir -p /tmp/builds
+    #     chmod -R a+w /tmp/builds
+    #     docker run --cap-add SYS_ADMIN --rm \
+    #       --mount type=bind,src=$(pwd),dst=/tmp/snapd \
+    #       --mount type=bind,src=/tmp/builds,dst=/tmp/builds \
+    #       deb-base:latest \
+    #       bash -c "
+    #         cp -r /tmp/snapd /home/test/snapd
+    #         chown -R test:test /home/test/snapd && \
+    #         /home/test/snapd/tests/lib/packaging/build-deb.sh /home/test/snapd test && \
+    #         cp /home/test/*.deb /tmp/builds
+    #       "
+    #     cd /tmp/builds
+    #     find . -name '*.deb' -exec tar cvf package-${{ inputs.system }}.tar {} +
+
+    # - name: upload packages
+    #   uses: actions/upload-artifact@v4
+    #   with:
+    #     name: package-${{ inputs.system }}
+    #     path: /tmp/builds/package-${{ inputs.system }}.tar
