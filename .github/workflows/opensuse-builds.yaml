@@ -37,7 +37,7 @@ jobs:
         pass=${{ secrets.osc_password }}
         credentials_mgr_class=osc.credentials.PlaintextConfigFileCredentialsManager
         EOF
-        osc co --config /tmp/osc/oscrc system:snappy snapd
+        osc co --config oscrc system:snappy snapd
 
     # - name: Build deb
     #   run: |
