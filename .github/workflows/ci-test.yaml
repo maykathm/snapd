@@ -117,6 +117,7 @@ jobs:
       matrix:
         build-config:
           - { system: "opensuse-tumbleweed-64", build-repo: "openSUSE_Tumbleweed", pkg-dir: "opensuse-tumbleweed", runs-on: '["ubuntu-latest"]' }
+          - { system: "opensuse-15.6-64",       build-repo: "openSUSE_Leap_15.6",  pkg-dir: "opensuse-15.6",       runs-on: '["ubuntu-latest"]' }
 
   # package-snapd-arch:
   #   needs: create-vendor-dir
