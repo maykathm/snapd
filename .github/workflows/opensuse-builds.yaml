@@ -27,8 +27,8 @@ jobs:
 
     - name: Setup osc
       env:
-        OSC_USER: ${{ secrets.OSC_USER }}
-        OSC_PASSWORD: ${{ secrets.OSC_PASSWORD }}
+        OSC_USER: ${{ secrets.osc_user }}
+        OSC_PASSWORD: ${{ secrets.osc_password }}
       run: |
         mkdir ${{ github.workspace }}/.osc-cache
         cat <<EOF > oscrc
