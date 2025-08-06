@@ -48,7 +48,7 @@ jobs:
     - name: Build rpm
       run: |
         cd system:snappy/snapd
-        osc build --config oscrc --no-checks --no-service --trust-all-projects --keep-pkgs /tmp/builds ${{ inputs.build-repo }} x86_64
+        osc build --config ${{ github.workspace }}/oscrc --no-checks --no-service --trust-all-projects --keep-pkgs /tmp/builds ${{ inputs.build-repo }} x86_64
 
     # - name: Build deb
     #   run: |
