@@ -110,6 +110,7 @@ jobs:
     with:
       runs-on: '["ubuntu-latest"]'
       build-repo: ${{ matrix.build-config.build-repo }}
+      pkg-dir: ${{ matrix.build-config.pkg-dir }}
       system: ${{ matrix.build-config.build-repo }}
     strategy:
       fail-fast: false
