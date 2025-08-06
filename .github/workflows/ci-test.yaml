@@ -106,18 +106,18 @@ jobs:
     needs: create-vendor-dir
     uses: ./.github/workflows/opensuse-builds.yaml
     secrets: inherit
-    name: Package opensuse-15.6-64
+    name: Package ${{ matrix.build-config.build-repo }}
     with:
       runs-on: '["ubuntu-latest"]'
       build-repo: ${{ matrix.build-config.build-repo }}
       pkg-dir: ${{ matrix.build-config.pkg-dir }}
-      system: ${{ matrix.build-config.build-repo }}
+      system: ${{ matrix.build-config.system }}
     strategy:
       fail-fast: false
       matrix:
         build-config:
-          - { system: "opensuse-tumbleweed-64", build-repo: "openSUSE_Tumbleweed", pkg-dir: "opensuse-tumbleweed", runs-on: '["ubuntu-latest"]' }
-          - { system: "opensuse-15.6-64",       build-repo: "openSUSE_Leap_15.6",  pkg-dir: "opensuse-15.6",       runs-on: '["ubuntu-latest"]' }
+          - { system: "opensuse-tumbleweed-64", build-repo: "openSUSE_Tumbleweed", pkg-dir: "opensuse-tumbleweed" }
+          - { system: "opensuse-15.6-64",       build-repo: "openSUSE_Leap_15.6",  pkg-dir: "opensuse-15.6"       }
 
   # package-snapd-arch:
   #   needs: create-vendor-dir
