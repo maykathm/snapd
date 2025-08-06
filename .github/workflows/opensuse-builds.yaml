@@ -11,6 +11,10 @@ on:
         description: 'The repository name in osc to build'
         required: true
         type: string
+      pkg-dir:
+        description: 'The directory name in packaging'
+        required: true
+        type: string
       system:
         description: 'The system name as known by spread'
         required: true
@@ -22,6 +26,12 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
+
+    - name: Download vendor
+      uses: actions/download-artifact@v4
+      with:
+        name: vendor-pkgs
+        path: /tmp/pkg
 
     - name: Install dependencies
       run: |
@@ -47,7 +57,10 @@ jobs:
 
     - name: Build rpm
       run: |
+        cp packaging/${{ inputs.pkg-dir }}/snapd.spec system:snappy/snapd/
+        cp /tmp/pkg/* system:snappy/snapd
         cd system:snappy/snapd
+        sed -i -e "s/^Version:.*$/Version: $(cat /tmp/pkg/version)/g" snapd.spec
         osc build --config ${{ github.workspace }}/oscrc --no-checks --no-service --trust-all-projects --keep-pkgs /tmp/builds ${{ inputs.build-repo }} x86_64
 
     # - name: Build deb

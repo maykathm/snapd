@@ -55,32 +55,33 @@ jobs:
   #         - runs-on: '["ubuntu-22.04-arm"]'
   #           variant: pristine
 
-  # create-vendor-dir:
-  #   runs-on: ubuntu-latest
-  #   name: Create go vendor
-  #   steps:
-  #     - name: Checkout code
-  #       uses: actions/checkout@v4
+  create-vendor-dir:
+    runs-on: ubuntu-latest
+    name: Create go vendor
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-  #     - name: vendor
-  #       run: |
-  #         sudo snap install --classic --channel 1.18/stable go
-  #         /snap/bin/go mod vendor
-  #         (
-  #           cd c-vendor
-  #           ./vendor.sh
-  #         )
-  #         mkdir /tmp/pkg
-  #         base_version="$(head -1 debian/changelog | awk -F '[()]' '{print $2}')"
-  #         version="1337.$base_version"
-  #         ./packaging/pack-source -v "$version" -o /tmp/pkg
-  #         ./packaging/pack-source -v "$version" -o /tmp/pkg -s
+      - name: vendor
+        run: |
+          sudo snap install --classic --channel 1.18/stable go
+          /snap/bin/go mod vendor
+          (
+            cd c-vendor
+            ./vendor.sh
+          )
+          mkdir /tmp/pkg
+          base_version="$(head -1 debian/changelog | awk -F '[()]' '{print $2}')"
+          version="1337.$base_version"
+          ./packaging/pack-source -v "$version" -o /tmp/pkg
+          ./packaging/pack-source -v "$version" -o /tmp/pkg -s
+          echo "$version" > /tmp/pkg/version
 
-  #     - name: Upload vendors
-  #       uses: actions/upload-artifact@v4
-  #       with:
-  #         name: vendor-pkgs
-  #         path: /tmp/pkg
+      - name: Upload vendors
+        uses: actions/upload-artifact@v4
+        with:
+          name: vendor-pkgs
+          path: /tmp/pkg
 
   # package-snapd-rpm:
   #   needs: create-vendor-dir
@@ -102,7 +103,7 @@ jobs:
   #         - { system: amazon-linux-2023-64,   pkg-dir: amzn-2023,            config: amazonlinux-2023-x86_64    }
 
   package-snapd-opensuse-rpm:
-    # needs: create-vendor-dir
+    needs: create-vendor-dir
     uses: ./.github/workflows/opensuse-builds.yaml
     secrets: inherit
     name: Package opensuse-15.6-64
@@ -114,7 +115,7 @@ jobs:
       fail-fast: false
       matrix:
         build-config:
-          - { system: "opensuse-tumbleweed-64", build-repo: "openSUSE_Tumbleweed", runs-on: '["ubuntu-latest"]' }
+          - { system: "opensuse-tumbleweed-64", build-repo: "openSUSE_Tumbleweed", pkg-dir: "opensuse-tumbleweed", runs-on: '["ubuntu-latest"]' }
 
   # package-snapd-arch:
   #   needs: create-vendor-dir
