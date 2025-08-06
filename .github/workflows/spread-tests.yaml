@@ -432,6 +432,7 @@ jobs:
 
               # echo "Running spread log analyzer"
               # ./tests/lib/external/snapd-testing-tools/utils/log-analyzer list-reexecute-tasks "$RUN_TESTS" spread-results.json > "$FAILED_TESTS_FILE"
+              cp .github/workflows/failedfile "$FAILED_TESTS_FILE"
 
               echo "About to look at the folder situation"
               if [ -n "${{ inputs.upload-artifacts }}" ] && \
@@ -446,7 +447,7 @@ jobs:
                       dir="$(find $ARTIFACTS_FOLDER -name "$(sed 's/\//--/g' <<<$test)" -type d 2>/dev/null || true)"
                       echo "result of find $dir"
                       if [ -z "$dir" ] && ! grep -q "$test" "$FAILED_TESTS_FILE"; then
-                          echo -n " $test " >> "$FAILED_TESTS_FILE"
+                          printf "%s %s\n" "$(< $FAILED_TESTS_FILE)" "$test" > "$FAILED_TESTS_FILE"
                       fi
                   done
               fi
