@@ -57,7 +57,7 @@ jobs:
 
     - name: Build rpm
       run: |
-        cp packaging/${{ inputs.pkg-dir }}/snapd.spec system:snappy/snapd/
+        cp packaging/${{ inputs.pkg-dir }}/* system:snappy/snapd/
         cp /tmp/pkg/* system:snappy/snapd
         cd system:snappy/snapd
         sed -i -e "s/^Version:.*$/Version: $(cat /tmp/pkg/version)/g" snapd.spec
