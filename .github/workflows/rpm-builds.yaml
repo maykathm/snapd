@@ -75,11 +75,17 @@ jobs:
             tests/lib/packaging/build-source-rpm.sh ${{ inputs.pkg-dir }} /tmp/pkg && \
             mock -r /etc/mock/${{ inputs.config }}.cfg --no-clean --no-cleanup-after --enable-network --nocheck --with testkeys --resultdir /home/mockbuilder/builds /home/mockbuilder/rpmbuild/SRPMS/snapd-*.src.rpm
           "
-        find /tmp/builds/* -name '*debug*' -delete -or -name '*.src.rpm' -delete -or -not -name '*.rpm' -delete
-        ls /tmp/builds
+        mkdir /tmp/uploads
+        sudo find /tmp/builds/* -type f \
+          ! -name '*debug*' \
+          ! -name '*.src.rpm' \
+          -name '*.rpm' \
+          -exec mv {} /tmp/uploads \;
+        
+        ls /tmp/uploads
 
     - name: upload packages
       uses: actions/upload-artifact@v4
       with:
         name: package-${{ inputs.system }}
-        path: /tmp/builds
+        path: /tmp/uploads
