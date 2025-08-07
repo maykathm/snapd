@@ -59,9 +59,9 @@ jobs:
           --mount type=bind,src=/tmp/builds,dst=/tmp/builds \
           deb-base:latest \
           bash -c "
-            chown -R test:test /home/test/snapd-parent && \
+            chown -R test:test /home/test/snapd-parent/snapd && \
             /home/test/snapd-parent/snapd/tests/lib/packaging/build-deb.sh /home/test/snapd-parent/snapd test && \
-            cp /home/test/*.deb /tmp/builds
+            cp /home/test/snapd-parent/*.deb /tmp/builds
           "
         cd /tmp/builds
         find . -name '*.deb' -exec tar cvf package-${{ inputs.system }}.tar {} +
