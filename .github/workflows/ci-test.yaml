@@ -116,8 +116,10 @@ jobs:
       fail-fast: false
       matrix:
         build-config:
-          - { system: "opensuse-tumbleweed-64", build-repo: "openSUSE_Tumbleweed", pkg-dir: "opensuse-tumbleweed" }
-          - { system: "opensuse-15.6-64",       build-repo: "openSUSE_Leap_15.6",  pkg-dir: "opensuse-15.6"       }
+          - { system: "fedora-41-64", build-repo: "Fedora_41", pkg-dir: "fedora-41" }
+          - { system: "fedora-42-64", build-repo: "Fedora_42", pkg-dir: "fedora-42" }
+          # - { system: "opensuse-tumbleweed-64", build-repo: "openSUSE_Tumbleweed", pkg-dir: "opensuse-tumbleweed" }
+          # - { system: "opensuse-15.6-64",       build-repo: "openSUSE_Leap_15.6",  pkg-dir: "opensuse-15.6"       }
 
   # package-snapd-arch:
   #   needs: create-vendor-dir
