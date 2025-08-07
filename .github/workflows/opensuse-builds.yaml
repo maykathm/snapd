@@ -56,7 +56,8 @@ jobs:
         osc co --config oscrc system:snappy snapd
 
     - name: Create cache key
-      run: echo "CACHE_KEY=osc-cache-${{ inputs.system }}=$(date '+%Y-%m-%W')" >> $GITHUB_ENV
+      # Force a cache refresh once a week by using the year and week number as part of the cache key
+      run: echo "CACHE_KEY=osc-cache-${{ inputs.system }}-$(date '+%Y-%U')" >> $GITHUB_ENV
 
     - name: Restore osc cache
       uses: actions/cache@v4
