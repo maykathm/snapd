@@ -63,11 +63,9 @@ jobs:
             /home/test/snapd-parent/snapd/tests/lib/packaging/build-deb.sh /home/test/snapd-parent/snapd test && \
             cp /home/test/snapd-parent/*.deb /tmp/builds
           "
-        cd /tmp/builds
-        find . -name '*.deb' -exec tar cvf package-${{ inputs.system }}.tar {} +
 
     - name: upload packages
       uses: actions/upload-artifact@v4
       with:
         name: package-${{ inputs.system }}
-        path: /tmp/builds/package-${{ inputs.system }}.tar
+        path: /tmp/builds/
