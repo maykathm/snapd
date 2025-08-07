@@ -63,6 +63,7 @@ jobs:
             /home/test/snapd-parent/snapd/tests/lib/packaging/build-deb.sh /home/test/snapd-parent/snapd test && \
             cp /home/test/snapd-parent/*.deb /tmp/builds
           "
+          ls /tmp/builds
 
     - name: upload packages
       uses: actions/upload-artifact@v4

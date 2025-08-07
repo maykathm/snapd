@@ -75,7 +75,8 @@ jobs:
             tests/lib/packaging/build-source-rpm.sh ${{ inputs.pkg-dir }} /tmp/pkg && \
             mock -r /etc/mock/${{ inputs.config }}.cfg --no-clean --no-cleanup-after --enable-network --nocheck --with testkeys --resultdir /home/mockbuilder/builds /home/mockbuilder/rpmbuild/SRPMS/snapd-*.src.rpm
           "
-        find /tmp/builds -name '*debug*' -or -name '*.src.rpm' -delete
+        find /tmp/builds -name '*debug*' -or -name '*.src.rpm' -or -not -name '*.rpm' -delete
+        ls /tmp/builds
 
     - name: Check logs if build failed
       if: failure()
