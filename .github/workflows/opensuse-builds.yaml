@@ -59,7 +59,7 @@ jobs:
       # Force a cache refresh once a week by using the year and week number as part of the cache key
       run: echo "CACHE_KEY=osc-cache-${{ inputs.system }}-$(date '+%Y-%U')" >> $GITHUB_ENV
 
-    - name: Restore osc cache
+    - name: Cache rpm dependencies
       uses: actions/cache@v4
       with:
         path: .osc-cache
@@ -78,7 +78,7 @@ jobs:
         rm *debug*
         find . -name '*.rpm' -exec tar cvf package-${{ inputs.system }}.tar {} +
 
-    - name: upload packages
+    - name: Upload packages
       uses: actions/upload-artifact@v4
       with:
         name: package-${{ inputs.system }}
