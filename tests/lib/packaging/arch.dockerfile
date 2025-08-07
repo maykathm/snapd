@@ -1,8 +1,9 @@
 FROM archlinux
 
-COPY packaging/arch/PKGBUILD .
+COPY packaging/arch/* .
 
-RUN pacman -S ${makedepends[@]}
+RUN pacman -Syu --noconfirm && \
+    pacman -Suq --needed --noconfirm ${makedepends[@]}
 
 # RUN pacman -Syu --noconfirm && \
 #     pacman pacman -Suq --needed --noconfirm \
