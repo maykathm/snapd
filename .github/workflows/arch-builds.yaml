@@ -47,11 +47,9 @@ jobs:
           bash -c "
             /home/test/snapd/tests/lib/packaging/build-arch.sh /home/test/snapd test /tmp/pkg/
           "
-        cp /tmp/pkg/*.pkg.tar.* .
-        find . -name '*.pkg.tar.*' -exec tar cvf package-arch-linux-64.tar {} +
 
     - name: upload packages
       uses: actions/upload-artifact@v4
       with:
         name: package-arch-linux-64
-        path: package-arch-linux-64.tar
+        path: /tmp/pkg

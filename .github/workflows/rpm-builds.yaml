@@ -88,4 +88,4 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: package-${{ inputs.system }}
-        path: /tmp/builds/package-${{ inputs.system }}.tar
+        path: /tmp/builds
