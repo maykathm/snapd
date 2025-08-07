@@ -47,11 +47,11 @@ jobs:
           bash -c "
             /home/test/snapd/tests/lib/packaging/build-arch.sh /home/test/snapd test /tmp/pkg/
           "
-          find /tmp/pkg -not -name '*.pkg.tar.*' -delete
-          ls /tmp/pkg
+        find /tmp/pkg/* -name '*.pkg.tar.*' -exec mv {} /tmp/builds
+        ls /tmp/builds
 
     - name: upload packages
       uses: actions/upload-artifact@v4
       with:
         name: package-arch-linux-64
-        path: /tmp/pkg
+        path: /tmp/builds

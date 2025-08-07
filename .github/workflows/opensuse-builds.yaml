@@ -73,9 +73,7 @@ jobs:
         sed -i -e "s/^Version:.*$/Version: $(cat /tmp/pkg/version)/g" snapd.spec
         osc build --config ${{ github.workspace }}/oscrc --no-checks --no-service --trust-all-projects --keep-pkgs /tmp/builds ${{ inputs.build-repo }} x86_64
 
-        find /tmp/builds -name '*debug*' -or -name '*.src.rpm'
-        find /tmp/builds
-        find /tmp/builds -name '*debug*' -or -name '*.src.rpm' -delete
+        find /tmp/builds/* -name '*debug*' -delete -or -name '*.src.rpm' -delete -or -not -name '*.rpm' -delete
         ls /tmp/builds
 
     - name: Upload packages
