@@ -8,7 +8,7 @@ build_dir=$3
 
 cd "$snapd_dir"
 
-version=$(cat "$vendor_tar_dir"/version)
+version=$(cat "$build_dir"/version)
 cp -av packaging/arch/* "$build_dir"
 sed -i -e "s/pkgver=.*/pkgver=$version/" "$build_dir"/PKGBUILD
 chown -R "$user":"$user" "$build_dir"
