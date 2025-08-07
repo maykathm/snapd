@@ -3,7 +3,9 @@ FROM archlinux
 COPY packaging/arch/* .
 
 RUN pacman -Syu --noconfirm && \
-    pacman -Suq --needed --noconfirm ${makedepends[@]}
+    pacman -Suq --needed --noconfirm \
+        ${makedepends[@]} \
+        ${checkdepends[@]}
 
 # RUN pacman -Syu --noconfirm && \
 #     pacman pacman -Suq --needed --noconfirm \
