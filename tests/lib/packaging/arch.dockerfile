@@ -1,6 +1,6 @@
 FROM archlinux
 
-COPY packging/arch/PKGBUILD .
+COPY packaging/arch/PKGBUILD .
 
 RUN pacman -S ${makedepends[@]}
 
