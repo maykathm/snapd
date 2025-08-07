@@ -62,7 +62,7 @@ jobs:
       uses: actions/cache@v4
       with:
         path: .osc-cache
-        key: env.CACHE_KEY
+        key: ${{ env.CACHE_KEY }}
 
     - name: Build rpm
       run: |
