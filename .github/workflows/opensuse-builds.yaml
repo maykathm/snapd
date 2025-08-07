@@ -55,6 +55,12 @@ jobs:
         EOF
         osc co --config oscrc system:snappy snapd
 
+    - name: Restore osc cache
+      uses: actions/cache@v4
+      with:
+        path: .osc-cache
+        key: osc-cache-${{ inputs.system }}
+
     - name: Build rpm
       run: |
         cp packaging/${{ inputs.pkg-dir }}/* system:snappy/snapd/
