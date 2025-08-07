@@ -55,11 +55,14 @@ jobs:
         EOF
         osc co --config oscrc system:snappy snapd
 
+    - name: Create cache key
+      run: echo "CACHE_KEY=osc-cache-${{ inputs.system }}=$(date '+%Y-%m-%W')" >> $GITHUB_ENV
+
     - name: Restore osc cache
       uses: actions/cache@v4
       with:
         path: .osc-cache
-        key: osc-cache-${{ inputs.system }}
+        key: env.CACHE_KEY
 
     - name: Build rpm
       run: |
