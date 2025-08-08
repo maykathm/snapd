@@ -2,11 +2,36 @@
 
 set -e
 
-snapd_dir=$1
-user=$2
-build_dir=$3
+usage() {
+    echo "Usage: $0 --user <user> --build-dir <build_dir>"
+    exit 1
+}
 
-cd "$snapd_dir"
+user=""
+build_dir=""
+
+# Parse arguments
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --user)
+            user="$2"
+            shift 2
+            ;;
+        --build-dir)
+            build_dir="$2"
+            shift 2
+            ;;
+        *)
+            echo "Unknown option: $1"
+            usage
+            ;;
+    esac
+done
+
+# Check required arguments
+if [ -z "$user" ] || [ -z "$build_dir" ]; then
+    usage
+fi
 
 cp -av packaging/arch/* "$build_dir"
 chown -R "$user":"$user" "$build_dir"

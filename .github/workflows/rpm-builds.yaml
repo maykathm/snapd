@@ -76,7 +76,7 @@ jobs:
           mock-base:latest \
           bash -c "
             cd /home/mockbuilder/snapd && \
-            tests/lib/packaging/build-rpm.sh \
+            tests/lib/packaging/build-rpm-mock.sh \
               --pkg-dir ${{ inputs.pkg-dir }} \
               --vendor-tar-dir /tmp/pkg \
               --config-file /etc/mock/${{ inputs.config }}.cfg
