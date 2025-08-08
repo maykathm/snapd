@@ -71,7 +71,10 @@ jobs:
           mock-base:latest \
           bash -c "
             cd /home/mockbuilder/snapd && \
-            tests/lib/packaging/build-rpm.sh ${{ inputs.pkg-dir }} /tmp/pkg ${{ inputs.config }}
+            tests/lib/packaging/build-rpm.sh \
+              --pkg-dir ${{ inputs.pkg-dir }} \
+              --vendor-tar-dir /tmp/pkg \
+              --config-file /etc/mock/${{ inputs.config }}.cfg
           "
         mkdir /tmp/uploads
         sudo find /tmp/builds/* -type f \
