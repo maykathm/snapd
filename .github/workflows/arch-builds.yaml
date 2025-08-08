@@ -49,7 +49,7 @@ jobs:
           arch-base:latest \
           bash -c "
             cd /home/test/snapd && \
-            lib/packaging/build-arch.sh --user test --build-dir /tmp/pkg/
+            tests/lib/packaging/build-arch.sh --user test --build-dir /tmp/pkg/
           "
         mkdir /tmp/uploads
         sudo find /tmp/pkg/* -name '*.pkg.tar.*' -exec mv {} /tmp/uploads \;
