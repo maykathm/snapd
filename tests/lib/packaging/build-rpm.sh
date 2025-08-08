@@ -22,10 +22,13 @@ cp "$vendor_tar_dir"/* "$src_dir"
 mock -r "$config_file" --install git
 
 mock -r "$config_file" \
+    --no-clean \
+    --no-cleanup-after \
     --buildsrpm \
     --with testkeys \
     --spec "$src_dir/snapd.spec" \
-    --sources "$src_dir"
+    --sources "$src_dir" \
+    --resultdir /home/mockbuilder/builds
 
 mock -r "$config_file" \
     --no-clean \
@@ -33,4 +36,5 @@ mock -r "$config_file" \
     --enable-network \
     --nocheck \
     --with testkeys \
-    --resultdir /home/mockbuilder/builds
+    --resultdir /home/mockbuilder/builds \
+    /home/mockbuilder/builds/snapd*.src.rpm
