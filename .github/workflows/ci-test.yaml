@@ -119,12 +119,12 @@ jobs:
   #         - { system: "opensuse-tumbleweed-64", build-repo: "openSUSE_Tumbleweed", pkg-dir: "opensuse-tumbleweed" }
   #         - { system: "opensuse-15.6-64",       build-repo: "openSUSE_Leap_15.6",  pkg-dir: "opensuse-15.6"       }
 
-  # package-snapd-arch:
-  #   needs: create-vendor-dir
-  #   uses: ./.github/workflows/arch-builds.yaml
-  #   name: Package arch-linux-64
-  #   with:
-  #     runs-on: '["ubuntu-latest"]'
+  package-snapd-arch:
+    needs: create-vendor-dir
+    uses: ./.github/workflows/arch-builds.yaml
+    name: Package arch-linux-64
+    with:
+      runs-on: '["ubuntu-latest"]'
 
   package-snapd-deb:
     needs: create-vendor-dir

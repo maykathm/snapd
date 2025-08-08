@@ -35,6 +35,11 @@ jobs:
         cache-from: type=gha
         cache-to: type=gha,mode=max
 
+    - name: Set version in spec
+      run: |
+        version=$(cat /tmp/pkg/version)
+        sed -i -e "s/^Version:.*$/Version: $version/g" "packaging/arch/snapd.spec"
+
     - name: Build arch pkg
       run: |
         chmod -R a+w .
