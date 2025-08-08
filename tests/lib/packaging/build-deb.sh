@@ -4,13 +4,10 @@ set -e
 
 snapd_dir=$1
 user=$2
-buildopt=$3
+pkg_dir=$3
 
 cd "$snapd_dir"
-go mod vendor
-su -c "cd $snapd_dir/c-vendor && ./vendor.sh" "$user"
 
-newver="$(dpkg-parsechangelog --show-field Version)"
-dch --newversion "1337.$newver" "testing build"
+dch --newversion "$(cat "$pkg_dir/version")" "testing build"
 unshare -n -- \
-    su -l -c "cd $snapd_dir && DEB_BUILD_OPTIONS='nocheck testkeys ${buildopt}' dpkg-buildpackage -tc -b -Zgzip -uc -us" "$user"
+    su -l -c "cd $snapd_dir && DEB_BUILD_OPTIONS='nocheck testkeys' dpkg-buildpackage -tc -b -Zgzip -uc -us" "$user"
