@@ -40,7 +40,7 @@ jobs:
     - name: Extract vendor
       run: |
         mkdir /tmp/vendor-dir
-        tar -xf /tmp/pkg/snapd*.vendor.xz -C /tmp/vendor-dir
+        tar -xf /tmp/pkg/snapd*.vendor.tar.xz -C /tmp/vendor-dir
         mv /tmp/vendor-dir/snapd-*/vendor .
         mv /tmp/vendor-dir/snapd-*/c-vendor .
 
