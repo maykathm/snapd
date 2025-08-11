@@ -65,6 +65,8 @@ jobs:
     steps:
     - name: Install dependencies
       run: |
+        wget https://storage.googleapis.com/snapd-spread-tests/snapd-tests/snaps/snapd_master_amd64.snap
+        sudo snap install snapd_master_amd64.snap --dangerous
         sudo snap install firefox
         sudo apt install xvfb
 
@@ -73,7 +75,7 @@ jobs:
       with:
         name: scripts
 
-    - name: Things
+    - name: Run firefox performance tests
       run: |
         
         git clone https://github.com/WebKit/JetStream.git
@@ -82,20 +84,49 @@ jobs:
         mv ../server.py .
         mv ../kill.sh .
 
-        echo "running the server"
-        python3 server.py &
-        
-        
+        python3 server.py &     
         bash kill.sh &
-        echo "running firefox"
-        # xvfb-run firefox 'http://localhost:8000/?startDelay=1&test=cdjs&report=true' || true
+
+        echo "Running firefox performance tests"
         xvfb-run firefox 'http://localhost:8000/?startDelay=1&report=true' || true
-        echo "ran firefox"
-        ls -la /tmp/results.json
-        cat /tmp/results.json
 
     - name: Upload artifact
       uses: actions/upload-artifact@v4
       with:
-        name: things
+        name: snap-results
+        path: /tmp/results.json
+
+  test-firefox-binary:
+    name: Test Firefox binary
+    runs-on: ubuntu-latest
+    steps:
+    - name: Install dependencies
+      run: |
+        sudo snap install firefox
+        sudo apt install xvfb
+    
+    - name: Download scripts
+      uses: actions/download-artifact@v4
+      with:
+        name: scripts
+
+    - name: Run firefox performance tests
+      run: |
+        
+        git clone https://github.com/WebKit/JetStream.git
+        cd JetStream
+        git checkout JetStream2.2
+        mv ../server.py .
+        mv ../kill.sh .
+
+        python3 server.py &     
+        bash kill.sh &
+
+        echo "Running firefox performance tests"
+        xvfb-run /snap/firefox/current/usr/lib/firefox/firefox 'http://localhost:8000/?startDelay=1&report=true' || true
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: bin-results
         path: /tmp/results.json
