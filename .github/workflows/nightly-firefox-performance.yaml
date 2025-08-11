@@ -28,7 +28,7 @@ jobs:
         sudo apt install xvfb
 
     - name: Run Firefox performance tests
-      uses: ./github/actions/run-firefox-performance-tests
+      uses: ./.github/actions/run-firefox-performance-tests
       with:
         firefox-exec: firefox
         results-file: /tmp/snap-results.json
@@ -45,14 +45,14 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
-      
+
     - name: Install dependencies
       run: |
         sudo snap install firefox
         sudo apt install xvfb
 
     - name: Run Firefox performance tests
-      uses: ./github/actions/run-firefox-performance-tests
+      uses: ./.github/actions/run-firefox-performance-tests
       with:
         firefox-exec: /snap/firefox/current/usr/lib/firefox/firefox
         results-file: /tmp/bin-results.json
