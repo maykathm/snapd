@@ -17,6 +17,9 @@ jobs:
     name: Test Firefox snap
     runs-on: ubuntu-latest
     steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
     - name: Install dependencies
       run: |
         wget https://storage.googleapis.com/snapd-spread-tests/snapd-tests/snaps/snapd_master_amd64.snap
@@ -40,6 +43,9 @@ jobs:
     name: Test Firefox binary
     runs-on: ubuntu-latest
     steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
     - name: Install dependencies
       run: |
         sudo snap install firefox
