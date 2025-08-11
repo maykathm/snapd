@@ -82,10 +82,8 @@ jobs:
 
     - name: Compare
       run: |
-          ls .
-          cat <<EOF > comparison
+          cat <<EOF > comparison.py
           import json
-          import sys
           from statistics import geometric_mean
 
 
@@ -95,30 +93,17 @@ jobs:
                   scores.append(v['metrics']['Score']['current'][0])
               return geometric_mean(scores)
 
+          with open("snap-results.json", 'r') as f:
+              snap = json.load(f)
+          with open("bin-results.json", 'r') as f:
+              bin = json.load(f)
 
-          def main(file1, file2):
-              with open(file1, 'r') as f:
-                  data1 = json.load(f)
-              with open(file2, 'r') as f:
-                  data2 = json.load(f)
-
-              # focus on the tests subtree since your JSON root is {"JetStream2.0": ...}
-              tests1 = data1["JetStream2.0"]["tests"]
-              tests2 = data2["JetStream2.0"]["tests"]
-
-              print(f'Overall score for snap {calculate_overall_score(tests1)}')
-              print(f'Overall score for bin {calculate_overall_score(tests2)}')
-
-              # for test, obj in tests1.items():
-              #     overall1 = obj['metrics']['Score']['current'][0]
-              #     overall2 = tests2[test]['metrics']['Score']['current'][0]
-              #     print(f'Test {test} diff: {overall1 - overall2}')
-
-          if __name__ == "__main__":
-              # if len(sys.argv) != 3:
-              #     print("Usage: python subtract_json_metrics.py file1.json file2.json")
-              #     sys.exit(1)
-              main("snap-results.json", "bin-results.json")
-              # main(sys.argv[1], sys.argv[2])
+          snap_score = calculate_overall_score(snap["JetStream2.0"]["tests"])
+          bin_score = calculate_overall_score(bin["JetStream2.0"]["tests"])
+          print(f'Overall score for snap {snap_score}')
+          print(f'Overall score for bin {bin_score}')
+          if bin_score - snap_score > 10:
+            print(f'The binary is better than the snap by more than 10: {bin_score - snap_score}')
+            exit(1)
           EOF
-          python3 comparison
+          python3 comparison.py
