@@ -14,7 +14,7 @@ on:
 jobs:
 
   test-firefox-snap:
-    name: Test Firefox snap
+    name: Test Firefox snap performance
     runs-on: ubuntu-latest
     steps:
     - name: Checkout code
@@ -40,7 +40,7 @@ jobs:
         path: /tmp/snap-results.json
 
   test-firefox-binary:
-    name: Test Firefox binary
+    name: Test Firefox snap binary performance
     runs-on: ubuntu-latest
     steps:
     - name: Checkout code
@@ -115,14 +115,12 @@ jobs:
 
           snap_score, bin_score = log_scores(snap, bin, "firefox-metrics.log")
 
-          print(f'Overall score for snap {snap_score}')
-          print(f'Overall score for bin {bin_score}')
-
           # The bigger the overall score is, the better it is; see https://browserbench.org/JetStream2.2/index.html
           # The choice of threshold is somewhat arbitrary
           if bin_score - snap_score > 10:
-            print(f'The binary is better than the snap by more than 10: {bin_score - snap_score}')
+            print(f'The binary ({bin_score}) is better than the snap ({snap_score}) by more than 10: {bin_score - snap_score}')
             exit(1)
           EOF
+
           python3 comparison.py
           cat firefox-metrics.log
