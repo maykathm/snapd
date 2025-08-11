@@ -14,12 +14,14 @@ runs:
   using: "composite"
   steps:
   - name: Get JetStream2.2
+    shell: bash
     run: |
         git clone https://github.com/WebKit/JetStream.git
         cd JetStream
         git checkout JetStream2.2
   
   - name: Write server script
+    shell: bash
     run: |
         cat <<EOF > ${{ github.workspace }}/JetStream/server.py
         from http.server import HTTPServer, SimpleHTTPRequestHandler
@@ -43,6 +45,7 @@ runs:
         chmod +x ${{ github.workspace }}/JetStream/server.py
 
   - name: Write kill script
+    shell: bash
     run: |
         cat <<EOF > ${{ github.workspace }}/JetStream/kill.sh
         #!/bin/bash
@@ -57,6 +60,7 @@ runs:
         chmod +x ${{ github.workspace }}/JetStream/kill.sh
 
   - name: Run firefox performance tests
+    shell: bash
     run: |
         cd JetStream
 
