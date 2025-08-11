@@ -1,5 +1,5 @@
 name: 'Run Firefox preformance tests'
-description: 'Run Firefox preformance tests using JetStream'
+description: 'Run Firefox preformance tests using JetStream 2.2'
 inputs:
   firefox-exec:
     description: 'The Firefox command to run (e.g. "firefox" or a path to an executable)'
@@ -54,7 +54,7 @@ runs:
           if [ -f "${{ inputs.results-file }}" ]; then
             break
           fi
-          sleep 1
+          sleep 5
         done
         ps aux | grep -i xvfb | head -1 | tr -s ' ' | cut -d ' ' -f 2 | xargs -I {} kill {}
         EOF
