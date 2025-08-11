@@ -24,6 +24,7 @@ runs:
     shell: bash
     run: |
         cat <<EOF > ${{ github.workspace }}/JetStream/server.py
+        #!/usr/bin/env python3
         from http.server import HTTPServer, SimpleHTTPRequestHandler
         import json
 
@@ -64,8 +65,8 @@ runs:
     run: |
         cd JetStream
 
-        python3 server.py &
-        bash kill.sh &
+        ./server.py &
+        ./kill.sh &
 
         echo "Running firefox performance tests"
         xvfb-run ${{ inputs.firefox-exec }} 'http://localhost:8000/?startDelay=1&report=true' || true

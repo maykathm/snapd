@@ -74,16 +74,15 @@ jobs:
       uses: actions/download-artifact@v4
       with:
         name: snap-results
-        path: snap-results
     
     - name: Download bin results
       uses: actions/download-artifact@v4
       with:
         name: bin-results
-        path: bin-results
 
     - name: Compare
       run: |
+          ls .
           cat <<EOF > comparison
           import json
           import sys
