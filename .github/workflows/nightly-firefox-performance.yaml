@@ -98,7 +98,7 @@ jobs:
                   for metric, data in snap_json.items():
                       s = data['metrics']['Score']['current'][0]
                       b = bin_json[metric]['metrics']['Score']['current'][0]
-                      f.write(f'metric {metric}: {b - s}')
+                      f.write(f'metric {metric}: {b - s}\n')
 
           with open("snap-results.json", 'r') as f:
               snap = json.load(f)["JetStream2.0"]["tests"]
