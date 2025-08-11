@@ -12,52 +12,6 @@ on:
     branches: [ "release/**", "core-snap-security-release/**", "security-release/**" ]
 
 jobs:
-  create-server-and-kill-script:
-    runs-on: ubuntu-latest
-    steps:
-    - name: Write server and kill script
-      run: |
-        cat <<EOF > server.py
-        from http.server import HTTPServer, SimpleHTTPRequestHandler
-        import json
-
-        class CustomHandler(SimpleHTTPRequestHandler):
-            def do_POST(self):
-                if self.path == '/report':
-                    content_length = int(self.headers.get('Content-Length', 0))
-                    body = self.rfile.read(content_length)
-                    with open('/tmp/results.json', 'w', encoding='utf-8') as f:
-                        json.dump(json.loads(body.decode('utf-8')), f)
-                    self.send_response(200)
-                else:
-                    super().do_POST()
-
-        if __name__ == '__main__':
-            httpd = HTTPServer(('localhost', 8000), CustomHandler)
-            httpd.serve_forever()
-        EOF
-
-        cat <<EOF > kill.sh
-        #!/bin/bash
-        while true; do
-          if [ -f /tmp/results.json ]; then
-            break
-          fi
-          sleep 1
-        done
-        ps aux | grep -i xvfb | head -1 | tr -s ' ' | cut -d ' ' -f 2 | xargs -I {} kill {}
-        EOF
-
-        chmod +x kill.sh
-        chmod +x server.py
-
-    - name: Upload artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: scripts
-        path: |
-          server.py
-          kill.sh
 
   test-firefox-snap:
     name: Test Firefox snap
@@ -70,31 +24,17 @@ jobs:
         sudo snap install firefox
         sudo apt install xvfb
 
-    - name: Download scripts
-      uses: actions/download-artifact@v4
+    - name: Run Firefox performance tests
+      uses: ./github/actions/run-firefox-performance-tests
       with:
-        name: scripts
-
-    - name: Run firefox performance tests
-      run: |
-        
-        git clone https://github.com/WebKit/JetStream.git
-        cd JetStream
-        git checkout JetStream2.2
-        mv ../server.py .
-        mv ../kill.sh .
-
-        python3 server.py &     
-        bash kill.sh &
-
-        echo "Running firefox performance tests"
-        xvfb-run firefox 'http://localhost:8000/?startDelay=1&report=true' || true
+        firefox-exec: firefox
+        results-file: /tmp/snap-results.json
 
     - name: Upload artifact
       uses: actions/upload-artifact@v4
       with:
         name: snap-results
-        path: /tmp/results.json
+        path: /tmp/snap-results.json
 
   test-firefox-binary:
     name: Test Firefox binary
@@ -104,29 +44,73 @@ jobs:
       run: |
         sudo snap install firefox
         sudo apt install xvfb
-    
-    - name: Download scripts
-      uses: actions/download-artifact@v4
+
+    - name: Run Firefox performance tests
+      uses: ./github/actions/run-firefox-performance-tests
       with:
-        name: scripts
-
-    - name: Run firefox performance tests
-      run: |
-        
-        git clone https://github.com/WebKit/JetStream.git
-        cd JetStream
-        git checkout JetStream2.2
-        mv ../server.py .
-        mv ../kill.sh .
-
-        python3 server.py &     
-        bash kill.sh &
-
-        echo "Running firefox performance tests"
-        xvfb-run /snap/firefox/current/usr/lib/firefox/firefox 'http://localhost:8000/?startDelay=1&report=true' || true
+        firefox-exec: /snap/firefox/current/usr/lib/firefox/firefox
+        results-file: /tmp/bin-results.json
 
     - name: Upload artifact
       uses: actions/upload-artifact@v4
       with:
         name: bin-results
-        path: /tmp/results.json
+        path: /tmp/bin-results.json
+
+  compare-results:
+    name: Compare snap vs. binary results
+    runs-on: ubuntu-latest
+    steps:
+    - name: Download snap results
+      uses: actions/download-artifact@v4
+      with:
+        name: snap-results
+        path: snap-results
+    
+    - name: Download bin results
+      uses: actions/download-artifact@v4
+      with:
+        name: bin-results
+        path: bin-results
+
+    - name: Compare
+      run: |
+          cat <<EOF > comparison
+          import json
+          import sys
+          from statistics import geometric_mean
+
+
+          def calculate_overall_score(tests_json):
+              scores = []
+              for k, v in tests_json.items():
+                  scores.append(v['metrics']['Score']['current'][0])
+              return geometric_mean(scores)
+
+
+          def main(file1, file2):
+              with open(file1, 'r') as f:
+                  data1 = json.load(f)
+              with open(file2, 'r') as f:
+                  data2 = json.load(f)
+
+              # focus on the tests subtree since your JSON root is {"JetStream2.0": ...}
+              tests1 = data1["JetStream2.0"]["tests"]
+              tests2 = data2["JetStream2.0"]["tests"]
+
+              print(f'Overall score for snap {calculate_overall_score(tests1)}')
+              print(f'Overall score for bin {calculate_overall_score(tests2)}')
+
+              # for test, obj in tests1.items():
+              #     overall1 = obj['metrics']['Score']['current'][0]
+              #     overall2 = tests2[test]['metrics']['Score']['current'][0]
+              #     print(f'Test {test} diff: {overall1 - overall2}')
+
+          if __name__ == "__main__":
+              # if len(sys.argv) != 3:
+              #     print("Usage: python subtract_json_metrics.py file1.json file2.json")
+              #     sys.exit(1)
+              main("/tmp/results/snap/results.json", "/tmp/results/bin/results.json")
+              # main(sys.argv[1], sys.argv[2])
+          EOF
+          python3 comparison
