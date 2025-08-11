@@ -58,6 +58,9 @@ jobs:
         path: /tmp/bin-results.json
 
   compare-results:
+    needs:
+      - test-firefox-snap
+      - test-firefox-binary
     name: Compare snap vs. binary results
     runs-on: ubuntu-latest
     steps:
