@@ -101,12 +101,12 @@ jobs:
                       f.write(f'metric {metric}: {b - s}')
 
           with open("snap-results.json", 'r') as f:
-              snap = json.load(f)
+              snap = json.load(f)["JetStream2.0"]["tests"]
           with open("bin-results.json", 'r') as f:
-              bin = json.load(f)
+              bin = json.load(f)["JetStream2.0"]["tests"]
 
-          snap_score = calculate_overall_score(snap["JetStream2.0"]["tests"])
-          bin_score = calculate_overall_score(bin["JetStream2.0"]["tests"])
+          snap_score = calculate_overall_score(snap)
+          bin_score = calculate_overall_score(bin)
           print(f'Overall score for snap {snap_score}')
           print(f'Overall score for bin {bin_score}')
           print_individual_score_diff(snap, bin, "firefox-metrics.log")
