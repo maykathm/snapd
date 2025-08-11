@@ -80,7 +80,7 @@ jobs:
       with:
         name: bin-results
 
-    - name: Compare
+    - name: Compare and report results
       run: |
           cat <<EOF > comparison.py
           import json
@@ -93,6 +93,13 @@ jobs:
                   scores.append(v['metrics']['Score']['current'][0])
               return geometric_mean(scores)
 
+          def print_individual_score_diff(snap_json, bin_json, log_file):
+              with open(log_file, 'w') as f:
+                  for metric, data in snap_json.items():
+                      s = data['metrics']['Score']['current'][0]
+                      b = bin_json[metric]['metrics']['Score']['current'][0]
+                      f.write(f'metric {metric}: {b - s}')
+
           with open("snap-results.json", 'r') as f:
               snap = json.load(f)
           with open("bin-results.json", 'r') as f:
@@ -102,8 +109,13 @@ jobs:
           bin_score = calculate_overall_score(bin["JetStream2.0"]["tests"])
           print(f'Overall score for snap {snap_score}')
           print(f'Overall score for bin {bin_score}')
+          print_individual_score_diff(snap, bin, "firefox-metrics.log")
+
+          # The bigger the overall score is, the better it is; see https://browserbench.org/JetStream2.2/index.html
+          # The choice of threshold is somewhat arbitrary
           if bin_score - snap_score > 10:
             print(f'The binary is better than the snap by more than 10: {bin_score - snap_score}')
             exit(1)
           EOF
           python3 comparison.py
+          cat firefox-metrics.log
