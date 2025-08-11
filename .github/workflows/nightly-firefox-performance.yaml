@@ -119,7 +119,7 @@ jobs:
               # if len(sys.argv) != 3:
               #     print("Usage: python subtract_json_metrics.py file1.json file2.json")
               #     sys.exit(1)
-              main("/tmp/results/snap/results.json", "/tmp/results/bin/results.json")
+              main("snap-results.json", "bin-results.json")
               # main(sys.argv[1], sys.argv[2])
           EOF
           python3 comparison
