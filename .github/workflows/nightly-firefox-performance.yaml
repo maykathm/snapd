@@ -1,0 +1,101 @@
+name: Nightly Firefox peformance tests
+
+# on:
+#   schedule:
+#   - cron: "0 0 * * *"
+#   workflow_dispatch:
+
+on:
+  pull_request:
+    branches: [ "master", "release/**", "core-snap-security-release/**", "security-release/**", "hotfix/**" ]
+  push:
+    branches: [ "release/**", "core-snap-security-release/**", "security-release/**" ]
+
+jobs:
+  create-server-and-kill-script:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Write server and kill script
+      run: |
+        cat <<EOF > server.py
+        from http.server import HTTPServer, SimpleHTTPRequestHandler
+        import json
+
+        class CustomHandler(SimpleHTTPRequestHandler):
+            def do_POST(self):
+                if self.path == '/report':
+                    content_length = int(self.headers.get('Content-Length', 0))
+                    body = self.rfile.read(content_length)
+                    with open('/tmp/results.json', 'w', encoding='utf-8') as f:
+                        json.dump(json.loads(body.decode('utf-8')), f)
+                    self.send_response(200)
+                else:
+                    super().do_POST()
+
+        if __name__ == '__main__':
+            httpd = HTTPServer(('localhost', 8000), CustomHandler)
+            httpd.serve_forever()
+        EOF
+
+        cat <<EOF > kill.sh
+        #!/bin/bash
+        while true; do
+          if [ -f /tmp/results.json ]; then
+            break
+          fi
+          sleep 1
+        done
+        ps aux | grep -i xvfb | head -1 | tr -s ' ' | cut -d ' ' -f 2 | xargs -I {} kill {}
+        EOF
+
+        chmod +x kill.sh
+        chmod +x server.py
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: scripts
+        path: |
+          server.py
+          kill.sh
+
+  test-firefox-snap:
+    name: Test Firefox snap
+    runs-on: ubuntu-latest
+    steps:
+    - name: Install dependencies
+      run: |
+        sudo snap install firefox
+        sudo apt install xvfb
+
+    - name: Download scripts
+      uses: actions/download-artifact@v4
+      with:
+        name: scripts
+
+    - name: Things
+      run: |
+        
+        git clone https://github.com/WebKit/JetStream.git
+        cd JetStream
+        git checkout JetStream2.2
+        mv ../server.py .
+        mv ../kill.sh .
+
+        echo "running the server"
+        python3 server.py &
+        
+        
+        bash kill.sh &
+        echo "running firefox"
+        # xvfb-run firefox 'http://localhost:8000/?startDelay=1&test=cdjs&report=true' || true
+        xvfb-run firefox 'http://localhost:8000/?startDelay=1&report=true' || true
+        echo "ran firefox"
+        ls -la /tmp/results.json
+        cat /tmp/results.json
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: things
+        path: /tmp/results.json
