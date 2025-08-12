@@ -26,6 +26,14 @@ cached_all_features_diff = {}
 cached_feat_explore = {}
 
 
+system_lookup = {}
+
+
+def remove_backend(system):
+    reduced = system.split(":", 1)
+    return reduced[1] if len(reduced) > 1 else reduced[0]
+
+
 @app.callback(
     Output("error-with-retriever", "displayed"),
     Output({"type": "toggle-button", "index": ALL}, "disabled"),
@@ -53,7 +61,14 @@ def set_retriever(_, path):
     elif os.path.isdir(path):
         retriever = qf.DirRetriever(path)
     global timestamps
+    global system_lookup
     timestamps = retriever.get_sorted_timestamps_and_systems()
+    for timestamp in timestamps:
+        for si, system in enumerate(timestamp['systems']):
+            reduced = remove_backend(system)
+            system_lookup[f'{timestamp["timestamp"]}-{reduced}'] = system
+            timestamp['systems'][si] = reduced
+
     global timestamp_options
     timestamp_options = [
         {"label": item["timestamp"], "value": item["timestamp"]} for item in timestamps
@@ -130,7 +145,7 @@ def update_totals_table(selected_timestamp):
                 diff = cached_all_features_diff[selected_timestamp][system]
             else:
                 diff = qf.diff_all_features(
-                    retriever, selected_timestamp, system, False
+                    retriever, selected_timestamp, system_lookup[f'{selected_timestamp}-{system}'], False
                 )
                 if selected_timestamp not in cached_all_features_diff:
                     cached_all_features_diff[selected_timestamp] = {}
@@ -200,7 +215,7 @@ def update_totals_table(ts_2, sys_2, ts_3, sys_3, remove_failed_value, only_same
         return []
 
     diff = qf.diff(
-        retriever, ts_2, sys_2, ts_3, sys_3, remove_failed_value, only_same_value, match_snap_types
+        retriever, ts_2, system_lookup[f'{ts_2}-{sys_2}'], ts_3, system_lookup[f'{ts_3}-{sys_3}'], remove_failed_value, only_same_value, match_snap_types
     )
 
     tables = []
@@ -260,7 +275,7 @@ def populate_tests_in_coverage_diff_cmds(active_cell, table_data, timestamp, sys
         except:
             pass
 
-    results = qf.find_feat(retriever, timestamp, feature, remove_failed=False, system=system, match_snap_types=match_snap_types)
+    results = qf.find_feat(retriever, timestamp, feature, remove_failed=False, system=system_lookup[f'{timestamp}-{system}'], match_snap_types=match_snap_types)
     table = dash_table.DataTable(
         data=get_task_list_from_dict(results),
         columns=[{"name":"suite","id":"suite"}, {"name":"test","id":"test"}, {"name":"variant","id":"variant"}],
@@ -346,9 +361,12 @@ def create_coverage_matrix(timestamp, remove_failed, suite, task, variant):
     ]
     for i, system in enumerate(systems):
         feats = qf.feat_sys(
-            retriever, timestamp, system, remove_failed, suite, task, variant
+            retriever, timestamp, system_lookup[f'{timestamp}-{system}'], remove_failed, suite, task, variant
         )
-        coverage_matrix[timestamp][i].update(feats)
+        rewritten_feats = {}
+        for sys, feat_list in feats.items():
+            rewritten_feats[sys.lstrip(":")] = feat_list
+        coverage_matrix[timestamp][i].update(rewritten_feats)
         for feature in qf.KNOWN_FEATURES:
             matrix[i][feature] = len(feats[feature])
 
@@ -429,7 +447,7 @@ def populate_tests_in_coverage_diff_cmds(active_cell, table_data, system_active_
         except:
             pass
 
-    results = qf.find_feat(retriever, timestamp, feature, remove_failed=False, system=system, match_snap_types=match_snap_types)
+    results = qf.find_feat(retriever, timestamp, feature, remove_failed=False, system=system_lookup[f'{timestamp}-{system}'], match_snap_types=match_snap_types)
     table = dash_table.DataTable(
         data=get_task_list_from_dict(results),
         columns=[{"name":"suite","id":"suite"}, {"name":"test","id":"test"}, {"name":"variant","id":"variant"}],
@@ -462,7 +480,7 @@ def calculate_duplicate_systems(timestamp, system):
     if timestamp in cached_duplicates and system in cached_duplicates[timestamp]:
         duplicates = cached_duplicates[timestamp][system]
     else:
-        duplicates = qf.dup(retriever, timestamp, system, False)
+        duplicates = qf.dup(retriever, timestamp, system_lookup[f'{timestamp}-{system}'], False)
         if timestamp in cached_duplicates:
             cached_duplicates[timestamp][system] = duplicates
         else:
@@ -500,7 +518,7 @@ def display_duplicate_cell_data(active_cell, table_data, timestamp, system):
     features = qf.feat_sys(
         retriever,
         timestamp,
-        system,
+        system_lookup[f'{timestamp}-{system}'],
         False,
         suite=test["suite"],
         task=test["task"],
@@ -628,7 +646,7 @@ def update_test_list(active_cell, table_data, timestamp, selected_feature):
             s = json.dumps(d)
             if s not in sys_dict:
                 sys_dict[s] = []
-            sys_dict[s].append(sys)
+            sys_dict[s].append(remove_backend(sys))
             if d not in processed:
                 processed.append(d)
 
