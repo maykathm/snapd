@@ -495,7 +495,7 @@ jobs:
 
   spread-fundamental:
     uses: ./.github/workflows/spread-tests.yaml
-    needs: [read-systems]
+    needs: [package-snapd-deb, read-systems]
     if: needs.read-systems.outputs.fundamental-systems != ''
     name: "spread ${{ matrix.group }}"
     with:
@@ -526,7 +526,7 @@ jobs:
     if: github.event_name == 'pull_request' && !contains(github.base_ref, 'release') && !contains(github.event.pull_request.labels.*.name, 'cross-distro') && needs.read-systems.outputs.non-fundamental-systems != ''
     # For workflow runs that are PRs, run this non-fundamental systems job
     # only after the fundamental systems job succeeds.
-    needs: [read-systems, spread-fundamental]
+    needs: [package-snapd-deb, read-systems, spread-fundamental]
     name: "spread ${{ matrix.group }}"
     with:
       # Github doesn't support passing sequences as parameters.
@@ -555,7 +555,7 @@ jobs:
     if: github.event_name != 'pull_request' || contains(github.base_ref, 'release') || contains(github.event.pull_request.labels.*.name, 'cross-distro')
     # For workflow runs that are not for PRs, no need to impose a dependency
     # on the fundamental systems job's success before running this job.
-    needs: [read-systems]
+    needs: [package-snapd-deb, read-systems]
     name: "spread ${{ matrix.group }}"
     with:
       # Github doesn't support passing sequences as parameters.
@@ -581,7 +581,7 @@ jobs:
 
   spread-nested:
     uses: ./.github/workflows/spread-tests.yaml
-    needs: [read-systems]
+    needs: [package-snapd-deb, read-systems]
     if: needs.read-systems.outputs.nested-systems != ''
     name: "spread ${{ matrix.group }}"
     with:
