@@ -462,7 +462,6 @@ jobs:
     runs-on: ubuntu-latest
     # This dependency only serves to ensure this job runs after the
     # labeler finishes its work
-    needs: snap-builds
     env:
       GH_TOKEN: ${{ github.token }}
     outputs:
@@ -496,7 +495,7 @@ jobs:
 
   spread-fundamental:
     uses: ./.github/workflows/spread-tests.yaml
-    needs: [unit-tests, unit-tests-c, snap-builds, read-systems]
+    needs: [read-systems]
     if: needs.read-systems.outputs.fundamental-systems != ''
     name: "spread ${{ matrix.group }}"
     with:
@@ -512,6 +511,7 @@ jobs:
       tasks: ${{ matrix.tasks }}
       rules: ${{ matrix.rules }}
       is-fundamental: true
+      use-snapd-snap-from-master: true
     strategy:
       # FIXME: enable fail-fast mode once spread can cancel an executing job.
       # Disable fail-fast mode as it doesn't function with spread. It seems
@@ -526,7 +526,7 @@ jobs:
     if: github.event_name == 'pull_request' && !contains(github.base_ref, 'release') && !contains(github.event.pull_request.labels.*.name, 'cross-distro') && needs.read-systems.outputs.non-fundamental-systems != ''
     # For workflow runs that are PRs, run this non-fundamental systems job
     # only after the fundamental systems job succeeds.
-    needs: [unit-tests, unit-tests-c, snap-builds, read-systems, spread-fundamental]
+    needs: [read-systems, spread-fundamental]
     name: "spread ${{ matrix.group }}"
     with:
       # Github doesn't support passing sequences as parameters.
@@ -540,6 +540,7 @@ jobs:
       systems: ${{ matrix.systems }}
       tasks: ${{ matrix.tasks }}
       rules: ${{ matrix.rules }}
+      use-snapd-snap-from-master: true
     strategy:
       # FIXME: enable fail-fast mode once spread can cancel an executing job.
       # Disable fail-fast mode as it doesn't function with spread. It seems
@@ -554,7 +555,7 @@ jobs:
     if: github.event_name != 'pull_request' || contains(github.base_ref, 'release') || contains(github.event.pull_request.labels.*.name, 'cross-distro')
     # For workflow runs that are not for PRs, no need to impose a dependency
     # on the fundamental systems job's success before running this job.
-    needs: [unit-tests, unit-tests-c, snap-builds, read-systems]
+    needs: [read-systems]
     name: "spread ${{ matrix.group }}"
     with:
       # Github doesn't support passing sequences as parameters.
@@ -568,6 +569,7 @@ jobs:
       systems: ${{ matrix.systems }}
       tasks: ${{ matrix.tasks }}
       rules: ${{ matrix.rules }}
+      use-snapd-snap-from-master: true
     strategy:
       # FIXME: enable fail-fast mode once spread can cancel an executing job.
       # Disable fail-fast mode as it doesn't function with spread. It seems
@@ -579,7 +581,7 @@ jobs:
 
   spread-nested:
     uses: ./.github/workflows/spread-tests.yaml
-    needs: [unit-tests, unit-tests-c, snap-builds, read-systems]
+    needs: [read-systems]
     if: needs.read-systems.outputs.nested-systems != ''
     name: "spread ${{ matrix.group }}"
     with:
@@ -594,6 +596,7 @@ jobs:
       systems: ${{ matrix.systems }}
       tasks: ${{ matrix.tasks }}
       rules: ${{ matrix.rules }}
+      use-snapd-snap-from-master: true
     strategy:
       # FIXME: enable fail-fast mode once spread can cancel an executing job.
       # Disable fail-fast mode as it doesn't function with spread. It seems
