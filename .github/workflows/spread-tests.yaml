@@ -310,6 +310,8 @@ jobs:
           fi
         done
         echo "SPREAD_USE_PREBUILT_PACKAGES=$SPREAD_USE_PREBUILT_PACKAGES" >> $GITHUB_ENV
+        echo "use prebuilt packages $SPREAD_USE_PREBUILT_PACKAGES"
+        find built-pkgs
 
     - name: Download built snap (amd64)
       uses: actions/download-artifact@v4
