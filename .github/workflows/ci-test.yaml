@@ -135,7 +135,6 @@ jobs:
       runs-on: ${{ matrix.build-config.runs-on }}
       system: ${{ matrix.build-config.system }}
       os-version: ${{ matrix.build-config.os-version }}
-      go-version: ${{ matrix.build-config.go-version }}
       os: ${{ matrix.build-config.os }}
     strategy:
       fail-fast: false
