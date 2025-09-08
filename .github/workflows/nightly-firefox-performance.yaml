@@ -80,12 +80,16 @@ jobs:
           import json
           import requests
           from statistics import geometric_mean
+          import sys
+
+          exit_error = 0
 
           def post(type, data):
               endpoint = 'http://localhost:9091/metrics/job/snapd-ci/test/firefox/type'
               response = requests.post(f'{endpoint}/{type}', data=data)
               if not response.ok:
-                  print(f'error when posting {data} to {endpoint}: {response.text}')
+                  print(f'error when posting {data} to {endpoint}: {response.text}', file=sys.stderr)
+                  global exit_error = 1
               print(f'{type}: {data}')
 
           def log_scores(snap_json, bin_json):
@@ -97,7 +101,7 @@ jobs:
                   snap_scores.append(s)
                   bin_scores.append(b)
 
-                  metric = metric.replace("-", "_").replace(".", "_").replace("3", "three")
+                  metric = metric.replace("-", "_").replace(".", "_") #.replace("3", "three")
                   post('snap', f'{metric} {s:.3f}\n')
                   post('bin', f'{metric} {b:.3f}\n')
                   post('diff', f'{metric} {b - s:.3f}\n')
@@ -122,8 +126,10 @@ jobs:
           # the numbers remain fairly close within 5 of each other. Use 10 as a threshold
           # to ensure this fails if something drastic happens.
           if bin_score - snap_score > 10:
-            print(f'The binary ({bin_score}) is better than the snap ({snap_score}) by more than 10: {bin_score - snap_score}')
+            print(f'The binary ({bin_score}) is better than the snap ({snap_score}) by more than 10: {bin_score - snap_score}', file=sys.stderr)
             exit(1)
+
+          exit(exit_error)
           EOF
 
           python3 comparison.py
@@ -131,7 +137,7 @@ jobs:
     - name: Remove metrics
       if: always()
       run: |
-          # The metrics gathering occurs every minute. Sleep for 2 minutes
+          # The metrics gathering occurs every minute. Sleep for 1.5 minutes
           # to ensure the metrics were gathered and then delete them.
           sleep 1.5m
           curl -X DELETE http://localhost:9091/metrics/job/snapd-ci/test/firefox/type/snap || true
