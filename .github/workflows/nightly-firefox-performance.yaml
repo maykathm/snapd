@@ -105,6 +105,7 @@ jobs:
                   snap_scores.append(s)
                   bin_scores.append(b)
 
+                  # Metric names cannot have hyphens, dots, or begin with begin with numbers
                   metric = metric.replace("-", "_").replace(".", "_").replace("3", "three")
                   post('snap', f'{metric} {s:.3f}\n')
                   post('bin', f'{metric} {b:.3f}\n')
