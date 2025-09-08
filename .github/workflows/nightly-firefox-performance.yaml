@@ -105,7 +105,7 @@ jobs:
                   snap_scores.append(s)
                   bin_scores.append(b)
 
-                  metric = metric.replace("-", "_").replace(".", "_") #.replace("3", "three")
+                  metric = metric.replace("-", "_").replace(".", "_").replace("3", "three")
                   post('snap', f'{metric} {s:.3f}\n')
                   post('bin', f'{metric} {b:.3f}\n')
                   post('diff', f'{metric} {b - s:.3f}\n')
