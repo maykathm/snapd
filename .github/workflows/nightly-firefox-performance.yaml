@@ -127,7 +127,6 @@ jobs:
           EOF
 
           python3 comparison.py
-          cat firefox-metrics.log
 
     - name: Remove metrics
       run: |
