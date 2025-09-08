@@ -129,7 +129,7 @@ jobs:
           # The choice of threshold is somewhat arbitrary. After various iterations,
           # the numbers remain fairly close within 5 of each other. Use 10 as a threshold
           # to ensure this fails if something drastic happens.
-          if bin_score - snap_score > 2:
+          if bin_score - snap_score > 10:
             print(f'The binary ({bin_score}) is better than the snap ({snap_score}) by more than 10: {bin_score - snap_score}', file=sys.stderr)
             exit(1)
 
