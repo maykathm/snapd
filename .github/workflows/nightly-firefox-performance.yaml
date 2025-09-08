@@ -129,10 +129,11 @@ jobs:
           python3 comparison.py
 
     - name: Remove metrics
+      if: always()
       run: |
           # The metrics gathering occurs every minute. Sleep for 2 minutes
           # to ensure the metrics were gathered and then delete them.
-          sleep 2m
-          curl -X DELETE http://localhost:9091/metrics/job/snapd-ci/test/firefox/type/snap
-          curl -X DELETE http://localhost:9091/metrics/job/snapd-ci/test/firefox/type/bin
-          curl -X DELETE http://localhost:9091/metrics/job/snapd-ci/test/firefox/type/diff
+          sleep 1.5m
+          curl -X DELETE http://localhost:9091/metrics/job/snapd-ci/test/firefox/type/snap || true
+          curl -X DELETE http://localhost:9091/metrics/job/snapd-ci/test/firefox/type/bin || true
+          curl -X DELETE http://localhost:9091/metrics/job/snapd-ci/test/firefox/type/diff || true
