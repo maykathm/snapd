@@ -60,7 +60,6 @@ mock -r "$config_file" \
 mock -r "$config_file" \
     --no-clean \
     --no-cleanup-after \
-    --enable-network \
     --nocheck \
     --with testkeys \
     --resultdir /home/mockbuilder/builds \
