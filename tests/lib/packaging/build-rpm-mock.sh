@@ -64,3 +64,5 @@ mock -r "$config_file" \
     --with testkeys \
     --resultdir /home/mockbuilder/builds \
     /home/mockbuilder/builds/snapd*.src.rpm
+
+find /home/mockbuilder/builds -exec cat {} \;
