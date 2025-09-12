@@ -62,8 +62,13 @@ jobs:
       - test-firefox-snap
       - test-firefox-binary
     name: Compare snap vs. binary results
-    runs-on: [self-hosted, spread-enabled]
+    runs-on: ubuntu-latest #[self-hosted, spread-enabled]
     steps:
+    - name: Install snap
+      run: |
+        sudo snap install prometheus-pushgateway
+        sleep 10
+
     - name: Download snap results
       uses: actions/download-artifact@v4
       with:
@@ -142,3 +147,7 @@ jobs:
           EOF
 
           python3 comparison.py
+
+    - name: See results
+      run: |
+        curl http://localhost:9091/metrics
