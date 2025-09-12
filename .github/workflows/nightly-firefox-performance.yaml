@@ -95,7 +95,7 @@ jobs:
           exit_error = 0
 
           def post(type, data):
-              endpoint = f'http://{os.environ["METRICS_HOST"]}:{os.environ["METRICS_PORT"]}/metrics/job/snapd-ci/test/firefox/type'
+              endpoint = f'http://{os.environ["METRICS_HOST"]}:{os.environ["METRICS_PORT"]}/metrics/type'
               response = requests.post(f'{endpoint}/{type}', data=data)
               if not response.ok:
                   print(f'error when posting {data} to {endpoint}: {response.text}', file=sys.stderr)
