@@ -13,6 +13,14 @@ inputs:
 runs:
   using: "composite"
   steps:
+  - name: setup
+    shell: bash
+    run: |
+      if pgrep Xvfb; then
+         kill $(pgrep Xvfb)
+      fi
+      Xvfb -ac :99 -screen 0 1600x900x24 &
+
   - name: Get JetStream2.2
     shell: bash
     run: |
@@ -77,4 +85,4 @@ runs:
         done
 
         echo "Running firefox performance tests"
-        xvfb-run ${{ inputs.firefox-exec }} 'http://localhost:8000/?startDelay=1&report=true' || true
+        sudo ${{ inputs.firefox-exec }} 'http://localhost:8000/?startDelay=1&report=true' || true

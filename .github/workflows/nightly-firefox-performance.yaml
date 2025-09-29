@@ -9,8 +9,14 @@ jobs:
 
   test-firefox-snap:
     name: Test Firefox snap performance
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux]
     steps:
+    - name: Cleanup job workspace
+      id: cleanup-job-workspace
+      run: |
+          rm -rf "${{ github.workspace }}"
+          mkdir "${{ github.workspace }}"
+
     - name: Checkout code
       uses: actions/checkout@v4
 
@@ -35,8 +41,14 @@ jobs:
 
   test-firefox-binary:
     name: Test Firefox snap binary performance
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux]
     steps:
+    - name: Cleanup job workspace
+      id: cleanup-job-workspace
+      run: |
+          rm -rf "${{ github.workspace }}"
+          mkdir "${{ github.workspace }}"
+          
     - name: Checkout code
       uses: actions/checkout@v4
 
@@ -62,7 +74,7 @@ jobs:
       - test-firefox-snap
       - test-firefox-binary
     name: Compare snap vs. binary results
-    runs-on: [self-hosted, spread-enabled]
+    runs-on: ubuntu-latest
     steps:
     - name: Download snap results
       uses: actions/download-artifact@v4
@@ -90,12 +102,12 @@ jobs:
           exit_error = 0
 
           def post(type, data):
-              endpoint = f'http://{os.environ["METRICS_HOST"]}:{os.environ["METRICS_PORT"]}/metrics/job/snapd-ci/type'
-              response = requests.post(f'{endpoint}/{type}', data=data)
-              if not response.ok:
-                  print(f'error when posting {data} to {endpoint}: {response.text}', file=sys.stderr)
-                  global exit_error
-                  exit_error = 1
+              # endpoint = f'http://{os.environ["METRICS_HOST"]}:{os.environ["METRICS_PORT"]}/metrics/job/snapd-ci/type'
+              # response = requests.post(f'{endpoint}/{type}', data=data)
+              # if not response.ok:
+              #     print(f'error when posting {data} to {endpoint}: {response.text}', file=sys.stderr)
+              #     global exit_error
+              #     exit_error = 1
               print(f'{type}: {data}')
 
           def log_scores(snap_json, bin_json):
