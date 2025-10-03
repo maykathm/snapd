@@ -85,7 +85,7 @@ jobs:
     name: "spread ${{ matrix.group }}"
     if: needs.read-systems.outputs.fundamental-systems != ''
     with:
-      runs-on: '["self-hosted", "spread-enabled"]'
+      runs-on: '["ubuntu-latest"]'
       group: ${{ matrix.group }}
       backend: ${{ matrix.backend }}
       systems: ${{ matrix.systems }}  
@@ -106,7 +106,7 @@ jobs:
     if: needs.read-systems.outputs.non-fundamental-systems != ''
     name: "spread ${{ matrix.group }}"
     with:
-      runs-on: '["self-hosted", "spread-enabled"]'
+      runs-on: '["ubuntu-latest"]'
       group: ${{ matrix.group }}
       backend: ${{ matrix.backend }}
       systems: ${{ matrix.systems }}  
@@ -126,7 +126,7 @@ jobs:
     if: needs.read-systems.outputs.nested-systems != ''
     name: "spread ${{ matrix.group }}"
     with:
-      runs-on: '["self-hosted", "spread-enabled"]'
+      runs-on: '["ubuntu-latest"]'
       group: ${{ matrix.group }}
       backend: ${{ matrix.backend }}
       systems: ${{ matrix.systems }}  
@@ -171,7 +171,7 @@ jobs:
 
   create-reports:
     needs: [set-inputs, tag-features-fundamental, tag-features-non-fundamental, tag-features-nested, get-all-features]
-    runs-on: ["self-hosted", "spread-enabled"]
+    runs-on: ["ubuntu-latest"]
     if: |
       (always() && (needs.tag-features-fundamental.result == 'success' || needs.tag-features-fundamental.result == 'skipped')
       && (needs.tag-features-non-fundamental.result == 'success' || needs.tag-features-non-fundamental.result == 'skipped')
