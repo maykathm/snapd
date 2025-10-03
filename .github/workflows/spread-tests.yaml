@@ -166,6 +166,12 @@ jobs:
               echo "FAILED_TESTS=$FAILED_TESTS" >> $GITHUB_ENV
           fi
 
+    - name: install spread
+      run: |
+        git clone https://github.com/canonical/spread.git
+        cd spread
+        go install ./...
+
     - name: Setup run tests variable
       if: ${{ env.SKIP_SPREAD_LABEL != 'true' }}
       run: |
