@@ -170,7 +170,7 @@ jobs:
       run: |
         git clone https://github.com/canonical/spread.git
         cd spread
-        go install ./...
+        sudo go build -o /usr/bin ./...
 
     - name: Setup run tests variable
       if: ${{ env.SKIP_SPREAD_LABEL != 'true' }}
