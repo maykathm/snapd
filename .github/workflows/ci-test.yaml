@@ -492,6 +492,40 @@ jobs:
             fi
           fi
 
+  spread-garden:
+    uses: ./.github/workflows/image-garden.yaml
+    name: "spread garden ${{ matrix.group }}"
+    with:
+      runs-on: ${{ matrix.runs-on }}
+      group: ${{ matrix.group }}
+      backend: ${{ matrix.backend }}
+      alternative-backend: garden
+      systems: ${{ matrix.systems }}
+      tasks: ${{ matrix.tasks }}
+      rules: ''
+      use-snapd-snap-from-master: true
+      skip-tests: 'ubuntu-14.04-64 ubuntu-core-16-64'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - group: jammy
+            runs-on: '["ubuntu-latest"]'
+            backend: garden
+            systems: 'ubuntu-22.04-64'
+            tasks: 'tests/main/apparmor-prompting-integration-tests tests/main/interfaces-requests-activates-handlers'
+          - group: google
+            runs-on: '["ubuntu-latest"]'
+            backend: garden
+            systems: 'fedora-42-64'
+            tasks: 'tests/main/microk8s-smoke tests/main/download-timeout tests/main/snap-network-errors tests/main/snapd-snap:lxd tests/main/apparmor-prompting-support tests/main/proxy'
+          - group: google-arm
+            runs-on: '["ubuntu-22.04-arm"]'
+            backend: garden
+            systems: 'ubuntu-22.04-arm-64 ubuntu-core-24-arm-64'
+            tasks: 'tests/main/microk8s-smoke tests/main/download-timeout tests/main/snap-network-errors tests/main/snapd-snap:lxd tests/main/apparmor-prompting-support tests/main/proxy'
+
+
   spread-fundamental:
     uses: ./.github/workflows/spread-tests.yaml
     needs: [unit-tests, unit-tests-c, snap-builds, read-systems]
