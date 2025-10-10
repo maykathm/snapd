@@ -1220,13 +1220,10 @@ nested_start_core_vm_unit() {
     elif [ "$SPREAD_BACKEND" = "google-nested-arm" ]; then
         PARAM_MEM="-m ${NESTED_MEM:-4096}"
         PARAM_SMP="-smp ${NESTED_CPUS:-3}"
-    elif [ "$SPREAD_BACKEND" = "google-nested-dev" ]; then
-        PARAM_MEM="-m ${NESTED_MEM:-8192}"
-        PARAM_SMP="-smp ${NESTED_CPUS:-4}"
     elif [ "$SPREAD_BACKEND" = "qemu-nested" ] || [ "$SPREAD_BACKEND" = "garden" ]; then
         PARAM_MEM="-m ${NESTED_MEM:-2048}"
         PARAM_SMP="-smp ${NESTED_CPUS:-1}"
-    elif [ "$SPREAD_BACKEND" = "openstack-ext-ps7" ]; then
+    elif [ "$SPREAD_BACKEND" = "openstack-ext-ps7" ] || [ "$SPREAD_BACKEND" = "openstack-validation-ps7" ]; then
         PARAM_MEM="-m ${NESTED_MEM:-4096}"
         PARAM_SMP="-smp ${NESTED_CPUS:-2}"
     else
@@ -1465,21 +1462,24 @@ nested_start_core_vm_unit() {
 }
 
 nested_setup_vm(){
-    if nested_is_core_ge 20; then
-        remote.exec "sudo snap set system journal.persistent=true"
-    fi
     if [ "${SNAPD_USE_PROXY:-}" = true ]; then
         nested_no_proxy="${NO_PROXY},10.0.2.2"
 
         # Ensure the nameservers used are the same than the host vm
-        net_interface="$(ip route show default | awk '{print $5}')"
-        nameservers="$(resolvectl status "$net_interface" | grep "DNS Servers:" | cut -d: -f2)"
-        if [ -n "$nameservers" ]; then
-            remote.exec "grep -v '^nameserver' /etc/resolv.conf > /tmp/resolv.conf"
-            remote.exec "sudo cp /tmp/resolv.conf /etc/resolv.conf"
-            for nameserver in $nameservers; do
-                remote.exec "echo nameserver $nameserver | sudo tee -a /etc/resolv.conf"
-            done
+        if os.query is-ubuntu-ge 18.04; then
+            net_interface="$(ip route show default | awk '{print $5}')"
+            nameservers="$(resolvectl status "$net_interface" | grep "DNS Servers:" | cut -d: -f2)"
+            if [ -n "$nameservers" ]; then
+                remote.exec "grep -v '^nameserver' /etc/resolv.conf > /tmp/resolv.conf"
+                for nameserver in $nameservers; do
+                    remote.exec "echo nameserver $nameserver >> /tmp/resolv.conf"
+                done
+                remote.exec "sudo cp /tmp/resolv.conf /etc/resolv.conf"
+            fi
+        else
+            remote.push /etc/resolv.conf
+            remote.exec "sudo cp resolv.conf /etc/resolv.conf"
+            remote.exec "rm resolv.conf"
         fi
 
         # Add proxy configuration in /etc/environment
@@ -1504,9 +1504,11 @@ nested_setup_vm(){
     if [ -n "${NTP_SERVER:-}" ]; then
         # Configure systemd-timesyncd to use the predefined ntp server
         CONF_FILE="/etc/systemd/timesyncd.conf"
-        remote.exec "sudo sed -i -e '/^NTP=/d' -e '/^FallbackNTP=/d' \"$CONF_FILE\""
-        remote.exec "sudo sed -i '/^\[Time\]/a NTP='\"$NTP_SERVER\" \"$CONF_FILE\""
-        remote.exec "sudo sed -i '/^\[Time\]/a FallbackNTP=' \"$CONF_FILE\""
+        remote.exec "cp \"$CONF_FILE\" /tmp/timesyncd.conf"
+        remote.exec "sed -i -e '/^NTP=/d' -e '/^FallbackNTP=/d' /tmp/timesyncd.conf"
+        remote.exec "sed -i '/^\[Time\]/a NTP='\"$NTP_SERVER\" /tmp/timesyncd.conf"
+        remote.exec "sed -i '/^\[Time\]/a FallbackNTP=' /tmp/timesyncd.conf"
+        remote.exec "sudo cp /tmp/timesyncd.conf \"$CONF_FILE\""
         remote.exec "sudo systemctl restart systemd-timesyncd"
         remote.exec "sudo sync"
     fi
@@ -1665,13 +1667,10 @@ nested_start_classic_vm() {
     elif [ "$SPREAD_BACKEND" = "google-nested-arm" ]; then
         PARAM_MEM="-m ${NESTED_MEM:-8192}"
         PARAM_SMP="-smp ${NESTED_CPUS:-2}"
-    elif [ "$SPREAD_BACKEND" = "google-nested-dev" ]; then
-        PARAM_MEM="-m ${NESTED_MEM:-8192}"
-        PARAM_SMP="-smp ${NESTED_CPUS:-4}"
     elif [ "$SPREAD_BACKEND" = "qemu-nested" ] || [ "$SPREAD_BACKEND" = "garden" ]; then
         PARAM_MEM="-m ${NESTED_MEM:-2048}"
         PARAM_SMP="-smp ${NESTED_CPUS:-1}"
-    elif [ "$SPREAD_BACKEND" = "openstack-ext-ps7" ]; then
+    elif [ "$SPREAD_BACKEND" = "openstack-ext-ps7" ] || [ "$SPREAD_BACKEND" = "openstack-validation-ps7" ]; then
         PARAM_MEM="-m ${NESTED_MEM:-4096}"
         PARAM_SMP="-smp ${NESTED_CPUS:-2}"        
     else

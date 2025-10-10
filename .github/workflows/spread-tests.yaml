@@ -175,12 +175,13 @@ jobs:
             # The tests are just filtered when the change is a PR
             # When 'Run Nested' label is added in a PR, all the nested tests have to be executed
             TASKS_TO_RUN=""
+            INPUT_TASKS="$(echo "${{ inputs.tasks }}" | tr '\n' ' ')"
             if [ -z "${{ github.event.number }}" ] || [ "$RUN_NESTED" = 'true' ] || [ -z "${{ inputs.rules }}" ] || [ -z "$changes_param" ]; then
-                for TASKS in ${{ inputs.tasks }}; do
+                for TASKS in $INPUT_TASKS; do
                     TASKS_TO_RUN="$TASKS_TO_RUN $prefix:$TASKS"
                 done
             else
-                NEW_TASKS="$(./tests/lib/external/snapd-testing-tools/utils/spread-filter -r ./tests/lib/spread/rules/${{ inputs.rules }}.yaml -p "$prefix" $changes_param -t "${{ inputs.tasks }}")"
+                NEW_TASKS="$(./tests/lib/external/snapd-testing-tools/utils/spread-filter -r ./tests/lib/spread/rules/${{ inputs.rules }}.yaml -p "$prefix" $changes_param -t "$INPUT_TASKS")"
                 TASKS_TO_RUN="$NEW_TASKS"
             fi
             echo "$TASKS_TO_RUN"
@@ -402,12 +403,20 @@ jobs:
               export NO_DELTA=1
           fi
 
+          case "${{ inputs.group }}" in
+              ubuntu-deb)
+                  echo "Setting up ubuntu with deb execution"
+                  export SPREAD_SNAP_REEXEC=0
+                  export SPREAD_SNAPD_DEB_FROM_REPO=false
+                  ;;
+          esac
+
           if grep -q "nothing matches provider filter" <<< "$spread_list"; then
             echo "No tests to run, exiting..."
             exit 0
           fi
 
-          SPREAD_FLAGS='-no-debug-output -logs spread-logs'
+          SPREAD_FLAGS='-no-debug-output -logs spread-logs -json results.json'
           if [ "${{ inputs.upload-artifacts }}" = true ]; then
             SPREAD_FLAGS="$SPREAD_FLAGS -artifacts spread-artifacts"
             echo "ARTIFACTS_FOLDER=spread-artifacts" >> $GITHUB_ENV
@@ -439,6 +448,14 @@ jobs:
       with:
         name: "spread-logs-${{ inputs.group }}-${{ inputs.systems }}"
         path: "spread-logs/*.log"
+        if-no-files-found: ignore
+  
+    - name: Upload spread results file
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: "spread-json-${{ github.run_id }}-${{ github.run_attempt }}-${{ inputs.group }}"
+        path: "results.json"
         if-no-files-found: ignore
 
     - name: Report spread errors
@@ -527,12 +544,4 @@ jobs:
       with:
         path: "${{ github.workspace }}/.test-results"
         key: "${{ github.job }}-results-${{ github.run_id }}-${{ inputs.group }}-${{ github.run_attempt }}"
-
-    - name: Save spread.json as an artifact
-      if: ${{ failure() && github.event.pull_request.number && env.TEST_FAILED == 'true' }}
-      uses: actions/upload-artifact@v4
-      with:
-        name: "spread-json-${{ github.run_id }}-${{ github.run_attempt }}-${{ inputs.group }}" 
-        path: "spread-results.json"
-        if-no-files-found: ignore
 

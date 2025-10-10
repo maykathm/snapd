@@ -20,6 +20,7 @@
 package assemblestate
 
 import (
+	"bytes"
 	"context"
 	"crypto/hmac"
 	"crypto/sha512"
@@ -31,6 +32,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/snapcore/snapd/asserts"
 	"github.com/snapcore/snapd/logger"
 	"github.com/snapcore/snapd/randutil"
 )
@@ -54,7 +56,7 @@ type AssembleState struct {
 	trusted map[Fingerprint]Peer
 
 	// fingerprints keeps track of the TLS certificate fingerprints we know and
-	// the RDTs that they are is associated with.
+	// the RDTs that they are associated with.
 	fingerprints map[DeviceToken]Fingerprint
 
 	// addresses keeps track of which address we can reach each device at.
@@ -130,7 +132,7 @@ func (as *AssembleState) export() AssembleSession {
 // Peer is a peer that has established trust via proof of the shared secret in
 // an assemble session.
 type Peer struct {
-	// RDT is the device token that this peer used to identity itself.
+	// RDT is the device token that this peer used to identify itself.
 	RDT DeviceToken `json:"rdt"`
 	// Cert is the TLS certificate that this peer used to send its messages.
 	Cert []byte `json:"cert"`
@@ -141,7 +143,7 @@ type Peer struct {
 type AssembleConfig struct {
 	// Secret is the shared secret used for HMAC-based peer authentication.
 	Secret string
-	// RDT is this device's random device token used to uniquely identity this
+	// RDT is this device's random device token used to uniquely identify this
 	// device.
 	RDT DeviceToken
 	// TLSCert is the PEM-encoded TLS certificate for this device.
@@ -154,6 +156,11 @@ type AssembleConfig struct {
 	// ExpectedSize is the expected size of the cluster. If unset, cluster
 	// assembly will not terminate automatically.
 	ExpectedSize int
+	// Serial is this device's serial assertion.
+	Serial *asserts.Serial
+	// Signer is a function that signs the given data with the private key that
+	// matches the public key embedded in the serial assertion.
+	Signer func([]byte) ([]byte, error)
 }
 
 const AssembleSessionLength = time.Hour
@@ -165,13 +172,21 @@ func NewAssembleState(
 	session AssembleSession,
 	selector func(self DeviceToken, identified func(DeviceToken) bool) (RouteSelector, error),
 	commit func(AssembleSession),
+	assertDB asserts.RODatabase,
 ) (*AssembleState, error) {
+	if config.Serial == nil {
+		return nil, errors.New("serial assertion is required")
+	}
+	if config.Signer == nil {
+		return nil, errors.New("signer function is required")
+	}
+
 	// default clock to time.Now if not provided
 	if config.Clock == nil {
 		config.Clock = time.Now
 	}
 
-	// validate the given session parse it into more useful data structures
+	// validate the given session and parse it into more useful data structures
 	validated, err := validateSession(session, config.Clock)
 	if err != nil {
 		return nil, fmt.Errorf("invalid session data: %w", err)
@@ -182,14 +197,34 @@ func NewAssembleState(
 		return nil, err
 	}
 
-	if err := ensureLocalDevicePresent(&validated.devices, Identity{
-		RDT: config.RDT,
-		FP:  CalculateFP(cert.Certificate[0]),
+	// calculate the HMAC that this device would use to authenticate itself
+	fp := CalculateFP(cert.Certificate[0])
+	hmac := CalculateHMAC(config.RDT, fp, config.Secret)
+
+	// sign the HMAC with our private key to create the SerialProof
+	proof, err := config.Signer(hmac)
+	if err != nil {
+		return nil, fmt.Errorf("cannot sign hmac for serial proof: %v", err)
+	}
+
+	bundle, err := buildSerialBundle(config.Serial, assertDB)
+	if err != nil {
+		return nil, fmt.Errorf("cannot build serial bundle: %w", err)
+	}
+
+	if err := ensureLocalDevicePresent(&validated.devices, assertDB, config.Secret, Identity{
+		RDT:          config.RDT,
+		FP:           CalculateFP(cert.Certificate[0]),
+		SerialBundle: bundle,
+		SerialProof:  proof,
 	}); err != nil {
 		return nil, err
 	}
 
-	devices := NewDeviceQueryTracker(validated.devices, time.Minute*5, config.Clock)
+	devices, err := NewDeviceQueryTracker(validated.devices, time.Minute*5, config.Clock, assertDB, config.Secret)
+	if err != nil {
+		return nil, err
+	}
 
 	sel, err := selector(config.RDT, devices.Identified)
 	if err != nil {
@@ -216,16 +251,13 @@ func NewAssembleState(
 		sel.AddAuthoritativeRoute(peer.RDT, addr)
 	}
 
-	// calculate the HMAC once for this device's authentication
-	authHMAC := CalculateHMAC(config.RDT, CalculateFP(cert.Certificate[0]), config.Secret)
-
 	as := AssembleState{
 		initiated:    validated.initiated,
 		config:       config,
 		commit:       commit,
 		clock:        config.Clock,
 		cert:         cert,
-		authHMAC:     authHMAC,
+		authHMAC:     hmac,
 		trusted:      validated.trusted,
 		fingerprints: validated.fingerprints,
 		addresses:    validated.addresses,
@@ -425,7 +457,7 @@ func shuffle[T any](available []T) {
 	}
 }
 
-// authenticateAndCommit checks that the given [Auth] message is valid and proves
+// AuthenticateAndCommit checks that the given [Auth] message is valid and proves
 // knowledge of the shared secret. If this check is passed, we allow mutation of
 // this [AssembleState] via future calls to [AssembleState.verifyPeer] with the same
 // certificate.
@@ -545,7 +577,7 @@ func (as *AssembleState) Run(
 	var wg sync.WaitGroup
 
 	// channel to receive server errors that should cause the process to fail
-	// TODO: replace with [context.Cause] when we're on go >= 1.20
+	// TODO:GOVERSION: replace with [context.Cause] when we're on go >= 1.20
 	serverError := make(chan error, 1)
 
 	// start the server that handles incoming requests
@@ -642,8 +674,8 @@ func (as *AssembleState) Run(
 	default:
 	}
 
-	// at this point, the [Transport] should have shutdown and not interface
-	// with our data anymore. however, a misbehaving implementation might. in
+	// at this point, the [Transport] should have shut down and no longer
+	// interface with our data. however, a misbehaving implementation might. in
 	// that case, we need to lock.
 	as.lock.Lock()
 	defer as.lock.Unlock()
@@ -684,7 +716,7 @@ func periodic(
 }
 
 // peerHandle is a wrapper over [AssembleState] that enables an authenticated
-// peer report its knowledge of the state of the cluster.
+// peer to report its knowledge of the state of the cluster.
 type peerHandle struct {
 	as  *AssembleState
 	rdt DeviceToken
@@ -771,7 +803,7 @@ func (h *peerHandle) CommitDevices(devices Devices) error {
 
 	for _, id := range devices.Devices {
 		if current, ok := h.as.devices.Lookup(id.RDT); ok {
-			if current != id {
+			if current.RDT != id.RDT || current.FP != id.FP || current.SerialBundle != id.SerialBundle || !bytes.Equal(current.SerialProof, id.SerialProof) {
 				return errors.New("got inconsistent device identity")
 			}
 		}
@@ -783,7 +815,9 @@ func (h *peerHandle) CommitDevices(devices Devices) error {
 	}
 
 	for _, id := range devices.Devices {
-		h.as.devices.RecordIdentity(id)
+		if err := h.as.devices.RecordIdentity(id); err != nil {
+			return err
+		}
 	}
 
 	// TODO: i don't really love the implicit connection of as.devices and
@@ -835,13 +869,49 @@ func untrustedSend(
 	return client.Untrusted(ctx, addr, kind, data)
 }
 
+func buildSerialBundle(serial *asserts.Serial, db asserts.RODatabase) (string, error) {
+	retrieve := func(ref *asserts.Ref) (asserts.Assertion, error) {
+		return ref.Resolve(db.Find)
+	}
+
+	buf := bytes.NewBuffer(nil)
+	enc := asserts.NewEncoder(buf)
+
+	fetcher := asserts.NewFetcher(db, retrieve, enc.Encode)
+	if err := fetcher.Save(serial); err != nil {
+		return "", fmt.Errorf("cannot bundle serial prerequisites: %w", err)
+	}
+
+	return buf.String(), nil
+}
+
 // ensureLocalDevicePresent adds the local device identity to the IDs slice if
 // not present, or validates consistency if already present.
-func ensureLocalDevicePresent(data *DeviceQueryTrackerData, self Identity) error {
-	for _, existing := range data.IDs {
-		if existing.RDT == self.RDT {
-			if existing.FP != self.FP {
+func ensureLocalDevicePresent(data *DeviceQueryTrackerData, db asserts.RODatabase, secret string, self Identity) error {
+	for _, unverifiedID := range data.IDs {
+		if unverifiedID.RDT == self.RDT {
+			if unverifiedID.FP != self.FP {
 				return fmt.Errorf("fingerprint mismatch for local device %q", self.RDT)
+			}
+
+			// proof signatures will not be byte-identical across runs. thus, to
+			// check for consistency, we need to validate the existing proof
+			// instead of requiring equality
+			serial, err := verifySerialBundle(unverifiedID.SerialBundle, db)
+			if err != nil {
+				return fmt.Errorf("cannot validate serial bundle for local device %q: %w", self.RDT, err)
+			}
+
+			expectedHMAC := CalculateHMAC(unverifiedID.RDT, unverifiedID.FP, secret)
+			if err := asserts.RawVerifyWithKey(expectedHMAC, unverifiedID.SerialProof, serial.DeviceKey()); err != nil {
+				return fmt.Errorf("serial proof mismatch for local device %q: %w", self.RDT, err)
+			}
+
+			// this shouldn't really be possible, since above we've shown that
+			// the existing and new proof were both signed using the same
+			// private key, which is derived from the serial bundle.
+			if unverifiedID.SerialBundle != self.SerialBundle {
+				return fmt.Errorf("serial bundle mismatch for local device %q", self.RDT)
 			}
 
 			return nil

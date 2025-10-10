@@ -91,6 +91,8 @@ environment:
     SNAPD_STATE_LOCK_TRACE_THRESHOLD_MS: '$(HOST: echo "${SPREAD_SNAPD_STATE_LOCK_TRACE_THRESHOLD_MS:-0}")'
     # Allow mismatch in snapd/kernel versions
     SNAPD_ALLOW_SNAPD_KERNEL_MISMATCH: '$(HOST: echo "${SNAPD_ALLOW_SNAPD_KERNEL_MISMATCH:-true}")'
+    # The pattern used by `apt-cache search` to determine the ubuntu kernel to be used in tests
+    UPDATE_UBUNTU_KERNEL_PATTERN: '$(HOST: echo "${SPREAD_UPDATE_UBUNTU_KERNEL_PATTERN:-}")'
 
     # Directory where the nested images and test assets are stored
     NESTED_WORK_DIR: '$(HOST: echo "${NESTED_WORK_DIR:-/var/tmp/work-dir}")'
@@ -167,10 +169,6 @@ backends:
                   image: ubuntu-2404-64
                   storage: 15G
                   workers: 8
-            - ubuntu-25.04-64:
-                  image: ubuntu-2504-amd64
-                  storage: 15G
-                  workers: 8
             - ubuntu-25.10-64:
                   image: ubuntu-os-cloud-devel/ubuntu-2510-amd64
                   storage: 15G
@@ -228,6 +226,11 @@ backends:
 
             - ubuntu-fips-22.04-64:
                   image: ubuntu-os-pro-cloud/ubuntu-pro-2204-lts
+                  workers: 1
+                  attach-service-account: true
+
+            - ubuntu-fips-24.04-64:
+                  image: ubuntu-os-pro-cloud/ubuntu-pro-2404-lts-amd64
                   workers: 1
                   attach-service-account: true
 
@@ -350,21 +353,11 @@ backends:
                   storage: 25G
                   workers: 8
 
-    google-nested-dev:
-        type: google
-        key: '$(HOST: echo "$SPREAD_GOOGLE_KEY")'
-        location: snapd-spread/northamerica-northeast1-a
-        plan: n2-standard-4
-        halt-timeout: 6h
-        environment:
-            NESTED_ARCHITECTURE: amd64
-        systems: *google-nested-systems
-
     openstack:
         key: '$(HOST: echo "$OS_CREDENTIALS_AMD64_PS6")'
         plan: staging-cpu2-ram4-disk20
         halt-timeout: 2h
-        wait-timeout: 5m
+        wait-timeout: 10m
         groups: [default]
         environment:
             HTTP_PROXY: "http://squid.internal:3128"
@@ -404,7 +397,7 @@ backends:
         key: '$(HOST: echo "$OS_CREDENTIALS_AMD64_PS7")'
         plan: shared.xsmall
         halt-timeout: 2h
-        wait-timeout: 5m
+        wait-timeout: 10m
         groups: [default]
         proxy: ingress-haproxy.ps7.canonical.com
         cidr-port-rel: [10.151.96.0/21:5000]
@@ -433,9 +426,6 @@ backends:
                 workers: 8
             - ubuntu-24.04-64:
                 image: snapd-spread/ubuntu-24.04-64
-                workers: 8
-            - ubuntu-25.04-64:
-                image: snapd-spread/ubuntu-25.04-64
                 workers: 8
             - ubuntu-25.10-64:
                 image: snapd-spread/ubuntu-25.10-64
@@ -476,7 +466,7 @@ backends:
         key: '$(HOST: echo "$OS_CREDENTIALS_STG_AMD64_PS7")'
         plan: shared.xsmall
         halt-timeout: 2h
-        wait-timeout: 5m
+        wait-timeout: 10m
         groups: [default]
         proxy: ingress-haproxy.ps7.canonical.com
         cidr-port-rel: [10.151.54.0/24:4000]
@@ -490,13 +480,13 @@ backends:
         plan: shared.medium
         storage: 30G
         halt-timeout: 2h
-        wait-timeout: 5m
+        wait-timeout: 10m
         groups: [default]
         proxy: ingress-haproxy.ps7.canonical.com
         cidr-port-rel: [10.151.96.0/21:5000]
         volume-auto-delete: true
         environment: *openstack-ps7-env
-        systems:
+        systems: &openstack-ps7-nested-systems
             - ubuntu-16.04-64:
                   image: snapd-spread/ubuntu-16.04-64
                   storage: 20G
@@ -518,12 +508,26 @@ backends:
                   storage: 25G
                   workers: 12
 
+    openstack-validation-ps7:
+        type: openstack
+        key: '$(HOST: echo "$OS_CREDENTIALS_AMD64_PS7")'
+        plan: shared.medium
+        storage: 30G
+        halt-timeout: 6h
+        wait-timeout: 10m
+        groups: [default]
+        proxy: ingress-haproxy.ps7.canonical.com
+        cidr-port-rel: [10.151.96.0/21:5000]
+        volume-auto-delete: true
+        environment: *openstack-ps7-env
+        systems: *openstack-ps7-nested-systems
+
     openstack-arm-ps7:
         type: openstack
         key: '$(HOST: echo "$OS_CREDENTIALS_ARM64_PS7")'
         plan: shared.xsmall.arm64
         halt-timeout: 2h
-        wait-timeout: 5m
+        wait-timeout: 10m
         groups: [default]
         proxy: ingress-haproxy.ps7.canonical.com
         cidr-port-rel: [10.151.89.0/24:8000]
@@ -552,7 +556,7 @@ backends:
         key: '$(HOST: echo "$OS_CREDENTIALS_ARM64_PS7")'
         plan: shared.medium.arm64
         halt-timeout: 2h
-        wait-timeout: 5m
+        wait-timeout: 10m
         groups: [default]
         proxy: ingress-haproxy.ps7.canonical.com
         cidr-port-rel: [10.151.89.0/24:8000]
@@ -565,7 +569,7 @@ backends:
         key: '$(HOST: echo "$OS_CREDENTIALS_STG_ARM64_PS7")'
         plan: shared.xsmall.arm64
         halt-timeout: 2h
-        wait-timeout: 5m
+        wait-timeout: 10m
         groups: [default]
         proxy: ingress-haproxy.ps7.canonical.com
         cidr-port-rel: [10.151.53.0/24:3000]
@@ -579,7 +583,7 @@ backends:
         key: '$(HOST: echo "$OS_CREDENTIALS_AMD64_PS7")'
         plan: shared.xsmall
         halt-timeout: 2h
-        wait-timeout: 5m
+        wait-timeout: 10m
         groups: [default]
         proxy: ingress-haproxy.ps7.canonical.com
         cidr-port-rel: [10.151.96.0/21:5000]
@@ -602,8 +606,6 @@ backends:
             - ubuntu-22.04-64:
                   workers: 8
             - ubuntu-24.04-64:
-                  workers: 8
-            - ubuntu-25.04-64:
                   workers: 8
             - ubuntu-25.10-64:
                   workers: 8
@@ -671,9 +673,6 @@ backends:
             - ubuntu-24.04-64:
                   username: ubuntu
                   password: ubuntu
-            - ubuntu-25.04-64:
-                  username: ubuntu
-                  password: ubuntu
             - debian-12-64:
                   username: debian
                   password: debian
@@ -701,24 +700,7 @@ backends:
             # Spread does not expose any settings to ad-hoc backends.
             export QEMU_MEM_OPTION="-m 3072"
             export QEMU_SMP_OPTION="-smp 4"
-            # Convert convention of system names used by snapd to corresponding image-garden name:
-            # - amazon-linux-2023-64    => amazonlinux-cloud-2023-$(uname -m)
-            # - arch-linux-64           => archlinux-cloud.$(uname -m)
-            # - centos-10-64            => centos-cloud-10.$(uname -m)
-            # - debian-sid-64           => debian-cloud-sid.$(uname -m)
-            # - fedora-42-64            => fedora-cloud-42.$(uname -m)
-            # - opensuse-tumbleweed-64  => opensuse-cloud-tumbleweed.$(uname -m)
-            # - ubuntu-24.04-64         => ubuntu-cloud-24.04.$(uname -m)
-            # - ubuntu-core-24-64       => ubuntu-cloud-24.04.$(uname -m)
-            exec image-garden allocate "$(echo "$SPREAD_SYSTEM" | sed \
-              -e 's/ubuntu-core-16/ubuntu-16.04/' \
-              -e 's/ubuntu-core-18/ubuntu-18.04/' \
-              -e 's/ubuntu-core-20/ubuntu-20.04/' \
-              -e 's/ubuntu-core-22/ubuntu-22.04/' \
-              -e 's/ubuntu-core-24/ubuntu-24.04/' \
-              -e 's/\(\w\+\)-linux/\1linux/' \
-              -e 's/\(\w\+\)/\1-cloud/' \
-              -e 's/-64$/.'"$(uname -m)"'/g')"
+            exec image-garden allocate "$(.image-garden/remap-name snapd-to-garden "$SPREAD_SYSTEM")"
         discard: |
             # Spread automatically injects /snap/bin to PATH. When we are
             # running from the image-garden snap then SPREAD_HOST_PATH is the
@@ -769,9 +751,6 @@ backends:
             - ubuntu-24.04-64:
                   username: root
                   password: root
-            - ubuntu-25.04-64:
-                  username: root
-                  password: root
             - ubuntu-25.10-64:
                   username: root
                   password: root
@@ -797,6 +776,9 @@ backends:
                   username: root
                   password: root
             - arch-linux-64:
+                  username: root
+                  password: root
+            - amazon-linux-2-64:
                   username: root
                   password: root
             - amazon-linux-2023-64:
@@ -1235,6 +1217,7 @@ prepare: |
     fi
 
     if [[ "$SPREAD_SYSTEM" == ubuntu-fips-* ]]; then
+        pro refresh
         pro status
 
         if [[ "$SPREAD_REBOOT" = 0 ]]; then
@@ -1423,7 +1406,7 @@ suites:
         restore-each: |
             "$TESTSLIB"/prepare-restore.sh --restore-suite-each-minimal-no-snaps
     tests/utils/cross-build/suite/:
-        summary: Test building snapd in different architectures        
+        summary: Test building snapd in different architectures
         manual: true
         prepare-each: |
             "$TESTSLIB"/prepare-restore.sh --prepare-suite-each-minimal-no-snaps
@@ -1641,7 +1624,6 @@ suites:
         summary: Tests for nested images controlled manually from the tests
         backends:
             - google-nested
-            - google-nested-dev
             - qemu-nested
             - google-nested-arm
             - garden
@@ -1722,7 +1704,6 @@ suites:
         summary: Tests for nested images
         backends:
             - google-nested
-            - google-nested-dev
             - qemu-nested
             - google-nested-arm
             - openstack-ext-ps7
@@ -1784,7 +1765,6 @@ suites:
         summary: Tests for nested images
         backends:
             - google-nested
-            - google-nested-dev
             - qemu-nested
             - google-nested-arm
             - openstack-ext-ps7
@@ -1857,7 +1837,6 @@ suites:
         summary: Performance and Load tests preparation suite
         backends:
             - google-nested
-            - google-nested-dev
             - qemu-nested
             - google-nested-arm
             - openstack-ext-ps7

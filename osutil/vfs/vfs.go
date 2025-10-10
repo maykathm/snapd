@@ -69,7 +69,6 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
-	"unsafe"
 
 	"github.com/snapcore/snapd/osutil/vfs/lists"
 )
@@ -106,13 +105,13 @@ type mount struct {
 
 	// Links to parent, children and siblings. Any of those may be nil.
 	parent    *mount
-	children  lists.List[mount, viaChildNode]
+	children  lists.List[mount]
 	childNode lists.Node[mount]
 }
 
 type viaChildNode struct{}
 
-func (viaChildNode) Offset(m *mount) uintptr { return unsafe.Offsetof(m.childNode) }
+func (viaChildNode) NodePointer(m *mount) *lists.Node[mount] { return &m.childNode }
 
 func (m *mount) mountPoint() string {
 	if m == nil {
@@ -159,10 +158,12 @@ type VFS struct {
 // NewVFS returns a VFS with the given root file system mounted.
 func NewVFS(rootFS fs.StatFS) *VFS {
 	return &VFS{mounts: []*mount{{
+		// TODO: this should be zero, the RootMountID value is special only when searching.
 		mountID:  RootMountID,
 		parentID: RootMountID, // The rootfs is its own parent to prevent being unmounted.
-		isDir:    true,
-		fsFS:     rootFS,
+		// FIXME: [mount.parent] is nil but perhaps should not be, for consistency with the logic above.
+		isDir: true,
+		fsFS:  rootFS,
 	}}}
 }
 
@@ -182,7 +183,7 @@ func (v *VFS) attachMount(parent *mount, child *mount) {
 	child.mountID = v.allocateMountID()
 
 	child.parent = parent
-	parent.children.Append(child)
+	parent.children.Append(lists.ContainedNode[viaChildNode](child))
 
 	v.mounts = append(v.mounts, child)
 }
@@ -198,7 +199,7 @@ func (v *VFS) detachMount(m *mount, idx int) {
 	m.parentID = 0
 	m.mountID = 0
 
-	// TODO: use slices from future go to avoid this hand-crafted surgery.
+	// TODO:GOVERSION: use slices from future go to avoid this hand-crafted surgery.
 	v.mounts = append(v.mounts[:idx], v.mounts[idx+1:]...)
 }
 

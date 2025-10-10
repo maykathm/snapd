@@ -478,7 +478,19 @@ prepare_classic() {
         rm -rf "$build_dir"
         mkdir -p "$build_dir"
         build_snapd_snap "$build_dir"
-        snap install --dangerous "$build_dir/"snapd_*.snap
+        case "$SPREAD_SYSTEM" in
+            ubuntu-fips-24.04-*)
+                # we're expecting snapd installation to fail due to SNAPDENG-35482
+                not snap install --dangerous "$build_dir/"snapd_*.snap
+                journalctl -u snapd | MATCH "opensslcrypto: can't enable FIPS mode for OpenSSL"
+                echo "this failure is expected"
+                exit 1
+                ;;
+            *)
+                # we're expecting snapd installation to fail due to SNAPDENG-
+                snap install --dangerous "$build_dir/"snapd_*.snap
+                ;;
+        esac
         snap wait system seed.loaded
     fi
     snap list snapd
@@ -1527,7 +1539,7 @@ EOF
 
         # also add debug command line parameters to the kernel command line via
         # the gadget in case things go side ways and we need to debug
-        snap download --basename=pc --channel="${BRANCH}/${KERNEL_CHANNEL}" pc
+        snap download --basename=pc --channel="${BRANCH}/${GADGET_CHANNEL}" pc
         test -e pc.snap
         unsquashfs -d pc-gadget pc.snap
         # TODO: it would be desirable when we need to do in-depth debugging of
@@ -1849,7 +1861,11 @@ prepare_ubuntu_core() {
         setup_reflash_magic
         REBOOT
     fi
-    retry -n 5 --wait 1 sh -c 'systemctl is-enabled snapd'
+
+    # Wait until snapd  is-active
+    retry -n 5 --wait 1 sh -c 'systemctl is-enabled snapd snapd.socket'
+    retry -n 5 --wait 1 sh -c 'systemctl is-active snapd snapd.socket'
+
     setup_snapd_proxy
 
     disable_journald_rate_limiting
@@ -1869,6 +1885,7 @@ prepare_ubuntu_core() {
         # shellcheck disable=SC2016
         retry -n 120 --wait 1 sh -c 'test "$(command -v snap)" = /usr/bin/snap && snap version | grep -E -q "snapd +1337.*"'
     fi
+
 
     # Wait for seeding to finish.
     snap wait system seed.loaded

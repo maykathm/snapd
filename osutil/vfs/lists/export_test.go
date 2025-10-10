@@ -19,11 +19,20 @@
 
 package lists
 
+func (n *Node[T]) Next() *Node[T] { return n.next }
+func (n *Node[T]) Prev() *Node[T] { return n.prev }
+func (n *Node[T]) Container() *T  { return n.container }
+func (n *Node[T]) LazyInit()      { n.lazyInit() }
+func (l *List[T]) Head() *Node[T] { return &l.head }
+func (l *List[T]) Next() *Node[T] { return l.head.next }
+func (l *List[T]) Prev() *Node[T] { return l.head.prev }
+func (l *List[T]) LazyInit()      { l.head.lazyInit() }
+
 // At returns the Nth element of the list.
 //
 // Positive indices iterate first-to-last, with 0 being the first visited element.
 // Negative indices iterate last-to-first, with -1 being the first visited element.
-func (l *List[T, O]) At(n int) (e *T) {
+func (l *List[T]) At(n int) (e *T) {
 	var idx int
 	if n >= 0 {
 		l.FirstToLast()(func(el *T) bool {
@@ -45,4 +54,9 @@ func (l *List[T, O]) At(n int) (e *T) {
 		})
 	}
 	return e
+}
+
+// HeadContainer returns the container of the head element of the list.
+func (l *List[T]) HeadContainer() *T {
+	return l.head.container
 }
