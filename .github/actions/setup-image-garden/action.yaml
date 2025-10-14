@@ -87,6 +87,7 @@ runs:
           shell: bash
           run: sudo chmod -v 666 /dev/kvm
         - name: Install image garden
+          shell: bash
           run: |
             git clone https://gitlab.com/zygoon/image-garden.git -b 'v0.3.4' /tmp/image-garden
             sudo make install -C /tmp/image-garden
