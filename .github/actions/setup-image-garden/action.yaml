@@ -91,11 +91,13 @@ runs:
             git clone https://gitlab.com/zygoon/image-garden.git -b 'v0.3.4' /tmp/image-garden
             sudo make install -C /tmp/image-garden
         - name: Install spread
+          shell: bash
           run: |
             git clone https://github.com/maykathm/spread.git -b 'spread-plus-main' /tmp/spread
             cd /tmp/spread
             sudo go build -o /usr/bin ./...
         - name: Install dependencies
+          shell: bash
           run: sudo apt install -y ovmf whois xorriso qemu-system-x86
         - name: Make the virtual machine image (dry run)
           shell: bash
