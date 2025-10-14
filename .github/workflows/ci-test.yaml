@@ -460,7 +460,7 @@ jobs:
     runs-on: ubuntu-latest
     # This dependency only serves to ensure this job runs after the
     # labeler finishes its work
-    needs: snap-builds
+    # needs: snap-builds
     env:
       GH_TOKEN: ${{ github.token }}
     outputs:
