@@ -100,28 +100,28 @@ runs:
         - name: Install dependencies
           shell: bash
           run: sudo apt install -y ovmf whois xorriso qemu-system-x86
-        - name: Make the virtual machine image (dry run)
-          shell: bash
-          run: |
-            echo "::group::Make the virtual machine image (dry run)"
-            mkdir -p ~/snap/image-garden/common/cache/dl
-            image-garden make --debug --dry-run \
-              ${{ inputs.garden-system }}."$(uname -m)".qcow2
-            echo "::endgroup::"
-        - name: Make the virtual machine image
-          shell: bash
-          run: |
-            echo "::group::Make the virtual machine image"
-            image-garden make \
-              ${{ inputs.garden-system }}."$(uname -m)".qcow2 \
-              ${{ inputs.garden-system }}."$(uname -m)".run \
-              ${{ inputs.garden-system }}."$(uname -m)".user-data \
-              ${{ inputs.garden-system }}."$(uname -m)".meta-data \
-              ${{ inputs.garden-system }}."$(uname -m)".seed.iso
-            echo "::endgroup::"
-        - name: Rebase the virtual machine image
-          shell: bash
-          # TODO: only run this if there was a cache hit.
-          if: ${{ fromJSON(inputs.cache-prepared-images) }}
-          run: |
-            image-garden rebase ${{ inputs.garden-system }}."$(uname -m)".qcow2
+        # - name: Make the virtual machine image (dry run)
+        #   shell: bash
+        #   run: |
+        #     echo "::group::Make the virtual machine image (dry run)"
+        #     mkdir -p ~/snap/image-garden/common/cache/dl
+        #     image-garden make --debug --dry-run \
+        #       ${{ inputs.garden-system }}."$(uname -m)".qcow2
+        #     echo "::endgroup::"
+        # - name: Make the virtual machine image
+        #   shell: bash
+        #   run: |
+        #     echo "::group::Make the virtual machine image"
+        #     image-garden make \
+        #       ${{ inputs.garden-system }}."$(uname -m)".qcow2 \
+        #       ${{ inputs.garden-system }}."$(uname -m)".run \
+        #       ${{ inputs.garden-system }}."$(uname -m)".user-data \
+        #       ${{ inputs.garden-system }}."$(uname -m)".meta-data \
+        #       ${{ inputs.garden-system }}."$(uname -m)".seed.iso
+        #     echo "::endgroup::"
+        # - name: Rebase the virtual machine image
+        #   shell: bash
+        #   # TODO: only run this if there was a cache hit.
+        #   if: ${{ fromJSON(inputs.cache-prepared-images) }}
+        #   run: |
+        #     image-garden rebase ${{ inputs.garden-system }}."$(uname -m)".qcow2
