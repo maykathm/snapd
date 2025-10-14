@@ -505,11 +505,12 @@ jobs:
       rules: ''
       use-snapd-snap-from-master: true
     strategy:
-      include:
-        - group: jammy
-          backend: google
-          systems: 'ubuntu-22.04-64'
-          tasks: 'tests/main/apparmor-prompting-integration-tests tests/main/interfaces-requests-activates-handlers'
+      matrix:
+        include:
+          - group: jammy
+            backend: google
+            systems: 'ubuntu-22.04-64'
+            tasks: 'tests/main/apparmor-prompting-integration-tests tests/main/interfaces-requests-activates-handlers'
 
 
   spread-fundamental:
