@@ -183,7 +183,7 @@ jobs:
       run: sudo chmod -v 666 /dev/kvm
 
     - name: install ovmf
-      run: sudo apt install -y ovmf
+      run: sudo apt install -y ovmf whois xorriso qemu-system-x86
 
     - name: Install Image Garden
       run: |
