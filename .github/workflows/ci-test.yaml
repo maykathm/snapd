@@ -493,7 +493,7 @@ jobs:
   #         fi
 
   spread-image-garden:
-    uses: ./.github/workflows/spread-ig-tests.yaml
+    uses: ./.github/workflows/spread-tests.yaml
     name: "spread IG ${{ matrix.group }}"
     with:
       runs-on: '["ubuntu-latest"]'
