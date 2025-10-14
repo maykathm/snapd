@@ -168,7 +168,7 @@ jobs:
 
     - name: Setup for local run
       if: ${{ inputs.backend == 'garden' }}
-      uses: .github/actions/setup-image-garden
+      uses: ./.github/actions/setup-image-garden
       with:
         garden-system: ${{ inputs.systems }}
 
