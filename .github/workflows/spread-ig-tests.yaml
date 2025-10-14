@@ -182,6 +182,9 @@ jobs:
     - name: Make permissions on /dev/kvm more lax
       run: sudo chmod -v 666 /dev/kvm
 
+    - name: install ovmf
+      run: sudo apt install -y ovmf
+
     - name: Install Image Garden
       run: |
         git clone https://gitlab.com/zygoon/image-garden.git -b 'v0.3.4' /tmp/image-garden
