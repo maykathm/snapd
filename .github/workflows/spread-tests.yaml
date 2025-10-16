@@ -166,11 +166,12 @@ jobs:
               echo "FAILED_TESTS=$FAILED_TESTS" >> $GITHUB_ENV
           fi
 
-    - name: Setup for local run
+    - name: Setup spread for local run
       if: ${{ inputs.backend == 'garden' }}
-      uses: ./.github/actions/setup-image-garden
-      with:
-        garden-system: ${{ inputs.systems }}
+      run: |
+          git clone https://github.com/canonical/spread-plus.git /tmp/spread
+          cd /tmp/spread
+          sudo go build -o /usr/bin ./...
 
     - name: Setup run tests variable
       if: ${{ env.SKIP_SPREAD_LABEL != 'true' }}
@@ -437,13 +438,30 @@ jobs:
           # "pipefail" ensures that a non-zero status from the spread is
           # propagated; and we use a subshell as this option could trigger
           # undesired changes elsewhere
-          echo "Running command: $SPREAD $RUN_TESTS"
-          (
-            set -o pipefail 
-            $SPREAD $SPREAD_FLAGS $RUN_TESTS | \
-              ./tests/lib/external/snapd-testing-tools/utils/log-filter $FILTER_PARAMS | \
-              tee spread.log
-          )
+          # echo "Running command: $SPREAD $RUN_TESTS"
+          # (
+          #   set -o pipefail 
+          #   $SPREAD $SPREAD_FLAGS $RUN_TESTS | \
+          #     ./tests/lib/external/snapd-testing-tools/utils/log-filter $FILTER_PARAMS | \
+          #     tee spread.log
+          # )
+
+    - name: Run spread in self-hosted
+      if: ${{ inputs.backend != 'garden' }}
+      run: exit 0
+
+    - name: Get garden system
+      if: ${{ inputs.backend == 'garden' }}
+      run: echo "GARDEN_SYSTEM=$(image-garden/remap-name snapd-to-garden "$SPREAD_SYSTEM")"" >> $GITHUB_ENV
+
+    - name: Run spread in github-hosted
+      if: ${{ inputs.backend == 'garden' }}
+      uses: zyga/image-garden-action@d44ef66b28e181e441fc3e8db871018df40b62d3
+      with:
+        garden-system: env.GARDEN_SYSTEM
+        image-garden-channel: 'latest/edge'
+        spread-tasks: env.RUN_TESTS
+        spread-artifacts: artifacts
 
     - name: Discard spread workers
       if: always()
