@@ -497,7 +497,7 @@ jobs:
     name: "spread ${{ matrix.group }}"
     needs: read-systems
     with:
-      runs-on: "${{ matrix.runs-on }}"
+      runs-on: '${{ matrix.runs-on }}'
       group: ${{ matrix.group }}
       backend: ${{ matrix.backend }}
       alternative-backend: ${{ matrix.alternative-backend }}
