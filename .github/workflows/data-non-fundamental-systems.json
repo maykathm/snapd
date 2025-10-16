@@ -1,7 +1,7 @@
 {
     "include": [
       {
-        "runs-on": ["ubuntu-latest"],
+        "runs-on": "['ubuntu-latest']",
         "group": "jammy (garden)",
         "backend": "garden",
         "alternative-backend": "google",
@@ -10,7 +10,7 @@
         "rules": ""
       },
       {
-        "runs-on": ["ubuntu-latest"],
+        "runs-on": "['ubuntu-latest']",
         "group": "ubuntu-core-18 (garden)",
         "backend": "garden",
         "alternative-backend": "google-core",
