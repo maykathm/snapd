@@ -458,9 +458,9 @@ jobs:
       if: ${{ inputs.backend == 'garden' }}
       uses: zyga/image-garden-action@d44ef66b28e181e441fc3e8db871018df40b62d3
       with:
-        garden-system: env.GARDEN_SYSTEM
+        garden-system: ${{ env.GARDEN_SYSTEM }}
         image-garden-channel: 'latest/edge'
-        spread-tasks: env.RUN_TESTS
+        spread-tasks: ${{ env.RUN_TESTS }}
         spread-artifacts: artifacts
 
     - name: Discard spread workers
