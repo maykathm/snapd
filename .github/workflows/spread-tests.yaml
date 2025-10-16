@@ -452,7 +452,7 @@ jobs:
 
     - name: Get garden system
       if: ${{ inputs.backend == 'garden' }}
-      run: echo "GARDEN_SYSTEM=$(image-garden/remap-name snapd-to-garden "$SPREAD_SYSTEM")"" >> $GITHUB_ENV
+      run: echo "GARDEN_SYSTEM=$(.image-garden/remap-name snapd-to-garden "$SPREAD_SYSTEM")"" >> $GITHUB_ENV
 
     - name: Run spread in github-hosted
       if: ${{ inputs.backend == 'garden' }}
