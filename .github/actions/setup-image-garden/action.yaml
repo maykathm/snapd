@@ -77,10 +77,14 @@ runs:
         - name: Install image garden
           shell: bash
           run: |
-            sudo snap install image-garden --channel latest/edge
+            git clone https://gitlab.com/zygoon/image-garden.git -b 'v0.3.4' /tmp/image-garden
+            sudo make install -C /tmp/image-garden
         - name: Install spread
           shell: bash
           run: |
             git clone https://github.com/canonical/spread-plus.git /tmp/spread
             cd /tmp/spread
             sudo go build -o /usr/bin ./...
+        - name: Install dependencies
+          shell: bash
+          run: sudo apt install -y ovmf whois xorriso qemu-system-x86
