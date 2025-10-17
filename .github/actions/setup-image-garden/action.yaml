@@ -48,13 +48,13 @@ runs:
           if: ${{ fromJSON(inputs.cache-host-snaps) }}
           uses: actions/cache@v4
           with:
-            path: .image-garden/host-snap-cache
+            path: .image-garden/cache/snaps
             key: host-snaps
         - name: Cache pristine virtual machine images
           if: ${{ fromJSON(inputs.cache-pristine-images) }}
           uses: actions/cache@v4
           with:
-            path: ~/snap/image-garden/common/cache/dl
+            path: ~/.cache/image-garden/dl
             key: image-garden-dl-${{ inputs.garden-system }}
         - name: Restore mtime of .image-garden.mk
           shell: bash
