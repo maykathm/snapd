@@ -447,9 +447,9 @@ jobs:
 
     - name: Check caches
       run: |
-        ll .image-garden/cache
-        ll .image-garden/cache/snaps
-        ll ~/.cache/image-garden/dl
+        ls -la .image-garden/cache
+        ls -la .image-garden/cache/snaps
+        ls -la ~/.cache/image-garden/dl
 
     - name: Discard spread workers
       if: always()
