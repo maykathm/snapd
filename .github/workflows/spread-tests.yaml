@@ -445,6 +445,12 @@ jobs:
               tee spread.log
           )
 
+    - name: Check caches
+      run: |
+        ll .image-garden/cache
+        ll .image-garden/cache/snaps
+        ll ~/.cache/image-garden/dl
+
     - name: Discard spread workers
       if: always()
       run: |
