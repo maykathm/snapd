@@ -25,8 +25,6 @@ inputs:
   
 runs:
   using: "composite"
-  env:
-    GH_TOKEN: ${{ github.token }}
   steps:
   - name: list options
     shell: bash
@@ -66,6 +64,8 @@ runs:
 
   - name: Download built snap (amd64) from master
     if: "${{ inputs.use-master-push }}"
+    env:
+      GH_TOKEN: ${{ github.token }}
     shell: bash
     run: |
       filename=
