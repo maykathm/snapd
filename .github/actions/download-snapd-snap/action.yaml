@@ -26,6 +26,14 @@ inputs:
 runs:
   using: "composite"
   steps:
+  - name: list options
+    shell: bash
+    run: |
+      echo "master push ${{ inputs.use-master-push }}"
+      echo " is amd ${{ inputs.is-amd }}"
+      echo " is arm ${{ inputs.is-arm }}"
+      echo " is fips ${{ inputs.is-fips }}"
+
   - name: Download built snap (amd64)
     uses: actions/download-artifact@v5
     if: "${{ !inputs.use-master-push && inputs.is-amd && !inputs.is-fips }}"
