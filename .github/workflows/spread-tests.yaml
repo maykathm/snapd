@@ -311,26 +311,36 @@ jobs:
         done
         echo "SPREAD_USE_PREBUILT_PACKAGES=$SPREAD_USE_PREBUILT_PACKAGES" >> $GITHUB_ENV
 
-    - name: Check
+    - name: Set type of snapd snap to download
       env:
         AMD: ${{ contains(inputs.group, '-amd64') }}
         ARM: ${{ contains(inputs.group, '-arm64') }}
         FIPS: ${{ contains(inputs.group, '-fips') }}
       run: |
-        echo "amd is $AMD"
-        echo "arm is $ARM"
-        echo "fips is $FIPS"
+        if [[ "${{ contains(inputs.group, '-amd64') }}" == "true" ]]; then
+          echo "IS_AMD=true" >> $GITHUB_ENV
+        else
+          echo "IS_AMD=false" >> $GITHUB_ENV
+        fi
+        if [[ "${{ contains(inputs.group, '-arm64') }}" == "true" ]]; then
+          echo "IS_ARM=true" >> $GITHUB_ENV
+        else
+          echo "IS_ARM=false" >> $GITHUB_ENV
+        fi
+        if [[ "${{ contains(inputs.group, '-fips') }}" == "true" ]]; then
+          echo "IS_FIPS=true" >> $GITHUB_ENV
+        else
+          echo "IS_FIPS=false" >> $GITHUB_ENV
+        fi
 
     - name: Download snapd snap
       if: ${{ env.SKIP_SPREAD_LABEL != 'true' }}
       uses: ./.github/actions/download-snapd-snap
-      env:
-        MASTER_PUSH: ${{ inputs.use-snapd-snap-from-master }}
       with:
         use-master-push: ${{ inputs.use-snapd-snap-from-master }}
-        is-amd: ${{ !contains(inputs.group, '-amd64') || true }}
-        is-arm: ${{ !contains(inputs.group, '-arm64') || true }}
-        is-fips: ${{ !contains(inputs.group, '-fips') || true }}
+        is-amd: ${{ env.IS_AMD }}
+        is-arm: ${{ env.IS_ARM }}
+        is-fips: ${{ env.IS_FIPS }}
 
     - name: Run spread tests
       if: ${{ env.SKIP_SPREAD_LABEL != 'true' }}
