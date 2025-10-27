@@ -28,7 +28,7 @@ runs:
   steps:
   - name: Download built snap (amd64)
     uses: actions/download-artifact@v5
-    if: "${{ inputs.use-master-push = 'false' && inputs.is-amd = 'true' && inputs.is-fips = 'false' }}"
+    if: "${{ inputs.use-master-push == 'false' && inputs.is-amd == 'true' && inputs.is-fips == 'false' }}"
     with:
       name: snap-files-amd64-default-test
       # eg. snapd_1337.2.65.1+g97.d35b459_amd64.snap
