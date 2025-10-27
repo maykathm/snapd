@@ -316,12 +316,12 @@ jobs:
       uses: ./.github/actions/download-snapd-snap
       env:
         MASTER_PUSH: ${{ inputs.use-snapd-snap-from-master }}
-        AMD: ${{ contains(inputs.group, '-amd64') }}
+        AMD: ${{ contains(inputs.group, '-amd64') && true }}
         ARM: ${{ contains(inputs.group, '-arm64') == 'true' }}
       with:
         use-master-push: ${{ env.MASTER_PUSH }}
-        is-amd: ${{ env.AMD == 'true' }}
-        is-arm: ${{ env.ARM == 'true' }}
+        is-amd: ${{ contains(inputs.group, '-amd64') && true }}
+        is-arm: ${{ contains(inputs.group, '-arm64') || true }}
         is-fips: ${{ contains(inputs.group, '-fips') }}
 
     - name: Run spread tests
