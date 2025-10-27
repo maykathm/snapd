@@ -314,8 +314,10 @@ jobs:
     - name: Download snapd snap
       if: ${{ env.SKIP_SPREAD_LABEL != 'true' }}
       uses: ./.github/actions/download-snapd-snap
+      env:
+        MASTER_PUSH: ${{ inputs.use-snapd-snap-from-master }}
       with:
-        use-master-push: ${{ inputs.use-snapd-snap-from-master == 'true' }}
+        use-master-push: ${{ env.MASTER_PUSH }}
         is-amd: ${{ contains(inputs.group, '-amd64') == true }}
         is-arm: ${{ contains(inputs.group, '-arm64') }}
         is-fips: ${{ contains(inputs.group, '-fips') }}
