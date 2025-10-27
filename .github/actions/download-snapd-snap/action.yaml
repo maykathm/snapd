@@ -68,6 +68,7 @@ runs:
       GH_TOKEN: ${{ github.token }}
     shell: bash
     run: |
+      set -x
       filename=
       if [[ "${{ inputs.is-fips }}" = "true" ]]; then
         filename="snap-files-amd64-FIPS-test"
