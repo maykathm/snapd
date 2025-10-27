@@ -25,6 +25,8 @@ inputs:
   
 runs:
   using: "composite"
+  env:
+    GH_TOKEN: ${{ github.token }}
   steps:
   - name: list options
     shell: bash
