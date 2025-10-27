@@ -338,9 +338,9 @@ jobs:
       uses: ./.github/actions/download-snapd-snap
       with:
         use-master-push: ${{ inputs.use-snapd-snap-from-master }}
-        is-amd: ${{ env.IS_AMD }}
-        is-arm: ${{ env.IS_ARM }}
-        is-fips: ${{ env.IS_FIPS }}
+        is-amd: ${{ !contains(inputs.group, '-arm64') }}
+        is-arm: ${{ contains(inputs.group, '-arm64') }}
+        is-fips: ${{ contains(inputs.group, '-fips') }}
 
     - name: Run spread tests
       if: ${{ env.SKIP_SPREAD_LABEL != 'true' }}
