@@ -10,6 +10,120 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  snap-builds:
+    uses: ./.github/workflows/snap-builds.yaml
+    with:
+      runs-on: ${{ matrix.runs-on }}
+      toolchain: ${{ matrix.toolchain }}
+      variant: ${{ matrix.variant }}
+    strategy:
+      matrix:
+        runs-on:
+          - '["ubuntu-22.04"]'
+          - ${{ github.event.repository.private && '["self-hosted", "Linux", "jammy", "ARM64", "large"]' || '["ubuntu-22.04-arm"]' }}
+        toolchain:
+          - default
+          - FIPS
+        variant:
+          - test
+        # Exclude building everything for ARM but the version for testing
+        # to keep the number of builds down as we currently don't have a
+        # clear need for these excluded builds.
+        exclude:
+          - runs-on: ${{ github.event.repository.private && '["self-hosted", "Linux", "jammy", "ARM64", "large"]' || '["ubuntu-22.04-arm"]' }}
+            toolchain: FIPS
+
+  read-systems:
+    runs-on: ubuntu-latest
+    # This dependency only serves to ensure this job runs after the
+    # labeler finishes its work
+    needs: snap-builds
+    env:
+      GH_TOKEN: ${{ github.token }}
+    outputs:
+      fundamental-systems: ${{ steps.read-systems.outputs.fundamental-systems }}
+      non-fundamental-systems: ${{ steps.read-systems.outputs.non-fundamental-systems }}
+      nested-systems: ${{ steps.read-systems.outputs.nested-systems }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Read matrix file
+        id: read-systems
+        shell: bash
+        run: |
+          echo "fundamental-systems=$(jq -c . ./.github/workflows/data-fundamental-systems.json)" >> $GITHUB_OUTPUT
+          echo "non-fundamental-systems=$(jq -c . ./.github/workflows/data-non-fundamental-systems.json)" >> $GITHUB_OUTPUT
+          echo "nested-systems=$(jq -c . ./.github/workflows/data-nested-systems.json)" >> $GITHUB_OUTPUT
+
+          if [ -n "${{ github.event.pull_request.number }}" ]; then
+            labels=$(gh pr view ${{ github.event.pull_request.number }} --repo github.com/canonical/snapd --json labels | jq -r '.labels[].name')
+            if grep -q '^Run only one system$' <<<$labels; then
+              # filter out all other systems but this one single system
+              single_system=ubuntu-24.04-64
+              echo "fundamental-systems=$(jq -c ".include |= map(select(.systems == \"$single_system\"))" .github/workflows/data-fundamental-systems.json)" >> $GITHUB_OUTPUT
+              echo "non-fundamental-systems=" >> $GITHUB_OUTPUT
+              if ! grep -q '^Run nested$' <<<$labels; then
+                echo "nested-systems=" >> $GITHUB_OUTPUT
+              fi
+            fi
+          fi
+
+  spread-fundamental:
+    uses: ./.github/workflows/spread-tests.yaml
+    needs: [snap-builds, read-systems]
+    if: needs.read-systems.outputs.fundamental-systems != ''
+    name: "spread ${{ matrix.group }}"
+    with:
+      # Github doesn't support passing sequences as parameters.
+      # Instead here we create a json array and pass it as a string.
+      # Then in the spread workflow it turns it into a sequence 
+      # using the fromJSON expression.
+      runs-on: '["ubuntu-latest"]'
+      group: ${{ matrix.group }}
+      backend: ${{ matrix.backend }}
+      alternative-backend: ${{ matrix.alternative-backend }}
+      systems: ${{ matrix.systems }}
+      tasks: ${{ matrix.tasks }}
+      rules: ${{ matrix.rules }}
+      is-fundamental: true
+    strategy:
+      # FIXME: enable fail-fast mode once spread can cancel an executing job.
+      # Disable fail-fast mode as it doesn't function with spread. It seems
+      # that cancelling tasks requires short, interruptible actions and
+      # interrupting spread, notably, does not work today. As such disable
+      # fail-fast while we tackle that problem upstream.
+      fail-fast: false
+      matrix: ${{ fromJson(needs.read-systems.outputs.fundamental-systems) }}
+      matrix: ${{ fromJson(needs.read-systems.outputs.non-fundamental-systems) }}
+
+  spread-not-fundamental-not-pr:
+    uses: ./.github/workflows/spread-tests.yaml
+    # For workflow runs that are not for PRs, no need to impose a dependency
+    # on the fundamental systems job's success before running this job.
+    needs: [snap-builds, read-systems]
+    name: "spread ${{ matrix.group }}"
+    with:
+      # Github doesn't support passing sequences as parameters.
+      # Instead here we create a json array and pass it as a string.
+      # Then in the spread workflow it turns it into a sequence 
+      # using the fromJSON expression.
+      runs-on: '["ubuntu-latest"]'
+      group: ${{ matrix.group }}
+      backend: ${{ matrix.backend }}
+      alternative-backend: ${{ matrix.alternative-backend }}
+      systems: ${{ matrix.systems }}
+      tasks: ${{ matrix.tasks }}
+      rules: ${{ matrix.rules }}
+    strategy:
+      # FIXME: enable fail-fast mode once spread can cancel an executing job.
+      # Disable fail-fast mode as it doesn't function with spread. It seems
+      # that cancelling tasks requires short, interruptible actions and
+      # interrupting spread, notably, does not work today. As such disable
+      # fail-fast while we tackle that problem upstream.
+      fail-fast: false
+      matrix: ${{ fromJson(needs.read-systems.outputs.non-fundamental-systems) }}
+
   test-downloads:
     runs-on: ubuntu-latest
     strategy:
