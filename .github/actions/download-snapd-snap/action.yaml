@@ -19,7 +19,7 @@ inputs:
     type: boolean
   download-folder:
     description: 'Where to save downloaded snap'
-    requried: false
+    required: false
     type: string
     default: "${{ github.workspace }}/built-snap"
   
@@ -71,7 +71,7 @@ runs:
         filename="snap-files-amd64-FIPS-test"
       elif [[ "${{ inputs.is-amd }}" ]]; then
         filename="snap-files-amd64-default-test"
-      elfi [[ "${{ inputs.is-arm }}" ]]; then
+      elif [[ "${{ inputs.is-arm }}" ]]; then
         filename="snap-files-arm64-default-test"
       fi
       run="$(gh run list -w ci-master-push.yaml --json number,status --jq '.[] | select(.status = "completed") | .number' | head -1)"

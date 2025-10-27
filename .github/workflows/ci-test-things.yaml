@@ -18,7 +18,7 @@ jobs:
           - true
           - false
         is-amd:
-          - true:
+          - true
           - false
         is-arm:
           - true
@@ -38,9 +38,9 @@ jobs:
     - name: download snap
       uses: ./.github/actions/download-snapd-snap
       with:
-        use-master-push: ${{ inputs.use-master-push }}
-        is-amd: ${{ inputs.is-amd }}
-        is-arm: ${{ inputs.is-arm }}
-        is-fips: ${{ inputs.is-fips }}
+        use-master-push: ${{ matrix.use-master-push }}
+        is-amd: ${{ matrix.is-amd }}
+        is-arm: ${{ matrix.is-arm }}
+        is-fips: ${{ matrix.is-fips }}
     - name: ls
       run: ls
