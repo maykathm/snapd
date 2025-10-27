@@ -320,8 +320,8 @@ jobs:
         ARM: ${{ contains(inputs.group, '-arm64') == 'true' }}
       with:
         use-master-push: ${{ env.MASTER_PUSH }}
-        is-amd: ${{ env.AMD }}
-        is-arm: ${{ env.ARM }}
+        is-amd: ${{ env.AMD == 'true' }}
+        is-arm: ${{ env.ARM == 'true' }}
         is-fips: ${{ contains(inputs.group, '-fips') }}
 
     - name: Run spread tests
