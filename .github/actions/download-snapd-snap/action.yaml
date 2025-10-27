@@ -71,10 +71,13 @@ runs:
       filename=
       if [[ "${{ inputs.is-fips }}" = "true" ]]; then
         filename="snap-files-amd64-FIPS-test"
-      elif [[ "${{ inputs.is-amd }}" ]]; then
+      elif [[ "${{ inputs.is-amd }}" = "true" ]]; then
         filename="snap-files-amd64-default-test"
-      elif [[ "${{ inputs.is-arm }}" ]]; then
+      elif [[ "${{ inputs.is-arm }}" = "true" ]]; then
         filename="snap-files-arm64-default-test"
+      else
+        echo "There are no snapd builds with the specified combination"
+        exit 1
       fi
       run="$(gh run list -w ci-master-push.yaml --json number,status --jq '.[] | select(.status = "completed") | .number' | head -1)"
       gh run download "$run" -n "$filename"
