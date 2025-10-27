@@ -26,14 +26,6 @@ inputs:
 runs:
   using: "composite"
   steps:
-  - name: list options
-    shell: bash
-    run: |
-      echo "master push ${{ inputs.use-master-push }}"
-      echo " is amd ${{ inputs.is-amd }}"
-      echo " is arm ${{ inputs.is-arm }}"
-      echo " is fips ${{ inputs.is-fips }}"
-
   - name: Download built snap (amd64)
     uses: actions/download-artifact@v5
     if: "${{ !inputs.use-master-push && inputs.is-amd && !inputs.is-fips }}"
@@ -70,11 +62,11 @@ runs:
     run: |
       set -x
       filename=
-      if [[ "${{ inputs.is-fips }}" = "true" ]]; then
+      if [[ "${{ inputs.is-fips }}" = "true" ]] && [[ "${{ inputs.is-amd }}" = "true" ]]; then
         filename="snap-files-amd64-FIPS-test"
       elif [[ "${{ inputs.is-amd }}" = "true" ]]; then
         filename="snap-files-amd64-default-test"
-      elif [[ "${{ inputs.is-arm }}" = "true" ]]; then
+      elif [[ "${{ inputs.is-arm }}" = "true" ]] && [[ "${{ inputs.is-fips }}" != "true" ]] ; then
         filename="snap-files-arm64-default-test"
       else
         echo "There are no snapd builds with the specified combination"
