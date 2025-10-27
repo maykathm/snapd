@@ -55,7 +55,7 @@ runs:
       path: "${{ inputs.download-folder }}"
 
   - name: Download built snap (amd64) from master
-    if: "${{ inputs.use-master-push }}"
+    if: "${{ inputs.use-master-push == 'true' }}"
     env:
       GH_TOKEN: ${{ github.token }}
     shell: bash
