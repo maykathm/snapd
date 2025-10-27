@@ -16,7 +16,6 @@ jobs:
       matrix:
         use-master-push: 
           - true
-          - false
         is-amd:
           - true
           - false
