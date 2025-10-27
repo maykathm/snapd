@@ -36,7 +36,7 @@ runs:
       path: "${{ inputs.download-folder }}"
 
   - name: Download built snap (arm64)
-    if: "${{ !inputs.use-master-push && inputs.is-arm && !inputs.is-fips }}"
+    if: "${{ inputs.use-master-push == 'false' && inputs.is-arm == 'true' && inputs.is-fips == 'false' }}"
     uses: actions/download-artifact@v5
     with:
       name: snap-files-arm64-default-test
@@ -47,7 +47,7 @@ runs:
   - name: Download built FIPS snap (amd64)
     uses: actions/download-artifact@v5
     # eg. ubuntu-fips-deb, ubuntu-fips-snap
-    if: "${{ !inputs.use-master-push && inputs.is-fips && inputs.is-amd }}"
+    if: "${{ inputs.use-master-push == 'false' && inputs.is-amd == 'true' && inputs.is-fips == 'true' }}"
     with:
       name: snap-files-amd64-FIPS-test
       # eg. snapd_1337.2.65.1+g97.d35b459-fips_amd64.snap
