@@ -80,7 +80,7 @@ runs:
         echo "There are no snapd builds with the specified combination"
         exit 1
       fi
-      run="$(gh run list -w ci-master-push.yaml --json number,status --jq '.[] | select(.status = "completed") | .number' | head -1)"
+      run="$(gh run list -w ci-master-push.yaml --json databaseId,status --jq '.[] | select(.status = "completed") | .databaseId' | head -1)"
       gh run download "$run" -n "$filename"
       mkdir -p built-snap
       mv snapd*.snap built-snap
