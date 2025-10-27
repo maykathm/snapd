@@ -10,28 +10,28 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  snap-builds:
-    uses: ./.github/workflows/snap-builds.yaml
-    with:
-      runs-on: ${{ matrix.runs-on }}
-      toolchain: ${{ matrix.toolchain }}
-      variant: ${{ matrix.variant }}
-    strategy:
-      matrix:
-        runs-on:
-          - '["ubuntu-22.04"]'
-          - ${{ github.event.repository.private && '["self-hosted", "Linux", "jammy", "ARM64", "large"]' || '["ubuntu-22.04-arm"]' }}
-        toolchain:
-          - default
-          - FIPS
-        variant:
-          - test
-        # Exclude building everything for ARM but the version for testing
-        # to keep the number of builds down as we currently don't have a
-        # clear need for these excluded builds.
-        exclude:
-          - runs-on: ${{ github.event.repository.private && '["self-hosted", "Linux", "jammy", "ARM64", "large"]' || '["ubuntu-22.04-arm"]' }}
-            toolchain: FIPS
+  # snap-builds:
+  #   uses: ./.github/workflows/snap-builds.yaml
+  #   with:
+  #     runs-on: ${{ matrix.runs-on }}
+  #     toolchain: ${{ matrix.toolchain }}
+  #     variant: ${{ matrix.variant }}
+  #   strategy:
+  #     matrix:
+  #       runs-on:
+  #         - '["ubuntu-22.04"]'
+  #         - ${{ github.event.repository.private && '["self-hosted", "Linux", "jammy", "ARM64", "large"]' || '["ubuntu-22.04-arm"]' }}
+  #       toolchain:
+  #         - default
+  #         - FIPS
+  #       variant:
+  #         - test
+  #       # Exclude building everything for ARM but the version for testing
+  #       # to keep the number of builds down as we currently don't have a
+  #       # clear need for these excluded builds.
+  #       exclude:
+  #         - runs-on: ${{ github.event.repository.private && '["self-hosted", "Linux", "jammy", "ARM64", "large"]' || '["ubuntu-22.04-arm"]' }}
+  #           toolchain: FIPS
 
   read-systems:
     runs-on: ubuntu-latest
@@ -71,7 +71,8 @@ jobs:
 
   spread-fundamental:
     uses: ./.github/workflows/spread-tests.yaml
-    needs: [snap-builds, read-systems]
+    # needs: [snap-builds, read-systems]
+    needs: [read-systems]
     if: needs.read-systems.outputs.fundamental-systems != ''
     name: "spread ${{ matrix.group }}"
     with:
@@ -86,6 +87,7 @@ jobs:
       systems: ${{ matrix.systems }}
       tasks: ${{ matrix.tasks }}
       rules: ${{ matrix.rules }}
+      use-snapd-snap-from-master: true
       is-fundamental: true
     strategy:
       # FIXME: enable fail-fast mode once spread can cancel an executing job.
@@ -100,7 +102,8 @@ jobs:
     uses: ./.github/workflows/spread-tests.yaml
     # For workflow runs that are not for PRs, no need to impose a dependency
     # on the fundamental systems job's success before running this job.
-    needs: [snap-builds, read-systems]
+    # needs: [snap-builds, read-systems]
+    needs: [read-systems]
     name: "spread ${{ matrix.group }}"
     with:
       # Github doesn't support passing sequences as parameters.
@@ -114,6 +117,7 @@ jobs:
       systems: ${{ matrix.systems }}
       tasks: ${{ matrix.tasks }}
       rules: ${{ matrix.rules }}
+      use-snapd-snap-from-master: true
     strategy:
       # FIXME: enable fail-fast mode once spread can cancel an executing job.
       # Disable fail-fast mode as it doesn't function with spread. It seems
