@@ -95,7 +95,6 @@ jobs:
       # fail-fast while we tackle that problem upstream.
       fail-fast: false
       matrix: ${{ fromJson(needs.read-systems.outputs.fundamental-systems) }}
-      matrix: ${{ fromJson(needs.read-systems.outputs.non-fundamental-systems) }}
 
   spread-not-fundamental-not-pr:
     uses: ./.github/workflows/spread-tests.yaml
