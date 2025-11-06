@@ -3649,18 +3649,19 @@ func (*viewSuite) TestUnsetNestedList(c *C) {
 }
 
 // Match three different substrings:
-//  1. what begins with a '[' and does not contain a '.' or a '['
-//  2. what does not contain a '.' or a '['
-//  3. what is a '.'
-var subkeyDivide = regexp.MustCompile(`\[[^.\[]*|[^.\[]+|[.]`)
+//  1. what begins with a '[' followed by a '.', a series of characters that are not a '.' or a '[', and ends with a ']'
+//  2. what begins with a '[' and does not contain a '.' or a '[' and ends with a ']'
+//  3. what does not contain a '.' or a '['
+//  4. what is a '.'
+var subkeyDivide = regexp.MustCompile(`\[\.[^.\[]*\]|\[[-.]\]|\[[^.\[]*|[^.\[]+|[.]`)
 
-// Same as the above regex but doesn't match '.'
-var subkeyOnly = regexp.MustCompile(`\[[^.\[]*|[^.\[]+`)
+// Same as the above regex but doesn't match a lone '.'
+var subkeyOnly = regexp.MustCompile(`\[\.[^.\[]*\]|\[[^.\[]*|[^.\[]+`)
 
 func (*viewSuite) TestSubkeyDivideRegex(c *C) {
-	s := "[∀.∃*-l}].[[.."
+	s := "[∀.∃*-l}].[[..[.e]"
 	d := subkeyDivide.FindAllString(s, -1)
-	c.Check(len(d), Equals, 8)
+	c.Check(len(d), Equals, 9)
 	c.Check(d[0], Equals, "[∀")
 	c.Check(d[1], Equals, ".")
 	c.Check(d[2], Equals, "∃*-l}]")
@@ -3669,6 +3670,7 @@ func (*viewSuite) TestSubkeyDivideRegex(c *C) {
 	c.Check(d[5], Equals, "[")
 	c.Check(d[6], Equals, ".")
 	c.Check(d[7], Equals, ".")
+	c.Check(d[8], Equals, "[.e]")
 }
 
 func hasValidSubkeys(s string, o confdb.ParseOptions) bool {
@@ -3757,15 +3759,15 @@ func FuzzParsePathIntoAccessors(f *testing.F) {
 
 func FuzzParsePathIntoAccessorsAllowPlaceholders(f *testing.F) {
 	o := confdb.ParseOptions{AllowPlaceholders: true, AllowPartialPath: false, ForbidIndexes: false}
-	fuzzHelper(f, o, "foo-bar.{baz}[{n}].foo[3]")
+	fuzzHelper(f, o, "foo-bar[.status={status}].{baz}[{n}].foo[3]")
 }
 
 func FuzzParsePathIntoAccessorsAllowPlaceholdersAllowPartialPath(f *testing.F) {
 	o := confdb.ParseOptions{AllowPlaceholders: true, AllowPartialPath: true, ForbidIndexes: false}
-	fuzzHelper(f, o, "[{n}].foo-bar.{baz}[{n}].foo[3]")
+	fuzzHelper(f, o, "[{n}].foo-bar[.status={status}].{baz}[{n}].foo[3]")
 }
 
 func FuzzParsePathIntoAccessorsAllowPlaceholdersForbidIndexes(f *testing.F) {
 	o := confdb.ParseOptions{AllowPlaceholders: true, AllowPartialPath: false, ForbidIndexes: true}
-	fuzzHelper(f, o, "foo.{bar}.baz.foo[{n}]")
+	fuzzHelper(f, o, "foo[.status={status}].{bar}.baz.foo[{n}]")
 }
