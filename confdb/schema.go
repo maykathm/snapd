@@ -134,6 +134,10 @@ func (v *userDefinedType) NestedVisibility(vis Visibility) bool {
 	return v.visibility == vis
 }
 
+func (v *userDefinedType) PruneVisibility(vis Visibility) bool {
+	return v.visibility >= vis || v.DatabagSchema.PruneVisibility(vis)
+}
+
 // aliasReference represents a reference to a user-defined type in the schema.
 type aliasReference struct {
 	alias *userDefinedType
@@ -207,6 +211,10 @@ func (s *aliasReference) NestedVisibility(vis Visibility) bool {
 	return s.visibility == vis
 }
 
+func (v *aliasReference) PruneVisibility(vis Visibility) bool {
+	return v.visibility >= vis || v.alias.PruneVisibility(vis)
+}
+
 // scalarSchema holds the data and behaviours common to all types.
 type scalarSchema struct {
 	ephemeral bool
@@ -229,6 +237,10 @@ func (s scalarSchema) Visibility() Visibility {
 
 func (s scalarSchema) NestedVisibility(vis Visibility) bool {
 	return s.Visibility() == vis
+}
+
+func (v *scalarSchema) PruneVisibility(vis Visibility) bool {
+	return v.visibility >= vis
 }
 
 func (b *scalarSchema) parseConstraints(constraints map[string]json.RawMessage) (err error) {
@@ -311,6 +323,10 @@ func (s *StorageSchema) Visibility() Visibility {
 
 func (s *StorageSchema) NestedVisibility(vis Visibility) bool {
 	return s.topLevel.NestedVisibility(vis)
+}
+
+func (v *StorageSchema) PruneVisibility(vis Visibility) bool {
+	return v.topLevel.PruneVisibility(vis)
 }
 
 func (s *StorageSchema) parse(raw json.RawMessage) (DatabagSchema, error) {
@@ -594,6 +610,17 @@ func (v *alternativesSchema) NestedVisibility(vis Visibility) bool {
 	return false
 }
 
+func (v *alternativesSchema) PruneVisibility(vis Visibility) bool {
+	if v.Visibility() >= vis {
+		return true
+	}
+	// All schemas in v.schemas have a lower value than vis so we can ignore PruneVisibility's return value on each
+	for _, schema := range v.schemas {
+		schema.PruneVisibility(vis)
+	}
+	return false
+}
+
 type mapSchema struct {
 	// topSchema is the schema for the top-level schema which contains the aliases.
 	topSchema *StorageSchema
@@ -828,6 +855,32 @@ func (v *mapSchema) NestedVisibility(vis Visibility) bool {
 		}
 	}
 
+	return false
+}
+
+func (v *mapSchema) PruneVisibility(vis Visibility) bool {
+	if v.visibility >= vis {
+		return true
+	}
+
+	for key, schema := range v.entrySchemas {
+		toDelete := schema.PruneVisibility(vis)
+		if toDelete {
+			delete(v.entrySchemas, key)
+		}
+	}
+
+	if v.keySchema != nil {
+		if v.keySchema.PruneVisibility(vis) {
+			return true
+		}
+	}
+
+	if v.valueSchema != nil {
+		if v.valueSchema.PruneVisibility(vis) {
+			return true
+		}
+	}
 	return false
 }
 
@@ -1497,6 +1550,10 @@ func (v *arraySchema) NestedVisibility(vis Visibility) bool {
 		return true
 	}
 	return v.elementType.NestedVisibility(vis)
+}
+
+func (v *arraySchema) PruneVisibility(vis Visibility) bool {
+	return v.Visibility() >= vis || v.elementType.PruneVisibility(vis)
 }
 
 func (v *arraySchema) parseConstraints(constraints map[string]json.RawMessage) error {

@@ -144,6 +144,7 @@ func (f *failingSchema) Ephemeral() bool                         { return false 
 func (f *failingSchema) NestedEphemeral() bool                   { return false }
 func (f *failingSchema) Visibility() confdb.Visibility           { return confdb.DefaultVisibility }
 func (f *failingSchema) NestedVisibility(confdb.Visibility) bool { return false }
+func (f *failingSchema) PruneVisibility(confdb.Visibility) bool  { return false }
 
 func (s *transactionTestSuite) TestRollBackOnCommitError(c *C) {
 	tx, err := confdbstate.NewTransaction(s.state, "my-account", "my-confdb")

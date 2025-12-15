@@ -201,6 +201,9 @@ type DatabagSchema interface {
 
 	// NestedVisibility returns true if it or any of its nested types have the visibility in input
 	NestedVisibility(Visibility) bool
+
+	// PruneVisibility prunes all elements of the indicated visibility or higher from the schema
+	PruneVisibility(Visibility) bool
 }
 
 type SchemaType uint
@@ -2669,3 +2672,4 @@ func (v JSONSchema) Ephemeral() bool                  { return false }
 func (v JSONSchema) NestedEphemeral() bool            { return false }
 func (v JSONSchema) Visibility() Visibility           { return DefaultVisibility }
 func (v JSONSchema) NestedVisibility(Visibility) bool { return false }
+func (v JSONSchema) PruneVisibility(Visibility) bool  { return false }

@@ -2989,3 +2989,293 @@ func (*schemaSuite) TestUserTypeReferenceSecret(c *C) {
 	c.Assert(barSchema, HasLen, 1)
 	c.Assert(barSchema[0].Visibility(), Equals, confdb.DefaultVisibility)
 }
+
+func (*schemaSuite) TestPruneTopLevelVisibility(c *C) {
+	schemaStr := []byte(`{
+	"schema": {
+		"foo": "string"
+	},
+	"visibility": "secret"
+}`)
+	schema, err := confdb.ParseStorageSchema(schemaStr)
+	c.Assert(err, IsNil)
+	_, err = schema.SchemaAt(parsePath(c, "foo"))
+	c.Assert(err, IsNil)
+	pruneSchema := schema.PruneVisibility(confdb.SecretVisibility)
+	c.Assert(pruneSchema, Equals, true, Commentf("the top level of the schema (i.e. the entire schema) should be pruned"))
+}
+
+func (*schemaSuite) TestPruneSecretAllTypes(c *C) {
+	for _, typ := range []string{"number", "int", "bool", "string", "any", `array", "values": "string`} {
+		cmt := Commentf("secret pruning unsuccessful for type %q", typ)
+		schemaStr := []byte(fmt.Sprintf(`{
+	"schema": {
+		"foo": {
+			"schema": {
+				"bar": {
+					"type": "%s",
+					"visibility": "secret"
+				},
+				"baz": "int"
+			}
+		}
+	}
+}`, typ))
+		schema, err := confdb.ParseStorageSchema(schemaStr)
+		c.Assert(err, IsNil, cmt)
+
+		_, err = schema.SchemaAt(parsePath(c, "foo.bar"))
+		c.Assert(err, IsNil, cmt)
+		_, err = schema.SchemaAt(parsePath(c, "foo.baz"))
+		c.Assert(err, IsNil, cmt)
+		pruneTop := schema.PruneVisibility(confdb.SecretVisibility)
+		c.Assert(pruneTop, Equals, false, cmt)
+		_, err = schema.SchemaAt(parsePath(c, "foo.baz"))
+		c.Assert(err, IsNil, cmt)
+		_, err = schema.SchemaAt(parsePath(c, "foo.bar"))
+		c.Assert(err, NotNil, cmt)
+		c.Assert(err, ErrorMatches, `cannot use "bar" as key in map`)
+	}
+}
+
+func (*schemaSuite) TestPruneVisibilityMapAllSecretSchema(c *C) {
+	schemaStr := []byte(`{
+	"schema": {
+		"foo": {
+			"schema": {	
+				"bar": {
+					"type": "string",
+					"visibility": "secret"
+				}
+			}
+		}
+	}
+}`)
+	schema, err := confdb.ParseStorageSchema(schemaStr)
+	c.Assert(err, IsNil)
+	_, err = schema.SchemaAt(parsePath(c, "foo"))
+	c.Assert(err, IsNil)
+	pruneTop := schema.PruneVisibility(confdb.SecretVisibility)
+	c.Assert(pruneTop, Equals, false, Commentf("top level should not be marked for pruning"))
+	_, err = schema.SchemaAt(parsePath(c, "foo"))
+	c.Assert(err, IsNil, Commentf("even though all elements of the map are private, the map should still exist after pruning"))
+	_, err = schema.SchemaAt(parsePath(c, "foo.bar"))
+	c.Assert(err, NotNil)
+	c.Assert(err, ErrorMatches, `cannot use "bar" as key in map`)
+}
+
+func (*schemaSuite) TestPruneVisibilitySecretMap(c *C) {
+	schemaStr := []byte(`{
+	"schema": {
+		"foo": {
+			"keys": "string",
+			"values": "int",
+			"visibility": "secret"
+		}
+	}
+}`)
+	schema, err := confdb.ParseStorageSchema(schemaStr)
+	c.Assert(err, IsNil)
+	_, err = schema.SchemaAt(parsePath(c, "foo"))
+	c.Assert(err, IsNil)
+	pruneTop := schema.PruneVisibility(confdb.SecretVisibility)
+	c.Assert(pruneTop, Equals, false, Commentf("top level should not be marked for pruning"))
+	_, err = schema.SchemaAt(parsePath(c, "foo"))
+	c.Assert(err, NotNil)
+	c.Assert(err, ErrorMatches, `cannot use "foo" as key in map`)
+}
+
+func (*schemaSuite) TestPruneVisibilityMapSecretKeys(c *C) {
+	schemaStr := []byte(`{
+	"schema": {
+		"foo": {
+			"keys": {
+				"type": "string",
+				"visibility": "secret"
+			},
+			"values": "int"
+		}
+	}
+}`)
+	schema, err := confdb.ParseStorageSchema(schemaStr)
+	c.Assert(err, IsNil)
+	_, err = schema.SchemaAt(parsePath(c, "foo"))
+	c.Assert(err, IsNil)
+	pruneTop := schema.PruneVisibility(confdb.SecretVisibility)
+	c.Assert(pruneTop, Equals, false, Commentf("top level should not be marked for pruning"))
+	_, err = schema.SchemaAt(parsePath(c, "foo"))
+	c.Assert(err, NotNil, Commentf("because keys are private, during pruning the entire map should be removed"))
+	c.Assert(err, ErrorMatches, `cannot use "foo" as key in map`)
+}
+
+func (*schemaSuite) TestPruneVisibilityMapSecretValues(c *C) {
+	schemaStr := []byte(`{
+	"schema": {
+		"foo": {
+			"keys": "string",
+			"values": {
+				"type": "int",
+				"visibility": "secret"
+			}
+		}
+	}
+}`)
+	schema, err := confdb.ParseStorageSchema(schemaStr)
+	c.Assert(err, IsNil)
+	_, err = schema.SchemaAt(parsePath(c, "foo"))
+	c.Assert(err, IsNil)
+	pruneTop := schema.PruneVisibility(confdb.SecretVisibility)
+	c.Assert(pruneTop, Equals, false, Commentf("top level should not be marked for pruning"))
+	_, err = schema.SchemaAt(parsePath(c, "foo"))
+	c.Assert(err, NotNil, Commentf("because values are private, during pruning the entire map should be removed"))
+	c.Assert(err, ErrorMatches, `cannot use "foo" as key in map`)
+}
+
+func (*schemaSuite) TestPruneVisibilitySecretArray(c *C) {
+	// When an array's values are secret, the entire array should be pruned
+	schemaStr := []byte(`{
+	"schema": {
+		"foo": {
+			"type": "array",
+			"values": {
+				"type": "string"
+			},
+			"visibility": "secret"
+		}
+	}
+}`)
+	schema, err := confdb.ParseStorageSchema(schemaStr)
+	c.Assert(err, IsNil)
+	_, err = schema.SchemaAt(parsePath(c, "foo"))
+	c.Assert(err, IsNil)
+	pruneTop := schema.PruneVisibility(confdb.SecretVisibility)
+	c.Assert(pruneTop, Equals, false, Commentf("the top level should not be marked for pruning"))
+	_, err = schema.SchemaAt(parsePath(c, "foo"))
+	c.Assert(err, NotNil)
+	c.Assert(err, ErrorMatches, `cannot use "foo" as key in map`)
+}
+
+func (*schemaSuite) TestPruneVisibilityArrayWithSecretElements(c *C) {
+	// When an array's values are secret, the entire array should be pruned
+	schemaStr := []byte(`{
+	"schema": {
+		"foo": {
+			"type": "array",
+			"values": {
+				"type": "string",
+				"visibility": "secret"
+			}	
+		}
+	}
+}`)
+	schema, err := confdb.ParseStorageSchema(schemaStr)
+	c.Assert(err, IsNil)
+	_, err = schema.SchemaAt(parsePath(c, "foo"))
+	c.Assert(err, IsNil)
+	pruneTop := schema.PruneVisibility(confdb.SecretVisibility)
+	c.Assert(pruneTop, Equals, false, Commentf("the top level should not be marked for pruning"))
+	_, err = schema.SchemaAt(parsePath(c, "foo"))
+	c.Assert(err, NotNil)
+	c.Assert(err, ErrorMatches, `cannot use "foo" as key in map`)
+}
+
+func (*schemaSuite) TestPruneVisibilityAlternatives(c *C) {
+	// When an array's values are secret, the entire array should be pruned
+	schemaStr := []byte(`{
+	"schema": {
+		"foo": [
+		{
+			"type": "string",
+			"visibility": "secret"
+		},
+		{
+			"type": "int",
+			"visibility": "secret"
+		}
+		]
+	}
+}`)
+	schema, err := confdb.ParseStorageSchema(schemaStr)
+	c.Assert(err, IsNil)
+	_, err = schema.SchemaAt(parsePath(c, "foo"))
+	c.Assert(err, IsNil)
+	pruneTop := schema.PruneVisibility(confdb.SecretVisibility)
+	c.Assert(pruneTop, Equals, false, Commentf("the top level should not be marked for pruning"))
+	_, err = schema.SchemaAt(parsePath(c, "foo"))
+	c.Assert(err, NotNil)
+	c.Assert(err, ErrorMatches, `cannot use "foo" as key in map`)
+}
+
+func (*schemaSuite) TestPruneVisibilityUserType(c *C) {
+	schemaStr := []byte(`{
+	"aliases": {
+		"my-type": {
+			"type": "string"
+		}
+	},
+	"schema": {
+		"foo": {
+			"type": "${my-type}",
+			"visibility": "secret"
+		},
+		"bar": {
+			"type": "${my-type}"
+		}
+	}
+}`)
+	schema, err := confdb.ParseStorageSchema(schemaStr)
+	c.Assert(err, IsNil)
+
+	_, err = schema.SchemaAt(parsePath(c, "foo"))
+	c.Assert(err, IsNil)
+	_, err = schema.SchemaAt(parsePath(c, "bar"))
+	c.Assert(err, IsNil)
+	pruneTop := schema.PruneVisibility(confdb.SecretVisibility)
+	c.Assert(pruneTop, Equals, false, Commentf("the top level should not be marked for pruning"))
+	_, err = schema.SchemaAt(parsePath(c, "bar"))
+	c.Assert(err, IsNil)
+	_, err = schema.SchemaAt(parsePath(c, "foo"))
+	c.Assert(err, NotNil)
+	c.Assert(err, ErrorMatches, `cannot use "foo" as key in map`)
+}
+
+func (*schemaSuite) TestPruneVisibilityNested(c *C) {
+	// Test pruning propagation
+	schemaStr := []byte(`{
+	"schema": {
+		"foo": {
+			"keys": {
+				"type": "string"
+			},
+			"values": {
+				"schema": {
+					"bar": [
+					{
+						"type": "int"
+					},
+					{
+						"schema": {
+							"baz": {
+								"type": "string",
+								"visibility": "secret"
+							}
+						}
+					}
+					]
+				}
+			}
+		}
+	}
+}`)
+	schema, err := confdb.ParseStorageSchema(schemaStr)
+	c.Assert(err, IsNil)
+	_, err = schema.SchemaAt(parsePath(c, `foo.bar.bar.baz`))
+	c.Assert(err, IsNil)
+	pruneSchema := schema.PruneVisibility(confdb.SecretVisibility)
+	c.Assert(pruneSchema, Equals, false, Commentf("the top level should not be marked for pruning"))
+	_, err = schema.SchemaAt(parsePath(c, `foo.bar.bar`))
+	c.Assert(err, IsNil)
+	_, err = schema.SchemaAt(parsePath(c, `foo.bar.bar.baz`))
+	c.Assert(err, NotNil)
+	c.Assert(err, ErrorMatches, `cannot use "baz" as key in map`)
+}
