@@ -128,7 +128,8 @@ func GetView(st *state.State, account, schemaName, viewName string) (*confdb.Vie
 // the transaction.
 func GetViaView(bag confdb.Databag, view *confdb.View, requests []string) (any, error) {
 	if len(requests) == 0 {
-		val, err := view.Get(bag, "")
+		// TODO take into account the calling user and pass the proper visibility level
+		val, err := view.Get(bag, "", confdb.DefaultVisibility)
 		if err != nil {
 			return nil, err
 		}
@@ -138,7 +139,7 @@ func GetViaView(bag confdb.Databag, view *confdb.View, requests []string) (any, 
 
 	results := make(map[string]any, len(requests))
 	for _, request := range requests {
-		value, err := view.Get(bag, request)
+		value, err := view.Get(bag, request, confdb.DefaultVisibility)
 		if err != nil {
 			if errors.Is(err, &confdb.NoDataError{}) && len(requests) > 1 {
 				continue

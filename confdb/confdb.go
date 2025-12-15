@@ -1512,7 +1512,7 @@ func namespaceResult(res any, unmatchedSuffix []Accessor) (any, error) {
 // Get returns the view value identified by the request. Returns a NoMatchError
 // if the view can't be found. Returns a NoDataError if there's no data for
 // the request.
-func (v *View) Get(databag Databag, request string) (any, error) {
+func (v *View) Get(databag Databag, request string, vis Visibility) (any, error) {
 	var accessors []Accessor
 	if request != "" {
 		var err error
@@ -1535,6 +1535,10 @@ func (v *View) Get(databag Databag, request string) (any, error) {
 			if errors.Is(err, &NoDataError{}) {
 				continue
 			}
+			return nil, err
+		}
+		match, err = pruneVisibilityFromRequest(vis, match, v.schema.DatabagSchema)
+		if err != nil {
 			return nil, err
 		}
 
@@ -1560,6 +1564,24 @@ func (v *View) Get(databag Databag, request string) (any, error) {
 	}
 
 	return merged, nil
+}
+
+func pruneVisibilityFromRequest(vis Visibility, match requestMatch, schema DatabagSchema) (requestMatch, error) {
+	if vis == DefaultVisibility {
+		// DefaultVisibility is the lowest, so no need to prune anything
+		return match, nil
+	}
+	matchSchema, err := schema.SchemaAt(match.storagePath)
+	if err != nil {
+		return requestMatch{}, err
+	}
+	for _, ms := range matchSchema {
+		pruneTop := ms.PruneVisibility(vis)
+		if pruneTop {
+			return requestMatch{}, fmt.Errorf(`error: cannot get %s through %s: unauthorized access`, match.request, match.storagePath)
+		}
+	}
+	return match, nil
 }
 
 // mergeNamespaces takes two results of reading confdb (the same request can match
