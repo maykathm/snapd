@@ -55,7 +55,9 @@ func SetViaView(bag confdb.Databag, view *confdb.View, requests map[string]any) 
 	for request, value := range requests {
 		var err error
 		if value == nil {
-			err = view.Unset(bag, request)
+			//TODO pass the caller's visibility level
+			//For now, allow caller to unset everything, including secrets
+			err = view.Unset(bag, request, confdb.SecretVisibility)
 		} else {
 			// TODO pass set of visibilities to prune
 			err = view.Set(bag, request, value, []confdb.Visibility{})
