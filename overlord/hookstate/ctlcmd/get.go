@@ -419,6 +419,13 @@ func (c *getCommand) getInterfaceSetting(context *hookstate.Context, plugOrSlot 
 	})
 }
 
+func getVisibilitiesFromCommand(c *baseCommand) []confdb.Visibility {
+	if c.uid == "0" {
+		return []confdb.Visibility{}
+	}
+	return []confdb.Visibility{confdb.SecretVisibility}
+}
+
 func (c *getCommand) getConfdbValues(ctx *hookstate.Context, plugName string, requests []string, previous bool) error {
 	if c.ForcePlugSide || c.ForceSlotSide {
 		return errors.New(i18n.G("cannot use --plug or --slot with --view"))
@@ -457,7 +464,7 @@ func (c *getCommand) getConfdbValues(ctx *hookstate.Context, plugName string, re
 		bag = tx.Previous()
 	}
 
-	res, err := confdbstate.GetViaView(bag, view, requests, constraints)
+	res, err := confdbstate.GetViaView(bag, view, requests, constraints, getVisibilitiesFromCommand(&c.baseCommand))
 	if err != nil {
 		if !errors.As(err, new(*confdb.NoDataError)) || c.Default == "" {
 			return err
