@@ -38,9 +38,9 @@ jobs:
 
     - name: Set Fedora tag for Docker image
       run: |
-        export DOCKER_TAG=latest
+        echo "DOCKER_TAG=latest" >> $GITHUB_ENV
         if [ "${{ inputs.system }}" = "amazon-linux-2-64" ]; then
-          export DOCKER_TAG=42
+          echo "DOCKER_TAG=42" >> $GITHUB_ENV
         fi
 
     - name: Build Docker image
