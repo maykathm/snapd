@@ -1,4 +1,5 @@
-FROM fedora:42
+ARG TAG=latest
+FROM fedora:${TAG}
 
 RUN dnf makecache && \
     dnf update -y && \
