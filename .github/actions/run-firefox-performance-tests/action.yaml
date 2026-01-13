@@ -122,6 +122,9 @@ runs:
             ${{ github.workspace }}/consolidate-jetstream-results.py intermediate-results.json "results_$i.json"
           fi
 
+          ls -la .
+          ps -ef --forest
+
         done
 
         mv intermediate-results.json "${{ inputs.results-file }}"
