@@ -112,9 +112,12 @@ runs:
           xvfb-run -s '-terminate' ${{ inputs.firefox-exec }} 'http://localhost:8000/?startDelay=1&report=true' || true
 
           if [ $i -eq 1 ]; then
-          else; then
+            mv "${{ inputs.results-file }}" results.json
+          else
             mv "${{ inputs.results-file }}" "results_$i.json"
-            ${{ github.workspace }}/consolidate-jetstream-results.py "${{ inputs.results-file }}" "results_$i.json"
+            ${{ github.workspace }}/consolidate-jetstream-results.py results.json "results_$i.json"
           fi
 
-        fi
+        done
+
+        mv results.json "${{ inputs.results-file }}"
