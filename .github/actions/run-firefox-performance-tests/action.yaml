@@ -99,7 +99,7 @@ runs:
         for i in $(seq 1 2); do
 
           ./server.py &
-          ./kill.sh &
+          sudo ./kill.sh &
 
           echo "Make sure the server is up and running"
           for _ in $(seq 10); do
