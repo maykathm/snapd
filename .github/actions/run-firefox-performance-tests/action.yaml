@@ -57,6 +57,7 @@ runs:
           sleep 5
         done
         ps aux | grep -i xvfb | head -1 | tr -s ' ' | cut -d ' ' -f 2 | xargs -I {} kill {}
+        ps aux | grep -i firefox | head -1 | tr -s ' ' | cut -d ' ' -f 2 | xargs -I {} kill {}
         EOF
         chmod +x ${{ github.workspace }}/JetStream/kill.sh
 
