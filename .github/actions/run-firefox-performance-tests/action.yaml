@@ -125,7 +125,7 @@ runs:
 
           ls -la .
           ps -ef --forest
-          ps aux | grep -iE (xvfb|python3|firefox)
+          ps aux | grep -iE '(xvfb|python3|firefox)'
           pgrep firefox
 
         done
