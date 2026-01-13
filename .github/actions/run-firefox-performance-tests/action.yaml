@@ -111,9 +111,12 @@ runs:
           echo "Running firefox performance tests"
           xvfb-run -s '-terminate' ${{ inputs.firefox-exec }} 'http://localhost:8000/?startDelay=1&report=true' || true
 
+          echo "i is $i"
           if [ $i -eq 1 ]; then
+            echo "in if"
             mv "${{ inputs.results-file }}" results.json
           else
+            echo "in else"
             mv "${{ inputs.results-file }}" "results_$i.json"
             ${{ github.workspace }}/consolidate-jetstream-results.py results.json "results_$i.json"
           fi
