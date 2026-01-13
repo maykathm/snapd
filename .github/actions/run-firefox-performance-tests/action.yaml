@@ -101,6 +101,8 @@ runs:
 
         for i in $(seq 1 2); do
 
+          set -x
+
           ./server.py &
           sudo ./kill.sh &
 
@@ -124,6 +126,7 @@ runs:
 
           ls -la .
           ps -ef --forest
+          ps aux | grep -E (xvfb|python3|firefox)
 
         done
 
