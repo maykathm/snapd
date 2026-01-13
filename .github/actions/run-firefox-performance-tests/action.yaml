@@ -57,7 +57,7 @@ runs:
           sleep 5
         done
         ps aux | grep -i xvfb | head -1 | tr -s ' ' | cut -d ' ' -f 2 | xargs -I {} kill {}
-        kill "\$(pgrep python3)" || true
+        kill "\$(pgrep -f 'python3 ./server.py')" || true
         EOF
         chmod +x ${{ github.workspace }}/JetStream/kill.sh
 
@@ -109,15 +109,12 @@ runs:
             sleep 1
           done
 
-          echo "Running firefox performance tests"
+          echo "Running firefox performance tests: iteration $i"
           xvfb-run -s '-terminate' ${{ inputs.firefox-exec }} 'http://localhost:8000/?startDelay=1&report=true' || true
 
-          echo "i is $i"
           if [ $i -eq 1 ]; then
-            echo "in if"
             mv "${{ inputs.results-file }}" intermediate-results.json
           else
-            echo "in else"
             mv "${{ inputs.results-file }}" "results_$i.json"
             ${{ github.workspace }}/consolidate-jetstream-results.py intermediate-results.json "results_$i.json"
           fi
