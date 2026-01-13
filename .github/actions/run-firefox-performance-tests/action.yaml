@@ -101,7 +101,7 @@ runs:
           ./kill.sh &
 
           echo "Make sure the server is up and running"
-          for i in $(seq 10); do
+          for _ in $(seq 10); do
             if curl -I 'http://localhost:8000' -o /dev/null 2>/dev/null; then
               break
             fi
