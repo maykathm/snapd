@@ -127,6 +127,9 @@ runs:
 
           kill "$server_pid" || true
           kill "$kill_pid" || true
+          kill "$(pgrep Xvfb)"
+
+          ps aux
 
         done
 
