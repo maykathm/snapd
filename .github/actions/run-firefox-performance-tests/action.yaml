@@ -98,7 +98,7 @@ runs:
     run: |
         cd JetStream
 
-        for i in $(seq 1 20); do
+        for i in $(seq 1 30); do
 
           set -x
 
