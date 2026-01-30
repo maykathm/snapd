@@ -101,7 +101,7 @@ func (*schemaSuite) TestMapWithSchemaConstraint(c *C) {
 	schema, err := confdb.ParseStorageSchema(schemaStr)
 	c.Assert(err, IsNil)
 
-	err = schema.Validate(input)
+	err = schema.Validate(input, -1)
 	c.Assert(err, IsNil)
 }
 
@@ -170,7 +170,7 @@ func (*schemaSuite) TestMapWithUnexpectedKey(c *C) {
 	schema, err := confdb.ParseStorageSchema(schemaStr)
 	c.Assert(err, IsNil)
 
-	err = schema.Validate(input)
+	err = schema.Validate(input, -1)
 	c.Assert(err, ErrorMatches, `cannot accept element in "snaps": map contains unexpected key "bar"`)
 }
 func (*schemaSuite) TestMapWithKeysStringConstraintHappy(c *C) {
@@ -191,7 +191,7 @@ func (*schemaSuite) TestMapWithKeysStringConstraintHappy(c *C) {
 	schema, err := confdb.ParseStorageSchema(schemaStr)
 	c.Assert(err, IsNil)
 
-	err = schema.Validate(input)
+	err = schema.Validate(input, -1)
 	c.Assert(err, IsNil)
 }
 
@@ -215,7 +215,7 @@ func (*schemaSuite) TestMapWithKeysConstraintAsMap(c *C) {
 	schema, err := confdb.ParseStorageSchema(schemaStr)
 	c.Assert(err, IsNil)
 
-	err = schema.Validate(input)
+	err = schema.Validate(input, -1)
 	c.Assert(err, IsNil)
 }
 
@@ -263,7 +263,7 @@ func (*schemaSuite) TestMapWithValuesStringConstraintHappy(c *C) {
 	schema, err := confdb.ParseStorageSchema(schemaStr)
 	c.Assert(err, IsNil)
 
-	err = schema.Validate(input)
+	err = schema.Validate(input, -1)
 	c.Assert(err, IsNil)
 }
 
@@ -298,7 +298,7 @@ func (*schemaSuite) TestMapWithUnmetValuesConstraint(c *C) {
 	schema, err := confdb.ParseStorageSchema(schemaStr)
 	c.Assert(err, IsNil)
 
-	err = schema.Validate(input)
+	err = schema.Validate(input, -1)
 	c.Assert(err, ErrorMatches, `cannot accept element in "snaps.foo": expected string type but value was object`)
 }
 
@@ -317,7 +317,7 @@ func (*schemaSuite) TestMapSchemaMetConstraintsWithMissingEntry(c *C) {
 	schema, err := confdb.ParseStorageSchema(schemaStr)
 	c.Assert(err, IsNil)
 
-	err = schema.Validate(input)
+	err = schema.Validate(input, -1)
 	c.Assert(err, IsNil)
 }
 
@@ -339,7 +339,7 @@ func (*schemaSuite) TestMapSchemaUnmetConstraint(c *C) {
 	schema, err := confdb.ParseStorageSchema(schemaStr)
 	c.Assert(err, IsNil)
 
-	err = schema.Validate(input)
+	err = schema.Validate(input, -1)
 	c.Assert(err, ErrorMatches, `cannot accept element in "bar": expected string type but value was object`)
 }
 
@@ -362,7 +362,7 @@ func (*schemaSuite) TestMapSchemaWithMetRequiredConstraint(c *C) {
 	schema, err := confdb.ParseStorageSchema(schemaStr)
 	c.Assert(err, IsNil)
 
-	err = schema.Validate(input)
+	err = schema.Validate(input, -1)
 	c.Assert(err, IsNil)
 }
 
@@ -385,7 +385,7 @@ func (*schemaSuite) TestMapSchemaWithUnmetRequiredConstraint(c *C) {
 	schema, err := confdb.ParseStorageSchema(schemaStr)
 	c.Assert(err, IsNil)
 
-	err = schema.Validate(input)
+	err = schema.Validate(input, -1)
 	c.Assert(err, ErrorMatches, `cannot accept top level element: cannot find required combinations of keys`)
 }
 
@@ -408,7 +408,7 @@ func (*schemaSuite) TestMapSchemaWithAlternativeOfRequiredEntries(c *C) {
 	schema, err := confdb.ParseStorageSchema(schemaStr)
 	c.Assert(err, IsNil)
 
-	err = schema.Validate(input)
+	err = schema.Validate(input, -1)
 	c.Assert(err, IsNil)
 
 	// accepts the 2nd allowed combination "bar"
@@ -419,7 +419,7 @@ func (*schemaSuite) TestMapSchemaWithAlternativeOfRequiredEntries(c *C) {
 	schema, err = confdb.ParseStorageSchema(schemaStr)
 	c.Assert(err, IsNil)
 
-	err = schema.Validate(input)
+	err = schema.Validate(input, -1)
 	c.Assert(err, IsNil)
 }
 
@@ -441,7 +441,7 @@ func (*schemaSuite) TestMapSchemaWithUnmetAlternativeOfRequiredEntries(c *C) {
 	schema, err := confdb.ParseStorageSchema(schemaStr)
 	c.Assert(err, IsNil)
 
-	err = schema.Validate(input)
+	err = schema.Validate(input, -1)
 	c.Assert(err, ErrorMatches, `cannot accept top level element: cannot find required combinations of keys`)
 }
 
@@ -482,7 +482,7 @@ func (*schemaSuite) TestMapRejectsInputMapWithInvalidKeyFormat(c *C) {
 	input := []byte(`{
 	"-foo": 1
 }`)
-	err = schema.Validate(input)
+	err = schema.Validate(input, -1)
 	c.Assert(err, ErrorMatches, `cannot accept top level element: key "-foo" doesn't conform to required format: .*`)
 }
 
@@ -582,7 +582,7 @@ func (*schemaSuite) TestStringsWithChoicesHappy(c *C) {
 	schema, err := confdb.ParseStorageSchema(schemaStr)
 	c.Assert(err, IsNil)
 
-	err = schema.Validate(input)
+	err = schema.Validate(input, -1)
 	c.Assert(err, IsNil)
 }
 
@@ -610,7 +610,7 @@ func (*schemaSuite) TestStringsWithChoicesFail(c *C) {
 	schema, err := confdb.ParseStorageSchema(schemaStr)
 	c.Assert(err, IsNil)
 
-	err = schema.Validate(input)
+	err = schema.Validate(input, -1)
 	c.Assert(err, ErrorMatches, `cannot accept element in "snaps.baz": string "baz" is not one of the allowed choices`)
 }
 
@@ -653,7 +653,7 @@ func (*schemaSuite) TestStringPatternHappy(c *C) {
 	schema, err := confdb.ParseStorageSchema(schemaStr)
 	c.Assert(err, IsNil)
 
-	err = schema.Validate(input)
+	err = schema.Validate(input, -1)
 	c.Assert(err, IsNil)
 }
 
@@ -674,7 +674,7 @@ func (*schemaSuite) TestStringPatternNoMatch(c *C) {
 	schema, err := confdb.ParseStorageSchema(schemaStr)
 	c.Assert(err, IsNil)
 
-	err = schema.Validate(input)
+	err = schema.Validate(input, -1)
 	c.Assert(err, ErrorMatches, `cannot accept element in "foo": expected string matching \[fb\]00 but value was "F00"`)
 }
 
@@ -762,7 +762,7 @@ func (*schemaSuite) TestStringBasedAlias(c *C) {
 	schema, err := confdb.ParseStorageSchema(schemaStr)
 	c.Assert(err, IsNil)
 
-	err = schema.Validate(input)
+	err = schema.Validate(input, -1)
 	c.Assert(err, IsNil)
 }
 
@@ -868,7 +868,7 @@ func (*schemaSuite) TestMapBasedAliasHappy(c *C) {
 	schema, err := confdb.ParseStorageSchema(schemaStr)
 	c.Assert(err, IsNil)
 
-	err = schema.Validate(input)
+	err = schema.Validate(input, -1)
 	c.Assert(err, IsNil)
 }
 
@@ -936,7 +936,7 @@ func (*schemaSuite) TestMapBasedAliasFail(c *C) {
 	schema, err := confdb.ParseStorageSchema(schemaStr)
 	c.Assert(err, IsNil)
 
-	err = schema.Validate(input)
+	err = schema.Validate(input, -1)
 	c.Assert(err, ErrorMatches, `cannot accept element in "snaps.core20.version": expected string type but value was number`)
 }
 
@@ -1003,7 +1003,7 @@ func (*schemaSuite) TestIntegerHappy(c *C) {
 	input := []byte(`{
 	"foo": 1
 }`)
-	err = schema.Validate(input)
+	err = schema.Validate(input, -1)
 	c.Assert(err, IsNil)
 }
 
@@ -1021,7 +1021,7 @@ func (*schemaSuite) TestIntRejectsOtherValues(c *C) {
 		input := []byte(fmt.Sprintf(`{
 	"foo": %s
 }`, val))
-		err = schema.Validate(input)
+		err = schema.Validate(input, -1)
 		c.Check(err, ErrorMatches, `cannot accept element in "foo": expected int type but value was .*`)
 	}
 }
@@ -1044,7 +1044,7 @@ func (*schemaSuite) TestIntegerMustMatchChoices(c *C) {
 	"foo": %d
 }`, num))
 
-		err := schema.Validate(input)
+		err := schema.Validate(input, -1)
 		if num == 1 || num == 3 {
 			c.Assert(err, IsNil)
 		} else {
@@ -1073,7 +1073,7 @@ func (*schemaSuite) TestIntegerMustMatchMinMax(c *C) {
 	"foo": %d
 }`, num))
 
-		err := schema.Validate(input)
+		err := schema.Validate(input, -1)
 		if num < min {
 			c.Assert(err, ErrorMatches, fmt.Sprintf(`cannot accept element in "foo": %d is less than the allowed minimum %d`, num, min))
 		} else if num > max {
@@ -1199,7 +1199,7 @@ func (*schemaSuite) TestIntegerMinMaxOver32Bits(c *C) {
 	"foo": %d
 }`, int64(math.MinInt64)))
 
-	err = schema.Validate(input)
+	err = schema.Validate(input, -1)
 	c.Assert(err, IsNil)
 }
 
@@ -1221,7 +1221,7 @@ func (*schemaSuite) TestIntegerChoicesOver32Bits(c *C) {
 	"foo": %d
 }`, num))
 
-		err = schema.Validate(input)
+		err = schema.Validate(input, -1)
 		c.Assert(err, IsNil)
 	}
 }
@@ -1241,7 +1241,7 @@ func (*schemaSuite) TestAnyTypeAcceptsAllTypes(c *C) {
 			"foo": %s
 		}`, val))
 
-		err = schema.Validate(input)
+		err = schema.Validate(input, -1)
 		c.Assert(err, IsNil, Commentf(`"any" type didn't accept expected value: %s`, val))
 	}
 }
@@ -1262,7 +1262,7 @@ func (*schemaSuite) TestAnyTypeWithMapDefinition(c *C) {
 			"foo": "string"
 		}`)
 
-	err = schema.Validate(input)
+	err = schema.Validate(input, -1)
 	c.Assert(err, IsNil)
 }
 
@@ -1279,7 +1279,7 @@ func (*schemaSuite) TestAnyTypeRejectsBadJSON(c *C) {
 	input := []byte(`{
 	"foo": .
 }`)
-	err = schema.Validate(input)
+	err = schema.Validate(input, -1)
 	c.Assert(err, ErrorMatches, `cannot accept top level element: invalid character .*`)
 }
 
@@ -1299,7 +1299,7 @@ func (*schemaSuite) TestNumberValidFloatAndInt(c *C) {
 	"bar": 1
 }`)
 
-	err = schema.Validate(input)
+	err = schema.Validate(input, -1)
 	c.Assert(err, IsNil)
 }
 
@@ -1321,7 +1321,7 @@ func (*schemaSuite) TestNumberMustMatchChoices(c *C) {
 	"foo": %f
 }`, num))
 
-		err := schema.Validate(input)
+		err := schema.Validate(input, -1)
 		if num == 1 || num == 3 {
 			c.Assert(err, IsNil)
 		} else {
@@ -1350,7 +1350,7 @@ func (*schemaSuite) TestNumberMustMatchMinMax(c *C) {
 	"foo": %.25f
 }`, num))
 
-		err := schema.Validate(input)
+		err := schema.Validate(input, -1)
 		if num < min {
 			c.Assert(err, ErrorMatches, fmt.Sprintf(`cannot accept element in "foo": %v is less than the allowed minimum %v`, num, min))
 		} else if num > max {
@@ -1469,7 +1469,7 @@ func (*schemaSuite) TestSimpleTypesRejectNull(c *C) {
 		schema, err := confdb.ParseStorageSchema(schemaStr)
 		c.Assert(err, IsNil)
 
-		err = schema.Validate([]byte(`{"foo": null}`))
+		err = schema.Validate([]byte(`{"foo": null}`), -1)
 		c.Assert(err, ErrorMatches, fmt.Sprintf(`cannot accept element in "foo": cannot accept null value for %q type`, typ))
 	}
 }
@@ -1488,7 +1488,7 @@ func (*schemaSuite) TestMapTypeRejectsNull(c *C) {
 	schema, err := confdb.ParseStorageSchema(schemaStr)
 	c.Assert(err, IsNil)
 
-	err = schema.Validate([]byte(`{"foo": null}`))
+	err = schema.Validate([]byte(`{"foo": null}`), -1)
 	c.Assert(err, ErrorMatches, `cannot accept element in "foo": cannot accept null value for "map" type`)
 }
 
@@ -1507,7 +1507,7 @@ func (*schemaSuite) TestAliasRejectsNull(c *C) {
 	schema, err := confdb.ParseStorageSchema(schemaStr)
 	c.Assert(err, IsNil)
 
-	err = schema.Validate([]byte(`{"foo": null}`))
+	err = schema.Validate([]byte(`{"foo": null}`), -1)
 	c.Assert(err, ErrorMatches, `cannot accept element in "foo": cannot accept null value for "string" type`)
 }
 
@@ -1524,7 +1524,7 @@ func (*schemaSuite) TestArrayRejectsNull(c *C) {
 	c.Assert(err, IsNil)
 
 	input := []byte(`{"foo": null}`)
-	err = schema.Validate(input)
+	err = schema.Validate(input, -1)
 	c.Assert(err, ErrorMatches, `cannot accept element in "foo": cannot accept null value for "array" type`)
 }
 
@@ -1544,7 +1544,7 @@ func (*schemaSuite) TestBooleanHappy(c *C) {
 	"bar": false
 }`)
 
-	err = schema.Validate(input)
+	err = schema.Validate(input, -1)
 	c.Assert(err, IsNil)
 }
 
@@ -1565,7 +1565,7 @@ func (*schemaSuite) TestArrayHappy(c *C) {
 	"foo": ["a", "b"]
 }`)
 
-	err = schema.Validate(input)
+	err = schema.Validate(input, -1)
 	c.Assert(err, IsNil)
 }
 
@@ -1589,7 +1589,7 @@ func (*schemaSuite) TestArrayHappyWithAlias(c *C) {
 	"foo": ["a", "b"]
 }`)
 
-	err = schema.Validate(input)
+	err = schema.Validate(input, -1)
 	c.Assert(err, IsNil)
 }
 
@@ -1648,7 +1648,7 @@ func (*schemaSuite) TestArrayEnforcesOnlyOneType(c *C) {
 	"foo": ["a", 1]
 }`)
 
-	err = schema.Validate(input)
+	err = schema.Validate(input, -1)
 	c.Assert(err, ErrorMatches, `cannot accept element in "foo\[1\]": expected string type but value was number`)
 }
 
@@ -1670,7 +1670,7 @@ func (*schemaSuite) TestArrayWithUniqueRejectsDuplicates(c *C) {
 	"foo": ["a", "a"]
 }`)
 
-	err = schema.Validate(input)
+	err = schema.Validate(input, -1)
 	c.Assert(err, ErrorMatches, `cannot accept element in "foo": cannot accept duplicate values for array with "unique" constraint`)
 }
 
@@ -1692,7 +1692,7 @@ func (*schemaSuite) TestArrayWithoutUniqueAcceptsDuplicates(c *C) {
 	"foo": ["a", "b"]
 }`)
 
-	err = schema.Validate(input)
+	err = schema.Validate(input, -1)
 	c.Assert(err, IsNil)
 }
 
@@ -1754,7 +1754,7 @@ func (*schemaSuite) TestErrorContainsPathPrefixes(c *C) {
 	}
 
 	for _, tc := range testcases {
-		err = schema.Validate(tc.input)
+		err = schema.Validate(tc.input, -1)
 		c.Assert(err, ErrorMatches, tc.err, Commentf("test case %q failed", tc.name))
 	}
 }
@@ -1780,7 +1780,7 @@ func (*schemaSuite) TestPathPrefixWithMapUnderUserType(c *C) {
 	c.Assert(err, IsNil)
 
 	input := []byte(`{"foo": {"bar": -1}}`)
-	err = schema.Validate(input)
+	err = schema.Validate(input, -1)
 	c.Assert(err, ErrorMatches, `cannot accept element in "foo.bar": -1 is less than the allowed minimum 0`)
 }
 
@@ -1803,7 +1803,7 @@ func (*schemaSuite) TestPathPrefixWithArrayUnderAlias(c *C) {
 	c.Assert(err, IsNil)
 
 	input := []byte(`{"foo": [-1]}`)
-	err = schema.Validate(input)
+	err = schema.Validate(input, -1)
 	c.Assert(err, ErrorMatches, `cannot accept element in "foo\[0\]": -1 is less than the allowed minimum 0`)
 }
 
@@ -1830,7 +1830,7 @@ func (*schemaSuite) TestPathPrefixWithArrayUnderAliasWithAContainerElementType(c
 	c.Assert(err, IsNil)
 
 	input := []byte(`{"foo": [{"bar": 1}, {"bar": -1}]}`)
-	err = schema.Validate(input)
+	err = schema.Validate(input, -1)
 	c.Assert(err, ErrorMatches, `cannot accept element in "foo\[1\].bar": -1 is less than the allowed minimum 0`)
 }
 
@@ -1854,11 +1854,11 @@ func (*schemaSuite) TestPathPrefixWithKeyOrValueConstraints(c *C) {
 	c.Assert(err, IsNil)
 
 	input := []byte(`{"foo": {"other-key": 1}}`)
-	err = schema.Validate(input)
+	err = schema.Validate(input, -1)
 	c.Assert(err, ErrorMatches, `cannot accept element in "foo.other-key": string "other-key" is not one of the allowed choices`)
 
 	input = []byte(`{"foo": {"my-key": -1}}`)
-	err = schema.Validate(input)
+	err = schema.Validate(input, -1)
 	c.Assert(err, ErrorMatches, `cannot accept element in "foo.my-key": -1 is less than the allowed minimum 0`)
 }
 
@@ -1883,7 +1883,7 @@ func (*schemaSuite) TestPathManyUserDefinedTypeReferences(c *C) {
 	c.Assert(err, IsNil)
 
 	input := []byte(`{"foo": { "one": 1 }, "bar": { "two": -1 } }`)
-	err = schema.Validate(input)
+	err = schema.Validate(input, -1)
 	c.Assert(err, ErrorMatches, `cannot accept element in "bar.two": -1 is less than the allowed minimum 0`)
 }
 
@@ -1972,7 +1972,7 @@ func (*schemaSuite) TestUnexpectedTypes(c *C) {
 		c.Assert(err, IsNil)
 
 		input := []byte(fmt.Sprintf(`{"foo": %v}`, tc.testValue))
-		err = schema.Validate(input)
+		err = schema.Validate(input, -1)
 		c.Assert(err, ErrorMatches, fmt.Sprintf(`cannot accept element in "foo": expected %s type but value was %T`, tc.expectedType, tc.testValue))
 	}
 }
@@ -1989,7 +1989,7 @@ func (*schemaSuite) TestAlternativeTypesHappy(c *C) {
 
 	for _, val := range []any{`"one"`, `1`} {
 		input := []byte(fmt.Sprintf(`{"foo":%s}`, val))
-		err = schema.Validate(input)
+		err = schema.Validate(input, -1)
 		c.Assert(err, IsNil)
 	}
 }
@@ -2006,7 +2006,7 @@ func (*schemaSuite) TestAlternativeTypesFail(c *C) {
 
 	for _, val := range []any{"1.1", "true", `{"bar": 1}`, `[1, 2]`} {
 		input := []byte(fmt.Sprintf(`{"foo":%s}`, val))
-		err = schema.Validate(input)
+		err = schema.Validate(input, -1)
 		c.Assert(err, ErrorMatches, `cannot accept element in "foo": no matching schema:
 	expected string .*
 	or expected int .*`)
@@ -2033,7 +2033,7 @@ func (*schemaSuite) TestAlternativeTypesWithConstraintsHappy(c *C) {
 
 	for _, val := range []any{"3", "0", `"Bar"`, `"bar"`} {
 		input := []byte(fmt.Sprintf(`{"foo":%s}`, val))
-		err = schema.Validate(input)
+		err = schema.Validate(input, -1)
 		c.Assert(err, IsNil)
 	}
 }
@@ -2056,12 +2056,12 @@ func (*schemaSuite) TestAlternativeTypesWithConstraintsFail(c *C) {
 	schema, err := confdb.ParseStorageSchema(schemaStr)
 	c.Assert(err, IsNil)
 
-	err = schema.Validate([]byte(`{"foo":-1}`))
+	err = schema.Validate([]byte(`{"foo":-1}`), -1)
 	c.Assert(err, ErrorMatches, `cannot accept element in "foo": no matching schema:
 	-1 is less than the allowed minimum 0
 	or expected string type but value was number`)
 
-	err = schema.Validate([]byte(`{"foo":"bAR"}`))
+	err = schema.Validate([]byte(`{"foo":"bAR"}`), -1)
 	c.Assert(err, ErrorMatches, `cannot accept element in "foo": no matching schema:
 	expected int type but value was string
 	or expected string matching \[bB\]ar but value was "bAR"`)
@@ -2078,7 +2078,7 @@ func (*schemaSuite) TestAlternativeTypesNestedHappy(c *C) {
 
 	for _, val := range []any{`"one"`, `1`, `1.3`} {
 		input := []byte(fmt.Sprintf(`{"foo":%s}`, val))
-		err = schema.Validate(input)
+		err = schema.Validate(input, -1)
 		c.Assert(err, IsNil)
 	}
 }
@@ -2092,7 +2092,7 @@ func (*schemaSuite) TestAlternativeTypesNestedFail(c *C) {
 	schema, err := confdb.ParseStorageSchema(schemaStr)
 	c.Assert(err, IsNil)
 
-	err = schema.Validate([]byte(`{"foo":false}`))
+	err = schema.Validate([]byte(`{"foo":false}`), -1)
 	c.Assert(err, ErrorMatches, `cannot accept element in "foo": no matching schema:
 	expected int type but value was bool
 	or expected number type but value was bool
@@ -2132,7 +2132,7 @@ func (*schemaSuite) TestAlternativeTypesPathError(c *C) {
 	schema, err := confdb.ParseStorageSchema(schemaStr)
 	c.Assert(err, IsNil)
 
-	err = schema.Validate([]byte(`{"foo":{"bar": {"baz": {"zab": [1]}}}}`))
+	err = schema.Validate([]byte(`{"foo":{"bar": {"baz": {"zab": [1]}}}}`), -1)
 	c.Assert(err, NotNil)
 	c.Assert(err.Error(), Equals, `cannot accept element in "foo.bar": no matching schema:
 	..."baz": expected int type but value was object

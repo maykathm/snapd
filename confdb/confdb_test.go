@@ -43,7 +43,7 @@ type failingSchema struct {
 	err error
 }
 
-func (f *failingSchema) Validate([]byte) error { return f.err }
+func (f *failingSchema) Validate([]byte, int) error { return f.err }
 func (f *failingSchema) SchemaAt(path []confdb.Accessor) ([]confdb.DatabagSchema, error) {
 	return []confdb.DatabagSchema{f}, nil
 }

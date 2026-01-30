@@ -213,7 +213,7 @@ const (
 // and could be committed.
 type DatabagSchema interface {
 	// Validate checks that the data conforms to the schema.
-	Validate(data []byte) error
+	Validate(data []byte, validationDepth int) error
 
 	// SchemaAt returns the schemas (e.g., string, int, etc) that may be at the
 	// provided path. If the path cannot be followed, an error is returned.
@@ -1152,7 +1152,7 @@ func (v *View) Set(databag Databag, request string, value any) error {
 	// TODO: when using a transaction, the data only changes on commit so
 	// this is a bit of a waste. Maybe cache the result so we only do the first
 	// validation and then in viewstate on Commit
-	if err := v.schema.DatabagSchema.Validate(data); err != nil {
+	if err := v.schema.DatabagSchema.Validate(data, -1); err != nil {
 		return fmt.Errorf(`cannot write data: %w`, err)
 	}
 
@@ -1210,7 +1210,7 @@ func (v *View) Unset(databag Databag, request string) error {
 		// TODO: when using a transaction, the data only changes on commit so
 		// this is a bit of a waste. Maybe cache the result so we only do the first
 		// validation and then in viewstate on Commit
-		if err := v.schema.DatabagSchema.Validate(data); err != nil {
+		if err := v.schema.DatabagSchema.Validate(data, -1); err != nil {
 			return fmt.Errorf(`cannot unset data: %w`, err)
 		}
 	}
@@ -2335,7 +2335,7 @@ func getNextLevelSchemas(currentSchemas []DatabagSchema, acc Accessor) ([]Databa
 func getValidSchemas(schemas []DatabagSchema, data []byte) ([]DatabagSchema, error) {
 	filtered := []DatabagSchema{}
 	for _, s := range schemas {
-		err := s.Validate(data)
+		err := s.Validate(data, -1)
 		if err != nil {
 			continue
 		}
@@ -3276,7 +3276,7 @@ func NewJSONSchema() JSONSchema {
 }
 
 // Validate validates that the specified data can be encoded into JSON.
-func (s JSONSchema) Validate(jsonData []byte) error {
+func (s JSONSchema) Validate(jsonData []byte, _ int) error {
 	// the top-level is always an object
 	var data map[string]json.RawMessage
 	return json.Unmarshal(jsonData, &data)

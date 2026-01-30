@@ -174,8 +174,8 @@ func (v *aliasReference) isStringBased() bool {
 
 // Validate validates the data according to the user-defined type referred to by
 // this reference.
-func (v *aliasReference) Validate(data []byte) error {
-	return v.alias.Validate(data)
+func (v *aliasReference) Validate(data []byte, validationDepth int) error {
+	return v.alias.Validate(data, validationDepth)
 }
 
 // SchemaAt returns the alias reference itself if the path terminates at it. If
@@ -302,8 +302,8 @@ type StorageSchema struct {
 }
 
 // Validate validates the provided JSON object.
-func (s *StorageSchema) Validate(raw []byte) error {
-	return s.topLevel.Validate(raw)
+func (s *StorageSchema) Validate(raw []byte, validationDepth int) error {
+	return s.topLevel.Validate(raw, validationDepth)
 }
 
 // SchemaAt returns the types that may be stored at the specified path.
@@ -507,10 +507,10 @@ type alternativesSchema struct {
 }
 
 // Validate that raw matches at least one of the schemas in the alternative list.
-func (v *alternativesSchema) Validate(raw []byte) error {
+func (v *alternativesSchema) Validate(raw []byte, validationDepth int) error {
 	var errs []error
 	for _, schema := range v.schemas {
-		err := schema.Validate(raw)
+		err := schema.Validate(raw, validationDepth)
 		if err == nil {
 			return nil
 		}
@@ -625,7 +625,7 @@ func (v *alternativesSchema) PruneByVisibility(vis []Visibility, data any) (any,
 		return nil, err
 	}
 	for _, schema := range v.schemas {
-		if err = schema.Validate(marshelled); err != nil {
+		if err = schema.Validate(marshelled, -1); err != nil {
 			continue
 		}
 		return schema.PruneByVisibility(vis, data)
@@ -659,7 +659,7 @@ type mapSchema struct {
 
 // Validate that raw is a valid map and meets the constraints set by the
 // confdb storage schema.
-func (v *mapSchema) Validate(raw []byte) error {
+func (v *mapSchema) Validate(raw []byte, validationDepth int) error {
 	var mapValue map[string]json.RawMessage
 	if err := json.Unmarshal(raw, &mapValue); err != nil {
 		typeErr := &json.UnmarshalTypeError{}
@@ -705,10 +705,14 @@ func (v *mapSchema) Validate(raw []byte) error {
 		return validationErrorf(`cannot find required combinations of keys`)
 	}
 
+	if validationDepth == 0 {
+		return nil
+	}
+
 	if v.entrySchemas != nil {
 		for key, val := range mapValue {
 			if validator, ok := v.entrySchemas[key]; ok {
-				if err := validator.Validate(val); err != nil {
+				if err := validator.Validate(val, validationDepth-1); err != nil {
 					var valErr *ValidationError
 					if errors.As(err, &valErr) {
 						valErr.Path = append([]any{key}, valErr.Path...)
@@ -729,7 +733,7 @@ func (v *mapSchema) Validate(raw []byte) error {
 				return fmt.Errorf("internal error: %w", err)
 			}
 
-			if err := v.keySchema.Validate(rawKey); err != nil {
+			if err := v.keySchema.Validate(rawKey, validationDepth-1); err != nil {
 				var valErr *ValidationError
 				if errors.As(err, &valErr) {
 					valErr.Path = append([]any{k}, valErr.Path...)
@@ -741,7 +745,7 @@ func (v *mapSchema) Validate(raw []byte) error {
 
 	if v.valueSchema != nil {
 		for k, val := range mapValue {
-			if err := v.valueSchema.Validate(val); err != nil {
+			if err := v.valueSchema.Validate(val, validationDepth-1); err != nil {
 				var valErr *ValidationError
 				if errors.As(err, &valErr) {
 					valErr.Path = append([]any{k}, valErr.Path...)
@@ -1085,7 +1089,7 @@ type stringSchema struct {
 }
 
 // Validate that raw is a valid string and meets the schema's constraints.
-func (v *stringSchema) Validate(raw []byte) (err error) {
+func (v *stringSchema) Validate(raw []byte, validationDepth int) (err error) {
 	defer func() {
 		if err != nil {
 			err = validationErrorFrom(err)
@@ -1178,7 +1182,7 @@ type intSchema struct {
 }
 
 // Validate that raw is a valid integer and meets the schema's constraints.
-func (v *intSchema) Validate(raw []byte) (err error) {
+func (v *intSchema) Validate(raw []byte, validationDepth int) (err error) {
 	defer func() {
 		if err != nil {
 			err = validationErrorFrom(err)
@@ -1272,7 +1276,7 @@ type anySchema struct {
 	scalarSchema
 }
 
-func (v *anySchema) Validate(raw []byte) (err error) {
+func (v *anySchema) Validate(raw []byte, validationDepth int) (err error) {
 	defer func() {
 		if err != nil {
 			err = validationErrorFrom(err)
@@ -1315,7 +1319,7 @@ type numberSchema struct {
 }
 
 // Validate that raw is a valid number and meets the schema's constraints.
-func (v *numberSchema) Validate(raw []byte) (err error) {
+func (v *numberSchema) Validate(raw []byte, validationDepth int) (err error) {
 	defer func() {
 		if err != nil {
 			err = validationErrorFrom(err)
@@ -1437,7 +1441,7 @@ type booleanSchema struct {
 	scalarSchema
 }
 
-func (v *booleanSchema) Validate(raw []byte) (err error) {
+func (v *booleanSchema) Validate(raw []byte, validationDepth int) (err error) {
 	defer func() {
 		if err != nil {
 			err = validationErrorFrom(err)
@@ -1498,7 +1502,7 @@ type arraySchema struct {
 	visibility Visibility
 }
 
-func (v *arraySchema) Validate(raw []byte) error {
+func (v *arraySchema) Validate(raw []byte, validationDepth int) error {
 	var array *[]json.RawMessage
 	if err := json.Unmarshal(raw, &array); err != nil {
 		typeErr := &json.UnmarshalTypeError{}
@@ -1512,13 +1516,15 @@ func (v *arraySchema) Validate(raw []byte) error {
 		return validationErrorf(`cannot accept null value for "array" type`)
 	}
 
-	for e, val := range *array {
-		if err := v.elementType.Validate([]byte(val)); err != nil {
-			var vErr *ValidationError
-			if errors.As(err, &vErr) {
-				vErr.Path = append([]any{e}, vErr.Path...)
+	if validationDepth != 0 {
+		for e, val := range *array {
+			if err := v.elementType.Validate([]byte(val), validationDepth-1); err != nil {
+				var vErr *ValidationError
+				if errors.As(err, &vErr) {
+					vErr.Path = append([]any{e}, vErr.Path...)
+				}
+				return err
 			}
-			return err
 		}
 	}
 

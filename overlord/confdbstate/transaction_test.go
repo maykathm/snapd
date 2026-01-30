@@ -131,7 +131,7 @@ type failingSchema struct {
 	err error
 }
 
-func (f *failingSchema) Validate([]byte) error {
+func (f *failingSchema) Validate([]byte, int) error {
 	return f.err
 }
 

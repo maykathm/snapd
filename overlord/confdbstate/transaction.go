@@ -212,7 +212,7 @@ func (t *Transaction) Commit(st *state.State, schema confdb.DatabagSchema) error
 		return err
 	}
 
-	if err := schema.Validate(data); err != nil {
+	if err := schema.Validate(data, -1); err != nil {
 		return err
 	}
 
