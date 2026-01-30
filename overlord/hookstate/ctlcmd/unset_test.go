@@ -185,10 +185,10 @@ func (s *confdbSuite) TestConfdbUnsetManyViews(c *C) {
 	c.Check(stdout, IsNil)
 	c.Check(stderr, IsNil)
 
-	_, err = tx.Get(parsePath(c, "wifi.ssid"), nil)
+	_, err = tx.Get(parsePath(c, "wifi.ssid"), nil, confdb.Schema{}, []confdb.Visibility{})
 	c.Assert(err, testutil.ErrorIs, &confdb.NoDataError{})
 
-	_, err = tx.Get(parsePath(c, "wifi.psk"), nil)
+	_, err = tx.Get(parsePath(c, "wifi.psk"), nil, confdb.Schema{}, []confdb.Visibility{})
 	c.Assert(err, testutil.ErrorIs, &confdb.NoDataError{})
 }
 

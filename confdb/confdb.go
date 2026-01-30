@@ -196,7 +196,7 @@ func badRequestErrorFrom(v *View, operation, request, msg string) *BadRequestErr
 
 // Databag controls access to the confdb data storage.
 type Databag interface {
-	Get(path []Accessor, constraints map[string]any) (any, error)
+	Get(path []Accessor, constraints map[string]any, schema Schema, visibilitiesToPrune []Visibility) (any, error)
 	Set(path []Accessor, value any) error
 	Unset(path []Accessor) error
 	Data() ([]byte, error)
@@ -1767,7 +1767,7 @@ func (v *View) Get(databag Databag, request string, constraints map[string]any) 
 
 	var merged any
 	for _, match := range matches {
-		val, err := databag.Get(match.storagePath, constraints)
+		val, err := databag.Get(match.storagePath, constraints, *v.schema, []Visibility{})
 		if err != nil {
 			if errors.Is(err, &NoDataError{}) {
 				continue
@@ -2265,10 +2265,14 @@ func NewJSONDatabag() JSONDatabag {
 
 // Get takes a path parsed into accessors and a pointer to a variable into
 // which the result should be written.
-func (s JSONDatabag) Get(accessors []Accessor, constraints map[string]any) (any, error) {
+func (s JSONDatabag) Get(accessors []Accessor, constraints map[string]any, schema Schema, visibilitiesToPrune []Visibility) (any, error) {
+	schemas := []DatabagSchema{}
+	if schema.DatabagSchema != nil {
+		schemas = append(schemas, schema.DatabagSchema)
+	}
 	// TODO: create this in the return below as well?
 	var value any
-	if err := get(accessors, 0, s, constraints, &value); err != nil {
+	if err := get(accessors, 0, s, constraints, schemas, visibilitiesToPrune, &value); err != nil {
 		return nil, err
 	}
 
@@ -2280,7 +2284,7 @@ func (s JSONDatabag) Get(accessors []Accessor, constraints map[string]any) (any,
 // traverse the tree, or placeholders (e.g., "{foo}"). For placeholders,
 // we take all sub-paths and try to match the remaining path. The results for
 // any sub-path that matched the request path are then merged in a map and returned.
-func get(accessors []Accessor, index int, node any, constraints map[string]any, result *any) error {
+func get(accessors []Accessor, index int, node any, constraints map[string]any, schemas []DatabagSchema, visibilitiesToPrune []Visibility, result *any) error {
 	// the first level will be typed as JSONDatabag so we have to convert it
 	if bag, ok := node.(JSONDatabag); ok {
 		node = map[string]json.RawMessage(bag)
@@ -2288,14 +2292,59 @@ func get(accessors []Accessor, index int, node any, constraints map[string]any, 
 
 	switch node := node.(type) {
 	case map[string]json.RawMessage:
-		return getMap(accessors, index, node, constraints, result)
+		return getMap(accessors, index, node, constraints, schemas, visibilitiesToPrune, result)
 	case []json.RawMessage:
-		return getList(accessors, index, node, constraints, result)
+		return getList(accessors, index, node, constraints, schemas, visibilitiesToPrune, result)
 	default:
 		// should be impossible since we handle terminal cases in the type specific functions
 		path := JoinAccessors(accessors[:index+1])
 		return fmt.Errorf("internal error: expected level %q to be map or list but got %T", path, node)
 	}
+}
+
+func listContains[K comparable](list []K, element K) bool {
+	for _, item := range list {
+		if item == element {
+			return true
+		}
+	}
+	return false
+}
+
+func schemasContainVisibility(schemas []DatabagSchema, vis []Visibility) bool {
+	for _, schema := range schemas {
+		if listContains(vis, schema.Visibility()) {
+			return true
+		}
+	}
+	return false
+}
+
+func getNextLevelSchemas(currentSchemas []DatabagSchema, acc Accessor) ([]DatabagSchema, error) {
+	levelSchemas := make([]DatabagSchema, 0, len(currentSchemas))
+	for _, schema := range currentSchemas {
+		levelSchema, err := schema.SchemaAt([]Accessor{acc})
+		if err != nil {
+			return []DatabagSchema{}, fmt.Errorf(`could not get retrieve schema at path`)
+		}
+		levelSchemas = append(levelSchemas, levelSchema...)
+	}
+	return levelSchemas, nil
+}
+
+func getValidSchemas(schemas []DatabagSchema, data []byte) ([]DatabagSchema, error) {
+	filtered := []DatabagSchema{}
+	for _, s := range schemas {
+		err := s.Validate(data)
+		if err != nil {
+			continue
+		}
+		filtered = append(filtered, s)
+	}
+	if len(filtered) == 0 {
+		return nil, fmt.Errorf(`no valid schemas found`)
+	}
+	return filtered, nil
 }
 
 // getMap traverses node (a decoded JSON object) and, depending on the path being
@@ -2305,8 +2354,9 @@ func get(accessors []Accessor, index int, node any, constraints map[string]any, 
 //   - goes into one specific sub-path and recurses into get()
 //   - goes into potentially many sub-paths and merges the results, if the current
 //     path sub-key is an unmatched placeholder
-func getMap(accessors []Accessor, index int, node map[string]json.RawMessage, constraints map[string]any, result *any) error {
+func getMap(accessors []Accessor, index int, node map[string]json.RawMessage, constraints map[string]any, schemas []DatabagSchema, visibilitiesToPrune []Visibility, result *any) error {
 	acc := accessors[index]
+	levelSchemas := []DatabagSchema{}
 
 	var matchAll bool
 	var rawLevel json.RawMessage
@@ -2322,6 +2372,47 @@ func getMap(accessors []Accessor, index int, node map[string]json.RawMessage, co
 			return err
 		} else if !ok {
 			return &NoDataError{}
+		}
+		if len(visibilitiesToPrune) > 0 {
+			marshelled, err := json.Marshal(map[string]any{acc.Name(): rawLevel})
+			if err != nil {
+				return err
+			}
+			schemas, err = getValidSchemas(schemas, marshelled)
+			if err != nil {
+				return err
+			}
+			if schemasContainVisibility(schemas, visibilitiesToPrune) {
+				return &NoDataError{}
+			}
+			levelSchemas, err = getNextLevelSchemas(schemas, acc)
+			if err != nil {
+				return err
+			}
+			levelSchemas, err = getValidSchemas(levelSchemas, rawLevel)
+			if err != nil {
+				return err
+			}
+			if schemasContainVisibility(levelSchemas, visibilitiesToPrune) {
+				return &NoDataError{}
+			}
+			if index == len(accessors)-1 {
+				var deser any
+				if err := json.Unmarshal(rawLevel, &deser); err != nil {
+					return fmt.Errorf(`internal error: %w`, err)
+				}
+				// Prune using the first matching schema
+				data, err := levelSchemas[0].PruneByVisibility(visibilitiesToPrune, deser)
+				if err != nil {
+					return err
+				}
+				if data == nil {
+					return &NoDataError{}
+				}
+
+				*result = data
+				return nil
+			}
 		}
 	} else if acc.Type() == KeyPlaceholderType {
 		matchAll = true
@@ -2342,12 +2433,41 @@ func getMap(accessors []Accessor, index int, node map[string]json.RawMessage, co
 				} else if !ok {
 					continue
 				}
-
 				var deser any
 				if err := json.Unmarshal(v, &deser); err != nil {
 					return fmt.Errorf(`internal error: %w`, err)
 				}
-				level[k] = deser
+				if len(visibilitiesToPrune) > 0 {
+					marshelled, err := json.Marshal(map[string]any{k: v})
+					if err != nil {
+						return err
+					}
+					schemas, err = getValidSchemas(schemas, marshelled)
+					if err != nil {
+						return err
+					}
+					if schemasContainVisibility(schemas, visibilitiesToPrune) {
+						continue
+					}
+					levelSchemas, err = getNextLevelSchemas(schemas, key{value: k})
+					if err != nil {
+						return err
+					}
+					levelSchemas, err = getValidSchemas(levelSchemas, v)
+					if err != nil {
+						return err
+					}
+					if schemasContainVisibility(levelSchemas, visibilitiesToPrune) {
+						continue
+					}
+					data, err := levelSchemas[0].PruneByVisibility(visibilitiesToPrune, deser)
+					if err != nil {
+						return err
+					}
+					level[k] = data
+				} else {
+					level[k] = deser
+				}
 			}
 
 			if len(level) == 0 {
@@ -2386,10 +2506,35 @@ func getMap(accessors []Accessor, index int, node map[string]json.RawMessage, co
 				return err
 			}
 
+			if len(visibilitiesToPrune) > 0 {
+				marshelled, err := json.Marshal(map[string]any{k: v})
+				if err != nil {
+					return err
+				}
+				schemas, err = getValidSchemas(schemas, marshelled)
+				if err != nil {
+					return err
+				}
+				if schemasContainVisibility(schemas, visibilitiesToPrune) {
+					continue
+				}
+				levelSchemas, err = getNextLevelSchemas(schemas, key{value: k})
+				if err != nil {
+					return err
+				}
+				levelSchemas, err = getValidSchemas(levelSchemas, v)
+				if err != nil {
+					return err
+				}
+				if schemasContainVisibility(levelSchemas, visibilitiesToPrune) {
+					continue
+				}
+			}
+
 			// walk the path under all possible values, only return an error if no value
 			// is found under any path
 			var res any
-			if err := get(accessors, index+1, level, constraints, &res); err != nil {
+			if err := get(accessors, index+1, level, constraints, levelSchemas, visibilitiesToPrune, &res); err != nil {
 				if errors.Is(err, &NoDataError{}) {
 					continue
 				}
@@ -2413,7 +2558,7 @@ func getMap(accessors []Accessor, index int, node map[string]json.RawMessage, co
 		return err
 	}
 
-	return get(accessors, index+1, level, constraints, result)
+	return get(accessors, index+1, level, constraints, levelSchemas, visibilitiesToPrune, result)
 }
 
 // getList traverses node (a decoded JSON list) and, depending on the path being
@@ -2423,8 +2568,9 @@ func getMap(accessors []Accessor, index int, node map[string]json.RawMessage, co
 //   - goes into one specific sub-path and recurses into get()
 //   - goes into potentially many sub-paths and accumulates the results, if the
 //     current path sub-key is an unmatched placeholder
-func getList(accessors []Accessor, keyIndex int, list []json.RawMessage, constraints map[string]any, result *any) error {
+func getList(accessors []Accessor, keyIndex int, list []json.RawMessage, constraints map[string]any, schemas []DatabagSchema, visibilitiesToPrune []Visibility, result *any) error {
 	acc := accessors[keyIndex]
+	levelSchemas := []DatabagSchema{}
 
 	var matchAll bool
 	listIndex := -1
@@ -2438,6 +2584,47 @@ func getList(accessors []Accessor, keyIndex int, list []json.RawMessage, constra
 			return err
 		} else if !ok {
 			return &NoDataError{}
+		}
+		if len(visibilitiesToPrune) > 0 {
+			marshelled, err := json.Marshal(list)
+			if err != nil {
+				return err
+			}
+			schemas, err := getValidSchemas(schemas, marshelled)
+			if err != nil {
+				return err
+			}
+			if schemasContainVisibility(schemas, visibilitiesToPrune) {
+				return &NoDataError{}
+			}
+			marshelled, err = json.Marshal(list[listIndex])
+			levelSchemas, err = getNextLevelSchemas(schemas, acc)
+			if err != nil {
+				return err
+			}
+			levelSchemas, err = getValidSchemas(levelSchemas, marshelled)
+			if err != nil {
+				return err
+			}
+			if schemasContainVisibility(levelSchemas, visibilitiesToPrune) {
+				return &NoDataError{}
+			}
+			if keyIndex == len(accessors)-1 {
+				var data any
+				err := json.Unmarshal(list[listIndex], &data)
+				if err != nil {
+					return err
+				}
+				data, err = levelSchemas[0].PruneByVisibility(visibilitiesToPrune, data)
+				if err != nil {
+					return err
+				}
+				if data == nil {
+					return &NoDataError{}
+				}
+				*result = data
+				return nil
+			}
 		}
 	} else if acc.Type() == IndexPlaceholderType {
 		matchAll = true
@@ -2458,12 +2645,43 @@ func getList(accessors []Accessor, keyIndex int, list []json.RawMessage, constra
 					// filter out this value
 					continue
 				}
-
 				var deser any
 				if err := json.Unmarshal(v, &deser); err != nil {
 					return fmt.Errorf(`internal error: %w`, err)
 				}
-				level = append(level, deser)
+				if len(visibilitiesToPrune) > 0 {
+					marshelled, err := json.Marshal(list)
+					if err != nil {
+						return err
+					}
+					schemas, err := getValidSchemas(schemas, marshelled)
+					if err != nil {
+						return err
+					}
+					if schemasContainVisibility(schemas, visibilitiesToPrune) {
+						continue
+					}
+					levelSchemas, err = getNextLevelSchemas(schemas, acc)
+					if err != nil {
+						return err
+					}
+					levelSchemas, err = getValidSchemas(levelSchemas, v)
+					if err != nil {
+						return err
+					}
+					if schemasContainVisibility(levelSchemas, visibilitiesToPrune) {
+						continue
+					}
+					data, err := levelSchemas[0].PruneByVisibility(visibilitiesToPrune, deser)
+					if err != nil {
+						return err
+					}
+					if data != nil {
+						level = append(level, data)
+					}
+				} else {
+					level = append(level, deser)
+				}
 			}
 
 			if len(level) == 0 {
@@ -2484,7 +2702,7 @@ func getList(accessors []Accessor, keyIndex int, list []json.RawMessage, constra
 	if matchAll {
 		results := make([]any, 0, len(list))
 
-		for _, el := range list {
+		for i, el := range list {
 			if ok, err := fieldFiltersMatchConstraints(acc, el, constraints); err != nil {
 				return err
 			} else if !ok {
@@ -2502,10 +2720,35 @@ func getList(accessors []Accessor, keyIndex int, list []json.RawMessage, constra
 				return err
 			}
 
+			if len(visibilitiesToPrune) > 0 {
+				marshelled, err := json.Marshal(list)
+				if err != nil {
+					return err
+				}
+				schemas, err = getValidSchemas(schemas, marshelled)
+				if err != nil {
+					return err
+				}
+				if schemasContainVisibility(schemas, visibilitiesToPrune) {
+					continue
+				}
+				levelSchemas, err = getNextLevelSchemas(schemas, index{value: strconv.Itoa(i)})
+				if err != nil {
+					return err
+				}
+				levelSchemas, err = getValidSchemas(levelSchemas, el)
+				if err != nil {
+					return err
+				}
+				if schemasContainVisibility(levelSchemas, visibilitiesToPrune) {
+					continue
+				}
+			}
+
 			// walk the path under all possible values, only return an error if no value
 			// is found under any path
 			var res any
-			if err := get(accessors, keyIndex+1, level, constraints, &res); err != nil {
+			if err := get(accessors, keyIndex+1, level, constraints, levelSchemas, visibilitiesToPrune, &res); err != nil {
 				if errors.Is(err, &NoDataError{}) {
 					continue
 				}
@@ -2530,7 +2773,7 @@ func getList(accessors []Accessor, keyIndex int, list []json.RawMessage, constra
 		return err
 	}
 
-	return get(accessors, keyIndex+1, level, constraints, result)
+	return get(accessors, keyIndex+1, level, constraints, levelSchemas, visibilitiesToPrune, result)
 }
 
 type entry struct {

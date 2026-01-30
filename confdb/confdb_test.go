@@ -57,7 +57,7 @@ func (f *failingSchema) PruneByVisibility(_ []confdb.Visibility, data any) (any,
 }
 
 func parsePath(c *C, path string) []confdb.Accessor {
-	accs, err := confdb.ParsePathIntoAccessors(path, confdb.ParseOptions{})
+	accs, err := confdb.ParsePathIntoAccessors(path, confdb.ParseOptions{AllowPlaceholders: true})
 	c.Assert(err, IsNil)
 	return accs
 }
@@ -514,9 +514,9 @@ func newWitnessDatabag(bag confdb.Databag) *witnessDatabag {
 	return &witnessDatabag{bag: bag}
 }
 
-func (s *witnessDatabag) Get(path []confdb.Accessor, _ map[string]any) (any, error) {
+func (s *witnessDatabag) Get(path []confdb.Accessor, _ map[string]any, _ confdb.Schema, _ []confdb.Visibility) (any, error) {
 	s.getPath = confdb.JoinAccessors(path)
-	return s.bag.Get(path, nil)
+	return s.bag.Get(path, nil, confdb.Schema{}, []confdb.Visibility{})
 }
 
 func (s *witnessDatabag) Set(path []confdb.Accessor, value any) error {
@@ -1146,7 +1146,7 @@ func (s *viewSuite) TestJSONDataOverwrite(c *C) {
 	err = bag.Overwrite([]byte(`{"bar":"foo"}`))
 	c.Assert(err, IsNil)
 
-	val, err := bag.Get(parsePath(c, "bar"), nil)
+	val, err := bag.Get(parsePath(c, "bar"), nil, confdb.Schema{}, []confdb.Visibility{})
 	c.Assert(err, IsNil)
 	c.Assert(val, Equals, "foo")
 
@@ -1708,11 +1708,11 @@ func (s *viewSuite) TestSetAllowedOnSameRequestButDifferentPaths(c *C) {
 	err = view.Set(databag, "a.b.c", "value")
 	c.Assert(err, IsNil)
 
-	stored, err := databag.Get(parsePath(c, "old"), nil)
+	stored, err := databag.Get(parsePath(c, "old"), nil, confdb.Schema{}, []confdb.Visibility{})
 	c.Assert(err, IsNil)
 	c.Assert(stored, Equals, "value")
 
-	stored, err = databag.Get(parsePath(c, "new"), nil)
+	stored, err = databag.Get(parsePath(c, "new"), nil, confdb.Schema{}, []confdb.Visibility{})
 	c.Assert(err, IsNil)
 	c.Assert(stored, Equals, "value")
 }
@@ -1738,7 +1738,7 @@ func (s *viewSuite) TestSetWritesToMoreNestedLast(c *C) {
 	})
 	c.Assert(err, IsNil)
 
-	val, err := databag.Get(parsePath(c, "snaps"), nil)
+	val, err := databag.Get(parsePath(c, "snaps"), nil, confdb.Schema{}, []confdb.Visibility{})
 	c.Assert(err, IsNil)
 
 	c.Assert(val, DeepEquals, map[string]any{
@@ -1814,7 +1814,7 @@ func (s *viewSuite) TestReadWriteSameDataAtDifferentLevels(c *C) {
 		c.Assert(err, IsNil)
 	}
 
-	data, err := databag.Get(path, nil)
+	data, err := databag.Get(path, nil, confdb.Schema{}, []confdb.Visibility{})
 	c.Assert(err, IsNil)
 	c.Assert(data, DeepEquals, initialData)
 }
@@ -4720,6 +4720,212 @@ func (s *viewSuite) TestFilterNestedSubkey(c *C) {
 
 	_, err = view.Get(bag, "foo", map[string]any{"baz": "c", "bar": "b"})
 	c.Assert(err, testutil.ErrorIs, &confdb.NoDataError{})
+}
+
+func (s *viewSuite) TestPruneVisibilityMap(c *C) {
+	schemaStr := []byte(`{
+	"schema": {
+		"foo": {
+			"schema": {
+				"a": {
+					"schema": {
+						"c": "int",
+						"d": "number"
+					},
+					"visibility": "secret"
+				},
+				"b": {
+					"schema": {
+						"c": "int",
+						"d": {
+							"type": "number",
+							"visibility": "secret"
+						}
+					}
+				}
+			}
+		}
+	}
+}`)
+	views := map[string]any{
+		"foo": map[string]any{
+			// don't need "parameters" stanza to filter based on sub-keys
+			"rules": []any{
+				map[string]any{"request": "foo.{bar}.{baz}", "storage": "foo.{bar}.{baz}"},
+			},
+		},
+	}
+	storageSchema, err := confdb.ParseStorageSchema(schemaStr)
+	c.Assert(err, IsNil)
+	schema, err := confdb.NewSchema("acc", "foo", views, storageSchema)
+	c.Assert(err, IsNil)
+	view := schema.View("foo")
+	bag := confdb.NewJSONDatabag()
+	err = bag.Set(parsePath(c, "foo"), map[string]any{
+		"a": map[string]any{
+			"c": 1,
+			"d": 1,
+		},
+		"b": map[string]any{
+			"c": 1,
+			"d": 1,
+		},
+	})
+	c.Assert(err, IsNil)
+	data, err := bag.Get(parsePath(c, "foo"), nil, *view.Schema(), []confdb.Visibility{confdb.SecretVisibility})
+	c.Assert(err, IsNil)
+	c.Assert(data, DeepEquals, map[string]any{
+		"b": map[string]any{
+			"c": float64(1),
+		},
+	})
+
+	data, err = bag.Get(parsePath(c, "foo.{n}"), nil, *view.Schema(), []confdb.Visibility{confdb.SecretVisibility})
+	c.Assert(err, IsNil)
+	c.Assert(data, DeepEquals, map[string]any{
+		"b": map[string]any{
+			"c": float64(1),
+		},
+	})
+
+	data, err = bag.Get(parsePath(c, "foo.{n}.c"), nil, *view.Schema(), []confdb.Visibility{confdb.SecretVisibility})
+	c.Assert(err, IsNil)
+	c.Assert(data, DeepEquals, map[string]any{
+		"b": float64(1),
+	})
+}
+
+func (s *viewSuite) TestPruneVisibilityArray(c *C) {
+	schemaStr := []byte(`{
+	"schema": {
+		"foo": {
+			"schema": {
+				"bar": {
+					"type": "array",
+					"values": {
+						"schema": {
+							"a": {
+								"type": "string",
+								"visibility": "secret"
+							},
+							"b": "bool"
+						}
+					}
+				},
+				"baz": {
+					"type": "array",
+					"values": "string",
+					"visibility": "secret"
+				}
+			}
+		}
+	}
+}`)
+	views := map[string]any{
+		"foo": map[string]any{
+			"rules": []any{
+				map[string]any{"request": "foo.bar[{n}].{p}", "storage": "foo.bar[{n}].{p}"},
+				map[string]any{"request": "foo.baz[{n}]", "storage": "foo.baz[{n}]"},
+			},
+		},
+	}
+	storageSchema, err := confdb.ParseStorageSchema(schemaStr)
+	c.Assert(err, IsNil)
+	schema, err := confdb.NewSchema("acc", "foo", views, storageSchema)
+	c.Assert(err, IsNil)
+	view := schema.View("foo")
+	bag := confdb.NewJSONDatabag()
+	err = bag.Set(parsePath(c, "foo"), map[string]any{
+		"bar": []any{
+			map[string]any{"a": "extra-secret"},
+			map[string]any{"b": true},
+		},
+		"baz": []any{"secret", "super-secret"},
+	})
+	c.Assert(err, IsNil)
+	data, err := bag.Get(parsePath(c, "foo"), nil, *view.Schema(), []confdb.Visibility{confdb.SecretVisibility})
+	c.Assert(err, IsNil)
+	c.Assert(data, DeepEquals, map[string]any{"bar": []any{map[string]any{"b": true}}})
+
+	data, err = bag.Get(parsePath(c, "foo.bar[0]"), nil, *view.Schema(), []confdb.Visibility{confdb.SecretVisibility})
+	c.Assert(err, testutil.ErrorIs, &confdb.NoDataError{})
+	c.Assert(data, IsNil)
+
+	data, err = bag.Get(parsePath(c, "foo.bar[0].a"), nil, *view.Schema(), []confdb.Visibility{confdb.SecretVisibility})
+	c.Assert(err, testutil.ErrorIs, &confdb.NoDataError{})
+	c.Assert(data, IsNil)
+
+	data, err = bag.Get(parsePath(c, "foo.bar[{n}]"), nil, *view.Schema(), []confdb.Visibility{confdb.SecretVisibility})
+	c.Assert(err, IsNil)
+	c.Assert(data, DeepEquals, []any{map[string]any{"b": true}})
+
+	data, err = bag.Get(parsePath(c, "foo.bar[{n}].a"), nil, *view.Schema(), []confdb.Visibility{confdb.SecretVisibility})
+	c.Assert(err, testutil.ErrorIs, &confdb.NoDataError{})
+	c.Assert(data, IsNil)
+
+	data, err = bag.Get(parsePath(c, "foo.bar[{n}].b"), nil, *view.Schema(), []confdb.Visibility{confdb.SecretVisibility})
+	c.Assert(err, IsNil)
+	c.Assert(data, DeepEquals, []any{true})
+}
+
+func (s *viewSuite) TestPruneVisibilityAlternatives(c *C) {
+	schemaStr := []byte(`{
+	"schema": {
+		"foo": [
+		{
+			"schema": {
+				"bar": {
+					"schema": {
+						"baz": "string"
+					},
+					"visibility": "secret"
+				}
+			}
+		},
+		{
+			"schema": {
+				"bar": {
+					"schema": {
+						"eph": "string"
+					}
+				}
+			}
+		}
+		]
+	}
+}`)
+	views := map[string]any{
+		"foo": map[string]any{
+			"rules": []any{
+				map[string]any{"request": "foo.{s}.{t}", "storage": "foo.{s}.{t}"},
+			},
+		},
+	}
+	storageSchema, err := confdb.ParseStorageSchema(schemaStr)
+	c.Assert(err, IsNil)
+	schema, err := confdb.NewSchema("acc", "foo", views, storageSchema)
+	c.Assert(err, IsNil)
+	view := schema.View("foo")
+	bag := confdb.NewJSONDatabag()
+	err = bag.Set(parsePath(c, "foo"), map[string]any{
+		"bar": map[string]any{"eph": "eph-data"},
+	})
+	c.Assert(err, IsNil)
+	data, err := bag.Get(parsePath(c, "foo"), nil, *view.Schema(), []confdb.Visibility{confdb.SecretVisibility})
+	c.Assert(err, IsNil)
+	c.Assert(data, DeepEquals, map[string]any{"bar": map[string]any{"eph": "eph-data"}})
+
+	data, err = bag.Get(parsePath(c, "foo.{s}"), nil, *view.Schema(), []confdb.Visibility{confdb.SecretVisibility})
+	c.Assert(err, IsNil)
+	c.Assert(data, DeepEquals, map[string]any{"bar": map[string]any{"eph": "eph-data"}})
+
+	data, err = bag.Get(parsePath(c, "foo.bar.{t}"), nil, *view.Schema(), []confdb.Visibility{confdb.SecretVisibility})
+	c.Assert(err, IsNil)
+	c.Assert(data, DeepEquals, map[string]any{"eph": "eph-data"})
+
+	data, err = bag.Get(parsePath(c, "foo.bar.eph"), nil, *view.Schema(), []confdb.Visibility{confdb.SecretVisibility})
+	c.Assert(err, IsNil)
+	c.Assert(data, Equals, "eph-data")
 }
 
 // matches field filters

@@ -233,7 +233,7 @@ func (s *hookHandlerSuite) TestSaveViewHookErrorRollsBackSaves(c *C) {
 	// the transaction has been cleared
 	tx, _, _, err = confdbstate.GetStoredTransaction(secondTask)
 	c.Assert(err, IsNil)
-	_, err = tx.Get(parsePath(c, "foo"), nil)
+	_, err = tx.Get(parsePath(c, "foo"), nil, confdb.Schema{}, []confdb.Visibility{})
 	c.Assert(err, testutil.ErrorIs, &confdb.NoDataError{})
 
 	halts := secondTask.HaltTasks()
@@ -458,7 +458,7 @@ func (s *confdbTestSuite) TestCommitTransaction(c *C) {
 	err = tx.Clear(s.state)
 	c.Assert(err, IsNil)
 
-	val, err := tx.Get(parsePath(c, "wifi.ssid"), nil)
+	val, err := tx.Get(parsePath(c, "wifi.ssid"), nil, confdb.Schema{}, []confdb.Visibility{})
 	c.Assert(err, IsNil)
 	c.Assert(val, Equals, "foo")
 }
