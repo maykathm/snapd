@@ -2989,3 +2989,260 @@ func (*schemaSuite) TestUserTypeReferenceSecret(c *C) {
 	c.Assert(barSchema, HasLen, 1)
 	c.Assert(barSchema[0].Visibility(), Equals, confdb.DefaultVisibility)
 }
+
+func (s *schemaSuite) TestPruneAllSecret(c *C) {
+	schemaStr := []byte(`{
+	"schema": {
+		"foo": "string"
+	},
+	"visibility": "secret"
+}`)
+	schema, err := confdb.ParseStorageSchema(schemaStr)
+	c.Assert(err, IsNil)
+	data, err := schema.PruneByVisibility([]confdb.Visibility{confdb.SecretVisibility}, map[string]any{"foo": "data"})
+	c.Assert(err, IsNil)
+	c.Assert(data, IsNil)
+
+	data, err = schema.PruneByVisibility([]confdb.Visibility{}, map[string]any{"foo": "data"})
+	c.Assert(err, IsNil)
+	c.Assert(data, DeepEquals, map[string]any{"foo": "data"})
+
+	data, err = schema.PruneByVisibility([]confdb.Visibility{confdb.SecretVisibility}, nil)
+	c.Assert(err, IsNil)
+	c.Assert(data, IsNil)
+}
+
+func (s *schemaSuite) TestPruneMap(c *C) {
+	schemaStr := []byte(`{
+	"schema": {
+		"foo": "int",
+		"bar": {
+			"schema": {
+				"eph": "string",
+				"best": {
+					"type": "string",
+					"visibility": "secret"
+				}
+			}
+		},
+		"baz": {
+			"type": "bool",
+			"visibility": "secret"
+		},
+		"eph": "string"
+	}
+}`)
+	schema, err := confdb.ParseStorageSchema(schemaStr)
+	c.Assert(err, IsNil)
+	data, err := schema.PruneByVisibility([]confdb.Visibility{confdb.SecretVisibility}, map[string]any{
+		"bar": map[string]any{
+			"eph":  "e",
+			"best": "secret",
+		},
+		"baz": false,
+	})
+	c.Assert(err, IsNil)
+	c.Assert(data, DeepEquals, map[string]any{"bar": map[string]any{"eph": "e"}})
+}
+
+func (*schemaSuite) TestPruneVisibilityMapSecretValues(c *C) {
+	schemaStr := []byte(`{
+	"schema": {
+		"foo": {
+			"keys": "string",
+			"values": {
+				"type": "string",
+				"visibility": "secret"
+			}
+		}
+	}
+}`)
+	schema, err := confdb.ParseStorageSchema(schemaStr)
+	c.Assert(err, IsNil)
+	data, err := schema.PruneByVisibility([]confdb.Visibility{confdb.SecretVisibility}, map[string]any{
+		"foo": map[string]any{"bar": "a", "baz": "b"},
+	})
+	c.Assert(err, IsNil)
+	c.Assert(data, IsNil)
+}
+
+func (*schemaSuite) TestPruneVisibilitySecretMapKeys(c *C) {
+	schemaStr := []byte(`{
+	"schema": {
+		"foo": {
+			"keys": {
+				"type": "string",
+				"visibility": "secret"
+			},
+			"values": "bool"
+		}
+	}
+}`)
+	schema, err := confdb.ParseStorageSchema(schemaStr)
+	c.Assert(err, IsNil)
+	data, err := schema.PruneByVisibility([]confdb.Visibility{confdb.SecretVisibility}, map[string]any{
+		"foo": map[string]any{"bar": false},
+	})
+	c.Assert(err, IsNil)
+	c.Assert(data, IsNil)
+}
+
+func (*schemaSuite) TestPruneVisibilitySecretArray(c *C) {
+	schemaStr := []byte(`{
+	"schema": {
+		"foo": {
+			"type": "array",
+			"values": {
+				"type": "string"
+			},
+			"visibility": "secret"
+		}
+	}
+}`)
+	schema, err := confdb.ParseStorageSchema(schemaStr)
+	c.Assert(err, IsNil)
+	data, err := schema.PruneByVisibility([]confdb.Visibility{confdb.SecretVisibility}, map[string]any{"foo": []any{"bar", "baz"}})
+	c.Assert(err, IsNil)
+	c.Assert(data, IsNil)
+}
+
+func (*schemaSuite) TestPruneVisibilityArraySecretValues(c *C) {
+	schemaStr := []byte(`{
+	"schema": {
+		"foo": {
+			"type": "array",
+			"values": {
+				"type": "string",
+				"visibility": "secret"
+			}
+		}
+	}
+}`)
+	schema, err := confdb.ParseStorageSchema(schemaStr)
+	c.Assert(err, IsNil)
+	data, err := schema.PruneByVisibility([]confdb.Visibility{confdb.SecretVisibility}, map[string]any{"foo": []any{"bar", "baz"}})
+	c.Assert(err, IsNil)
+	c.Assert(data, IsNil)
+}
+
+func (*schemaSuite) TestPruneAllAlternatives(c *C) {
+	schemaStr := []byte(`{
+	"schema": {
+		"foo": [
+		{
+			"schema": {
+				"bar": "string"
+			},
+			"visibility": "secret"
+		},
+		{
+			"type": "array",
+			"values": {
+				"type": "string"
+			},
+			"visibility": "secret"
+		}
+		]
+	}
+}`)
+	schema, err := confdb.ParseStorageSchema(schemaStr)
+	c.Assert(err, IsNil)
+	data, err := schema.PruneByVisibility([]confdb.Visibility{confdb.SecretVisibility}, map[string]any{"foo": []any{"a", "b"}})
+	c.Assert(err, IsNil)
+	c.Assert(data, IsNil)
+
+	data, err = schema.PruneByVisibility([]confdb.Visibility{confdb.SecretVisibility}, map[string]any{"foo": map[string]any{"bar": "a"}})
+	c.Assert(err, IsNil)
+	c.Assert(data, IsNil)
+}
+
+func (*schemaSuite) TestPruneIdenticalAlternativesExceptForValidate(c *C) {
+	schemaStr := []byte(`{
+	"schema": {
+		"foo": [
+		{
+			"schema": {
+				"bar": {
+					"type": "string",
+					"pattern": "^data-[0-9]+$",
+					"visibility": "secret"
+				}
+			}
+		},
+		{
+			"schema": {
+				"bar": {
+					"type": "string"
+				}
+			}
+		}
+		]
+	}
+}`)
+	schema, err := confdb.ParseStorageSchema(schemaStr)
+	c.Assert(err, IsNil)
+	data, err := schema.PruneByVisibility([]confdb.Visibility{confdb.SecretVisibility}, map[string]any{"foo": map[string]any{"bar": "data-10"}})
+	c.Assert(err, IsNil)
+	c.Assert(data, IsNil)
+
+	data = map[string]any{"foo": map[string]any{"bar": "data-10b"}}
+	pruned, err := schema.PruneByVisibility([]confdb.Visibility{confdb.SecretVisibility}, data)
+	c.Assert(err, IsNil)
+	c.Assert(pruned, DeepEquals, data)
+}
+
+func (*schemaSuite) TestPruneVisibilityUserType(c *C) {
+	schemaStr := []byte(`{
+	"aliases": {
+		"my-type": {
+			"type": "string"
+		}
+	},
+	"schema": {
+		"foo": {
+			"type": "${my-type}",
+			"visibility": "secret"
+		},
+		"bar": {
+			"type": "${my-type}"
+		}
+	}
+}`)
+	schema, err := confdb.ParseStorageSchema(schemaStr)
+	c.Assert(err, IsNil)
+	data, err := schema.PruneByVisibility([]confdb.Visibility{confdb.SecretVisibility}, map[string]any{"foo": "a"})
+	c.Assert(err, IsNil)
+	c.Assert(data, IsNil)
+
+	data = map[string]any{"bar": "b"}
+	pruned, err := schema.PruneByVisibility([]confdb.Visibility{confdb.SecretVisibility}, data)
+	c.Assert(err, IsNil)
+	c.Assert(pruned, DeepEquals, data)
+}
+
+func (*schemaSuite) TestPruneSecretAllTypes(c *C) {
+	values := map[string]any{
+		"number":                    float64(1),
+		"int":                       float64(2),
+		"bool":                      true,
+		"string":                    "a",
+		"any":                       "b",
+		`array", "values": "string`: []any{"a", "b"},
+	}
+	for _, typ := range []string{"number", "int", "bool", "string", "any", `array", "values": "string`} {
+		cmt := Commentf("secret pruning unsuccessful for type %q", typ)
+		schemaStr := []byte(fmt.Sprintf(`{
+	"schema": {
+		"foo": {
+			"type": "%s",
+			"visibility": "secret"
+		}
+	}
+}`, typ))
+		schema, err := confdb.ParseStorageSchema(schemaStr)
+		c.Assert(err, IsNil, cmt)
+		data, err := schema.PruneByVisibility([]confdb.Visibility{confdb.SecretVisibility}, map[string]any{"foo": values[typ]})
+		c.Assert(err, IsNil, cmt)
+		c.Assert(data, IsNil, cmt)
+	}
+}

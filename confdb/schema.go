@@ -134,6 +134,10 @@ func (v *userDefinedType) NestedVisibility(vis Visibility) bool {
 	return v.visibility == vis
 }
 
+func (v *userDefinedType) PruneByVisibility(vis []Visibility, data any) (any, error) {
+	return data, nil
+}
+
 // aliasReference represents a reference to a user-defined type in the schema.
 type aliasReference struct {
 	alias *userDefinedType
@@ -207,6 +211,13 @@ func (s *aliasReference) NestedVisibility(vis Visibility) bool {
 	return s.visibility == vis
 }
 
+func (s *aliasReference) PruneByVisibility(vis []Visibility, data any) (any, error) {
+	if listContains(vis, s.Visibility()) {
+		return nil, nil
+	}
+	return data, nil
+}
+
 // scalarSchema holds the data and behaviours common to all types.
 type scalarSchema struct {
 	ephemeral bool
@@ -229,6 +240,13 @@ func (s scalarSchema) Visibility() Visibility {
 
 func (s scalarSchema) NestedVisibility(vis Visibility) bool {
 	return s.Visibility() == vis
+}
+
+func (s scalarSchema) PruneByVisibility(vis []Visibility, data any) (any, error) {
+	if listContains(vis, s.Visibility()) {
+		return nil, nil
+	}
+	return data, nil
 }
 
 func (b *scalarSchema) parseConstraints(constraints map[string]json.RawMessage) (err error) {
@@ -311,6 +329,10 @@ func (s *StorageSchema) Visibility() Visibility {
 
 func (s *StorageSchema) NestedVisibility(vis Visibility) bool {
 	return s.topLevel.NestedVisibility(vis)
+}
+
+func (s *StorageSchema) PruneByVisibility(vis []Visibility, data any) (prunedData any, err error) {
+	return s.topLevel.PruneByVisibility(vis, data)
 }
 
 func (s *StorageSchema) parse(raw json.RawMessage) (DatabagSchema, error) {
@@ -594,6 +616,23 @@ func (v *alternativesSchema) NestedVisibility(vis Visibility) bool {
 	return false
 }
 
+func (v *alternativesSchema) PruneByVisibility(vis []Visibility, data any) (any, error) {
+	if listContains(vis, v.Visibility()) {
+		return nil, nil
+	}
+	marshelled, err := json.Marshal(data)
+	if err != nil {
+		return nil, err
+	}
+	for _, schema := range v.schemas {
+		if err = schema.Validate(marshelled); err != nil {
+			continue
+		}
+		return schema.PruneByVisibility(vis, data)
+	}
+	return nil, fmt.Errorf(`found no matching alternative`)
+}
+
 type mapSchema struct {
 	// topSchema is the schema for the top-level schema which contains the aliases.
 	topSchema *StorageSchema
@@ -829,6 +868,45 @@ func (v *mapSchema) NestedVisibility(vis Visibility) bool {
 	}
 
 	return false
+}
+
+func (v *mapSchema) PruneByVisibility(vis []Visibility, data any) (any, error) {
+	if listContains(vis, v.Visibility()) || (v.keySchema != nil && listContains(vis, v.keySchema.Visibility())) {
+		return nil, nil
+	}
+	m, ok := data.(map[string]any)
+	if !ok {
+		return nil, fmt.Errorf(`data provided is not a map`)
+	}
+	pruned := map[string]any{}
+	for key, value := range m {
+		if v.entrySchemas != nil {
+			valSchema, ok := v.entrySchemas[key]
+			if !ok {
+				return nil, fmt.Errorf(`cannot use "%s" as key in map`, key)
+			}
+			res, err := valSchema.PruneByVisibility(vis, value)
+			if err != nil {
+				return nil, err
+			}
+			if res != nil {
+				pruned[key] = res
+			}
+		}
+		if v.valueSchema != nil {
+			res, err := v.valueSchema.PruneByVisibility(vis, value)
+			if err != nil {
+				return nil, err
+			}
+			if res != nil {
+				pruned[key] = res
+			}
+		}
+	}
+	if len(pruned) > 0 {
+		return pruned, nil
+	}
+	return nil, nil
 }
 
 func (v *mapSchema) parseConstraints(constraints map[string]json.RawMessage) error {
@@ -1497,6 +1575,30 @@ func (v *arraySchema) NestedVisibility(vis Visibility) bool {
 		return true
 	}
 	return v.elementType.NestedVisibility(vis)
+}
+
+func (v *arraySchema) PruneByVisibility(vis []Visibility, data any) (any, error) {
+	if listContains(vis, v.Visibility()) {
+		return nil, nil
+	}
+	array, ok := data.([]any)
+	if !ok {
+		return nil, fmt.Errorf(`data must be an array`)
+	}
+	pruned := []any{}
+	for _, item := range array {
+		res, err := v.elementType.PruneByVisibility(vis, item)
+		if err != nil {
+			return nil, err
+		}
+		if res != nil {
+			pruned = append(pruned, res)
+		}
+	}
+	if len(pruned) > 0 {
+		return pruned, nil
+	}
+	return nil, nil
 }
 
 func (v *arraySchema) parseConstraints(constraints map[string]json.RawMessage) error {

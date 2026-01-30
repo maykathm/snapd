@@ -235,6 +235,10 @@ type DatabagSchema interface {
 
 	// NestedVisibility returns true if it or any of its nested types have the visibility in input
 	NestedVisibility(Visibility) bool
+
+	// PruneByVisibility prunes away any data in input that has a visibility in the vis array in input
+	// It will return error if the data does not conform to the schema.
+	PruneByVisibility(vis []Visibility, data any) (prunedData any, err error)
 }
 
 type SchemaType uint
@@ -3045,3 +3049,6 @@ func (v JSONSchema) Ephemeral() bool                  { return false }
 func (v JSONSchema) NestedEphemeral() bool            { return false }
 func (v JSONSchema) Visibility() Visibility           { return DefaultVisibility }
 func (v JSONSchema) NestedVisibility(Visibility) bool { return false }
+func (v JSONSchema) PruneByVisibility(_ []Visibility, data any) (any, error) {
+	return data, nil
+}
