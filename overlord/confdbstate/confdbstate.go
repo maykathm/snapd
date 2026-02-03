@@ -57,7 +57,8 @@ func SetViaView(bag confdb.Databag, view *confdb.View, requests map[string]any) 
 		if value == nil {
 			err = view.Unset(bag, request)
 		} else {
-			err = view.Set(bag, request, value)
+			// TODO pass set of visibilities to prune
+			err = view.Set(bag, request, value, []confdb.Visibility{})
 		}
 
 		if err != nil {
