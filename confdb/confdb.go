@@ -1817,7 +1817,7 @@ func (v *View) CheckAllConstraintsAreUsed(requests []string, constraints map[str
 // have been applied to any matching filter in the storage path. If the request
 // cannot be matched against any rule, it returns a NoMatchError, and if no data
 // is stored for the request, a NoDataError is returned.
-func (v *View) Get(databag Databag, request string, constraints map[string]any) (any, error) {
+func (v *View) Get(databag Databag, request string, constraints map[string]any, visibilities []Visibility) (any, error) {
 	var accessors []Accessor
 	if request != "" {
 		var err error
@@ -1837,9 +1837,34 @@ func (v *View) Get(databag Databag, request string, constraints map[string]any) 
 		return nil, err
 	}
 
+	allUnauthorized := len(visibilities) > 0
 	var merged any
 	for _, match := range matches {
-		val, err := databag.Get(match.storagePath, constraints)
+		bag := databag
+		if len(visibilities) > 0 {
+			data, err := databag.Data()
+			if err != nil {
+				return nil, err
+			}
+			data, err = v.schema.DatabagSchema.PruneByVisibility(match.storagePath, 0, visibilities, data)
+			if err != nil {
+				if errors.Is(err, &UnAuthorizedAccessError{}) {
+					continue
+				}
+				return nil, err
+			}
+			allUnauthorized = false
+			var decoded map[string]json.RawMessage
+			if err := jsonutil.DecodeWithNumber(bytes.NewReader(data), &decoded); err != nil {
+				_, ok := err.(*json.UnmarshalTypeError)
+				if !ok {
+					return nil, err
+				}
+			}
+			bag = JSONDatabag(decoded)
+		}
+
+		val, err := bag.Get(match.storagePath, constraints)
 		if err != nil {
 			if errors.Is(err, &NoDataError{}) {
 				continue
@@ -1864,6 +1889,9 @@ func (v *View) Get(databag Databag, request string, constraints map[string]any) 
 		var requests []string
 		if request != "" {
 			requests = []string{request}
+		}
+		if allUnauthorized {
+			return nil, &UnAuthorizedAccessError{request: request, operation: "get", viewID: v.ID()}
 		}
 		return nil, NewNoDataError(v, requests)
 	}
