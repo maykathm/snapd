@@ -1098,7 +1098,7 @@ func validateSetValue(initial any) error {
 }
 
 // Set sets the named view to a specified non-nil value.
-func (v *View) Set(databag Databag, request string, value any) error {
+func (v *View) Set(databag Databag, request string, value any, userID int) error {
 	if request == "" {
 		return badRequestErrorFrom(v, "set", request, "")
 	}
@@ -1162,9 +1162,25 @@ func (v *View) Set(databag Databag, request string, value any) error {
 	getAccs = func(i int) []Accessor { return expandedMatches[i].storagePath }
 	sort.Slice(expandedMatches, byAccessor(getAccs))
 
+	visibilities := getVisibilitiesToPrune(userID)
+
 	for _, match := range expandedMatches {
 		if err := databag.Set(match.storagePath, match.value); err != nil {
 			return err
+		}
+		data, err := databag.Data()
+		if err != nil {
+			return err
+		}
+		pruned, err := v.schema.DatabagSchema.PruneByVisibility(match.storagePath, visibilities, data)
+		if err != nil {
+			if errors.Is(err, &UnauthorizedAccessError{}) {
+				return &UnauthorizedAccessError{viewID: v.ID(), operation: "set", request: request}
+			}
+			return err
+		}
+		if len(pruned) != len(data) {
+			return &UnauthorizedAccessError{viewID: v.ID(), operation: "set", request: request}
 		}
 	}
 
