@@ -1099,21 +1099,39 @@ func validateSetValue(initial any) error {
 	return nil
 }
 
-func pathContainsVisibilities(accessors []Accessor, visibilities []Visibility, schema DatabagSchema) (bool, error) {
+func pathContainsVisibilities(accessors []Accessor, visibilities []Visibility, toplevel DatabagSchema, databag Databag, data any) (bool, error) {
 	if len(visibilities) == 0 {
 		// There are no visibilities to check so the path by default contains none of them
 		return false, nil
 	}
-	for i := range accessors {
-		nested, err := schema.SchemaAt(accessors[:i+1])
-		if err != nil {
-			return false, err
-		}
-		for _, n := range nested {
-			if listContains(visibilities, n.Visibility()) {
-				return true, nil
+	marshalled, err := json.Marshal(data)
+	if err != nil {
+		return false, err
+	}
+	schemas := []DatabagSchema{toplevel}
+	for _, acc := range accessors {
+		if acc.Type() == KeyPlaceholderType || acc.Type() == IndexPlaceholderType {
+			for _, schema := range schemas {
+				pruned, err := schema.PruneByVisibility([]Accessor{}, 0, visibilities, marshalled)
+				if err != nil {
+					continue
+				}
+				if !reflect.DeepEqual(pruned, marshalled) {
+					return true, nil
+				}
 			}
+			return false, nil
+			//stop and validate data
 		}
+		var nextLevel []DatabagSchema
+		for _, schema := range schemas {
+			nested, err := schema.SchemaAt([]Accessor{acc})
+			if err != nil {
+				continue
+			}
+			nextLevel = append(nextLevel, nested...)
+		}
+
 	}
 	return false, nil
 }
@@ -1154,14 +1172,6 @@ func (v *View) Set(databag Databag, request string, value any, visibilities []Vi
 	var expandedMatches []expandedMatch
 	suffixes := make(map[string]struct{}, len(matches))
 	for _, match := range matches {
-		contains, err := pathContainsVisibilities(match.storagePath, visibilities, v.schema.DatabagSchema)
-		if err != nil {
-			return fmt.Errorf("internal error: %s", err)
-		}
-		if contains {
-			return &UnAuthorizedAccessError{operation: "set", request: request, viewID: v.ID()}
-		}
-
 		pathValuePairs, err := getValuesThroughPaths(match.storagePath, match.unmatchedSuffix, value)
 		if err != nil {
 			return badRequestErrorFrom(v, "set", request, err.Error())
@@ -1194,6 +1204,20 @@ func (v *View) Set(databag Databag, request string, value any, visibilities []Vi
 	for _, match := range expandedMatches {
 		if err := databag.Set(match.storagePath, match.value); err != nil {
 			return err
+		}
+		data, err := databag.Data()
+		if err != nil {
+			return err
+		}
+		pruned, err := v.schema.DatabagSchema.PruneByVisibility(match.storagePath, 0, visibilities, data)
+		if err != nil {
+			if errors.Is(err, &UnAuthorizedAccessError{}) {
+				return &UnAuthorizedAccessError{viewID: v.ID(), operation: "set", request: request}
+			}
+			return err
+		}
+		if len(pruned) != len(data) {
+			return &UnAuthorizedAccessError{viewID: v.ID(), operation: "set", request: request}
 		}
 	}
 
