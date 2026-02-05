@@ -71,6 +71,15 @@ jobs:
     runs-on: ${{ fromJSON(inputs.runs-on) }}
     steps:
 
+    - name: Install things
+      run: |
+        sudo apt install -y yq
+        git clone https://github.com/canonical/spread-plus.git
+        cd spread-plus
+        go install ./...
+        cd ..
+        rm -r spread-plus
+
     - name: Verify inputs
       run: |
           if [ -z "${{ inputs.backend }}" ]; then
@@ -233,13 +242,13 @@ jobs:
       if: ${{ env.SKIP_SPREAD_LABEL != 'true' }}
       uses: actions/checkout@v6
       with: 
-          repository: canonical/snapd-tests-skip
+          repository: maykathm/github-actions
           path: snapd-tests-skip
 
     - name: Filter out tests to skip
       if: ${{ env.SKIP_SPREAD_LABEL != 'true' }}
       run: |
-          spread_list="$($SPREAD -list $RUN_TESTS 2>&1 || true)"
+          spread_list="$(/home/runner/go/bin/spread -list $RUN_TESTS 2>&1 || true)"
           if [ -n "${{ inputs.skip-tests }}" ]; then
               for test in ${{ inputs.skip-tests }}; do
                   spread_list=$(echo "$spread_list" | tr ' ' '\n' | grep -vE "$test" | tr '\n' ' ')
@@ -367,14 +376,14 @@ jobs:
         done
         echo "SPREAD_USE_PREBUILT_PACKAGES=$SPREAD_USE_PREBUILT_PACKAGES" >> $GITHUB_ENV
 
-    - name: Download snapd snap
-      if: ${{ env.SKIP_SPREAD_LABEL != 'true' }}
-      uses: ./.github/actions/download-snapd-snap
-      with:
-        use-master-push: ${{ inputs.use-snapd-snap-from-master }}
-        is-amd64: ${{ !contains(inputs.group, '-arm64') }}
-        is-arm64: ${{ contains(inputs.group, '-arm64') }}
-        is-fips: ${{ contains(inputs.group, '-fips') }}
+    # - name: Download snapd snap
+    #   if: ${{ env.SKIP_SPREAD_LABEL != 'true' }}
+    #   uses: ./.github/actions/download-snapd-snap
+    #   with:
+    #     use-master-push: ${{ inputs.use-snapd-snap-from-master }}
+    #     is-amd64: ${{ !contains(inputs.group, '-arm64') }}
+    #     is-arm64: ${{ contains(inputs.group, '-arm64') }}
+    #     is-fips: ${{ contains(inputs.group, '-fips') }}
 
     - name: Run spread tests
       if: ${{ env.SKIP_SPREAD_LABEL != 'true' }}
