@@ -50,6 +50,23 @@ packages:
 - apparmor-utils
 endef
 
+define OPENSUSE_16.0_CLOUD_INIT_USER_DATA_TEMPLATE
+$(CLOUD_INIT_USER_DATA_TEMPLATE)
+- echo '[leap16-oss]' >> /etc/zypp/repos.d/leap.repo
+- echo 'name=openSUSE Leap 16 OSS' >> /etc/zypp/repos.d/leap.repo
+- echo 'baseurl=http://mirrors.dotsrc.org/opensuse/distribution/leap/16.0/repo/oss/' >> /etc/zypp/repos.d/leap.repo
+- echo 'enabled=1' >> /etc/zypp/repos.d/leap.repo
+- echo 'autorefresh=1' >> /etc/zypp/repos.d/leap.repo
+- echo 'gpgcheck=0' >> /etc/zypp/repos.d/leap.repo
+- echo '' >> /etc/zypp/repos.d/leap.repo
+- echo '[leap16-non-oss]' >> /etc/zypp/repos.d/leap.repo
+- echo 'name=openSUSE Leap 16 Non-OSS' >> /etc/zypp/repos.d/leap.repo
+- echo 'baseurl=http://mirrors.dotsrc.org/opensuse/distribution/leap/16.0/repo/non-oss/' >> /etc/zypp/repos.d/leap.repo
+- echo 'enabled=1' >> /etc/zypp/repos.d/leap.repo
+- echo 'autorefresh=1' >> /etc/zypp/repos.d/leap.repo
+- echo 'gpgcheck=0' >> /etc/zypp/repos.d/leap.repo
+endef
+
 define OPENSUSE_tumbleweed-selinux_CLOUD_INIT_USER_DATA_TEMPLATE
 $(BASE_CLOUD_INIT_USER_DATA_TEMPLATE)
 - sed -i -e 's/^SELINUX=enforcing/SELINUX=permissive/g' /etc/selinux/config
