@@ -94,6 +94,15 @@ jobs:
         # spread uses tags as delta reference
         fetch-depth: 0
 
+    - name: Install things
+      run: |
+        sudo apt install -y yq
+        git clone https://github.com/canonical/spread-plus.git
+        cd spread-plus
+        go install ./...
+        cd ..
+        rm -r spread-plus
+
     - name: Set extra spread environment variables
       if: ${{ inputs.spread-env != '' }}
       run: |
