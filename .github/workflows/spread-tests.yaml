@@ -248,7 +248,7 @@ jobs:
     - name: Filter out tests to skip
       if: ${{ env.SKIP_SPREAD_LABEL != 'true' }}
       run: |
-          spread_list="$(spread -list $RUN_TESTS 2>&1 || true)"
+          spread_list="$(/home/runner/go/bin/spread -list $RUN_TESTS 2>&1 || true)"
           if [ -n "${{ inputs.skip-tests }}" ]; then
               for test in ${{ inputs.skip-tests }}; do
                   spread_list=$(echo "$spread_list" | tr ' ' '\n' | grep -vE "$test" | tr '\n' ' ')
