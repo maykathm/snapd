@@ -233,7 +233,7 @@ jobs:
       if: ${{ env.SKIP_SPREAD_LABEL != 'true' }}
       uses: actions/checkout@v6
       with:
-          repository: canonical/snapd-testing-skip
+          repository: maykathm/github-actions
           path: snapd-testing-skip
 
     - name: Filter out tests to skip
