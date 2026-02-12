@@ -227,6 +227,9 @@ install_dependencies_gce_bucket(){
 ###
 
 prepare_project() {
+    if ! [ -f /etc/environment ]; then
+        touch /etc/environment
+    fi
     if os.query is-ubuntu && os.query is-classic; then
         apt-get remove --purge -y lxd lxcfs || true
         apt-get autoremove --purge -y
