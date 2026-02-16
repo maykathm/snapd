@@ -889,15 +889,85 @@ func (v *mapSchema) NestedVisibility(vis Visibility) bool {
 }
 
 func (v *mapSchema) PruneByVisibility(path []Accessor, vis []Visibility, data []byte) ([]byte, error) {
-	if len(path) > 0 && path[0].Type() != KeyPlaceholderType && path[0].Type() != MapKeyType {
-		return nil, schemaAtErrorf(path, `cannot use %q as key in map`, path[0].Access())
+	if len(path) > 0 {
+		if path[0].Type() != KeyPlaceholderType && path[0].Type() != MapKeyType {
+			return nil, schemaAtErrorf(path, `cannot use %q as key in map`, path[0].Access())
+		}
+		if listContains(vis, v.Visibility()) ||
+			(v.keySchema != nil && listContains(vis, v.keySchema.Visibility())) ||
+			(v.valueSchema != nil && listContains(vis, v.valueSchema.Visibility())) {
+			return nil, &UnauthorizedAccessError{}
+		}
+		decoded, err := unmarshalLevel(path, 0, data)
+		if err != nil {
+			return nil, err
+		}
+		mapData, ok := decoded.(map[string]json.RawMessage)
+		if !ok {
+			return nil, err
+		}
+
+		pathKey := ""
+		if path[0].Type() == MapKeyType {
+			pathKey = path[0].Name()
+			_, ok := mapData[pathKey]
+			if !ok {
+				return nil, &NoDataError{}
+			}
+		}
+		pruned := map[string]json.RawMessage{}
+		for key, value := range mapData {
+			if pathKey != "" && pathKey != key {
+				// The data is not along the path. Do not prune; simply copy over
+				pruned[key] = value
+				continue
+			}
+			schema := v.valueSchema
+			if v.entrySchemas != nil {
+				schema, ok = v.entrySchemas[key]
+				if !ok {
+					return nil, fmt.Errorf(`map contains unexpected key "%s"`, key)
+				}
+				if listContains(vis, schema.Visibility()) && path[0].Type() == MapKeyType {
+					return nil, &UnauthorizedAccessError{}
+				}
+			}
+			res, err := schema.PruneByVisibility(path[1:], vis, value)
+			if err != nil {
+				if (errors.Is(err, &NoDataError{}) ||
+					errors.Is(err, &UnauthorizedAccessError{})) &&
+					path[0].Type() == KeyPlaceholderType {
+					continue
+				}
+				return nil, err
+			}
+			if res != nil {
+				pruned[key] = res
+			}
+		}
+		if _, ok = pruned[pathKey]; !ok && pathKey != "" ||
+			len(pruned) == 0 && len(mapData) > 0 {
+			// Condition 1:
+			// Before entering in the prune loop, the entry existed.
+			// The only way it no longer exists is if it got pruned away
+			// and so we can consider this unauthorized.
+			// Condition 2:
+			// We are somewhere along the path and there was data in the map, yet it all got pruned.
+			// The data must therefore be unauthorized since a map cannot contain nulls.
+			return nil, &UnauthorizedAccessError{}
+		}
+		if len(pruned) > 0 {
+			marshalled, err := json.Marshal(pruned)
+			if err != nil {
+				return nil, err
+			}
+			return marshalled, nil
+		}
+		return nil, nil
 	}
 	if listContains(vis, v.Visibility()) ||
 		(v.keySchema != nil && listContains(vis, v.keySchema.Visibility())) ||
 		(v.valueSchema != nil && listContains(vis, v.valueSchema.Visibility())) {
-		if len(path) > 0 {
-			return nil, &UnauthorizedAccessError{}
-		}
 		return nil, nil
 	}
 	decoded, err := unmarshalLevel(path, 0, data)
@@ -909,59 +979,22 @@ func (v *mapSchema) PruneByVisibility(path []Accessor, vis []Visibility, data []
 		return nil, err
 	}
 
-	pathKey := ""
-	if len(path) > 0 && path[0].Type() == MapKeyType {
-		pathKey = path[0].Name()
-		_, ok := mapData[pathKey]
-		if !ok {
-			return nil, &NoDataError{}
-		}
-	}
-
-	var childPath []Accessor
-	if len(path) > 1 {
-		childPath = path[1:]
-	}
 	pruned := map[string]json.RawMessage{}
 	for key, value := range mapData {
-		if pathKey != "" && pathKey != key {
-			// The data is not along the path. Do not prune; simply copy over
-			pruned[key] = value
-			continue
-		}
 		schema := v.valueSchema
 		if v.entrySchemas != nil {
 			schema, ok = v.entrySchemas[key]
 			if !ok {
 				return nil, fmt.Errorf(`map contains unexpected key "%s"`, key)
 			}
-			if len(path) > 0 && listContains(vis, schema.Visibility()) && path[0].Type() == MapKeyType {
-				return nil, &UnauthorizedAccessError{}
-			}
 		}
-		res, err := schema.PruneByVisibility(childPath, vis, value)
+		res, err := schema.PruneByVisibility([]Accessor{}, vis, value)
 		if err != nil {
-			if (errors.Is(err, &NoDataError{}) ||
-				errors.Is(err, &UnauthorizedAccessError{})) &&
-				len(path) > 0 && path[0].Type() == KeyPlaceholderType {
-				continue
-			}
 			return nil, err
 		}
 		if res != nil {
 			pruned[key] = res
 		}
-	}
-	if _, ok = pruned[pathKey]; !ok && pathKey != "" ||
-		len(pruned) == 0 && len(path) > 0 && len(mapData) > 0 {
-		// Condition 1:
-		// Before entering in the prune loop, the entry existed.
-		// The only way it no longer exists is if it got pruned away
-		// and so we can consider this unauthorized.
-		// Condition 2:
-		// We are somewhere along the path and there was data in the map, yet it all got pruned.
-		// The data must therefore be unauthorized since a map cannot contain nulls.
-		return nil, &UnauthorizedAccessError{}
 	}
 	if len(pruned) > 0 {
 		marshalled, err := json.Marshal(pruned)
@@ -1642,13 +1675,67 @@ func (v *arraySchema) NestedVisibility(vis Visibility) bool {
 }
 
 func (v *arraySchema) PruneByVisibility(path []Accessor, vis []Visibility, data []byte) ([]byte, error) {
-	if len(path) > 0 && path[0].Type() != IndexPlaceholderType && path[0].Type() != ListIndexType {
-		return nil, schemaAtErrorf(path, `key %q cannot be used to index array`, path[0].Access())
-	}
-	if listContains(vis, v.Visibility()) || listContains(vis, v.elementType.Visibility()) {
-		if len(path) > 0 {
+	if len(path) > 0 {
+		key := path[0]
+		if key.Type() != IndexPlaceholderType && key.Type() != ListIndexType {
+			return nil, schemaAtErrorf(path, `key %q cannot be used to index array`, key.Access())
+		}
+		if listContains(vis, v.Visibility()) || listContains(vis, v.elementType.Visibility()) {
 			return nil, &UnauthorizedAccessError{}
 		}
+		decoded, err := unmarshalLevel(path, 0, data)
+		if err != nil {
+			return nil, err
+		}
+		array, ok := decoded.([]json.RawMessage)
+		if !ok {
+			return nil, fmt.Errorf(`data must be an array`)
+		}
+		arrayIndex := -1
+		if key.Type() == ListIndexType {
+			arrayIndex, _ = strconv.Atoi(key.Name())
+			if arrayIndex >= len(array) {
+				return nil, &NoDataError{}
+			}
+		}
+		pruned := []json.RawMessage{}
+		for i, item := range array {
+			if arrayIndex != -1 && arrayIndex != i {
+				// This is not the data indicated in the path so do not prune; just copy over
+				pruned = append(pruned, item)
+				continue
+			}
+			res, err := v.elementType.PruneByVisibility(path[1:], vis, item)
+			if err != nil {
+				if (errors.Is(err, &NoDataError{}) ||
+					errors.Is(err, &UnauthorizedAccessError{})) &&
+					key.Type() == IndexPlaceholderType {
+					// The only way for pruning to return these types of errors
+					// is if len(path) > 0. If the current path element is a placeholder,
+					// then we want to collect multiple entries and simply exclude
+					// those with private/no data rather than erroring here.
+					continue
+				}
+				return nil, err
+			}
+			if res != nil {
+				pruned = append(pruned, res)
+			}
+		}
+		if len(pruned) > 0 {
+			marshalled, err := json.Marshal(pruned)
+			if err != nil {
+				return nil, err
+			}
+			return marshalled, nil
+		} else if len(array) > 0 {
+			// If we are along the path and we pruned away all the data, since
+			// we cannot return an empty container, consider this unauthorized.
+			return nil, &UnauthorizedAccessError{}
+		}
+		return nil, nil
+	}
+	if listContains(vis, v.Visibility()) || listContains(vis, v.elementType.Visibility()) {
 		return nil, nil
 	}
 	decoded, err := unmarshalLevel(path, 0, data)
@@ -1659,35 +1746,10 @@ func (v *arraySchema) PruneByVisibility(path []Accessor, vis []Visibility, data 
 	if !ok {
 		return nil, fmt.Errorf(`data must be an array`)
 	}
-	arrayIndex := -1
-	if len(path) > 0 && path[0].Type() == ListIndexType {
-		arrayIndex, _ = strconv.Atoi(path[0].Name())
-		if arrayIndex >= len(array) {
-			return nil, &NoDataError{}
-		}
-	}
-	childPath := []Accessor{}
-	if len(path) > 1 {
-		childPath = path[1:]
-	}
 	pruned := []json.RawMessage{}
-	for i, item := range array {
-		if arrayIndex != -1 && arrayIndex != i {
-			// This is not the data indicated in the path so do not prune; just copy over
-			pruned = append(pruned, item)
-			continue
-		}
-		res, err := v.elementType.PruneByVisibility(childPath, vis, item)
+	for _, item := range array {
+		res, err := v.elementType.PruneByVisibility([]Accessor{}, vis, item)
 		if err != nil {
-			if (errors.Is(err, &NoDataError{}) ||
-				errors.Is(err, &UnauthorizedAccessError{})) &&
-				len(path) > 0 && path[0].Type() == IndexPlaceholderType {
-				// The only way for pruning to return these types of errors
-				// is if len(path) > 0. If the current path element is a placeholder,
-				// then we want to collect multiple entries and simply exclude
-				// those with private/no data rather than erroring here.
-				continue
-			}
 			return nil, err
 		}
 		if res != nil {
@@ -1700,10 +1762,6 @@ func (v *arraySchema) PruneByVisibility(path []Accessor, vis []Visibility, data 
 			return nil, err
 		}
 		return marshalled, nil
-	} else if len(path) > 0 && len(array) > 0 {
-		// If we are along the path and we pruned away all the data, since
-		// we cannot return an empty container, consider this unauthorized.
-		return nil, &UnauthorizedAccessError{}
 	}
 	return nil, nil
 }
