@@ -404,7 +404,13 @@ prepare_each_core() {
 
 prepare_classic() {
     # Configure the proxy in the system when it is required
-    setup_system_proxy   
+    setup_system_proxy
+
+    if [ "$SPREAD_REBOOT" = 0 ]; then
+        sed -Ei 's/(GRUB_CMDLINE_LINUX_DEFAULT=".*)"/\1 systemd.log_level=debug"/' /etc/default/grub
+        update-grub
+        REBOOT
+    fi
 
     # Skip building snapd when REUSE_SNAPD is set to 1
     if [ "$REUSE_SNAPD" != 1 ]; then

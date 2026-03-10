@@ -28,6 +28,7 @@ get_grub_editenv() {
         echo "Did not find /boot/grub* files. Boot contains: $(find /boot)"
         echo "grubenv: $(find / -name grubenv)"
         echo "mounts: $(findmnt --ascii -o+PROPAGATION || true)"
+        journalctl --no-pager
     fi
 }
 
