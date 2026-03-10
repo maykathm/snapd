@@ -19,9 +19,15 @@ show_help() {
 
 get_grub_editenv() {
     if [ -e /boot/grub2/grubenv ]; then
+        echo "Found file /boot/grub2/grubenv; grub2-editenv is $(command -v grub2-editenv)"
         command -v grub2-editenv
     elif [ -e /boot/grub/grubenv ]; then
+        echo "Found file /boot/grub/grubenv; grub-editenv is $(command -v grub-editenv)"
         command -v grub-editenv
+    else
+        echo "Did not find /boot/grub* files. Boot contains: $(find /boot)"
+        echo "grubenv: $(find / -name grubenv)"
+        echo "mounts: $(findmnt --ascii -o+PROPAGATION || true)"
     fi
 }
 
