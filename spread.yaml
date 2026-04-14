@@ -137,6 +137,8 @@ environment:
     SNAPD_LOG_SNAP_TO_JOURNAL: '$(HOST: echo "${SPREAD_SNAPD_LOG_SNAP_TO_JOURNAL:-$SPREAD_TAG_FEATURES}")'
     SNAPD_TRACE: '$(HOST: echo "${SPREAD_SNAPD_TRACE:-$SPREAD_TAG_FEATURES}")'
 
+    SKIP_RESTORE: '$(HOST: echo "${SPREAD_SKIP_RESTORE:-false}")'
+
 backends:
     google:
         key: '$(HOST: echo "$SPREAD_GOOGLE_KEY")'
@@ -1590,9 +1592,13 @@ suites:
         prepare-each: |
             "$TESTSLIB"/prepare-restore.sh --prepare-suite-each
         restore-each: |
-            "$TESTSLIB"/prepare-restore.sh --restore-suite-each
+            if [ "$SKIP_RESTORE" = "false" ]; then
+                "$TESTSLIB"/prepare-restore.sh --restore-suite-each
+            fi
         restore: |
-            "$TESTSLIB"/prepare-restore.sh --restore-suite
+            if [ "$SKIP_RESTORE" = "false" ]; then
+                "$TESTSLIB"/prepare-restore.sh --restore-suite
+            fi
     tests/cross/:
         summary: Cross-compile tests
         systems: [ubuntu-24.04-64]
