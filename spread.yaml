@@ -1604,9 +1604,13 @@ suites:
         prepare-each: |
             "$TESTSLIB"/prepare-restore.sh --prepare-suite-each
         restore-each: |
-            "$TESTSLIB"/prepare-restore.sh --restore-suite-each
+            if [ "$SKIP_RESTORE" = "false" ]; then
+                "$TESTSLIB"/prepare-restore.sh --restore-suite-each
+            fi
         restore: |
-            "$TESTSLIB"/prepare-restore.sh --restore-suite
+            if [ "$SKIP_RESTORE" = "false" ]; then
+                "$TESTSLIB"/prepare-restore.sh --restore-suite
+            fi
     tests/cross/:
         summary: Cross-compile tests
         systems: [ubuntu-24.04-64]
