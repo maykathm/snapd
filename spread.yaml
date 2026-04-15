@@ -1587,7 +1587,7 @@ suites:
 
     tests/release/:
         summary: Tests for snapd during the release process
-        systems: [-ubuntu-1*, -ubuntu-2*]
+        systems: [ubuntu-1*, ubuntu-2*]
         prepare: |
             "$TESTSLIB"/prepare-restore.sh --prepare-suite
         prepare-each: |
