@@ -36,9 +36,9 @@ jobs:
     needs: [snap-builds, find-lowest-supported]
     uses: ./.github/workflows/spread-tests.yaml
     with:
-      runs-on: '["self-hosted", "spread-enabled"]'
+      runs-on: '["ubuntu-latest"]'
       group: deb-test
-      backend: openstack
+      backend: garden
       systems: ${{ needs.find-lowest-supported.outputs.system }}
       tasks: 'tests/release/distro-upgrade'
       rules: ''
@@ -49,9 +49,9 @@ jobs:
     needs: [snap-builds, find-lowest-supported]
     uses: ./.github/workflows/spread-tests.yaml
     with:
-      runs-on: '["self-hosted", "spread-enabled"]'
+      runs-on: '["ubuntu-latest"]'
       group: snap-test
-      backend: openstack
+      backend: garden
       systems: ${{ needs.find-lowest-supported.outputs.system }}
       tasks: 'tests/release/distro-upgrade'
       rules: ''
