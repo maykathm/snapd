@@ -73,7 +73,7 @@ jobs:
               response = await github.rest.actions.listWorkflowRunArtifacts({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
-                run_id: context.payload.workflow_run.id,
+                run_id: context.runId,
                 per_page: per_page,
                 page: page
               });
@@ -103,12 +103,37 @@ jobs:
             dir="${filename%.zip}"
             mkdir "$dir"
             unzip "$filename" -d "$dir"
+            rm "$filename"
           done
+
+      - name: Untar artifacts
+        run: |
+          find spread-artifacts* -type f
+          find . -name "*.tar.gz" | while read filename; do 
+            echo "----$filename----"
+            dir="${filename%.tar.gz}"
+            echo "dir: $dir"
+            mkdir -p "$dir"
+            tar -xzf "$filename" -C "$dir"
+            rm "$filename"
+          done
+          echo "All files"
+          find . -type f
+          echo "Delete .txt"
+          find . -name "*.txt" -type f -delete
+          echo "All files after delete"
+          find . -type f
 
       - name: Report results
         run: |
+          echo "All files"
+          find spread-artifacts* -type f
+          echo "All snap files"
+          find spread-artifacts-snap-test* -type f
+          echo "All deb files"
+          find spread-artifacts-deb-test* -type f
           echo "Snap results"
-          find spread-artifacts-snap-test* -type f -exec sh -c "echo $1; cat $1" _ {} \;
+          find spread-artifacts-snap-test* -type f -exec sh -c 'echo $1; cat $1' _ {} \;
           echo "Deb results"
-          find spread-artifacts-deb-test* -type f -exec sh -c "echo $1; cat $1" _ {} \;
+          find spread-artifacts-deb-test* -type f -exec sh -c 'echo $1; cat $1' _ {} \;
 
