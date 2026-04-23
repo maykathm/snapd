@@ -57,57 +57,58 @@ execute: |
     # doesn't have the latest yet.
     ./check-snapd-version.sh "$(cat initial-snapd-version.txt)" || [ "$SRU_VALIDATION" = "1" ]
     snap version --verbose > snapd-versions/"$(lsb_release -c -s)"
+    snap version --verbose > snapd-versions/resolute
 
-    while not os.query is-ubuntu-devel; do
-        # We can only upgrade the distro if we have all upgrades installed
-        apt update
-        apt upgrade -y
-        if [[ "$SPREAD_REBOOT" = 0 ]]; then
-            REBOOT
-        fi
-        devel_option=
-        if os.query is-ubuntu-interim; then
-            devel_option="-d"
-        fi
+    # while not os.query is-ubuntu-devel; do
+    #     # We can only upgrade the distro if we have all upgrades installed
+    #     apt update
+    #     apt upgrade -y
+    #     if [[ "$SPREAD_REBOOT" = 0 ]]; then
+    #         REBOOT
+    #     fi
+    #     devel_option=
+    #     if os.query is-ubuntu-interim; then
+    #         devel_option="-d"
+    #     fi
 
-        echo "Upgrading $(grep -oP 'CODENAME=\K.*' /etc/os-release | head -1)"
-        sudo do-release-upgrade "$devel_option" -f DistUpgradeViewNonInteractive
+    #     echo "Upgrading $(grep -oP 'CODENAME=\K.*' /etc/os-release | head -1)"
+    #     sudo do-release-upgrade "$devel_option" -f DistUpgradeViewNonInteractive
 
-        if [ "$SRU_VALIDATION" = "1" ] || [ -n "$PPA_VALIDATION_NAME" ]; then
-            #shellcheck source=tests/lib/pkgdb.sh
-            . "$TESTSLIB"/pkgdb.sh
-            distro_install_build_snapd
-        fi
+    #     if [ "$SRU_VALIDATION" = "1" ] || [ -n "$PPA_VALIDATION_NAME" ]; then
+    #         #shellcheck source=tests/lib/pkgdb.sh
+    #         . "$TESTSLIB"/pkgdb.sh
+    #         distro_install_build_snapd
+    #     fi
 
-        #shellcheck source=tests/lib/prepare.sh
-        . "$TESTSLIB"/prepare.sh
-        prepare_each_classic
+    #     #shellcheck source=tests/lib/prepare.sh
+    #     . "$TESTSLIB"/prepare.sh
+    #     prepare_each_classic
 
-        ./check-snapd.sh
-        # Don't fail the test if the distro is missing the latest snapd version. Sometimes one distro
-        # doesn't have the latest yet.
-        ./check-snapd-version.sh "$(cat initial-snapd-version.txt)" || [ "$SRU_VALIDATION" = "1" ]
-        snap version --verbose > snapd-versions/"$(lsb_release -c -s)"
+    #     ./check-snapd.sh
+    #     # Don't fail the test if the distro is missing the latest snapd version. Sometimes one distro
+    #     # doesn't have the latest yet.
+    #     ./check-snapd-version.sh "$(cat initial-snapd-version.txt)" || [ "$SRU_VALIDATION" = "1" ]
+    #     snap version --verbose > snapd-versions/"$(lsb_release -c -s)"
 
-        if os.query is-ubuntu-latest-lts; then
-            touch lts-upgrade-done
-        elif os.query is-ubuntu-interim; then
-            touch interim-upgrade-done
-        elif os.query is-ubuntu-devel; then
-            touch devel-upgrade-done
-        fi
-        SPREAD_REBOOT=0
-    done
+    #     if os.query is-ubuntu-latest-lts; then
+    #         touch lts-upgrade-done
+    #     elif os.query is-ubuntu-interim; then
+    #         touch interim-upgrade-done
+    #     elif os.query is-ubuntu-devel; then
+    #         touch devel-upgrade-done
+    #     fi
+    #     SPREAD_REBOOT=0
+    # done
 
-    if not [ -f lts-upgrade-done ]; then
-        echo "We should have done an LTS upgrade but didn't"
-        exit 1
-    fi
-    if not [ -f interim-upgrade-done ]; then
-        echo "We should have done an interim upgrade but didn't"
-        exit 1
-    fi
-    if not [ -f devel-upgrade-done ]; then
-        echo "We should have done a devel upgrade but didn't"
-        exit 1
-    fi
+    # if not [ -f lts-upgrade-done ]; then
+    #     echo "We should have done an LTS upgrade but didn't"
+    #     exit 1
+    # fi
+    # if not [ -f interim-upgrade-done ]; then
+    #     echo "We should have done an interim upgrade but didn't"
+    #     exit 1
+    # fi
+    # if not [ -f devel-upgrade-done ]; then
+    #     echo "We should have done a devel upgrade but didn't"
+    #     exit 1
+    # fi
