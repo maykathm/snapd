@@ -109,3 +109,7 @@ find ./tests/coverage-artifacts/files -type f -print0 \
   | uniq -c \
   | sort -rn
 ```
+
+```bash
+gh pr list --json 'author,files' --jq '.[] | {author:.author.name, files:.files.[].path}
+```
