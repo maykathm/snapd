@@ -37,7 +37,8 @@ import (
 	"github.com/snapcore/snapd/snap/snaptest"
 	"github.com/snapcore/snapd/testutil"
 	userclient "github.com/snapcore/snapd/usersession/client"
-)
+
+	"github.com/snapcore/snapd/snap/naming")
 
 type refreshSuite struct {
 	testutil.BaseTest
@@ -64,7 +65,7 @@ hooks:
 `
 	s.info = snaptest.MockInfo(c, yamlText, nil)
 	s.pids = nil
-	restore := snapstate.MockPidsOfSnap(func(instanceName string) (map[string][]int, error) {
+	restore := snapstate.MockPidsOfSnap(func(instanceName naming.InstanceName) (map[string][]int, error) {
 		c.Assert(instanceName, Equals, s.info.InstanceName())
 		return s.pids, nil
 	})

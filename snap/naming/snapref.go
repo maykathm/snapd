@@ -19,17 +19,23 @@
 
 package naming
 
+// SnapName is the name of a snap.
+type SnapName string
+
+// InstanceName is the instance name of a snap (snap name + optional instance key).
+type InstanceName string
+
 // A SnapRef references a snap by name and/or id.
 type SnapRef interface {
-	SnapName() string
+	SnapName() SnapName
 	ID() string
 }
 
 // Snap references a snap by name only.
 type Snap string
 
-func (s Snap) SnapName() string {
-	return string(s)
+func (s Snap) SnapName() SnapName {
+	return SnapName(s)
 }
 
 func (s Snap) ID() string {
@@ -37,16 +43,16 @@ func (s Snap) ID() string {
 }
 
 type snapRef struct {
-	name string
+	name SnapName
 	id   string
 }
 
 // NewSnapRef returns a reference to the snap with given name and id.
-func NewSnapRef(name, id string) SnapRef {
+func NewSnapRef(name SnapName, id string) SnapRef {
 	return &snapRef{name: name, id: id}
 }
 
-func (r *snapRef) SnapName() string {
+func (r *snapRef) SnapName() SnapName {
 	return r.name
 }
 
@@ -62,13 +68,13 @@ func SameSnap(snapRef1, snapRef2 SnapRef) bool {
 	if id1 != "" && id2 != "" {
 		return id1 == id2
 	}
-	return snapRef1.SnapName() == snapRef2.SnapName()
+	return string(snapRef1.SnapName()) == string(snapRef2.SnapName())
 }
 
 // SnapSet can hold a set of references to snaps.
 type SnapSet struct {
 	byID   map[string]SnapRef
-	byName map[string]SnapRef
+	byName map[SnapName]SnapRef
 
 	n int
 }
@@ -78,7 +84,7 @@ func NewSnapSet(refs []SnapRef) *SnapSet {
 	sz := len(refs) + 2
 	s := &SnapSet{
 		byID:   make(map[string]SnapRef, sz),
-		byName: make(map[string]SnapRef, sz),
+		byName: make(map[SnapName]SnapRef, sz),
 	}
 	for _, r := range refs {
 		s.Add(r)

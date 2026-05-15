@@ -36,7 +36,8 @@ import (
 	"github.com/snapcore/snapd/snap/snaptest"
 	"github.com/snapcore/snapd/testutil"
 	"github.com/snapcore/snapd/timings"
-)
+
+	"github.com/snapcore/snapd/snap/naming")
 
 func Test(t *testing.T) { TestingT(t) }
 
@@ -413,7 +414,7 @@ func (s *seed16Suite) writeSeed(c *C, seedSnaps []*seed.InternalSnap16) {
 	c.Assert(err, IsNil)
 }
 
-func (s *seed16Suite) expectedPath(snapName string) string {
+func (s *seed16Suite) expectedPath(snapName naming.SnapName) string {
 	return filepath.Join(s.SeedDir, "snaps", filepath.Base(s.AssertedSnap(snapName)))
 }
 

@@ -42,7 +42,8 @@ import (
 	"github.com/snapcore/snapd/snap/snaptest"
 	"github.com/snapcore/snapd/testutil"
 	"github.com/snapcore/snapd/timings"
-)
+
+	"github.com/snapcore/snapd/snap/naming")
 
 type loadProfilesParams struct {
 	fnames   []string
@@ -331,7 +332,7 @@ func (s *backendSuite) TestInstallingComponentWritesAndLoadsProfilesInstance(c *
 	s.testInstallingComponentWritesAndLoadsProfiles(c, instanceName)
 }
 
-func (s *backendSuite) testInstallingComponentWritesAndLoadsProfiles(c *C, instanceName string) {
+func (s *backendSuite) testInstallingComponentWritesAndLoadsProfiles(c *C, instanceName naming.InstanceName) {
 	info := s.InstallSnapWithComponents(c, interfaces.ConfinementOptions{}, instanceName, ifacetest.SnapWithComponentsYaml, 1, []string{ifacetest.ComponentYaml})
 
 	expectedName := info.InstanceName()
@@ -514,7 +515,7 @@ func (s *backendSuite) TestRemovingComponentRemovesAndUnloadsProfilesInstance(c 
 	s.testRemovingComponentRemovesAndUnloadsProfiles(c, instanceName)
 }
 
-func (s *backendSuite) testRemovingComponentRemovesAndUnloadsProfiles(c *C, instanceName string) {
+func (s *backendSuite) testRemovingComponentRemovesAndUnloadsProfiles(c *C, instanceName naming.InstanceName) {
 	for _, opts := range testedConfinementOpts {
 		snapInfo := s.InstallSnapWithComponents(c, opts, instanceName, ifacetest.SnapWithComponentsYaml, 1, []string{ifacetest.ComponentYaml})
 		s.removeCachedProfilesCalls = nil
@@ -611,7 +612,7 @@ func (s *backendSuite) TestUpdatingSnapToOneWithMoreComponentsInstance(c *C) {
 	s.testUpdatingSnapToOneWithMoreComponents(c, instanceName)
 }
 
-func (s *backendSuite) testUpdatingSnapToOneWithMoreComponents(c *C, instanceName string) {
+func (s *backendSuite) testUpdatingSnapToOneWithMoreComponents(c *C, instanceName naming.InstanceName) {
 	for _, opts := range testedConfinementOpts {
 		info := s.InstallSnap(c, opts, instanceName, ifacetest.SnapWithComponentsYaml, 1)
 		s.loadProfilesCalls = nil
@@ -646,7 +647,7 @@ func (s *backendSuite) TestUpdatingSnapToOneWithFewerComponentsInstance(c *C) {
 	s.testUpdatingSnapToOneWithFewerComponents(c, instanceName)
 }
 
-func (s *backendSuite) testUpdatingSnapToOneWithFewerComponents(c *C, instanceName string) {
+func (s *backendSuite) testUpdatingSnapToOneWithFewerComponents(c *C, instanceName naming.InstanceName) {
 	for _, opts := range testedConfinementOpts {
 		info := s.InstallSnapWithComponents(c, opts, instanceName, ifacetest.SnapWithComponentsYaml, 1, []string{ifacetest.ComponentYaml})
 
@@ -730,8 +731,8 @@ func (s *backendSuite) TestSetupManyProfilesAreAlwaysLoaded(c *C) {
 		setupManyInterface, ok := s.Backend.(interfaces.SecurityBackendSetupMany)
 		c.Assert(ok, Equals, true)
 		errs := setupManyInterface.SetupMany([]*interfaces.SnapAppSet{appSet1, appSet2},
-			func(snapName string) interfaces.ConfinementOptions { return opts },
-			func(snapName string) interfaces.SetupContext {
+			func(snapName naming.SnapName) interfaces.ConfinementOptions { return opts },
+			func(snapName naming.SnapName) interfaces.SetupContext {
 				return interfaces.SetupContext{Reason: interfaces.SnapSetupReasonOther}
 			},
 			s.Repo, s.meas)
@@ -770,8 +771,8 @@ func (s *backendSuite) TestSetupManyProfilesWithChanged(c *C) {
 		setupManyInterface, ok := s.Backend.(interfaces.SecurityBackendSetupMany)
 		c.Assert(ok, Equals, true)
 		errs := setupManyInterface.SetupMany([]*interfaces.SnapAppSet{appSet1, appSet2},
-			func(snapName string) interfaces.ConfinementOptions { return opts },
-			func(snapName string) interfaces.SetupContext {
+			func(snapName naming.SnapName) interfaces.ConfinementOptions { return opts },
+			func(snapName naming.SnapName) interfaces.SetupContext {
 				return interfaces.SetupContext{Reason: interfaces.SnapSetupReasonOther}
 			},
 			s.Repo, s.meas)
@@ -823,8 +824,8 @@ func (s *backendSuite) TestSetupManyApparmorBatchProcessingPermanentError(c *C) 
 		// mock apparmor_parser again with a failing one (and restore immediately for the next iteration of the test)
 		s.loadProfilesReturn = errors.New("apparmor_parser crash")
 		errs := setupManyInterface.SetupMany([]*interfaces.SnapAppSet{appSet1, appSet2},
-			func(snapName string) interfaces.ConfinementOptions { return opts },
-			func(snapName string) interfaces.SetupContext {
+			func(snapName naming.SnapName) interfaces.ConfinementOptions { return opts },
+			func(snapName naming.SnapName) interfaces.SetupContext {
 				return interfaces.SetupContext{Reason: interfaces.SnapSetupReasonOther}
 			},
 			s.Repo, s.meas)
@@ -874,8 +875,8 @@ func (s *backendSuite) TestSetupManyApparmorBatchProcessingErrorWithFallbackOK(c
 			return nil
 		})
 		errs := setupManyInterface.SetupMany([]*interfaces.SnapAppSet{appSet1, appSet2},
-			func(snapName string) interfaces.ConfinementOptions { return opts },
-			func(snapName string) interfaces.SetupContext {
+			func(snapName naming.SnapName) interfaces.ConfinementOptions { return opts },
+			func(snapName naming.SnapName) interfaces.SetupContext {
 				return interfaces.SetupContext{Reason: interfaces.SnapSetupReasonOther}
 			},
 			s.Repo, s.meas)
@@ -928,8 +929,8 @@ func (s *backendSuite) TestSetupManyApparmorBatchProcessingErrorWithFallbackPart
 			return nil
 		})
 		errs := setupManyInterface.SetupMany([]*interfaces.SnapAppSet{appSet1, appSet2},
-			func(snapName string) interfaces.ConfinementOptions { return opts },
-			func(snapName string) interfaces.SetupContext {
+			func(snapName naming.SnapName) interfaces.ConfinementOptions { return opts },
+			func(snapName naming.SnapName) interfaces.SetupContext {
 				return interfaces.SetupContext{Reason: interfaces.SnapSetupReasonOther}
 			},
 			s.Repo, s.meas)
@@ -3129,8 +3130,8 @@ func (s *backendSuite) TestSetupManyInPreseedMode(c *C) {
 		setupManyInterface, ok := s.Backend.(interfaces.SecurityBackendSetupMany)
 		c.Assert(ok, Equals, true)
 		errs := setupManyInterface.SetupMany([]*interfaces.SnapAppSet{appSet1, appSet2},
-			func(snapName string) interfaces.ConfinementOptions { return opts },
-			func(snapName string) interfaces.SetupContext {
+			func(snapName naming.SnapName) interfaces.ConfinementOptions { return opts },
+			func(snapName naming.SnapName) interfaces.SetupContext {
 				return interfaces.SetupContext{Reason: interfaces.SnapSetupReasonOther}
 			},
 			s.Repo, s.meas)

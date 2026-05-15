@@ -26,6 +26,8 @@ import (
 	"github.com/snapcore/snapd/dirs"
 	"github.com/snapcore/snapd/osutil"
 	"github.com/snapcore/snapd/snap"
+
+	"github.com/snapcore/snapd/snap/naming"
 )
 
 var (
@@ -38,12 +40,12 @@ type SystemProfileUpdateContext struct {
 }
 
 // NewSystemProfileUpdateContext returns encapsulated information for performing a per-user mount namespace update.
-func NewSystemProfileUpdateContext(instanceName string, fromSnapConfine bool) *SystemProfileUpdateContext {
+func NewSystemProfileUpdateContext(instanceName naming.InstanceName, fromSnapConfine bool) *SystemProfileUpdateContext {
 	return &SystemProfileUpdateContext{CommonProfileUpdateContext: CommonProfileUpdateContext{
 		instanceName:       instanceName,
 		fromSnapConfine:    fromSnapConfine,
-		currentProfilePath: currentSystemProfilePath(instanceName),
-		desiredProfilePath: desiredSystemProfilePath(instanceName),
+		currentProfilePath: currentSystemProfilePath(naming.SnapName(instanceName)),
+		desiredProfilePath: desiredSystemProfilePath(naming.SnapName(instanceName)),
 	}}
 }
 
@@ -74,8 +76,8 @@ func (upCtx *SystemProfileUpdateContext) Assumptions() *Assumptions {
 	// remapping for parallel installs only when the snap has an instance key
 	as := &Assumptions{}
 	instanceName := upCtx.InstanceName()
-	as.AddUnrestrictedPaths("/tmp", "/var/snap", "/snap/"+instanceName, "/dev/shm", "/run/systemd")
-	if snapName := snap.InstanceSnap(instanceName); snapName != instanceName {
+	as.AddUnrestrictedPaths("/tmp", "/var/snap", "/snap/"+string(instanceName), "/dev/shm", "/run/systemd")
+	if snapName := snap.InstanceSnap(instanceName); snapName != string(instanceName) {
 		as.AddUnrestrictedPaths("/snap/" + snapName)
 	}
 	// Allow snap-update-ns to write to host's /tmp directory. This is
@@ -107,11 +109,11 @@ func (upCtx *SystemProfileUpdateContext) SaveCurrentProfile(profile *osutil.Moun
 }
 
 // desiredSystemProfilePath returns the path of the fstab-like file with the desired, system-wide mount profile for a snap.
-func desiredSystemProfilePath(snapName string) string {
+func desiredSystemProfilePath(snapName naming.SnapName) string {
 	return fmt.Sprintf("%s/snap.%s.fstab", dirs.SnapMountPolicyDir, snapName)
 }
 
 // currentSystemProfilePath returns the path of the fstab-like file with the applied, system-wide mount profile for a snap.
-func currentSystemProfilePath(snapName string) string {
+func currentSystemProfilePath(snapName naming.SnapName) string {
 	return fmt.Sprintf("%s/snap.%s.fstab", dirs.SnapRunNsDir, snapName)
 }

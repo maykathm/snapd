@@ -23,7 +23,8 @@ import (
 	"github.com/snapcore/snapd/interfaces"
 	"github.com/snapcore/snapd/snap"
 	"github.com/snapcore/snapd/timings"
-)
+
+	"github.com/snapcore/snapd/snap/naming")
 
 // TestSecurityBackend is a security backend intended for testing.
 type TestSecurityBackend struct {
@@ -35,7 +36,7 @@ type TestSecurityBackend struct {
 	// SetupCallback is an callback that is optionally called in Setup
 	SetupCallback func(appSet *interfaces.SnapAppSet, opts interfaces.ConfinementOptions, sctx interfaces.SetupContext, repo *interfaces.Repository) error
 	// RemoveCallback is a callback that is optionally called in Remove
-	RemoveCallback func(snapName string) error
+	RemoveCallback func(snapName naming.SnapName) error
 	// SandboxFeaturesCallback is a callback that is optionally called in SandboxFeatures
 	SandboxFeaturesCallback func() []string
 }
@@ -74,7 +75,7 @@ func (b *TestSecurityBackend) Setup(appSet *interfaces.SnapAppSet, opts interfac
 }
 
 // Remove records information about the call and calls the remove callback if one is defined
-func (b *TestSecurityBackend) Remove(snapName string) error {
+func (b *TestSecurityBackend) Remove(snapName naming.SnapName) error {
 	b.RemoveCalls = append(b.RemoveCalls, snapName)
 	if b.RemoveCallback == nil {
 		return nil
@@ -102,8 +103,8 @@ type TestSecurityBackendSetupMany struct {
 
 	// SetupManyCallback is an callback that is optionally called in Setup
 	SetupManyCallback func(appSets []*interfaces.SnapAppSet,
-		confinement func(snapName string) interfaces.ConfinementOptions,
-		sctx func(snapName string) interfaces.SetupContext,
+		confinement func(snapName naming.SnapName) interfaces.ConfinementOptions,
+		sctx func(snapName naming.SnapName) interfaces.SetupContext,
 		repo *interfaces.Repository,
 		tm timings.Measurer,
 	) []error
@@ -115,7 +116,7 @@ type TestSetupManyCall struct {
 	AppSets []*interfaces.SnapAppSet
 }
 
-func (b *TestSecurityBackendSetupMany) SetupMany(appSets []*interfaces.SnapAppSet, confinement func(snapName string) interfaces.ConfinementOptions, sctx func(snapName string) interfaces.SetupContext, repo *interfaces.Repository, tm timings.Measurer) []error {
+func (b *TestSecurityBackendSetupMany) SetupMany(appSets []*interfaces.SnapAppSet, confinement func(snapName naming.SnapName) interfaces.ConfinementOptions, sctx func(snapName naming.SnapName) interfaces.SetupContext, repo *interfaces.Repository, tm timings.Measurer) []error {
 	b.SetupManyCalls = append(b.SetupManyCalls, TestSetupManyCall{AppSets: appSets})
 	if b.SetupManyCallback == nil {
 		return nil
@@ -128,10 +129,10 @@ type TestSecurityBackendDiscardingLate struct {
 	TestSecurityBackend
 
 	RemoveLateCalledFor [][]string
-	RemoveLateCallback  func(snapName string, rev snap.Revision, typ snap.Type) error
+	RemoveLateCallback  func(snapName naming.SnapName, rev snap.Revision, typ snap.Type) error
 }
 
-func (b *TestSecurityBackendDiscardingLate) RemoveLate(snapName string, rev snap.Revision, typ snap.Type) error {
+func (b *TestSecurityBackendDiscardingLate) RemoveLate(snapName naming.SnapName, rev snap.Revision, typ snap.Type) error {
 	b.RemoveLateCalledFor = append(b.RemoveLateCalledFor, []string{
 		snapName, rev.String(), string(typ),
 	})

@@ -37,7 +37,8 @@ import (
 	"github.com/snapcore/snapd/overlord/snapstate"
 	"github.com/snapcore/snapd/overlord/state"
 	"github.com/snapcore/snapd/snap"
-)
+
+	"github.com/snapcore/snapd/snap/naming")
 
 var autoRefreshForGatingSnap = snapstate.AutoRefreshForGatingSnap
 
@@ -383,7 +384,7 @@ func (c *refreshCommand) proceed() error {
 	return nil
 }
 
-func hasSnapRefreshControlInterface(st *state.State, snapName string) (bool, error) {
+func hasSnapRefreshControlInterface(st *state.State, snapName naming.SnapName) (bool, error) {
 	conns, err := ifacestate.ConnectionStates(st)
 	if err != nil {
 		return false, fmt.Errorf("internal error: cannot get connections: %s", err)

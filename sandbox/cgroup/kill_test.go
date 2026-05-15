@@ -35,7 +35,8 @@ import (
 	"github.com/snapcore/snapd/dirs"
 	"github.com/snapcore/snapd/sandbox/cgroup"
 	"github.com/snapcore/snapd/testutil"
-)
+
+	"github.com/snapcore/snapd/snap/naming")
 
 type killSuite struct {
 	testutil.BaseTest
@@ -93,12 +94,12 @@ func (s *killSuite) TestKillSnapProcessesV1(c *C) {
 		return nil
 	})
 	defer restore()
-	restore = cgroup.MockFreezeSnapProcessesImplV1(func(ctx context.Context, snapName string) error {
+	restore = cgroup.MockFreezeSnapProcessesImplV1(func(ctx context.Context, snapName naming.SnapName) error {
 		ops = append(ops, "freeze-snap-processes-v1:"+snapName)
 		return nil
 	})
 	defer restore()
-	restore = cgroup.MockThawSnapProcessesImplV1(func(snapName string) error {
+	restore = cgroup.MockThawSnapProcessesImplV1(func(snapName naming.SnapName) error {
 		ops = append(ops, "thaw-snap-processes-v1:"+snapName)
 		return nil
 	})
@@ -297,12 +298,12 @@ func (s *killSuite) testKillSnapProcessesError(c *C, cgVersion int, freezerOnly 
 		return nil
 	})
 	defer restore()
-	restore = cgroup.MockFreezeSnapProcessesImplV1(func(ctx context.Context, snapName string) error {
+	restore = cgroup.MockFreezeSnapProcessesImplV1(func(ctx context.Context, snapName naming.SnapName) error {
 		ops = append(ops, "freeze-snap-processes-v1:"+snapName)
 		return nil
 	})
 	defer restore()
-	restore = cgroup.MockThawSnapProcessesImplV1(func(snapName string) error {
+	restore = cgroup.MockThawSnapProcessesImplV1(func(snapName naming.SnapName) error {
 		ops = append(ops, "thaw-snap-processes-v1:"+snapName)
 		return nil
 	})

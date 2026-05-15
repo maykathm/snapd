@@ -40,6 +40,8 @@ import (
 	"github.com/snapcore/snapd/snap"
 	"github.com/snapcore/snapd/systemd"
 	"github.com/snapcore/snapd/timings"
+
+	"github.com/snapcore/snapd/snap/naming"
 )
 
 // Backend is responsible for maintaining udev rules.
@@ -88,7 +90,7 @@ func (b *Backend) Prepare(_ *interfaces.SnapAppSet) error {
 }
 
 // snapRulesFileName returns the path of the snap udev rules file.
-func snapRulesFilePath(snapName string) string {
+func snapRulesFilePath(snapName naming.SnapName) string {
 	rulesFileName := fmt.Sprintf("70-%s.rules", snap.SecurityTag(snapName))
 	return filepath.Join(dirs.SnapUdevRulesDir, rulesFileName)
 }
@@ -117,8 +119,8 @@ func (b *Backend) Setup(appSet *interfaces.SnapAppSet, opts interfaces.Confineme
 		return fmt.Errorf("cannot create directory for cgroup flags: %w", err)
 	}
 
-	rulesFilePath := snapRulesFilePath(snapName)
-	selfManageDeviceCgroupPath := cgroup.SnapDeviceFile(snap.SecurityTag(snapName))
+	rulesFilePath := snapRulesFilePath(appSet.Info().SnapName())
+	selfManageDeviceCgroupPath := cgroup.SnapDeviceFile(snap.SecurityTag(appSet.Info().SnapName()))
 
 	needReload := false
 	// content is always empty whenever the snap controls device
@@ -209,7 +211,7 @@ func (b *Backend) Setup(appSet *interfaces.SnapAppSet, opts interfaces.Confineme
 // This method should be called after removing a snap.
 //
 // If the method fails it should be re-tried (with a sensible strategy) by the caller.
-func (b *Backend) Remove(snapName string) error {
+func (b *Backend) Remove(snapName naming.SnapName) error {
 	rulesFilePath := snapRulesFilePath(snapName)
 	selfManageDeviceCgroupPath := cgroup.SnapDeviceFile(snap.SecurityTag(snapName))
 

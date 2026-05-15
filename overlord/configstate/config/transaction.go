@@ -32,6 +32,8 @@ import (
 	"github.com/snapcore/snapd/jsonutil"
 	"github.com/snapcore/snapd/osutil"
 	"github.com/snapcore/snapd/overlord/state"
+
+	"github.com/snapcore/snapd/snap/naming"
 )
 
 // Transaction holds a copy of the configuration originally present in the
@@ -111,7 +113,7 @@ func (t *Transaction) Changes() []string {
 // "network.netplan" is external it must be impossible to set
 // "network=false" or getting the document under "network" would be
 // wrong.
-func shadowsExternalConfig(instanceName string, key string, value any) error {
+func shadowsExternalConfig(instanceName naming.InstanceName, key string, value any) error {
 	// maps never block the path
 	if v := reflect.ValueOf(value); v.Kind() == reflect.Map {
 		return nil
@@ -122,7 +124,7 @@ func shadowsExternalConfig(instanceName string, key string, value any) error {
 	}
 
 	externalConfigMu.Lock()
-	km := externalConfigMap[instanceName]
+	km := externalConfigMap[string(instanceName)]
 	externalConfigMu.Unlock()
 
 	for externalKey := range km {
@@ -170,19 +172,19 @@ func (t *Transaction) Set(instanceName, key string, value any) error {
 	// would go unperceived by the configuration patching below.
 	if len(subkeys) > 1 {
 		var result any
-		err = getFromConfig(instanceName, subkeys, 0, t.pristine[instanceName], &result)
+		err = getFromConfig(naming.InstanceName(instanceName), subkeys, 0, t.pristine[instanceName], &result)
 		if err != nil && !IsNoOption(err) {
 			return err
 		}
 	}
 	// check that we do not "block" a path to external config with non-maps
-	if err := shadowsExternalConfig(instanceName, key, value); err != nil {
+	if err := shadowsExternalConfig(naming.InstanceName(instanceName), key, value); err != nil {
 		return err
 	}
 
 	// config here is never nil and PatchConfig always operates
 	// directly on and returns config if it's a map[string]any
-	_, err = PatchConfig(instanceName, subkeys, 0, config, &raw)
+	_, err = PatchConfig(naming.SnapName(instanceName), subkeys, 0, config, &raw)
 	if err != nil {
 		return err
 	}
@@ -191,9 +193,9 @@ func (t *Transaction) Set(instanceName, key string, value any) error {
 	return nil
 }
 
-func (t *Transaction) copyPristine(snapName string) map[string]*json.RawMessage {
+func (t *Transaction) copyPristine(snapName naming.SnapName) map[string]*json.RawMessage {
 	out := make(map[string]*json.RawMessage)
-	if config, ok := t.pristine[snapName]; ok {
+	if config, ok := t.pristine[string(snapName)]; ok {
 		for k, v := range config {
 			out[k] = v
 		}
@@ -217,14 +219,14 @@ func (t *Transaction) Get(snapName, key string, result any) error {
 	}
 
 	// merge external config and then commit changes onto a copy of pristine configuration, so that get has a complete view of the config.
-	config := t.copyPristine(snapName)
+	config := t.copyPristine(naming.SnapName(snapName))
 	if err := mergeConfigWithExternal(snapName, key, &config); err != nil {
 		return err
 	}
 	applyChanges(config, t.changes[snapName])
 
 	purgeNulls(config)
-	return getFromConfig(snapName, subkeys, 0, config, result)
+	return getFromConfig(naming.InstanceName(snapName), subkeys, 0, config, result)
 }
 
 // GetMaybe unmarshals into result the cached value of the provided snap's configuration key.
@@ -253,7 +255,7 @@ func (t *Transaction) GetPristine(snapName, key string, result any) error {
 		return err
 	}
 
-	return getFromConfig(snapName, subkeys, 0, t.pristine[snapName], result)
+	return getFromConfig(naming.InstanceName(snapName), subkeys, 0, t.pristine[snapName], result)
 }
 
 // GetPristineMaybe unmarshals the cached pristine (before applying any
@@ -269,11 +271,11 @@ func (t *Transaction) GetPristineMaybe(instanceName, key string, result any) err
 	return nil
 }
 
-func getFromConfig(instanceName string, subkeys []string, pos int, config map[string]*json.RawMessage, result any) error {
+func getFromConfig(instanceName naming.InstanceName, subkeys []string, pos int, config map[string]*json.RawMessage, result any) error {
 	// special case - get root document
 	if len(subkeys) == 0 {
 		if len(config) == 0 {
-			return &NoOptionError{SnapName: instanceName}
+			return &NoOptionError{SnapName: naming.SnapName(instanceName)}
 		}
 		raw := jsonRaw(config)
 		if err := jsonutil.DecodeWithNumber(bytes.NewReader(*raw), &result); err != nil {
@@ -284,7 +286,7 @@ func getFromConfig(instanceName string, subkeys []string, pos int, config map[st
 
 	raw, ok := config[subkeys[pos]]
 	if !ok {
-		return &NoOptionError{SnapName: instanceName, Key: strings.Join(subkeys[:pos+1], ".")}
+		return &NoOptionError{SnapName: naming.SnapName(instanceName), Key: strings.Join(subkeys[:pos+1], ".")}
 	}
 
 	// There is a known problem with json raw messages representing nulls when they are stored in nested structures, such as
@@ -331,7 +333,7 @@ func (t *Transaction) Commit() {
 
 	// Iterate through the write cache and save each item but exclude external configuration
 	for instanceName, snapChanges := range t.changes {
-		clearExternalConfig(instanceName, snapChanges)
+		clearExternalConfig(naming.InstanceName(instanceName), snapChanges)
 
 		config := t.pristine[instanceName]
 		// due to LP #1917870 we might have a hook configure task in flight
@@ -461,7 +463,7 @@ func mergeConfigWithExternal(instanceName, requestedKey string, origConfig *map[
 	for _, subkeys := range patchKeys {
 		// patch[key] above got assigned jsonRaw() so this cast is ok
 		raw := patch[subkeys].(*json.RawMessage)
-		mergedConfig, err := PatchConfig(instanceName, strings.Split(subkeys, "."), 0, config, raw)
+		mergedConfig, err := PatchConfig(naming.SnapName(instanceName), strings.Split(subkeys, "."), 0, config, raw)
 		if err != nil {
 			return err
 		}
@@ -486,9 +488,9 @@ func mergeConfigWithExternal(instanceName, requestedKey string, origConfig *map[
 // clearExternalConfig iterates over a given config and removes any values
 // that come from external configuration. This is used before committing a
 // config to disk.
-func clearExternalConfig(instanceName string, snapChanges map[string]any) {
+func clearExternalConfig(instanceName naming.InstanceName, snapChanges map[string]any) {
 	externalConfigMu.Lock()
-	km := externalConfigMap[instanceName]
+	km := externalConfigMap[string(instanceName)]
 	externalConfigMu.Unlock()
 
 	clearExternalConfigRecursive(km, snapChanges, "")
@@ -521,7 +523,7 @@ func IsNoOption(err error) bool {
 
 // NoOptionError indicates that a config option is not set.
 type NoOptionError struct {
-	SnapName string
+	SnapName naming.SnapName
 	Key      string
 }
 

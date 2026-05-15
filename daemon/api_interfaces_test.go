@@ -36,7 +36,8 @@ import (
 	"github.com/snapcore/snapd/interfaces/ifacetest"
 	"github.com/snapcore/snapd/overlord/ifacestate"
 	"github.com/snapcore/snapd/overlord/state"
-)
+
+	"github.com/snapcore/snapd/snap/naming")
 
 var _ = check.Suite(&interfacesSuite{})
 
@@ -60,11 +61,11 @@ type inverseCaseMapper struct {
 	ifacestate.IdentityMapper // Embed the identity mapper to reuse empty state mapping functions.
 }
 
-func (m *inverseCaseMapper) RemapSnapFromRequest(snapName string) string {
+func (m *inverseCaseMapper) RemapSnapFromRequest(snapName naming.SnapName) string {
 	return strings.ToLower(snapName)
 }
 
-func (m *inverseCaseMapper) RemapSnapToResponse(snapName string) string {
+func (m *inverseCaseMapper) RemapSnapToResponse(snapName naming.SnapName) string {
 	return strings.ToUpper(snapName)
 }
 

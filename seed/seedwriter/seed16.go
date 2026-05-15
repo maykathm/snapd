@@ -67,7 +67,7 @@ func (pol *policy16) checkClassicSnap(_ *SeedSnap) error {
 	return nil
 }
 
-func makeSystemSnap(snapName string) *asserts.ModelSnap {
+func makeSystemSnap(snapName naming.SnapName) *asserts.ModelSnap {
 	return internal.MakeSystemSnap(snapName, "", []string{"run"})
 }
 
@@ -80,7 +80,7 @@ func (pol *policy16) systemSnap() *asserts.ModelSnap {
 	if pol.model.Base() != "" {
 		snapName = "snapd"
 	}
-	return makeSystemSnap(snapName)
+	return makeSystemSnap(naming.SnapName(snapName))
 }
 
 func (pol *policy16) modelSnapDefaultChannel() string {
@@ -99,7 +99,7 @@ func (pol *policy16) checkBase(info *snap.Info, modes []string, availableByMode 
 	if info.Base == "" {
 		if info.Type() == snap.TypeGadget || info.Type() == snap.TypeApp {
 			// remember to make sure we have core installed
-			pol.needsCore = append(pol.needsCore, info.SnapName())
+			pol.needsCore = append(pol.needsCore, string(info.SnapName()))
 		}
 		return nil
 	}
@@ -110,7 +110,7 @@ func (pol *policy16) checkBase(info *snap.Info, modes []string, availableByMode 
 
 	if info.Base == "core16" {
 		// check at the end
-		pol.needsCore16 = append(pol.needsCore16, info.SnapName())
+		pol.needsCore16 = append(pol.needsCore16, string(info.SnapName()))
 		return nil
 	}
 
@@ -158,7 +158,7 @@ func (pol *policy16) implicitExtraSnaps(availableByMode map[string]*naming.SnapS
 	return nil
 }
 
-func (pol *policy16) recordSnapNameUsage(snapName string) {
+func (pol *policy16) recordSnapNameUsage(snapName naming.SnapName) {
 	if !pol.model.Classic() {
 		// nothing to record
 		return
@@ -288,7 +288,7 @@ func (tr *tree16) writeMeta(snapsFromModel []*SeedSnap, extraSnaps []*SeedSnap) 
 			channel = ""
 		}
 		seedYaml.Snaps[i] = &internal.Snap16{
-			Name:    info.SnapName(),
+			Name:    string(info.SnapName()),
 			SnapID:  info.SnapID, // cross-ref
 			Channel: channel,
 			File:    filepath.Base(sn.Path),

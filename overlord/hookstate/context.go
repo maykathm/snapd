@@ -35,7 +35,8 @@ import (
 	"github.com/snapcore/snapd/overlord/state"
 	"github.com/snapcore/snapd/randutil"
 	"github.com/snapcore/snapd/snap"
-)
+
+	"github.com/snapcore/snapd/snap/naming")
 
 // Context represents the context under which the snap is calling back into snapd.
 // It is associated with a task when the callback is happening from within a hook,
@@ -98,7 +99,7 @@ func newEphemeralHookContextWithData(st *state.State, setup *HookSetup, contextD
 }
 
 // InstanceName returns the name of the snap instance containing the hook.
-func (c *Context) InstanceName() string {
+func (c *Context) InstanceName() naming.InstanceName {
 	return c.setup.Snap
 }
 

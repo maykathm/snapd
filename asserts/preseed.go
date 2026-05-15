@@ -59,8 +59,8 @@ type PreseedComponent struct {
 }
 
 // SnapName implements naming.SnapRef.
-func (s *PreseedSnap) SnapName() string {
-	return s.Name
+func (s *PreseedSnap) SnapName() naming.SnapName {
+	return naming.SnapName(s.Name)
 }
 
 // ID implements naming.SnapRef.

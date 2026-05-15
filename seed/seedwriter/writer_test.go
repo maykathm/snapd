@@ -2445,10 +2445,10 @@ func (s *writerSuite) TestSeedSnapsWriteMetaCore20(c *C) {
 		seen[uniq] = true
 	}
 
-	snapRevUniq := func(snapName string, revno int) string {
+	snapRevUniq := func(snapName naming.SnapName, revno int) string {
 		return fmt.Sprintf("%s@%d", s.AssertedSnapID(snapName), revno)
 	}
-	snapDeclUniq := func(snapName string) string {
+	snapDeclUniq := func(snapName naming.SnapName) string {
 		return "snap-declaration/16/" + s.AssertedSnapID(snapName)
 	}
 
@@ -3761,13 +3761,13 @@ func (s *writerSuite) TestSeedSnapsWriteMetaCore20ExtraSnaps(c *C) {
 		seen[uniqID(a)] = true
 	}
 
-	snapRevUniq := func(snapName string, revno int) string {
+	snapRevUniq := func(snapName naming.SnapName, revno int) string {
 		return fmt.Sprintf("%s@%d", s.AssertedSnapID(snapName), revno)
 	}
 	resRevUniq := func(snapName, compName string, resRev int) string {
 		return fmt.Sprintf("%s+%s@%d", s.AssertedSnapID(snapName), compName, resRev)
 	}
-	snapDeclUniq := func(snapName string) string {
+	snapDeclUniq := func(snapName naming.SnapName) string {
 		return "snap-declaration/16/" + s.AssertedSnapID(snapName)
 	}
 	snapResPairUniq := func(snapName, compName string, resRev, snapRev int) string {

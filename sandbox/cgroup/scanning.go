@@ -166,7 +166,7 @@ func InstancePathsOfSnap(snapInstanceName string, options InstancePathsOptions) 
 		if parsedTag == nil {
 			return nil
 		}
-		if parsedTag.InstanceName() != snapInstanceName {
+		if string(parsedTag.InstanceName()) != snapInstanceName {
 			return nil
 		}
 		if options.ReturnCGroupPath {

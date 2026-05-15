@@ -1032,7 +1032,7 @@ func (s *interfaceManagerSuite) TestConnectAlreadyConnected(c *C) {
 	c.Assert(ts, NotNil)
 }
 
-func (s *interfaceManagerSuite) testConnectDisconnectConflicts(c *C, f func(*state.State, string, string, string, string) (*state.TaskSet, error), snapName string, otherTaskKind string, expectedErr string) {
+func (s *interfaceManagerSuite) testConnectDisconnectConflicts(c *C, f func(*state.State, string, string, string, string) (*state.TaskSet, error), snapName naming.SnapName, otherTaskKind string, expectedErr string) {
 	s.state.Lock()
 	defer s.state.Unlock()
 
@@ -1048,7 +1048,7 @@ func (s *interfaceManagerSuite) testConnectDisconnectConflicts(c *C, f func(*sta
 	c.Assert(err, ErrorMatches, expectedErr)
 }
 
-func (s *interfaceManagerSuite) testDisconnectConflicts(c *C, snapName string, otherTaskKind string, expectedErr string) {
+func (s *interfaceManagerSuite) testDisconnectConflicts(c *C, snapName naming.SnapName, otherTaskKind string, expectedErr string) {
 	plugAppSet := s.mockAppSet(c, consumerYaml)
 	slotAppSet := s.mockAppSet(c, producerYaml)
 
@@ -2636,7 +2636,7 @@ func (s *interfaceManagerSuite) addSetupSnapSecurityChangeWithOptions(c *C, snap
 	return change
 }
 
-func (s *interfaceManagerSuite) addRemoveSnapSecurityChange(snapName string) *state.Change {
+func (s *interfaceManagerSuite) addRemoveSnapSecurityChange(snapName naming.SnapName) *state.Change {
 	s.state.Lock()
 	defer s.state.Unlock()
 
@@ -2653,7 +2653,7 @@ func (s *interfaceManagerSuite) addRemoveSnapSecurityChange(snapName string) *st
 	return change
 }
 
-func (s *interfaceManagerSuite) addDiscardConnsChange(snapName string) (*state.Change, *state.Task) {
+func (s *interfaceManagerSuite) addDiscardConnsChange(snapName naming.SnapName) (*state.Change, *state.Task) {
 	s.state.Lock()
 	defer s.state.Unlock()
 
@@ -4710,7 +4710,7 @@ func (s *interfaceManagerSuite) TestDoSetupSnapSecurityReloadsConnectionsWhenInv
 	})
 }
 
-func (s *interfaceManagerSuite) testDoSetupSnapSecurityReloadsConnectionsWhenInvokedOn(c *C, snapName string, revision snap.Revision) {
+func (s *interfaceManagerSuite) testDoSetupSnapSecurityReloadsConnectionsWhenInvokedOn(c *C, snapName naming.SnapName, revision snap.Revision) {
 	s.state.Lock()
 	s.state.Set("conns", map[string]any{
 		"consumer:plug producer:slot": map[string]any{"interface": "test"},
@@ -5552,7 +5552,7 @@ func (s *interfaceManagerSuite) TestUndoDiscardConnsSlot(c *C) {
 	s.testUndoDiscardConns(c, "producer")
 }
 
-func (s *interfaceManagerSuite) testDoDiscardConns(c *C, snapName string) {
+func (s *interfaceManagerSuite) testDoDiscardConns(c *C, snapName naming.SnapName) {
 	s.state.Lock()
 	// Store information about a connection in the state.
 	s.state.Set("conns", map[string]any{
@@ -5601,7 +5601,7 @@ func (s *interfaceManagerSuite) testDoDiscardConns(c *C, snapName string) {
 	})
 }
 
-func (s *interfaceManagerSuite) testUndoDiscardConns(c *C, snapName string) {
+func (s *interfaceManagerSuite) testUndoDiscardConns(c *C, snapName naming.SnapName) {
 	s.manager(c)
 
 	s.state.Lock()
@@ -12318,8 +12318,8 @@ func (s *interfaceManagerSuite) TestDoRegenerateSecurityProfilesHappy(c *C) {
 			BackendName: "test",
 		},
 		SetupManyCallback: func(appSets []*interfaces.SnapAppSet,
-			confinement func(snapName string) interfaces.ConfinementOptions,
-			sctx func(snapName string) interfaces.SetupContext,
+			confinement func(snapName naming.SnapName) interfaces.ConfinementOptions,
+			sctx func(snapName naming.SnapName) interfaces.SetupContext,
 			repo *interfaces.Repository, tm timings.Measurer,
 		) []error {
 			setupCalls++
@@ -12445,8 +12445,8 @@ func (s *interfaceManagerSuite) testDoRegenerateSecurityProfilesError(c *C, tc r
 			BackendName: "test",
 		},
 		SetupManyCallback: func(appSets []*interfaces.SnapAppSet,
-			confinement func(snapName string) interfaces.ConfinementOptions,
-			sctx func(snapName string) interfaces.SetupContext,
+			confinement func(snapName naming.SnapName) interfaces.ConfinementOptions,
+			sctx func(snapName naming.SnapName) interfaces.SetupContext,
 			repo *interfaces.Repository, tm timings.Measurer,
 		) []error {
 			setupCalls++

@@ -42,6 +42,8 @@ import (
 	"github.com/snapcore/snapd/snapdtool"
 	"github.com/snapcore/snapd/timings"
 	"github.com/snapcore/snapd/wrappers"
+
+	"github.com/snapcore/snapd/snap/naming"
 )
 
 // Backend is responsible for maintaining DBus policy files.
@@ -183,7 +185,7 @@ func (b *Backend) Setup(appSet *interfaces.SnapAppSet, opts interfaces.Confineme
 	// Get the files that this snap should have
 	content := b.deriveContent(spec.(*Specification), appSet)
 
-	globs := profileGlobs(snapName)
+	globs := profileGlobs(naming.SnapName(snapName))
 
 	dir := dirs.SnapDBusSystemPolicyDir
 	if err := os.MkdirAll(dir, 0755); err != nil {
@@ -197,7 +199,7 @@ func (b *Backend) Setup(appSet *interfaces.SnapAppSet, opts interfaces.Confineme
 	return nil
 }
 
-func profileGlobs(snapName string) []string {
+func profileGlobs(snapName naming.SnapName) []string {
 	var globs []string
 	for _, g := range interfaces.SecurityTagGlobs(snapName) {
 		globs = append(globs, fmt.Sprintf("%s.conf", g))
@@ -208,7 +210,7 @@ func profileGlobs(snapName string) []string {
 // Remove removes dbus configuration files of a given snap.
 //
 // This method should be called after removing a snap.
-func (b *Backend) Remove(snapName string) error {
+func (b *Backend) Remove(snapName naming.SnapName) error {
 	globs := profileGlobs(snapName)
 	_, _, err := osutil.EnsureDirStateGlobs(dirs.SnapDBusSystemPolicyDir, globs, nil)
 	if err != nil {

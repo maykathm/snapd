@@ -117,7 +117,7 @@ func (s *baseHookManagerSuite) commonTearDownTest(c *C) {
 	dirs.SetRootDir("")
 }
 
-func (s *baseHookManagerSuite) setUpSnap(c *C, instanceName string, yaml string) {
+func (s *baseHookManagerSuite) setUpSnap(c *C, instanceName naming.InstanceName, yaml string) {
 	hooksup := &hookstate.HookSetup{
 		Snap:     instanceName,
 		Hook:     "configure",
@@ -1407,7 +1407,7 @@ type componentHookManagerSuite struct {
 
 var _ = Suite(&componentHookManagerSuite{})
 
-func (s *baseHookManagerSuite) setUpComponent(c *C, instanceName string, componentName string, hookName string) {
+func (s *baseHookManagerSuite) setUpComponent(c *C, instanceName naming.InstanceName, componentName string, hookName string) {
 	hooksup := &hookstate.HookSetup{
 		Snap:              instanceName,
 		Hook:              hookName,

@@ -36,7 +36,8 @@ import (
 	"github.com/snapcore/snapd/overlord/snapstate"
 	"github.com/snapcore/snapd/overlord/state"
 	"github.com/snapcore/snapd/snap"
-)
+
+	"github.com/snapcore/snapd/snap/naming")
 
 var (
 	osRemove             = os.Remove
@@ -283,7 +284,7 @@ func marshalSnapConfig(cfg map[string]any) (*json.RawMessage, error) {
 	return raw, err
 }
 
-func unmarshalSnapConfig(st *state.State, snapName string) (map[string]any, error) {
+func unmarshalSnapConfig(st *state.State, snapName naming.SnapName) (map[string]any, error) {
 	rawCfg, err := configGetSnapConfig(st, snapName)
 	if err != nil {
 		return nil, fmt.Errorf("internal error: cannot obtain current snap config: %v", err)

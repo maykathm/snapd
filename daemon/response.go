@@ -38,7 +38,8 @@ import (
 	"github.com/snapcore/snapd/overlord/state"
 	"github.com/snapcore/snapd/snap"
 	"github.com/snapcore/snapd/systemd"
-)
+
+	"github.com/snapcore/snapd/snap/naming")
 
 // ResponseType is the response type
 type ResponseType string
@@ -194,7 +195,7 @@ func AsyncResponse(result map[string]any, change string) Response {
 
 // A snapStream ServeHTTP method streams a snap
 type snapStream struct {
-	SnapName string
+	SnapName naming.SnapName
 	Filename string
 	Info     *snap.DownloadInfo
 	Token    string

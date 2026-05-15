@@ -30,7 +30,8 @@ import (
 	"github.com/snapcore/snapd/logger"
 	"github.com/snapcore/snapd/osutil"
 	"github.com/snapcore/snapd/snap"
-)
+
+	"github.com/snapcore/snapd/snap/naming")
 
 // RemoveSnapData removes the data for the given version of the given snap.
 func (b Backend) RemoveSnapData(snap *snap.Info, opts *dirs.SnapDirOptions) error {
@@ -152,7 +153,7 @@ func removeDirs(dirs []string) error {
 }
 
 // snapDataDirs returns the list of base data directories for the given snap.
-func snapBaseDataDirs(snapName string, opts *dirs.SnapDirOptions) ([]string, error) {
+func snapBaseDataDirs(snapName naming.SnapName, opts *dirs.SnapDirOptions) ([]string, error) {
 	// collect the directories, homes first
 	var found []string
 

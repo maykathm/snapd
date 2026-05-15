@@ -52,8 +52,8 @@ func init() {
 
 // WellKnownSnapID returns the snap-id of well-known snaps (snapd, core*)
 // given the snap name or the empty string otherwise.
-func WellKnownSnapID(snapName string) string {
-	return wellKnownSnapIDs[snapName]
+func WellKnownSnapID(snapName SnapName) string {
+	return wellKnownSnapIDs[string(snapName)]
 }
 
 func UseStagingIDs(staging bool) (restore func()) {

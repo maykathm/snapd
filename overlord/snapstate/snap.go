@@ -377,7 +377,7 @@ func removeExtraComponentsTasks(st *state.State, snapst *SnapState, targetRevisi
 
 // shouldScheduleUpdateCertDBForRefresh reports whether a snap operation
 // should inject an update-cert-db task.
-func shouldScheduleUpdateCertDBForRefresh(instanceName string, snapType snap.Type, ctx DeviceContext) bool {
+func shouldScheduleUpdateCertDBForRefresh(instanceName naming.InstanceName, snapType snap.Type, ctx DeviceContext) bool {
 	if snapType != snap.TypeBase {
 		return false
 	}
@@ -931,7 +931,7 @@ func splitComponentTasksForInstall(
 	return newMultiComponentInstallTaskSet(componentTSS...), nil
 }
 
-func findTasksMatchingKindAndSnap(st *state.State, kind string, snapName string, revision snap.Revision) ([]*state.Task, error) {
+func findTasksMatchingKindAndSnap(st *state.State, kind string, snapName naming.SnapName, revision snap.Revision) ([]*state.Task, error) {
 	var tasks []*state.Task
 	for _, t := range st.Tasks() {
 		if t.Kind() != kind {
@@ -1029,6 +1029,6 @@ func configureSnapFlags(snapst *SnapState, snapsup *SnapSetup) int {
 	return confFlags
 }
 
-func isCoreSnap(snapName string) bool {
+func isCoreSnap(snapName naming.SnapName) bool {
 	return snapName == defaultCoreSnapName
 }

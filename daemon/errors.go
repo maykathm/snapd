@@ -33,7 +33,8 @@ import (
 	"github.com/snapcore/snapd/overlord/snapstate"
 	"github.com/snapcore/snapd/snap"
 	"github.com/snapcore/snapd/store"
-)
+
+	"github.com/snapcore/snapd/snap/naming")
 
 // apiError represents an error meant for returning to the client.
 // It can serialize itself to our standard JSON response format.
@@ -133,7 +134,7 @@ func BadQuery() *apiError {
 
 // SnapNotFound is an error responder used when an operation is
 // requested on a snap that doesn't exist.
-func SnapNotFound(snapName string, err error) *apiError {
+func SnapNotFound(snapName naming.SnapName, err error) *apiError {
 	return &apiError{
 		Status:  404,
 		Message: err.Error(),
@@ -144,7 +145,7 @@ func SnapNotFound(snapName string, err error) *apiError {
 
 // SnapNotInstalled is an error responder used when an operation is
 // requested on a snap that is not in the system but expected to be.
-func SnapNotInstalled(snapName string, err error) *apiError {
+func SnapNotInstalled(snapName naming.SnapName, err error) *apiError {
 	return &apiError{
 		Status:  400,
 		Message: err.Error(),
@@ -167,7 +168,7 @@ func MissingSnapResourcePair(csi *snap.ComponentSideInfo, snapRev snap.Revision)
 // operation is requested for which no revivision can be found
 // in the given context (e.g. request an install from a stable
 // channel when this channel is empty).
-func SnapRevisionNotAvailable(snapName string, rnaErr *store.RevisionNotAvailableError) *apiError {
+func SnapRevisionNotAvailable(snapName naming.SnapName, rnaErr *store.RevisionNotAvailableError) *apiError {
 	var value any = snapName
 	kind := client.ErrorKindSnapRevisionNotAvailable
 	msg := rnaErr.Error()
@@ -362,7 +363,7 @@ func InterfacesUnchanged(format string, v ...any) *apiError {
 
 func errToResponse(err error, snaps []string, fallback errorResponder, format string, v ...any) *apiError {
 	var kind client.ErrorKind
-	var snapName string
+	var snapName naming.SnapName
 
 	switch err {
 	case store.ErrSnapNotFound:

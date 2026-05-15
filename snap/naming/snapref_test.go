@@ -30,27 +30,27 @@ type snapRefSuite struct{}
 var _ = Suite(&snapRefSuite{})
 
 func (s *snapRefSuite) TestNewSnapRef(c *C) {
-	fooRef := naming.NewSnapRef("foo", "foo-id")
-	c.Check(fooRef.SnapName(), Equals, "foo")
+	fooRef := naming.NewSnapRef(naming.SnapName("foo"), "foo-id")
+	c.Check(string(fooRef.SnapName()), Equals, "foo")
 	c.Check(fooRef.ID(), Equals, "foo-id")
 
-	fooNameOnlyRef := naming.NewSnapRef("foo", "")
-	c.Check(fooNameOnlyRef.SnapName(), Equals, "foo")
+	fooNameOnlyRef := naming.NewSnapRef(naming.SnapName("foo"), "")
+	c.Check(string(fooNameOnlyRef.SnapName()), Equals, "foo")
 	c.Check(fooNameOnlyRef.ID(), Equals, "")
 }
 
 func (s *snapRefSuite) TestSnap(c *C) {
 	fooNameOnlyRef := naming.Snap("foo")
-	c.Check(fooNameOnlyRef.SnapName(), Equals, "foo")
+	c.Check(string(fooNameOnlyRef.SnapName()), Equals, "foo")
 	c.Check(fooNameOnlyRef.ID(), Equals, "")
 }
 
 func (s *snapRefSuite) TestSameSnap(c *C) {
-	fooRef := naming.NewSnapRef("foo", "foo-id")
-	fooNameOnlyRef := naming.NewSnapRef("foo", "")
-	altFooRef := naming.NewSnapRef("foo-proj", "foo-id")
-	barNameOnylRef := naming.NewSnapRef("bar", "")
-	unrelFooRef := naming.NewSnapRef("foo", "unrel-id")
+	fooRef := naming.NewSnapRef(naming.SnapName("foo"), "foo-id")
+	fooNameOnlyRef := naming.NewSnapRef(naming.SnapName("foo"), "")
+	altFooRef := naming.NewSnapRef(naming.SnapName("foo-proj"), "foo-id")
+	barNameOnylRef := naming.NewSnapRef(naming.SnapName("bar"), "")
+	unrelFooRef := naming.NewSnapRef(naming.SnapName("foo"), "unrel-id")
 
 	c.Check(naming.SameSnap(fooRef, altFooRef), Equals, true)
 	c.Check(naming.SameSnap(fooRef, fooNameOnlyRef), Equals, true)
@@ -66,7 +66,7 @@ func (s *snapRefSuite) TestSnapSet(c *C) {
 	c.Check(ss.Empty(), Equals, true)
 	c.Check(ss.Size(), Equals, 0)
 
-	fooRef := naming.NewSnapRef("foo", "foo-id")
+	fooRef := naming.NewSnapRef(naming.SnapName("foo"), "foo-id")
 	fooNameOnlyRef := naming.Snap("foo")
 
 	ss.Add(fooRef)
@@ -75,13 +75,13 @@ func (s *snapRefSuite) TestSnapSet(c *C) {
 	ss.Add(fooNameOnlyRef)
 	c.Check(ss.Size(), Equals, 1)
 
-	altFooRef := naming.NewSnapRef("foo-proj", "foo-id")
+	altFooRef := naming.NewSnapRef(naming.SnapName("foo-proj"), "foo-id")
 	c.Check(ss.Lookup(fooRef), Equals, fooRef)
 	c.Check(ss.Lookup(fooNameOnlyRef), Equals, fooRef)
 	c.Check(ss.Lookup(altFooRef), Equals, fooRef)
 
-	barNameOnylRef := naming.NewSnapRef("bar", "")
-	unrelFooRef := naming.NewSnapRef("foo", "unrel-id")
+	barNameOnylRef := naming.NewSnapRef(naming.SnapName("bar"), "")
+	unrelFooRef := naming.NewSnapRef(naming.SnapName("foo"), "unrel-id")
 	c.Check(ss.Lookup(barNameOnylRef), Equals, nil)
 	c.Check(ss.Lookup(unrelFooRef), Equals, nil)
 

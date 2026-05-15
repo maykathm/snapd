@@ -35,7 +35,8 @@ import (
 	"github.com/snapcore/snapd/overlord/auth"
 	"github.com/snapcore/snapd/snap"
 	"github.com/snapcore/snapd/store"
-)
+
+	"github.com/snapcore/snapd/snap/naming")
 
 var _ = check.Suite(&snapDownloadSuite{})
 
@@ -200,7 +201,7 @@ func (s *snapDownloadSuite) TestDownloadSnapErrors(c *check.C) {
 
 func (s *snapDownloadSuite) TestStreamOneSnap(c *check.C) {
 	type scenario struct {
-		snapName string
+		snapName naming.SnapName
 		dataJSON string
 		status   int
 		resume   int

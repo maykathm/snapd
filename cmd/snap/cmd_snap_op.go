@@ -41,7 +41,8 @@ import (
 	"github.com/snapcore/snapd/snap"
 	"github.com/snapcore/snapd/snap/channel"
 	"github.com/snapcore/snapd/strutil"
-)
+
+	"github.com/snapcore/snapd/snap/naming")
 
 var (
 	shortInstallHelp = i18n.G("Install snaps on the system")
@@ -739,7 +740,7 @@ type cmdInstall struct {
 func (x *cmdInstall) installOne(nameOrPath, desiredName string, opts *client.SnapOptions) error {
 	var err error
 	var changeID string
-	var snapName string
+	var snapName naming.SnapName
 	var path string
 
 	isLocal := isLocalContainer(nameOrPath)
@@ -836,7 +837,7 @@ func (x *cmdInstall) installMany(names []string, opts *client.SnapOptions) error
 	}
 
 	if err != nil {
-		var snapName string
+		var snapName naming.SnapName
 		if err, ok := err.(*client.Error); ok {
 			snapName, _ = err.Value.(string)
 		}

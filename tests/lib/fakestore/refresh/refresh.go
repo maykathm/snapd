@@ -36,6 +36,8 @@ import (
 	"github.com/snapcore/snapd/dirs"
 	"github.com/snapcore/snapd/osutil"
 	"github.com/snapcore/snapd/snap"
+
+	"github.com/snapcore/snapd/snap/naming"
 )
 
 func newAssertsDB(signingPrivKey string) (*asserts.Database, error) {
@@ -199,7 +201,7 @@ func getOrigInfo(snapName, snapOrigBlob string) (*info, error) {
 		return &info{revision: "x1", size: origSize, digest: origDigest}, nil
 	}
 
-	origRevision, err := currentRevision(snapName)
+	origRevision, err := currentRevision(naming.SnapName(snapName))
 	if err != nil {
 		return nil, err
 	}
@@ -208,7 +210,7 @@ func getOrigInfo(snapName, snapOrigBlob string) (*info, error) {
 		return nil, err
 	}
 
-	place := snap.MinimalPlaceInfo(snapName, rev)
+	place := snap.MinimalPlaceInfo(naming.InstanceName(snapName), rev)
 	origDigest, origSize, err := asserts.SnapFileSHA3_384(place.MountFile())
 	if err != nil {
 		return nil, err
@@ -217,8 +219,8 @@ func getOrigInfo(snapName, snapOrigBlob string) (*info, error) {
 	return &info{revision: origRevision, size: origSize, digest: origDigest}, nil
 }
 
-func currentRevision(snapName string) (string, error) {
-	baseDir := filepath.Join(dirs.SnapMountDir, snapName)
+func currentRevision(snapName naming.SnapName) (string, error) {
+	baseDir := filepath.Join(dirs.SnapMountDir, string(snapName))
 	if _, err := os.Stat(baseDir); err != nil {
 		return "", err
 	}

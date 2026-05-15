@@ -34,7 +34,8 @@ import (
 	"github.com/snapcore/snapd/features"
 	"github.com/snapcore/snapd/i18n"
 	"github.com/snapcore/snapd/jsonutil"
-)
+
+	"github.com/snapcore/snapd/snap/naming")
 
 var shortGetHelp = i18n.G("Print configuration options")
 var longGetHelp = i18n.G(`
@@ -217,7 +218,7 @@ func (x *cmdGet) outputList(conf map[string]any) error {
 //   - multiple keys are printed as a list to the terminal (if there is one)
 //     or as json if there is no terminal
 //   - the option "typed" is honored
-func (x *cmdGet) outputDefault(conf map[string]any, snapName string, confKeys []string) error {
+func (x *cmdGet) outputDefault(conf map[string]any, snapName naming.SnapName, confKeys []string) error {
 	if rootRequested(confKeys) && len(conf) == 0 {
 		return fmt.Errorf("snap %q has no configuration", snapName)
 	}

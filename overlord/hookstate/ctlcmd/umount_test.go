@@ -32,10 +32,11 @@ import (
 	"github.com/snapcore/snapd/snap"
 	"github.com/snapcore/snapd/systemd"
 	"github.com/snapcore/snapd/testutil"
-)
+
+	"github.com/snapcore/snapd/snap/naming")
 
 type ParamsForListMountUnits struct {
-	snapName string
+	snapName naming.SnapName
 	origin   string
 }
 

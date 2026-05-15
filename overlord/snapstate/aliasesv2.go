@@ -32,7 +32,8 @@ import (
 	"github.com/snapcore/snapd/overlord/swfeats"
 	"github.com/snapcore/snapd/snap"
 	"github.com/snapcore/snapd/strutil"
-)
+
+	"github.com/snapcore/snapd/snap/naming")
 
 func init() {
 	swfeats.RegisterEnsure("SnapManager", "ensureAliasesV2")
@@ -106,7 +107,7 @@ const (
 // to go from prevAliases considering the automatic aliases flag
 // (prevAutoDisabled) to newAliases considering newAutoDisabled for
 // snapName. It assumes that conflicts have already been checked.
-func applyAliasesChange(snapName string, prevAutoDisabled bool, prevAliases map[string]*AliasTarget, newAutoDisabled bool, newAliases map[string]*AliasTarget, be managerBackend, dryRun bool) (add, remove []*backend.Alias, err error) {
+func applyAliasesChange(snapName naming.SnapName, prevAutoDisabled bool, prevAliases map[string]*AliasTarget, newAutoDisabled bool, newAliases map[string]*AliasTarget, be managerBackend, dryRun bool) (add, remove []*backend.Alias, err error) {
 	for alias, prevTargets := range prevAliases {
 		if _, ok := newAliases[alias]; ok {
 			continue
@@ -319,7 +320,7 @@ func addAliasConflicts(st *state.State, skipSnap string, testAliases map[string]
 // conflicting snaps and aliases for alias conflicts.
 // changing can specify about to be set states for some snaps that will
 // then be considered.
-func checkAliasesConflicts(st *state.State, snapName string, candAutoDisabled bool, candAliases map[string]*AliasTarget, changing map[string]*SnapState) (conflicts map[string][]string, err error) {
+func checkAliasesConflicts(st *state.State, snapName naming.SnapName, candAutoDisabled bool, candAliases map[string]*AliasTarget, changing map[string]*SnapState) (conflicts map[string][]string, err error) {
 	var snapNames map[string]*json.RawMessage
 	err = st.Get("snaps", &snapNames)
 	if err != nil && !errors.Is(err, state.ErrNoState) {
@@ -360,7 +361,7 @@ func checkAliasesConflicts(st *state.State, snapName string, candAutoDisabled bo
 
 // checkSnapAliasConflict checks whether instanceName and its command
 // namespace conflicts against installed snap aliases.
-func checkSnapAliasConflict(st *state.State, instanceName string) error {
+func checkSnapAliasConflict(st *state.State, instanceName naming.InstanceName) error {
 	prefix := fmt.Sprintf("%s.", instanceName)
 	snapStates, err := All(st)
 	if err != nil {
@@ -598,7 +599,7 @@ func manualAlias(info *snap.Info, curAliases map[string]*AliasTarget, target, al
 }
 
 // DisableAllAliases disables all aliases of a snap, removing all manual ones.
-func DisableAllAliases(st *state.State, instanceName string) (*state.TaskSet, error) {
+func DisableAllAliases(st *state.State, instanceName naming.InstanceName) (*state.TaskSet, error) {
 	var snapst SnapState
 	err := Get(st, instanceName, &snapst)
 	if errors.Is(err, state.ErrNoState) {
@@ -625,7 +626,7 @@ func DisableAllAliases(st *state.State, instanceName string) (*state.TaskSet, er
 }
 
 // RemoveManualAlias removes a manual alias.
-func RemoveManualAlias(st *state.State, alias string) (ts *state.TaskSet, instanceName string, err error) {
+func RemoveManualAlias(st *state.State, alias string) (ts *state.TaskSet, instanceName naming.InstanceName, err error) {
 	instanceName, err = findSnapOfManualAlias(st, alias)
 	if err != nil {
 		return nil, "", err
@@ -648,7 +649,7 @@ func RemoveManualAlias(st *state.State, alias string) (ts *state.TaskSet, instan
 	return state.NewTaskSet(unalias), instanceName, nil
 }
 
-func findSnapOfManualAlias(st *state.State, alias string) (snapName string, err error) {
+func findSnapOfManualAlias(st *state.State, alias string) (snapName naming.SnapName, err error) {
 	snapStates, err := All(st)
 	if err != nil {
 		return "", err

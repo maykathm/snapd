@@ -49,7 +49,8 @@ import (
 	"github.com/snapcore/snapd/snap/snaptest"
 	"github.com/snapcore/snapd/store"
 	"github.com/snapcore/snapd/testutil"
-)
+
+	"github.com/snapcore/snapd/snap/naming")
 
 type autoRefreshGatingStore struct {
 	*fakeStore
@@ -1966,7 +1967,7 @@ func fakeReadInfo(name string, si *snap.SideInfo) (*snap.Info, error) {
 	return info, nil
 }
 
-func (s *snapmgrTestSuite) testAutoRefreshPhase2(c *C, beforePhase1 func(), gateAutoRefreshHook func(snapName string), expected []string) *state.Change {
+func (s *snapmgrTestSuite) testAutoRefreshPhase2(c *C, beforePhase1 func(), gateAutoRefreshHook func(snapName naming.SnapName), expected []string) *state.Change {
 	st := s.state
 	st.Lock()
 	defer st.Unlock()
@@ -2099,7 +2100,7 @@ func (s *snapmgrTestSuite) TestAutoRefreshPhase2(c *C) {
 
 	seenSnapsWithGateAutoRefreshHook := make(map[string]bool)
 
-	chg := s.testAutoRefreshPhase2(c, nil, func(snapName string) {
+	chg := s.testAutoRefreshPhase2(c, nil, func(snapName naming.SnapName) {
 		seenSnapsWithGateAutoRefreshHook[snapName] = true
 	}, expected)
 
@@ -2158,7 +2159,7 @@ func (s *snapmgrTestSuite) TestAutoRefreshPhase2Held(c *C) {
 		"mock-process-delayed-security-backend-effects",
 	}
 
-	chg := s.testAutoRefreshPhase2(c, nil, func(snapName string) {
+	chg := s.testAutoRefreshPhase2(c, nil, func(snapName naming.SnapName) {
 		if snapName == "snap-b" {
 			// pretend than snap-b calls snapctl --hold to hold refresh of base-snap-b
 			_, err := snapstate.HoldRefresh(s.state, snapstate.HoldAutoRefresh, "snap-b", 0, "base-snap-b")
@@ -2220,7 +2221,7 @@ func (s *snapmgrTestSuite) TestAutoRefreshPhase2Proceed(c *C) {
 		c.Assert(err, IsNil)
 		_, err = snapstate.HoldRefresh(s.state, snapstate.HoldAutoRefresh, "snap-b", 0, "base-snap-b")
 		c.Assert(err, IsNil)
-	}, func(snapName string) {
+	}, func(snapName naming.SnapName) {
 		if snapName == "snap-a" {
 			// pretend than snap-a calls snapctl --proceed
 			err := snapstate.ProceedWithRefresh(s.state, "snap-a", nil)
@@ -2246,7 +2247,7 @@ func (s *snapmgrTestSuite) TestAutoRefreshPhase2AllHeld(c *C) {
 		"run-hook [snap-b;gate-auto-refresh]",
 	}
 
-	s.testAutoRefreshPhase2(c, nil, func(snapName string) {
+	s.testAutoRefreshPhase2(c, nil, func(snapName naming.SnapName) {
 		switch snapName {
 		case "snap-b":
 			// pretend that snap-b calls snapctl --hold to hold refresh of base-snap-b

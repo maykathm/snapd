@@ -3397,7 +3397,7 @@ func (s *deviceMgrInstallModeSuite) TestInstallWithUbuntuSaveSnapFoldersHappy(c 
 	c.Assert(hooksCalled[0].HookName(), Equals, "install-device")
 
 	snapFolderDir := filepath.Join(snapSaveDir, "snap")
-	ucSnapFolderExists := func(snapName string) bool {
+	ucSnapFolderExists := func(snapName naming.SnapName) bool {
 		exists, isDir, err := osutil.DirExists(filepath.Join(snapFolderDir, snapName))
 		return err == nil && exists && isDir
 	}

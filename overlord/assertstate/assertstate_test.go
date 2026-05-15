@@ -1272,7 +1272,7 @@ func (s *assertMgrSuite) snapDecl(c *C, name string, extraHeaders map[string]any
 	return decl.(*asserts.SnapDeclaration)
 }
 
-func (s *assertMgrSuite) stateFromDecl(c *C, decl *asserts.SnapDeclaration, instanceName string, revno snap.Revision) {
+func (s *assertMgrSuite) stateFromDecl(c *C, decl *asserts.SnapDeclaration, instanceName naming.InstanceName, revno snap.Revision) {
 	snapName, instanceKey := snap.SplitInstanceName(instanceName)
 	if snapName == "" {
 		snapName = decl.SnapName()

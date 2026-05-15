@@ -37,13 +37,15 @@ import (
 	"github.com/snapcore/snapd/snap"
 	"github.com/snapcore/snapd/strutil"
 	"github.com/snapcore/snapd/timings"
+
+	"github.com/snapcore/snapd/snap/naming"
 )
 
-func polkitPolicyName(snapName, nameSuffix string) string {
-	return snap.ScopedSecurityTag(snapName, "interface", nameSuffix) + ".policy"
+func polkitPolicyName(snapName naming.SnapName, nameSuffix string) string {
+	return snap.ScopedSecurityTag(string(snapName), "interface", nameSuffix) + ".policy"
 }
 
-func polkitRuleName(snapName, nameSuffix string) string {
+func polkitRuleName(snapName naming.SnapName, nameSuffix string) string {
 	// 70-<security-tag>.<file-name>.rules
 	return fmt.Sprintf("70-%s.%s.rules", snap.SecurityTag(snapName), nameSuffix)
 }
@@ -78,7 +80,7 @@ func (b *Backend) Setup(appSet *interfaces.SnapAppSet, opts interfaces.Confineme
 	}
 
 	// Get the policy files that this snap should have
-	glob := polkitPolicyName(snapName, "*")
+	glob := polkitPolicyName(naming.SnapName(snapName), "*")
 	content := derivePoliciesContent(spec.(*Specification), appSet)
 	dir := dirs.SnapPolkitPolicyDir
 	// If we do not have any content to write, there is no point
@@ -94,7 +96,7 @@ func (b *Backend) Setup(appSet *interfaces.SnapAppSet, opts interfaces.Confineme
 	}
 
 	// Get the rule files that this snap should have
-	glob = polkitRuleName(snapName, "*")
+	glob = polkitRuleName(naming.SnapName(snapName), "*")
 	content = deriveRulesContent(spec.(*Specification), appSet)
 	// Rules directory should already exist as it comes with distro packaging, don't attempt
 	// to create it to avoid messing with permissions and just fail if it doesn't exist.
@@ -109,7 +111,7 @@ func (b *Backend) Setup(appSet *interfaces.SnapAppSet, opts interfaces.Confineme
 // Remove removes polkit policy and rule files of a given snap.
 //
 // This method should be called after removing a snap.
-func (b *Backend) Remove(snapName string) error {
+func (b *Backend) Remove(snapName naming.SnapName) error {
 	// Removal must be best-effort to avoid leaving dangling files on early errors.
 	glob := polkitPolicyName(snapName, "*")
 	_, _, policyErr := osutil.EnsureDirState(dirs.SnapPolkitPolicyDir, glob, nil)
@@ -130,7 +132,7 @@ func derivePoliciesContent(spec *Specification, appSet *interfaces.SnapAppSet) m
 	}
 	content := make(map[string]osutil.FileState, len(policies)+1)
 	for nameSuffix, policyContent := range policies {
-		filename := polkitPolicyName(appSet.InstanceName(), nameSuffix)
+		filename := polkitPolicyName(naming.SnapName(appSet.InstanceName()), nameSuffix)
 		content[filename] = &osutil.MemoryFileState{
 			Content: policyContent,
 			Mode:    0644,
@@ -148,7 +150,7 @@ func deriveRulesContent(spec *Specification, appSet *interfaces.SnapAppSet) map[
 	}
 	content := make(map[string]osutil.FileState, len(rules)+1)
 	for nameSuffix, ruleContent := range rules {
-		filename := polkitRuleName(appSet.InstanceName(), nameSuffix)
+		filename := polkitRuleName(naming.SnapName(appSet.InstanceName()), nameSuffix)
 		content[filename] = &osutil.MemoryFileState{
 			Content: ruleContent,
 			Mode:    0644,

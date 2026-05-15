@@ -38,7 +38,8 @@ import (
 	"github.com/snapcore/snapd/overlord/state"
 	"github.com/snapcore/snapd/snap"
 	"github.com/snapcore/snapd/testutil"
-)
+
+	"github.com/snapcore/snapd/snap/naming")
 
 const (
 	NotASnapCode    = notASnapCode
@@ -86,7 +87,7 @@ func MockSnapstateInstallComponentsFunc(f func(ctx context.Context, st *state.St
 	return func() { snapstateInstallComponents = old }
 }
 
-func MockSnapstateRemoveComponentsFunc(f func(st *state.State, snapName string, compName []string, opts snapstate.RemoveComponentsOpts) ([]*state.TaskSet, error)) (restore func()) {
+func MockSnapstateRemoveComponentsFunc(f func(st *state.State, snapName naming.SnapName, compName []string, opts snapstate.RemoveComponentsOpts) ([]*state.TaskSet, error)) (restore func()) {
 	old := snapstateRemoveComponents
 	snapstateRemoveComponents = f
 	return func() { snapstateRemoveComponents = old }

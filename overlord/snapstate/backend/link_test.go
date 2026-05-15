@@ -49,7 +49,8 @@ import (
 	"github.com/snapcore/snapd/testutil"
 	"github.com/snapcore/snapd/timings"
 	"github.com/snapcore/snapd/wrappers"
-)
+
+	"github.com/snapcore/snapd/snap/naming")
 
 type linkSuiteCommon struct {
 	testutil.BaseTest
@@ -1206,7 +1207,7 @@ func (s *linkSuite) TestUnlinkComponentError(c *C) {
 
 func (s *linkSuite) TestKillSnapApps(c *C) {
 	var called int
-	restore := backend.MockCgroupKillSnapProcesses(func(ctx context.Context, snapName string) error {
+	restore := backend.MockCgroupKillSnapProcesses(func(ctx context.Context, snapName naming.SnapName) error {
 		called++
 		c.Check(snapName, Equals, "foo")
 		return nil

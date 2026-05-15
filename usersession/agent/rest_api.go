@@ -36,6 +36,7 @@ import (
 	"github.com/snapcore/snapd/i18n"
 	"github.com/snapcore/snapd/logger"
 	"github.com/snapcore/snapd/snap"
+	"github.com/snapcore/snapd/snap/naming"
 	"github.com/snapcore/snapd/strutil"
 	"github.com/snapcore/snapd/systemd"
 	"github.com/snapcore/snapd/usersession/client"
@@ -410,7 +411,7 @@ func postPendingRefreshNotification(c *Command, r *http.Request) Response {
 	var body, icon, name string
 	var hints []notification.Hint
 
-	snapname, instanceKey := snap.SplitInstanceName(refreshInfo.InstanceName)
+	snapname, instanceKey := snap.SplitInstanceName(naming.InstanceName(refreshInfo.InstanceName))
 	// If we have a desktop file of the busy application, use that apps's icon and name, if possible
 	if refreshInfo.BusyAppDesktopEntry != "" {
 		parser := goconfigparser.New()
@@ -477,7 +478,7 @@ func guessAppData(si *snap.Info, defaultName string, instanceKey string) (icon s
 	// trivial heuristic, if the app is named like a snap then
 	// it's considered to be the main user facing app and hopefully carries
 	// a nice icon
-	mainApp, ok := si.Apps[si.SnapName()]
+	mainApp, ok := si.Apps[string(si.SnapName())]
 	if ok && !mainApp.IsService() {
 		// got the main app, grab its desktop file
 		if err := parser.ReadFile(mainApp.DesktopFile()); err == nil {
@@ -492,7 +493,7 @@ func guessAppData(si *snap.Info, defaultName string, instanceKey string) (icon s
 
 	// If it doesn't exist, take the first app in the snap with a DesktopFile with icon
 	for _, app := range si.Apps {
-		if app.IsService() || app.Name == si.SnapName() {
+		if app.IsService() || app.Name == string(si.SnapName()) {
 			continue
 		}
 		if err := parser.ReadFile(app.DesktopFile()); err == nil {
@@ -527,8 +528,8 @@ func postRefreshFinishedNotification(c *Command, r *http.Request) Response {
 	}
 
 	var icon string
-	name, instanceKey := snap.SplitInstanceName(finishRefresh.InstanceName)
-	if si, err := snap.ReadCurrentInfo(finishRefresh.InstanceName); err == nil {
+	name, instanceKey := snap.SplitInstanceName(naming.InstanceName(finishRefresh.InstanceName))
+	if si, err := snap.ReadCurrentInfo(naming.SnapName(finishRefresh.InstanceName)); err == nil {
 		icon, name = guessAppData(si, name, instanceKey)
 	} else {
 		logger.Noticef("cannot load snap-info for %s: %v", combineNameAndKey(name, instanceKey), err)

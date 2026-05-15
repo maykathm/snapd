@@ -89,7 +89,7 @@ func (s *linkSnapSuite) SetUpTest(c *C) {
 	s.AddCleanup(snapstate.MockLinkSnapParticipants([]snapstate.LinkSnapParticipant{snapstate.LinkSnapParticipantFunc(ifacestate.OnSnapLinkageChanged)}))
 }
 
-func checkHasCookieForSnap(c *C, st *state.State, instanceName string) {
+func checkHasCookieForSnap(c *C, st *state.State, instanceName naming.InstanceName) {
 	var contexts map[string]any
 	err := st.Get("snap-cookies", &contexts)
 	c.Assert(err, IsNil)
@@ -454,7 +454,7 @@ func (s *linkSnapSuite) TestDoUnlinkCurrentSnapWithIgnoreRunning(c *C) {
 		}
 		return info, nil
 	})
-	restore := snapstate.MockPidsOfSnap(func(instanceName string) (map[string][]int, error) {
+	restore := snapstate.MockPidsOfSnap(func(instanceName naming.InstanceName) (map[string][]int, error) {
 		c.Assert(instanceName, Equals, "pkg")
 		return map[string][]int{"snap.pkg.app": {1234}}, nil
 	})
@@ -538,7 +538,7 @@ func (s *linkSnapSuite) testDoUnlinkCurrentSnapWithAppsOrServices(c *C, opts tes
 		}
 		return info, nil
 	})
-	restore := snapstate.MockPidsOfSnap(func(instanceName string) (map[string][]int, error) {
+	restore := snapstate.MockPidsOfSnap(func(instanceName naming.InstanceName) (map[string][]int, error) {
 		c.Assert(instanceName, Equals, "pkg")
 		return nil, nil
 	})
@@ -1166,7 +1166,7 @@ func (s *linkSnapSuite) TestDoUnlinkCurrentSnapRelinksOnFailure(c *C) {
 		}
 		return info, nil
 	})
-	restore := snapstate.MockPidsOfSnap(func(instanceName string) (map[string][]int, error) {
+	restore := snapstate.MockPidsOfSnap(func(instanceName naming.InstanceName) (map[string][]int, error) {
 		c.Assert(instanceName, Equals, "foo")
 		return map[string][]int{"snap.foo.app": {1234}}, nil
 	})
@@ -2882,7 +2882,7 @@ func (s *linkSnapSuite) testDoUnlinkSnapRefreshAwareness(c *C) *state.Change {
 		return info, nil
 	})
 	// mock that "some-snap" has an app and that this app has pids running
-	restore = snapstate.MockPidsOfSnap(func(instanceName string) (map[string][]int, error) {
+	restore = snapstate.MockPidsOfSnap(func(instanceName naming.InstanceName) (map[string][]int, error) {
 		c.Assert(instanceName, Equals, "some-snap")
 		return map[string][]int{
 			"snap.some-snap.some-app": {1234},

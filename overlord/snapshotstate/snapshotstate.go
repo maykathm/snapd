@@ -37,7 +37,8 @@ import (
 	"github.com/snapcore/snapd/release"
 	"github.com/snapcore/snapd/snap"
 	"github.com/snapcore/snapd/strutil"
-)
+
+	"github.com/snapcore/snapd/snap/naming")
 
 var (
 	snapstateAll                     = snapstate.All
@@ -101,7 +102,7 @@ func allActiveSnapNames(st *state.State) ([]string, error) {
 	return names, nil
 }
 
-func EstimateSnapshotSize(st *state.State, instanceName string, users []string) (uint64, error) {
+func EstimateSnapshotSize(st *state.State, instanceName naming.InstanceName, users []string) (uint64, error) {
 	cur, err := snapstateCurrentInfo(st, instanceName)
 	if err != nil {
 		return 0, err
@@ -440,7 +441,7 @@ func Save(st *state.State, instanceNames []string, users []string, options map[s
 	return setID, instanceNames, ts, nil
 }
 
-func AutomaticSnapshot(st *state.State, snapName string) (ts *state.TaskSet, err error) {
+func AutomaticSnapshot(st *state.State, snapName naming.SnapName) (ts *state.TaskSet, err error) {
 	expiration, err := AutomaticSnapshotExpiration(st)
 	if err != nil {
 		return nil, err

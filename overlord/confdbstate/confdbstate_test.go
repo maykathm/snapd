@@ -53,7 +53,8 @@ import (
 	"github.com/snapcore/snapd/snap/snaptest"
 	"github.com/snapcore/snapd/store"
 	"github.com/snapcore/snapd/testutil"
-)
+
+	"github.com/snapcore/snapd/snap/naming")
 
 type confdbTestSuite struct {
 	state *state.State
@@ -837,7 +838,7 @@ slots:
 	err = repo.AddAppSet(coreSet)
 	c.Assert(err, IsNil)
 
-	mockSnap := func(snapName string, isCustodian bool, hooks []string) {
+	mockSnap := func(snapName naming.SnapName, isCustodian bool, hooks []string) {
 		var custodianSnippet string
 		if isCustodian {
 			custodianSnippet = `    role: custodian`

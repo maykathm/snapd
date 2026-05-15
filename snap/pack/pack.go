@@ -34,6 +34,8 @@ import (
 	"github.com/snapcore/snapd/snap/snapdir"
 	"github.com/snapcore/snapd/snap/squashfs"
 	"github.com/snapcore/snapd/strutil"
+
+	"github.com/snapcore/snapd/snap/naming"
 )
 
 // this could be shipped as a file like "info", and save on the memory and the
@@ -292,14 +294,14 @@ func loadAndValidate(sourceDir string, yaml []byte) (*snap.Info, error) {
 	return info, nil
 }
 
-func snapPath(info *snap.Info, targetDir, snapName string) string {
+func snapPath(info *snap.Info, targetDir, snapName naming.SnapName) string {
 	if snapName == "" {
-		snapName = fmt.Sprintf("%s_%s_%v.snap", info.InstanceName(), info.Version, debArchitecture(info))
+		snapName = naming.SnapName(fmt.Sprintf("%s_%s_%v.snap", info.InstanceName(), info.Version, debArchitecture(info)))
 	}
-	if targetDir != "" && !filepath.IsAbs(snapName) {
-		snapName = filepath.Join(targetDir, snapName)
+	if targetDir != "" && !filepath.IsAbs(string(snapName)) {
+		snapName = naming.SnapName(filepath.Join(string(targetDir), string(snapName)))
 	}
-	return snapName
+	return string(snapName)
 }
 
 func excludesFile() (filename string, err error) {
@@ -331,7 +333,7 @@ type Options struct {
 	TargetDir string
 	// SnapName is the name of the snap file, or empty to use the default name
 	// which is <snapname>_<version>_<architecture>.snap
-	SnapName string
+	SnapName naming.SnapName
 	// Compression method to use
 	Compression string
 }
@@ -381,7 +383,7 @@ func packSnap(sourceDir string, yaml []byte, opts *Options) (string, error) {
 		return "", err
 	}
 
-	snapName := snapPath(info, opts.TargetDir, opts.SnapName)
+	snapName := snapPath(info, naming.SnapName(opts.TargetDir), opts.SnapName)
 	if err := mksquashfs(sourceDir, snapName, string(info.Type()), opts); err != nil {
 		return "", err
 	}
@@ -395,7 +397,7 @@ func packComponent(sourceDir string, yaml []byte, opts *Options) (string, error)
 	if err != nil {
 		return "", err
 	}
-	compPath := componentPath(ci, opts.TargetDir, opts.SnapName)
+	compPath := componentPath(ci, opts.TargetDir, string(opts.SnapName))
 	if err := snap.ValidateComponentContainer(cont, compPath, logger.Noticef); err != nil {
 		return "", err
 	}

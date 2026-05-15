@@ -25,6 +25,7 @@ import (
 	"github.com/snapcore/snapd/client"
 	"github.com/snapcore/snapd/i18n"
 	"github.com/snapcore/snapd/snap"
+	"github.com/snapcore/snapd/snap/naming"
 	"github.com/snapcore/snapd/strutil"
 )
 
@@ -112,7 +113,7 @@ func FmtServiceStatus(svc *client.AppInfo, opts FmtServiceStatusOptions) string 
 
 	snapInstanceName := svc.Snap
 	if opts.DropSnapInstanceKey {
-		sn, _ := snap.SplitInstanceName(svc.Snap)
+		sn, _ := snap.SplitInstanceName(naming.InstanceName(svc.Snap))
 		snapInstanceName = sn
 	}
 	return fmt.Sprintf("%s.%s\t%s\t%s\t%s", snapInstanceName, svc.Name, startup, current, ClientAppInfoNotes(svc))

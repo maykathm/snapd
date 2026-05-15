@@ -45,7 +45,8 @@ import (
 	"github.com/snapcore/snapd/snap"
 	"github.com/snapcore/snapd/systemd"
 	"github.com/snapcore/snapd/timings"
-)
+
+	"github.com/snapcore/snapd/snap/naming")
 
 func init() {
 	snapstate.HasActiveConnection = hasActiveConnection
@@ -228,7 +229,7 @@ func (m *InterfaceManager) regenerateAllSecurityProfiles(tm timings.Measurer, un
 
 	precompOpts := make(map[string]interfaces.ConfinementOptions, len(appSets))
 
-	computeConfinementOpts := func(instanceName string) (interfaces.ConfinementOptions, error) {
+	computeConfinementOpts := func(instanceName naming.InstanceName) (interfaces.ConfinementOptions, error) {
 		var snapst snapstate.SnapState
 		if err := snapstate.Get(m.state, instanceName, &snapst); err != nil {
 			return interfaces.ConfinementOptions{}, err
@@ -269,7 +270,7 @@ func (m *InterfaceManager) regenerateAllSecurityProfiles(tm timings.Measurer, un
 	shouldWriteSystemKey := true
 	os.Remove(dirs.SnapSystemKeyFile)
 
-	precomputedConfinementOpts := func(instanceName string) interfaces.ConfinementOptions {
+	precomputedConfinementOpts := func(instanceName naming.InstanceName) interfaces.ConfinementOptions {
 		// options or default zero value
 		return precompOpts[instanceName]
 	}
@@ -286,7 +287,7 @@ func (m *InterfaceManager) regenerateAllSecurityProfiles(tm timings.Measurer, un
 				continue // Test backends have no name, skip them to simplify testing.
 			}
 			// Default setup context for regeneration
-			defaultSetupCtx := func(snapName string) interfaces.SetupContext {
+			defaultSetupCtx := func(snapName naming.SnapName) interfaces.SetupContext {
 				return interfaces.SetupContext{
 					Reason: interfaces.SnapSetupReasonOther,
 					// not running in task context, nothing can be deferred
@@ -353,7 +354,7 @@ var removeStaleConnections = func(st *state.State) error {
 	}
 	var staleConns []string
 	brokenCache := make(map[string]bool)
-	isBrokenCached := func(snapName string) (bool, error) {
+	isBrokenCached := func(snapName naming.SnapName) (bool, error) {
 		broken, ok := brokenCache[snapName]
 		if ok {
 			return broken, nil
@@ -410,7 +411,7 @@ var removeStaleConnections = func(st *state.State) error {
 	return nil
 }
 
-func isBroken(st *state.State, snapName string) (bool, error) {
+func isBroken(st *state.State, snapName naming.SnapName) (bool, error) {
 	var snapst snapstate.SnapState
 	err := snapstate.Get(st, snapName, &snapst)
 	if errors.Is(err, state.ErrNoState) {
@@ -447,7 +448,7 @@ func cloneConnState(connState *schema.ConnState) *schema.ConnState {
 // snapshotChangedConnectionsForUndo records original states for persisted
 // connections that setup-profiles changed or dropped so undo can restore them,
 // if needed.
-func snapshotChangedConnectionsForUndo(task *state.Task, instanceName string, changedConns map[string]*schema.ConnState) error {
+func snapshotChangedConnectionsForUndo(task *state.Task, instanceName naming.InstanceName, changedConns map[string]*schema.ConnState) error {
 	if len(changedConns) == 0 {
 		return nil
 	}
@@ -514,7 +515,7 @@ func restoreConnectionsForSetupProfiles(task *state.Task) error {
 //
 // The return value is the list of reloaded connection IDs, plus the original
 // connection states whose persisted state was changed or dropped.
-func (m *InterfaceManager) reloadConnections(snapName string) (
+func (m *InterfaceManager) reloadConnections(snapName naming.SnapName) (
 	reloadedConnectionIDs []string,
 	changedOrDroppedConns map[string]*schema.ConnState,
 	err error,
@@ -673,7 +674,7 @@ ConnsLoop:
 
 // removeConnections disconnects all connections of the snap in the repo. It should only be used if the snap
 // has no connections in the state. State must be locked by the caller.
-func (m *InterfaceManager) removeConnections(snapName string) error {
+func (m *InterfaceManager) removeConnections(snapName naming.SnapName) error {
 	conns, err := getConns(m.state)
 	if err != nil {
 		return err
@@ -716,9 +717,9 @@ func (m *InterfaceManager) setupSecurityByBackend(task *state.Task, appSets []*i
 	// Setup all affected snaps, start with the most important security
 	// backend and run it for all snaps. See LP: 1802581
 	for _, backend := range m.repo.Backends() {
-		errs := interfaces.SetupMany(m.repo, backend, appSets, func(snapName string) interfaces.ConfinementOptions {
+		errs := interfaces.SetupMany(m.repo, backend, appSets, func(snapName naming.SnapName) interfaces.ConfinementOptions {
 			return confOpts[snapName]
-		}, func(snapName string) interfaces.SetupContext {
+		}, func(snapName naming.SnapName) interfaces.SetupContext {
 			if ctx, ok := sctxs[snapName]; ok {
 				return ctx
 			}
@@ -745,7 +746,7 @@ func (m *InterfaceManager) setupSnapSecurity(task *state.Task, appSet *interface
 	return m.setupSecurityByBackend(task, []*interfaces.SnapAppSet{appSet}, []interfaces.ConfinementOptions{opts}, sctxs, tm)
 }
 
-func (m *InterfaceManager) removeSnapSecurity(task *state.Task, instanceName string) error {
+func (m *InterfaceManager) removeSnapSecurity(task *state.Task, instanceName naming.InstanceName) error {
 	st := task.State()
 	for _, backend := range m.repo.Backends() {
 		st.Unlock()
@@ -790,12 +791,12 @@ type gadgetConnect struct {
 	task *state.Task
 	repo *interfaces.Repository
 
-	instanceName string
+	instanceName naming.InstanceName
 
 	deviceCtx snapstate.DeviceContext
 }
 
-func newGadgetConnect(s *state.State, task *state.Task, repo *interfaces.Repository, instanceName string, deviceCtx snapstate.DeviceContext) *gadgetConnect {
+func newGadgetConnect(s *state.State, task *state.Task, repo *interfaces.Repository, instanceName naming.InstanceName, deviceCtx snapstate.DeviceContext) *gadgetConnect {
 	return &gadgetConnect{
 		st:           s,
 		task:         task,
@@ -1434,12 +1435,12 @@ func resolveSnapIDToName(st *state.State, snapID string) (name string, err error
 // view on the inside of snapd and another view on the outside.
 type SnapMapper interface {
 	// re-map functions for loading and saving objects in the state.
-	RemapSnapFromState(snapName string) string
-	RemapSnapToState(snapName string) string
+	RemapSnapFromState(snapName naming.SnapName) string
+	RemapSnapToState(snapName naming.SnapName) string
 	// RamapSnapFromRequest can replace snap names in API requests.
 	// There is no corresponding mapping function for API responses anymore.
 	// The API responses always reflect the real system state.
-	RemapSnapFromRequest(snapName string) string
+	RemapSnapFromRequest(snapName naming.SnapName) string
 	// Returns actual name of the system snap.
 	SystemSnapName() string
 }
@@ -1448,17 +1449,17 @@ type SnapMapper interface {
 type IdentityMapper struct{}
 
 // RemapSnapFromState doesn't change the snap name in any way.
-func (m *IdentityMapper) RemapSnapFromState(snapName string) string {
+func (m *IdentityMapper) RemapSnapFromState(snapName naming.SnapName) string {
 	return snapName
 }
 
 // RemapSnapToState doesn't change the snap name in any way.
-func (m *IdentityMapper) RemapSnapToState(snapName string) string {
+func (m *IdentityMapper) RemapSnapToState(snapName naming.SnapName) string {
 	return snapName
 }
 
 // RemapSnapFromRequest  doesn't change the snap name in any way.
-func (m *IdentityMapper) RemapSnapFromRequest(snapName string) string {
+func (m *IdentityMapper) RemapSnapFromRequest(snapName naming.SnapName) string {
 	return snapName
 }
 
@@ -1477,7 +1478,7 @@ type CoreCoreSystemMapper struct {
 //
 // This allows us to accept connection and disconnection requests that
 // explicitly refer to "core" or using the "system" nickname.
-func (m *CoreCoreSystemMapper) RemapSnapFromRequest(snapName string) string {
+func (m *CoreCoreSystemMapper) RemapSnapFromRequest(snapName naming.SnapName) string {
 	if snapName == "system" {
 		return m.SystemSnapName()
 	}
@@ -1501,7 +1502,7 @@ type CoreSnapdSystemMapper struct {
 // This allows modern snapd to load an old state that remembers connections
 // between slots on the "core" snap and other snaps. In memory we are actually
 // using "snapd" snap for hosting those slots and this lets us stay compatible.
-func (m *CoreSnapdSystemMapper) RemapSnapFromState(snapName string) string {
+func (m *CoreSnapdSystemMapper) RemapSnapFromState(snapName naming.SnapName) string {
 	if snapName == "core" {
 		return m.SystemSnapName()
 	}
@@ -1513,7 +1514,7 @@ func (m *CoreSnapdSystemMapper) RemapSnapFromState(snapName string) string {
 // This allows the state to stay backwards compatible as all the connections
 // seem to refer to the "core" snap, as in pre core{16,18} days where there was
 // only one core snap.
-func (m *CoreSnapdSystemMapper) RemapSnapToState(snapName string) string {
+func (m *CoreSnapdSystemMapper) RemapSnapToState(snapName naming.SnapName) string {
 	if snapName == m.SystemSnapName() {
 		return "core"
 	}
@@ -1527,7 +1528,7 @@ func (m *CoreSnapdSystemMapper) RemapSnapToState(snapName string) string {
 // refer to "snapd". Note that this is not fully symmetric with
 // RemapSnapToResponse as we explicitly always talk about "system" snap,
 // even if the request used "core".
-func (m *CoreSnapdSystemMapper) RemapSnapFromRequest(snapName string) string {
+func (m *CoreSnapdSystemMapper) RemapSnapFromRequest(snapName naming.SnapName) string {
 	if snapName == "system" || snapName == "core" {
 		return m.SystemSnapName()
 	}
@@ -1550,17 +1551,17 @@ func MockSnapMapper(new SnapMapper) (restore func()) {
 }
 
 // RemapSnapFromState renames a snap when loaded from state according to the current mapper.
-func RemapSnapFromState(snapName string) string {
+func RemapSnapFromState(snapName naming.SnapName) string {
 	return mapper.RemapSnapFromState(snapName)
 }
 
 // RemapSnapToState renames a snap when saving to state according to the current mapper.
-func RemapSnapToState(snapName string) string {
+func RemapSnapToState(snapName naming.SnapName) string {
 	return mapper.RemapSnapToState(snapName)
 }
 
 // RemapSnapFromRequest renames a snap as received from an API request according to the current mapper.
-func RemapSnapFromRequest(snapName string) string {
+func RemapSnapFromRequest(snapName naming.SnapName) string {
 	return mapper.RemapSnapFromRequest(snapName)
 }
 

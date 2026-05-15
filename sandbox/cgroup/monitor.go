@@ -28,6 +28,8 @@ import (
 	"github.com/snapcore/snapd/logger"
 	"github.com/snapcore/snapd/osutil"
 	"github.com/snapcore/snapd/osutil/inotify"
+
+	"github.com/snapcore/snapd/snap/naming"
 )
 
 // inotifyWatcher manages the inotify watcher, allowing to have a single watch descriptor open
@@ -268,15 +270,15 @@ func (iw *inotifyWatcher) monitorDelete(folders []string, name string, channel c
 // MonitorSnapEnded monitors the running instances of a snap. Once all
 // instances of the snap have stopped, its name is pushed through the supplied
 // channel. This allows the caller to use the same channel to monitor several snaps.
-func MonitorSnapEnded(snapName string, channel chan<- string) error {
+func MonitorSnapEnded(snapName naming.SnapName, channel chan<- string) error {
 	options := InstancePathsOptions{
 		ReturnCGroupPath: true,
 	}
-	paths, err := InstancePathsOfSnap(snapName, options)
+	paths, err := InstancePathsOfSnap(string(snapName), options)
 	if err != nil {
 		return err
 	}
 
 	logger.Debugf("snap %s has %d processes: %v", snapName, len(paths), paths)
-	return currentWatcher.monitorDelete(paths, snapName, channel)
+	return currentWatcher.monitorDelete(paths, string(snapName), channel)
 }

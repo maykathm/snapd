@@ -63,7 +63,8 @@ import (
 
 	// sets up the snap.NewContainerFromDir hook from snapdir
 	_ "github.com/snapcore/snapd/snap/snapdir"
-)
+
+	"github.com/snapcore/snapd/snap/naming")
 
 var (
 	syscallExec              = syscall.Exec
@@ -408,7 +409,7 @@ func antialias(snapApp string, args []string) (string, []string) {
 	return actualApp, argsOut
 }
 
-func getSnapInfo(snapName string, revision snap.Revision) (info *snap.Info, err error) {
+func getSnapInfo(snapName naming.SnapName, revision snap.Revision) (info *snap.Info, err error) {
 	if revision.Unset() {
 		info, err = snap.ReadCurrentInfo(snapName)
 	} else {

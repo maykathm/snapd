@@ -350,7 +350,7 @@ func (s *storeInstallGoal) snap(name string) (StoreSnap, bool) {
 // StoreSnap represents a snap that is to be installed from the store.
 type StoreSnap struct {
 	// InstanceName is the name of snap to install.
-	InstanceName string
+	InstanceName naming.InstanceName
 	// Components is the list of components to install with this snap.
 	Components []string
 	// RevOpts contains options that apply to the installation of this snap.
@@ -468,7 +468,7 @@ func checkSnapAgainstValidationSets(info *snap.Info, components []ComponentSetup
 }
 
 func checkSnapAgainstConstraints(
-	instanceName string,
+	instanceName naming.InstanceName,
 	revision snap.Revision,
 	constraints snapasserts.SnapPresenceConstraints,
 	action string,
@@ -493,7 +493,7 @@ func checkSnapAgainstConstraints(
 	return nil
 }
 
-func checkComponentsPresenceAndRevision(snapName string, comps map[string]snap.Revision, constraints snapasserts.SnapPresenceConstraints, action string) error {
+func checkComponentsPresenceAndRevision(snapName naming.SnapName, comps map[string]snap.Revision, constraints snapasserts.SnapPresenceConstraints, action string) error {
 	verb := "install"
 	switch action {
 	case "refresh":
@@ -521,7 +521,7 @@ func checkComponentsPresenceAndRevision(snapName string, comps map[string]snap.R
 	return nil
 }
 
-func checkComponentsAgainstConstraints(snapName string, comps map[string]snap.Revision, constraints snapasserts.SnapPresenceConstraints, action string) error {
+func checkComponentsAgainstConstraints(snapName naming.SnapName, comps map[string]snap.Revision, constraints snapasserts.SnapPresenceConstraints, action string) error {
 	verb := "install"
 	switch action {
 	case "refresh":
@@ -705,7 +705,7 @@ func completeStoreAction(action *store.SnapAction, revOpts RevisionOptions, igno
 	return nil
 }
 
-func invalidRevisionError(action, snapName string, sets []snapasserts.ValidationSetKey, requested, required snap.Revision) error {
+func invalidRevisionError(action, snapName naming.SnapName, sets []snapasserts.ValidationSetKey, requested, required snap.Revision) error {
 	verb := "install"
 	preposition := "at"
 	switch action {
@@ -1371,7 +1371,7 @@ type storeUpdateGoal struct {
 // StoreUpdate represents a snap that is to be updated from the store.
 type StoreUpdate struct {
 	// InstanceName is the instance name of the snap to update.
-	InstanceName string
+	InstanceName naming.InstanceName
 	// RevOpts contains options that apply to the update of this snap.
 	RevOpts RevisionOptions
 	// AdditionalComponents is a list of additional components to install during
@@ -1529,7 +1529,7 @@ type PathSnap struct {
 	// Path is the path to the snap on disk.
 	Path string
 	// InstanceName is the name of the snap.
-	InstanceName string
+	InstanceName naming.InstanceName
 	// RevOpts contains options that apply to the installation or update of this
 	// snap.
 	RevOpts RevisionOptions

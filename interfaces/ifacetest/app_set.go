@@ -7,14 +7,15 @@ import (
 	"github.com/snapcore/snapd/snap"
 	"github.com/snapcore/snapd/snap/snaptest"
 	"gopkg.in/check.v1"
-)
+
+	"github.com/snapcore/snapd/snap/naming")
 
 func MockInfoAndAppSet(c *check.C, yamlText string, componentYamls []string, sideInfo *snap.SideInfo) *interfaces.SnapAppSet {
 	info := snaptest.MockInfo(c, yamlText, sideInfo)
 	return mockAppSet(c, componentYamls, info)
 }
 
-func MockInstanceAndAppSet(c *check.C, instanceName string, yamlText string, componentYamls []string, sideInfo *snap.SideInfo) *interfaces.SnapAppSet {
+func MockInstanceAndAppSet(c *check.C, instanceName naming.InstanceName, yamlText string, componentYamls []string, sideInfo *snap.SideInfo) *interfaces.SnapAppSet {
 	info := snaptest.MockSnapInstance(c, instanceName, yamlText, sideInfo)
 	return mockAppSet(c, componentYamls, info)
 }

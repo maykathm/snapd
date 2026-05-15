@@ -26,7 +26,8 @@ import (
 	"github.com/snapcore/snapd/features"
 	"github.com/snapcore/snapd/overlord/configstate/config"
 	"github.com/snapcore/snapd/overlord/state"
-)
+
+	"github.com/snapcore/snapd/snap/naming")
 
 // SeedRefreshTaskSet carries the tasks needed to perform a seed refresh.
 type SeedRefreshTaskSet struct {
@@ -147,7 +148,7 @@ func setupTaskIDsForSeedCreation(seedSnapUpdates map[string]snapInstallTaskSet) 
 // maybeMergeLateSeedRefreshPrereq folds a prerequisite refresh into an
 // in-flight seed refresh when the current change still has pending
 // recovery-system tasks and the prerequisite snap is part of the model.
-func maybeMergeLateSeedRefreshPrereq(chg *state.Change, dctx DeviceContext, snapName string, providerTS *state.TaskSet) error {
+func maybeMergeLateSeedRefreshPrereq(chg *state.Change, dctx DeviceContext, snapName naming.SnapName, providerTS *state.TaskSet) error {
 	if !changeHasPendingSeedRefresh(chg) {
 		return nil
 	}

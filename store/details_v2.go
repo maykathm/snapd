@@ -199,7 +199,7 @@ func minimalFromStoreInfo(si *storeInfo) (naming.SnapRef, *channel.Channel, erro
 		return nil, nil, ErrSnapNotFound
 	}
 
-	snapRef := naming.NewSnapRef(si.Name, si.SnapID)
+	snapRef := naming.NewSnapRef(naming.SnapName(si.Name), si.SnapID)
 	first := si.ChannelMap[0].Channel
 	ch := channel.Channel{
 		Architecture: first.Architecture,

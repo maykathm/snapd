@@ -1586,7 +1586,7 @@ func (s *sideloadSuite) testSideloadManySnapsAndComponents(c *check.C, opts side
 	readComponentInfoCalled := -1
 	restore = daemon.MockReadComponentInfoFromCont(func(p string, csi *snap.ComponentSideInfo) (*snap.ComponentInfo, error) {
 		readComponentInfoCalled++
-		var snapName string
+		var snapName naming.SnapName
 		switch readComponentInfoCalled {
 		case 0:
 			snapName = "one"

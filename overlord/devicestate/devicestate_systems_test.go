@@ -4792,7 +4792,7 @@ func (s *deviceMgrSystemsCreateSuite) testDeviceManagerCreateRecoverySystemValid
 		"pc-kernel-with-kmods+kmod": snap.KernelModulesComponent,
 	}
 
-	compsToTypes := func(snapName string) map[string]snap.ComponentType {
+	compsToTypes := func(snapName naming.SnapName) map[string]snap.ComponentType {
 		res := make(map[string]snap.ComponentType)
 		for _, comps := range snapComponents {
 			for _, comp := range comps {

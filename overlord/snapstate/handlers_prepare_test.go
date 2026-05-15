@@ -31,7 +31,8 @@ import (
 	"github.com/snapcore/snapd/overlord/state"
 	"github.com/snapcore/snapd/snap"
 	"github.com/snapcore/snapd/testutil"
-)
+
+	"github.com/snapcore/snapd/snap/naming")
 
 type baseHandlerSuite struct {
 	testutil.BaseTest
@@ -78,7 +79,7 @@ func (s *baseHandlerSuite) SetUpTest(c *C) {
 	restoreCheckFreeSpace := snapstate.MockOsutilCheckFreeSpace(func(string, uint64) error { return nil })
 	s.AddCleanup(restoreCheckFreeSpace)
 
-	restoreSecurityProfilesDiscardLate := snapstate.MockSecurityProfilesDiscardLate(func(snapName string, rev snap.Revision, typ snap.Type) error {
+	restoreSecurityProfilesDiscardLate := snapstate.MockSecurityProfilesDiscardLate(func(snapName naming.SnapName, rev snap.Revision, typ snap.Type) error {
 		return nil
 	})
 	s.AddCleanup(restoreSecurityProfilesDiscardLate)

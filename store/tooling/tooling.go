@@ -204,7 +204,7 @@ func (tsto *ToolingStore) DownloadSnap(name string, comps []string, opts Downloa
 
 	actions := []*store.SnapAction{{
 		Action:       "download",
-		InstanceName: name,
+		InstanceName: naming.InstanceName(name),
 		Revision:     opts.Revision,
 		CohortKey:    opts.CohortKey,
 		Channel:      opts.Channel,
@@ -260,7 +260,7 @@ func (tsto *ToolingStore) downloadComponents(comps []string, sar *store.SnapActi
 		baseName := snapOpts.Basename
 		if baseName == "" {
 			cpi := snap.MinimalComponentContainerPlaceInfo(
-				srr.Name, snap.R(srr.Revision), sar.SnapName())
+				srr.Name, snap.R(srr.Revision), string(sar.SnapName()))
 			baseName = cpi.Filename()
 		} else {
 			baseName += fmt.Sprintf("+%s.comp", srr.Name)
@@ -326,7 +326,7 @@ func (tsto *ToolingStore) snapDownload(targetFn string, sar *store.SnapActionRes
 
 	download := func(pb progress.Meter) error {
 		dlOpts := &store.DownloadOptions{LeavePartialOnError: opts.LeavePartialOnError}
-		return tsto.sto.Download(context.TODO(), snap.SnapName(), targetFn,
+		return tsto.sto.Download(context.TODO(), string(snap.SnapName()), targetFn,
 			&snap.DownloadInfo, pb, nil, dlOpts)
 	}
 	if err := tsto.downloadWithProgressBar(download); err != nil {
@@ -352,7 +352,7 @@ type SnapToDownload struct {
 }
 
 type CurrentSnap struct {
-	SnapName string
+	SnapName naming.SnapName
 	SnapID   string
 	Revision snap.Revision
 	Channel  string
@@ -390,7 +390,7 @@ func (tsto *ToolingStore) DownloadMany(toDownload []SnapToDownload, curSnaps []*
 			ch = csnap.Channel
 		}
 		current = append(current, &store.CurrentSnap{
-			InstanceName:     csnap.SnapName,
+			InstanceName:     naming.InstanceName(csnap.SnapName),
 			SnapID:           csnap.SnapID,
 			Revision:         csnap.Revision,
 			TrackingChannel:  ch,
@@ -404,14 +404,14 @@ func (tsto *ToolingStore) DownloadMany(toDownload []SnapToDownload, curSnaps []*
 	for _, sn := range toDownload {
 		actions = append(actions, &store.SnapAction{
 			Action:         "download",
-			InstanceName:   sn.Snap.SnapName(), // XXX consider using snap-id first
+			InstanceName:   naming.InstanceName(sn.Snap.SnapName()), // XXX consider using snap-id first
 			Channel:        sn.Channel,
 			Revision:       sn.Revision,
 			CohortKey:      sn.CohortKey,
 			Flags:          actionFlag,
 			ValidationSets: sn.ValidationSets,
 		})
-		toDownloadByName[sn.Snap.SnapName()] = sn
+		toDownloadByName[string(sn.Snap.SnapName())] = sn
 	}
 
 	sars, _, err := tsto.sto.SnapAction(context.TODO(), current, actions, nil, nil,
@@ -423,7 +423,7 @@ func (tsto *ToolingStore) DownloadMany(toDownload []SnapToDownload, curSnaps []*
 
 	downloadedSnaps = make(map[string]*DownloadedSnap, len(toDownload))
 	for _, sar := range sars {
-		snapToDownload, ok := toDownloadByName[sar.SnapName()]
+		snapToDownload, ok := toDownloadByName[string(sar.SnapName())]
 		if !ok {
 			return nil, fmt.Errorf("store returned unsolicited snap action: %s", sar.SnapName())
 		}
@@ -454,7 +454,7 @@ func (tsto *ToolingStore) DownloadMany(toDownload []SnapToDownload, curSnaps []*
 		if err != nil {
 			return nil, err
 		}
-		downloadedSnaps[sar.SnapName()] = dlSnap
+		downloadedSnaps[string(sar.SnapName())] = dlSnap
 
 		downloadDirs := make(map[string]string, len(compPaths))
 		for compName, compPath := range compPaths {
@@ -468,7 +468,7 @@ func (tsto *ToolingStore) DownloadMany(toDownload []SnapToDownload, curSnaps []*
 		if err != nil {
 			return nil, err
 		}
-		downloadedSnaps[sar.SnapName()].Components = downloadedSnapComps
+		downloadedSnaps[string(sar.SnapName())].Components = downloadedSnapComps
 	}
 
 	return downloadedSnaps, nil
@@ -550,7 +550,7 @@ type DownloadedComponent struct {
 	Info *snap.ComponentInfo
 }
 
-func (tsto *ToolingStore) componentDownload(targetFn string, snapName string, srr *store.SnapResourceResult, opts DownloadSnapOptions) (downloadedComp *DownloadedComponent, err error) {
+func (tsto *ToolingStore) componentDownload(targetFn string, snapName naming.SnapName, srr *store.SnapResourceResult, opts DownloadSnapOptions) (downloadedComp *DownloadedComponent, err error) {
 	// Check if this is a component we can handle
 	ctyp, err := store.ResourceToComponentType(srr.Type)
 	if err != nil {

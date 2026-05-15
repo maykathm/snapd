@@ -66,7 +66,8 @@ import (
 	"github.com/snapcore/snapd/timings"
 	userclient "github.com/snapcore/snapd/usersession/client"
 	"github.com/snapcore/snapd/wrappers"
-)
+
+	"github.com/snapcore/snapd/snap/naming")
 
 // unlink-reason for "unlink-current-snap" task
 type unlinkCurrentSnapReason string
@@ -93,7 +94,7 @@ var EnsureSnapAbsentFromQuotaGroup = func(st *state.State, snap string) error {
 	panic("internal error: snapstate.EnsureSnapAbsentFromQuotaGroup is unset")
 }
 
-var SecurityProfilesRemoveLate = func(snapName string, rev snap.Revision, typ snap.Type) error {
+var SecurityProfilesRemoveLate = func(snapName naming.SnapName, rev snap.Revision, typ snap.Type) error {
 	panic("internal error: snapstate.SecurityProfilesRemoveLate is unset")
 }
 
@@ -237,7 +238,7 @@ func defaultPrereqSnapsChannel() string {
 	return channel
 }
 
-func maybeFindTaskInChangeForSnap(chg *state.Change, kind, snapName string) (*state.Task, error) {
+func maybeFindTaskInChangeForSnap(chg *state.Change, kind, snapName naming.SnapName) (*state.Task, error) {
 	for _, t := range chg.Tasks() {
 		if t.Status().Ready() || t.Kind() != kind {
 			continue
@@ -255,7 +256,7 @@ func maybeFindTaskInChangeForSnap(chg *state.Change, kind, snapName string) (*st
 	return nil, nil
 }
 
-func findLinkSnapTaskForSnap(st *state.State, snapName string) (*state.Task, error) {
+func findLinkSnapTaskForSnap(st *state.State, snapName naming.SnapName) (*state.Task, error) {
 	for _, chg := range st.Changes() {
 		if chg.IsReady() {
 			continue
@@ -274,7 +275,7 @@ func findLinkSnapTaskForSnap(st *state.State, snapName string) (*state.Task, err
 	return nil, nil
 }
 
-func isInstalled(st *state.State, snapName string) (bool, error) {
+func isInstalled(st *state.State, snapName naming.SnapName) (bool, error) {
 	var snapState SnapState
 	err := Get(st, snapName, &snapState)
 	if err != nil && !errors.Is(err, state.ErrNoState) {
@@ -429,7 +430,7 @@ func instanceNameFromTask(t *state.Task) (string, bool) {
 	return snapsup.InstanceName(), true
 }
 
-func (m *SnapManager) installOneBaseOrRequired(t *state.Task, snapName string, contentAttrs []string, requireTypeBase bool, channel string, onInFlight error, userID int, flags Flags) (*state.TaskSet, error) {
+func (m *SnapManager) installOneBaseOrRequired(t *state.Task, snapName naming.SnapName, contentAttrs []string, requireTypeBase bool, channel string, onInFlight error, userID int, flags Flags) (*state.TaskSet, error) {
 	st := t.State()
 
 	// The core snap provides everything we need for core16.
@@ -452,7 +453,7 @@ func (m *SnapManager) installOneBaseOrRequired(t *state.Task, snapName string, c
 		return nil, err
 	}
 
-	shouldWaitForInFlightInstall := func(snapName string) (bool, error) {
+	shouldWaitForInFlightInstall := func(snapName naming.SnapName) (bool, error) {
 		linkTask, err := findLinkSnapTaskForSnap(st, snapName)
 		if err != nil {
 			return false, err
@@ -548,7 +549,7 @@ func (m *SnapManager) installOneBaseOrRequired(t *state.Task, snapName string, c
 }
 
 // updates a prerequisite, if it's not providing a content interface that a plug expects it to
-func updatePrereqIfOutdated(t *state.Task, snapName string, contentAttrs []string, userID int, flags Flags) (*state.TaskSet, error) {
+func updatePrereqIfOutdated(t *state.Task, snapName naming.SnapName, contentAttrs []string, userID int, flags Flags) (*state.TaskSet, error) {
 	st := t.State()
 
 	// check if the default provider has all expected content tags
@@ -627,7 +628,7 @@ func updatePrereqIfOutdated(t *state.Task, snapName string, contentAttrs []strin
 
 // Checks for conflicting tasks. Returns true if the operation should be skipped. The error
 // can be a state.Retry if the operation should be retried later.
-func shouldSkipToAvoidConflict(task *state.Task, snapName string) (bool, error) {
+func shouldSkipToAvoidConflict(task *state.Task, snapName naming.SnapName) (bool, error) {
 	otherTask, err := findLinkSnapTaskForSnap(task.State(), snapName)
 	if err != nil {
 		return false, err
@@ -651,7 +652,7 @@ func shouldSkipToAvoidConflict(task *state.Task, snapName string) (bool, error) 
 
 // Checks if the snap has slots with "content" attributes matching the
 // ones that the snap being installed requires
-func hasAllContentAttrs(st *state.State, snapName string, requiredContentAttrs []string) (bool, error) {
+func hasAllContentAttrs(st *state.State, snapName naming.SnapName, requiredContentAttrs []string) (bool, error) {
 	providedContentAttrs := make(map[string]bool)
 	repo := ifacerepo.Get(st)
 
@@ -797,7 +798,7 @@ func (m *SnapManager) installPrereqs(t *state.Task, base string, prereq map[stri
 	return nil
 }
 
-func prereqError(what, snapName string, err error) error {
+func prereqError(what, snapName naming.SnapName, err error) error {
 	if _, ok := err.(*state.Retry); ok {
 		return err
 	}
@@ -1113,7 +1114,7 @@ func (m *SnapManager) doPreDownloadSnap(t *state.Task, tomb *tomb.Tomb) error {
 
 // asyncRefreshOnSnapClose asynchronously waits for the snap the close, notifies
 // the user and then triggers an auto-refresh.
-func asyncRefreshOnSnapClose(st *state.State, snapName string, refreshInfo *userclient.PendingSnapRefreshInfo) error {
+func asyncRefreshOnSnapClose(st *state.State, snapName naming.SnapName, refreshInfo *userclient.PendingSnapRefreshInfo) error {
 	// there's already a goroutine waiting for this snap to close so just notify
 	if IsSnapMonitored(st, snapName) {
 		maybeAsyncPendingRefreshNotification(context.TODO(), st, refreshInfo)
@@ -1145,7 +1146,7 @@ func asyncRefreshOnSnapClose(st *state.State, snapName string, refreshInfo *user
 // addMonitoring adds monitoring info to the persisted and in-memory states.
 // Returns true if the monitoring state was saved or false if it wasn't because
 // the monitoring shouldn't proceed.
-func addMonitoring(st *state.State, snapName string, abort context.CancelFunc) (bool, error) {
+func addMonitoring(st *state.State, snapName naming.SnapName, abort context.CancelFunc) (bool, error) {
 	var refreshHints map[string]*refreshCandidate
 	if err := st.Get("refresh-candidates", &refreshHints); err != nil {
 		if errors.Is(err, &state.NoStateError{}) {
@@ -1181,7 +1182,7 @@ func addMonitoring(st *state.State, snapName string, abort context.CancelFunc) (
 }
 
 // removeMonitoring removes monitoring state related to the specified snap.
-func removeMonitoring(st *state.State, snapName string) error {
+func removeMonitoring(st *state.State, snapName naming.SnapName) error {
 	var refreshHints map[string]*refreshCandidate
 	if err := st.Get("refresh-candidates", &refreshHints); err != nil && !errors.Is(err, state.ErrNoState) {
 		return fmt.Errorf("cannot get refresh-candidates: %v", err)
@@ -1216,7 +1217,7 @@ func removeMonitoring(st *state.State, snapName string) error {
 	return nil
 }
 
-func continueRefreshOnSnapClose(st *state.State, snapName string, done <-chan string, refreshCtx context.Context) {
+func continueRefreshOnSnapClose(st *state.State, snapName naming.SnapName, done <-chan string, refreshCtx context.Context) {
 	var aborted bool
 	select {
 	case <-done:
@@ -1245,7 +1246,7 @@ func continueRefreshOnSnapClose(st *state.State, snapName string, done <-chan st
 }
 
 // continueInhibitedAutoRefresh refreshes the snap to continue the inhibited auto-refresh
-func continueInhibitedAutoRefresh(st *state.State, snapName string) error {
+func continueInhibitedAutoRefresh(st *state.State, snapName naming.SnapName) error {
 	var refreshHints map[string]*refreshCandidate
 	if err := st.Get("refresh-candidates", &refreshHints); err != nil {
 		return fmt.Errorf("cannot get refresh-candidates: %v", err)
@@ -1296,7 +1297,7 @@ func getMonitoringAborts(st *state.State) (map[string]context.CancelFunc, error)
 	return aborts, nil
 }
 
-func monitoringAbort(st *state.State, snapName string) context.CancelFunc {
+func monitoringAbort(st *state.State, snapName naming.SnapName) context.CancelFunc {
 	aborts, err := getMonitoringAborts(st)
 	if err != nil {
 		logger.Noticef("%v", err)
@@ -1304,7 +1305,7 @@ func monitoringAbort(st *state.State, snapName string) context.CancelFunc {
 	return aborts[snapName]
 }
 
-func abortMonitoring(st *state.State, snapName string) {
+func abortMonitoring(st *state.State, snapName naming.SnapName) {
 	if abort := monitoringAbort(st, snapName); abort != nil {
 		abort()
 	}
@@ -1316,7 +1317,7 @@ var (
 
 // hasOtherInstances checks whether there are other instances of the snap, be it
 // instance keyed or not
-func hasOtherInstances(st *state.State, instanceName string) (bool, error) {
+func hasOtherInstances(st *state.State, instanceName naming.InstanceName) (bool, error) {
 	snapName, _ := snap.SplitInstanceName(instanceName)
 	var all map[string]*json.RawMessage
 	if err := st.Get("snaps", &all); err != nil && !errors.Is(err, state.ErrNoState) {
@@ -1574,7 +1575,7 @@ func (m *SnapManager) restoreUnlinkOnError(t *state.Task, info *snap.Info, other
 	return err
 }
 
-var onRefreshInhibitionTimeout = func(chg *state.Change, snapName string) error {
+var onRefreshInhibitionTimeout = func(chg *state.Change, snapName naming.SnapName) error {
 	var data map[string]any
 	err := chg.Get("api-data", &data)
 	if err != nil && !errors.Is(err, state.ErrNoState) {
@@ -2969,7 +2970,7 @@ func (m *SnapManager) maybeUndoRemodelBootChanges(t *state.Task) (*restartPossib
 	if err != nil {
 		return nil, err
 	}
-	var newSnapName, snapName string
+	var newSnapName, snapName naming.SnapName
 	switch snapsup.Type {
 	case snap.TypeKernel:
 		snapName = oldModel.Kernel()
@@ -5502,7 +5503,7 @@ func InjectAutoConnect(mainTask *state.Task, snapsup *SnapSetup) {
 
 // FindTaskMatchingKindAndSnap returns a task in the given list of tasks that has the given kind matching
 // the given snap name in its SnapSetup, or nil if there is no such task.
-func FindTaskMatchingKindAndSnap(tasks []*state.Task, kind string, instanceName string) *state.Task {
+func FindTaskMatchingKindAndSnap(tasks []*state.Task, kind string, instanceName naming.InstanceName) *state.Task {
 	for _, t := range tasks {
 		if t.Kind() != kind {
 			continue

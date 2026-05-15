@@ -34,40 +34,40 @@ func (s *tagSuite) TestParseSecurityTag(c *C) {
 	tag, err := naming.ParseSecurityTag("snap.pkg.app")
 	c.Assert(err, IsNil)
 	c.Check(tag.String(), Equals, "snap.pkg.app")
-	c.Check(tag.InstanceName(), Equals, "pkg")
+	c.Check(string(tag.InstanceName()), Equals, "pkg")
 	c.Check(tag.(naming.AppSecurityTag).AppName(), Equals, "app")
 
 	tag, err = naming.ParseSecurityTag("snap.pkg_key.app")
 	c.Assert(err, IsNil)
 	c.Check(tag.String(), Equals, "snap.pkg_key.app")
-	c.Check(tag.InstanceName(), Equals, "pkg_key")
+	c.Check(string(tag.InstanceName()), Equals, "pkg_key")
 	c.Check(tag.(naming.AppSecurityTag).AppName(), Equals, "app")
 
 	tag, err = naming.ParseSecurityTag("snap.pkg.hook.configure")
 	c.Assert(err, IsNil)
 	c.Check(tag.String(), Equals, "snap.pkg.hook.configure")
-	c.Check(tag.InstanceName(), Equals, "pkg")
+	c.Check(string(tag.InstanceName()), Equals, "pkg")
 	c.Check(tag.(naming.HookSecurityTag).HookName(), Equals, "configure")
 	c.Check(tag.(naming.HookSecurityTag).ComponentName(), Equals, "")
 
 	tag, err = naming.ParseSecurityTag("snap.pkg_key.hook.configure")
 	c.Assert(err, IsNil)
 	c.Check(tag.String(), Equals, "snap.pkg_key.hook.configure")
-	c.Check(tag.InstanceName(), Equals, "pkg_key")
+	c.Check(string(tag.InstanceName()), Equals, "pkg_key")
 	c.Check(tag.(naming.HookSecurityTag).HookName(), Equals, "configure")
 	c.Check(tag.(naming.HookSecurityTag).ComponentName(), Equals, "")
 
 	tag, err = naming.ParseSecurityTag("snap.pkg+comp.hook.configure")
 	c.Assert(err, IsNil)
 	c.Check(tag.String(), Equals, "snap.pkg.hook.configure")
-	c.Check(tag.InstanceName(), Equals, "pkg")
+	c.Check(string(tag.InstanceName()), Equals, "pkg")
 	c.Check(tag.(naming.HookSecurityTag).HookName(), Equals, "configure")
 	c.Check(tag.(naming.HookSecurityTag).ComponentName(), Equals, "comp")
 
 	tag, err = naming.ParseSecurityTag("snap.pkg_key+comp.hook.configure")
 	c.Assert(err, IsNil)
 	c.Check(tag.String(), Equals, "snap.pkg_key.hook.configure")
-	c.Check(tag.InstanceName(), Equals, "pkg_key")
+	c.Check(string(tag.InstanceName()), Equals, "pkg_key")
 	c.Check(tag.(naming.HookSecurityTag).HookName(), Equals, "configure")
 	c.Check(tag.(naming.HookSecurityTag).ComponentName(), Equals, "comp")
 
@@ -125,7 +125,7 @@ func (s *tagSuite) TestParseAppSecurityTag(c *C) {
 	tag, err = naming.ParseAppSecurityTag("snap.pkg.app")
 	c.Assert(err, IsNil)
 	c.Check(tag.String(), Equals, "snap.pkg.app")
-	c.Check(tag.InstanceName(), Equals, "pkg")
+	c.Check(string(tag.InstanceName()), Equals, "pkg")
 	c.Check(tag.AppName(), Equals, "app")
 
 	// Hook security tags are not app security tags.
@@ -144,7 +144,7 @@ func (s *tagSuite) TestParseHookSecurityTag(c *C) {
 	tag, err = naming.ParseHookSecurityTag("snap.pkg.hook.configure")
 	c.Assert(err, IsNil)
 	c.Check(tag.String(), Equals, "snap.pkg.hook.configure")
-	c.Check(tag.InstanceName(), Equals, "pkg")
+	c.Check(string(tag.InstanceName()), Equals, "pkg")
 	c.Check(tag.HookName(), Equals, "configure")
 
 	// App security tags are not hook security tags.

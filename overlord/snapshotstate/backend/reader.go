@@ -39,6 +39,7 @@ import (
 	"github.com/snapcore/snapd/osutil"
 	"github.com/snapcore/snapd/osutil/sys"
 	"github.com/snapcore/snapd/snap"
+	"github.com/snapcore/snapd/snap/naming"
 	"github.com/snapcore/snapd/strutil"
 )
 
@@ -208,7 +209,7 @@ func (r *Reader) Restore(ctx context.Context, current snap.Revision, usernames [
 
 	sort.Strings(usernames)
 	isRoot := sys.Geteuid() == 0
-	si := snap.MinimalPlaceInfo(r.Snap, r.Revision)
+	si := snap.MinimalPlaceInfo(naming.InstanceName(r.Snap), r.Revision)
 	hasher := crypto.SHA3_384.New()
 	var sz osutil.Sizer
 

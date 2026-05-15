@@ -25,7 +25,8 @@ import (
 	"github.com/snapcore/snapd/overlord/restart"
 	"github.com/snapcore/snapd/overlord/state"
 	"github.com/snapcore/snapd/snap"
-)
+
+	"github.com/snapcore/snapd/snap/naming")
 
 // essentialSnapsRestartOrder describes the essential snaps that
 // need restart boundaries in order.
@@ -58,7 +59,7 @@ func maybeTaskSetSnapSetup(ts *state.TaskSet) *SnapSetup {
 	return nil
 }
 
-func isEssentialSnap(snapName string, snapType snap.Type, bootBase string) bool {
+func isEssentialSnap(snapName naming.SnapName, snapType snap.Type, bootBase string) bool {
 	switch snapType {
 	case snap.TypeBase, snap.TypeOS:
 		if snapName == bootBase {

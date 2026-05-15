@@ -56,7 +56,8 @@ import (
 	"github.com/snapcore/snapd/snapdenv"
 	"github.com/snapcore/snapd/store"
 	"github.com/snapcore/snapd/testutil"
-)
+
+	"github.com/snapcore/snapd/snap/naming")
 
 func TestStore(t *testing.T) { TestingT(t) }
 
@@ -153,12 +154,12 @@ const (
 )
 
 // Build details path for a snap name.
-func detailsPath(snapName string) string {
+func detailsPath(snapName naming.SnapName) string {
 	return strings.Replace(detailsPathPattern, ".*", snapName, 1)
 }
 
 // Build info path for a snap name.
-func infoPath(snapName string) string {
+func infoPath(snapName naming.SnapName) string {
 	return strings.Replace(infoPathPattern, ".*", snapName, 1)
 }
 

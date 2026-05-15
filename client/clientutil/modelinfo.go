@@ -29,6 +29,8 @@ import (
 	"github.com/snapcore/snapd/asserts"
 	"github.com/snapcore/snapd/strutil"
 	"github.com/snapcore/snapd/timeutil"
+
+	"github.com/snapcore/snapd/snap/naming"
 )
 
 var (
@@ -101,7 +103,7 @@ func formatInvalidTypeErr(headers ...string) error {
 }
 
 func printVerboseSnapsList(w *tabwriter.Writer, snaps []any) error {
-	printModes := func(snapName string, members map[string]any) error {
+	printModes := func(snapName naming.SnapName, members map[string]any) error {
 		modes, ok := members["modes"]
 		if !ok {
 			return nil
@@ -109,7 +111,7 @@ func printVerboseSnapsList(w *tabwriter.Writer, snaps []any) error {
 
 		modesSlice, ok := modes.([]any)
 		if !ok {
-			return formatInvalidTypeErr("snaps", snapName, "modes")
+			return formatInvalidTypeErr("snaps", string(snapName), "modes")
 		}
 
 		if len(modesSlice) == 0 {
@@ -120,7 +122,7 @@ func printVerboseSnapsList(w *tabwriter.Writer, snaps []any) error {
 		for _, mode := range modesSlice {
 			modeStr, ok := mode.(string)
 			if !ok {
-				return formatInvalidTypeErr("snaps", snapName, "modes")
+				return formatInvalidTypeErr("snaps", string(snapName), "modes")
 			}
 			modeStrSlice = append(modeStrSlice, modeStr)
 		}
@@ -159,7 +161,7 @@ func printVerboseSnapsList(w *tabwriter.Writer, snaps []any) error {
 		}
 
 		// finally handle "modes" which is a list
-		if err := printModes(name, snMap); err != nil {
+		if err := printModes(naming.SnapName(name), snMap); err != nil {
 			return err
 		}
 	}

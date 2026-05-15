@@ -50,6 +50,8 @@ import (
 	"github.com/snapcore/snapd/snapdtool"
 	"github.com/snapcore/snapd/strutil"
 	"github.com/snapcore/snapd/timings"
+
+	"github.com/snapcore/snapd/snap/naming"
 )
 
 var (
@@ -223,7 +225,7 @@ func (b *Backend) Setup(appSet *interfaces.SnapAppSet, opts interfaces.Confineme
 	}
 
 	var globs []string
-	for _, g := range interfaces.SecurityTagGlobs(snapName) {
+	for _, g := range interfaces.SecurityTagGlobs(appSet.Info().SnapName()) {
 		globs = append(globs, fmt.Sprintf("%s.src", g))
 	}
 
@@ -251,7 +253,7 @@ func (b *Backend) Setup(appSet *interfaces.SnapAppSet, opts interfaces.Confineme
 }
 
 // Remove removes seccomp profiles of a given snap.
-func (b *Backend) Remove(snapName string) error {
+func (b *Backend) Remove(snapName naming.SnapName) error {
 	globs := interfaces.SecurityTagGlobs(snapName)
 	_, _, err := osutil.EnsureDirStateGlobs(dirs.SnapSeccompDir, globs, nil)
 	if err != nil {

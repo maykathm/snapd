@@ -45,7 +45,8 @@ import (
 	"github.com/snapcore/snapd/strutil"
 	"github.com/snapcore/snapd/testutil"
 	"github.com/snapcore/snapd/timings"
-)
+
+	"github.com/snapcore/snapd/snap/naming")
 
 func TestBoot(t *testing.T) { TestingT(t) }
 
@@ -381,7 +382,7 @@ func (s *bootenvSuite) TestInUse(c *C) {
 		bootVarKey   string
 		bootVarValue string
 
-		snapName string
+		snapName naming.SnapName
 		snapRev  snap.Revision
 
 		inUse bool

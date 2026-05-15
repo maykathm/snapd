@@ -27,11 +27,13 @@ import (
 	"github.com/snapcore/snapd/logger"
 	"github.com/snapcore/snapd/osutil"
 	"github.com/snapcore/snapd/sandbox/cgroup"
+
+	"github.com/snapcore/snapd/snap/naming"
 )
 
 type CommonProfileUpdateContext struct {
 	// instanceName is the name of the snap instance to update.
-	instanceName string
+	instanceName naming.InstanceName
 
 	// fromSnapConfine indicates that the update is triggered by snap-confine
 	// and not from snapd. When set, snap-confine is still constructing the user
@@ -43,7 +45,7 @@ type CommonProfileUpdateContext struct {
 }
 
 // InstanceName returns the snap instance name being updated.
-func (upCtx *CommonProfileUpdateContext) InstanceName() string {
+func (upCtx *CommonProfileUpdateContext) InstanceName() naming.InstanceName {
 	return upCtx.instanceName
 }
 
@@ -53,7 +55,7 @@ func (upCtx *CommonProfileUpdateContext) Lock() (func(), error) {
 
 	// Lock the mount namespace so that any concurrently attempted invocations
 	// of snap-confine are synchronized and will see consistent state.
-	lock, err := snaplock.OpenLock(instanceName)
+	lock, err := snaplock.OpenLock(naming.SnapName(instanceName))
 	if err != nil {
 		return nil, fmt.Errorf("cannot open lock file for mount namespace of snap %q: %s", instanceName, err)
 	}
@@ -81,7 +83,7 @@ func (upCtx *CommonProfileUpdateContext) Lock() (func(), error) {
 	// than what we expected).
 	logger.Debugf("freezing processes of snap %q", instanceName)
 	// TODO: Ideally we should use signal.NotifyContext
-	if err := cgroup.FreezeSnapProcesses(context.TODO(), instanceName); err != nil {
+	if err := cgroup.FreezeSnapProcesses(context.TODO(), naming.SnapName(instanceName)); err != nil {
 		// If we cannot freeze the processes we should drop the lock.
 		lock.Close()
 		return nil, err
@@ -91,7 +93,7 @@ func (upCtx *CommonProfileUpdateContext) Lock() (func(), error) {
 		logger.Debugf("unlocking mount namespace of snap %q", instanceName)
 		lock.Close()
 		logger.Debugf("thawing processes of snap %q", instanceName)
-		cgroup.ThawSnapProcesses(instanceName)
+		cgroup.ThawSnapProcesses(naming.SnapName(instanceName))
 	}
 	return unlock, nil
 }

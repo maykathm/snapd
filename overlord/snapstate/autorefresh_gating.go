@@ -36,7 +36,8 @@ import (
 	"github.com/snapcore/snapd/release"
 	"github.com/snapcore/snapd/snap"
 	"github.com/snapcore/snapd/strutil"
-)
+
+	"github.com/snapcore/snapd/snap/naming")
 
 var gateAutoRefreshHookName = "gate-auto-refresh"
 
@@ -57,7 +58,7 @@ var timeNow = func() time.Time {
 	return time.Now()
 }
 
-func lastRefreshed(st *state.State, snapName string) (time.Time, error) {
+func lastRefreshed(st *state.State, snapName naming.SnapName) (time.Time, error) {
 	var snapst SnapState
 	if err := Get(st, snapName, &snapst); err != nil {
 		return time.Time{}, fmt.Errorf("internal error, cannot get snap %q: %v", snapName, err)
@@ -365,7 +366,7 @@ func pruneGating(st *state.State, candidates map[string]*refreshCandidate) error
 
 // pruneHoldStatesForSnap prunes hold state for the snap for any holding
 // by another snaps, but preserve user/system holding.
-func pruneHoldStatesForSnap(gating map[string]map[string]*holdState, snapName string) (changed bool) {
+func pruneHoldStatesForSnap(gating map[string]map[string]*holdState, snapName naming.SnapName) (changed bool) {
 	holdingSnaps := gating[snapName]
 	for holdingSnap := range holdingSnaps {
 		if holdingSnap == "system" {
@@ -410,7 +411,7 @@ func resetGatingForRefreshed(st *state.State, refreshedSnaps ...string) error {
 // pruneSnapsHold removes the given snap from snaps-hold, whether it was an
 // affecting snap or gating snap. This should be called when a snap gets
 // removed.
-func pruneSnapsHold(st *state.State, snapName string) error {
+func pruneSnapsHold(st *state.State, snapName naming.SnapName) error {
 	gating, err := refreshGating(st)
 	if err != nil {
 		return err

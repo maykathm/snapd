@@ -34,7 +34,8 @@ import (
 	"github.com/snapcore/snapd/snap/snaptest"
 	"github.com/snapcore/snapd/snapdtool"
 	"github.com/snapcore/snapd/testutil"
-)
+
+	"github.com/snapcore/snapd/snap/naming")
 
 type backendSuite struct {
 	ifacetest.BackendSuite
@@ -116,7 +117,7 @@ func (s *backendSuite) TestInstallingComponentWritesConfigFilesInstance(c *C) {
 	s.testInstallingComponentWritesConfigFiles(c, instanceName)
 }
 
-func (s *backendSuite) testInstallingComponentWritesConfigFiles(c *C, instanceName string) {
+func (s *backendSuite) testInstallingComponentWritesConfigFiles(c *C, instanceName naming.InstanceName) {
 	// NOTE: Hand out a permanent snippet so that .conf file is generated.
 	s.Iface.DBusPermanentSlotCallback = func(spec *dbus.Specification, slot *snap.SlotInfo) error {
 		spec.AddSnippet("<policy/>")
@@ -188,7 +189,7 @@ func (s *backendSuite) TestRemovingSnapWithComponentRemovesConfigFilesInstance(c
 	s.testRemovingSnapWithComponentRemovesConfigFiles(c, instanceName)
 }
 
-func (s *backendSuite) testRemovingSnapWithComponentRemovesConfigFiles(c *C, instanceName string) {
+func (s *backendSuite) testRemovingSnapWithComponentRemovesConfigFiles(c *C, instanceName naming.InstanceName) {
 	// NOTE: Hand out a permanent snippet so that .conf file is generated.
 	s.Iface.DBusPermanentSlotCallback = func(spec *dbus.Specification, slot *snap.SlotInfo) error {
 		spec.AddSnippet("<policy/>")
@@ -257,7 +258,7 @@ func (s *backendSuite) TestUpdatingSnapToOneWithMoreComponentsInstance(c *C) {
 	s.testUpdatingSnapToOneWithMoreComponents(c, instanceName)
 }
 
-func (s *backendSuite) testUpdatingSnapToOneWithMoreComponents(c *C, instanceName string) {
+func (s *backendSuite) testUpdatingSnapToOneWithMoreComponents(c *C, instanceName naming.InstanceName) {
 	// NOTE: Hand out a permanent snippet so that .conf file is generated.
 	s.Iface.DBusPermanentSlotCallback = func(spec *dbus.Specification, slot *snap.SlotInfo) error {
 		spec.AddSnippet("<policy/>")
@@ -331,7 +332,7 @@ func (s *backendSuite) TestUpdatingSnapToOneWithFewerComponentsInstance(c *C) {
 	s.testUpdatingSnapToOneWithFewerComponents(c, instanceName)
 }
 
-func (s *backendSuite) testUpdatingSnapToOneWithFewerComponents(c *C, instanceName string) {
+func (s *backendSuite) testUpdatingSnapToOneWithFewerComponents(c *C, instanceName naming.InstanceName) {
 	// NOTE: Hand out a permanent snippet so that .conf file is generated.
 	s.Iface.DBusPermanentSlotCallback = func(spec *dbus.Specification, slot *snap.SlotInfo) error {
 		spec.AddSnippet("<policy/>")

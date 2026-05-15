@@ -50,7 +50,8 @@ import (
 	"github.com/snapcore/snapd/snap/quota"
 	"github.com/snapcore/snapd/strutil"
 	"github.com/snapcore/snapd/timings"
-)
+
+	"github.com/snapcore/snapd/snap/naming")
 
 var snapstateFinishRestart = snapstate.FinishRestart
 
@@ -278,7 +279,7 @@ func (m *InterfaceManager) doSetupProfiles(task *state.Task, tomb *tomb.Tomb) er
 // split: it preserves restart durability while a snap is inactive during
 // refresh, and lets ifacestate pick the most recent inactive
 // revision/components when regenerating security for affected snaps.
-func setPendingProfilesSideInfo(st *state.State, instanceName string, appSet *interfaces.SnapAppSet) error {
+func setPendingProfilesSideInfo(st *state.State, instanceName naming.InstanceName, appSet *interfaces.SnapAppSet) error {
 	var snapst snapstate.SnapState
 	if err := snapstate.Get(st, instanceName, &snapst); err != nil && !errors.Is(err, state.ErrNoState) {
 		return err
@@ -600,7 +601,7 @@ func (m *InterfaceManager) doRemoveProfiles(task *state.Task, tomb *tomb.Tomb) e
 	return setPendingProfilesSideInfo(task.State(), snapName, nil)
 }
 
-func (m *InterfaceManager) removeProfilesForSnap(task *state.Task, _ *tomb.Tomb, snapName string, tm timings.Measurer) error {
+func (m *InterfaceManager) removeProfilesForSnap(task *state.Task, _ *tomb.Tomb, snapName naming.SnapName, tm timings.Measurer) error {
 	// Disconnect the snap entirely.
 	// This is required to remove the snap from the interface repository.
 	// The returned list of affected snaps will need to have its security setup
@@ -629,7 +630,7 @@ func (m *InterfaceManager) removeProfilesForSnap(task *state.Task, _ *tomb.Tomb,
 
 // shouldUndoSetupProfiles determines whether the undo is actually required given
 // the current task-set, and based on the name of the current task.
-func shouldUndoSetupProfiles(task *state.Task, instanceName string) bool {
+func shouldUndoSetupProfiles(task *state.Task, instanceName naming.InstanceName) bool {
 	// If there are no setup-profiles tasks marked as prepare mode in this
 	// change, we're likely handling either an older change shape or a
 	// component-only change; in those cases undo should run for

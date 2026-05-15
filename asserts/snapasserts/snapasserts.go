@@ -123,11 +123,11 @@ func CrossCheck(instanceName, snapSHA3_384, provenance string, snapSize uint64, 
 		return nil, err
 	}
 
-	if snapDecl.SnapName() != snap.InstanceSnap(instanceName) {
-		return nil, fmt.Errorf("cannot install %q, snap %q is undergoing a rename to %q", instanceName, snap.InstanceSnap(instanceName), snapDecl.SnapName())
+	if string(snapDecl.SnapName()) != snap.InstanceSnap(naming.InstanceName(instanceName)) {
+		return nil, fmt.Errorf("cannot install %q, snap %q is undergoing a rename to %q", instanceName, snap.InstanceSnap(naming.InstanceName(instanceName)), snapDecl.SnapName())
 	}
 
-	if _, err := CrossCheckProvenance(instanceName, snapRev, snapDecl, model, db); err != nil {
+	if _, err := CrossCheckProvenance(naming.InstanceName(instanceName), snapRev, snapDecl, model, db); err != nil {
 		return nil, err
 	}
 
@@ -245,7 +245,7 @@ func maybeFindStore(model *asserts.Model, db Finder) (*asserts.Store, error) {
 // It also returns the provenance if it is different from the default.
 // Ultimately if not default the provenance must also be checked
 // with the provenance in the snap metadata by the caller.
-func CrossCheckProvenance(instanceName string, snapRev *asserts.SnapRevision, snapDecl *asserts.SnapDeclaration, model *asserts.Model, db Finder) (signedProvenance string, err error) {
+func CrossCheckProvenance(instanceName naming.InstanceName, snapRev *asserts.SnapRevision, snapDecl *asserts.SnapDeclaration, model *asserts.Model, db Finder) (signedProvenance string, err error) {
 	if snapRev.Provenance() == "global-upload" {
 		// nothing to check
 		return "", nil
@@ -337,7 +337,7 @@ func DeriveComponentSideInfo(name, path string, info *snap.Info, model *asserts.
 		return nil, err
 	}
 
-	csi, err := DeriveComponentSideInfoFromDigestAndSize(name, info.SnapName(), info.ID(), path, digest, size, model, db)
+	csi, err := DeriveComponentSideInfoFromDigestAndSize(name, string(info.SnapName()), info.ID(), path, digest, size, model, db)
 	if err != nil {
 		return nil, err
 	}
@@ -385,7 +385,7 @@ func DeriveSideInfoFromDigestAndSize(snapPath string, snapSHA3_384 string, snapS
 		return nil, err
 	}
 
-	if _, err = CrossCheckProvenance(snapDecl.SnapName(), snapRev, snapDecl, model, db); err != nil {
+	if _, err = CrossCheckProvenance(naming.InstanceName(string(snapDecl.SnapName())), snapRev, snapDecl, model, db); err != nil {
 		return nil, err
 	}
 
@@ -399,7 +399,7 @@ func DeriveSideInfoFromDigestAndSize(snapPath string, snapSHA3_384 string, snapS
 // SideInfoFromSnapAssertions returns a *snap.SideInfo reflecting the given snap assertions.
 func SideInfoFromSnapAssertions(snapDecl *asserts.SnapDeclaration, snapRev *asserts.SnapRevision) *snap.SideInfo {
 	return &snap.SideInfo{
-		RealName: snapDecl.SnapName(),
+		RealName: string(snapDecl.SnapName()),
 		SnapID:   snapDecl.SnapID(),
 		Revision: snap.R(snapRev.SnapRevision()),
 	}
@@ -452,7 +452,7 @@ func DeriveComponentSideInfoFromDigestAndSize(resName, snapName, snapID string, 
 	}
 
 	return &snap.ComponentSideInfo{
-		Component: naming.NewComponentRef(snapName, resName),
+		Component: naming.NewComponentRef(naming.SnapName(snapName), resName),
 		Revision:  snap.R(resRev.ResourceRevision()),
 	}, nil
 }

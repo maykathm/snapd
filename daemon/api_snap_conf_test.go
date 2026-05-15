@@ -35,7 +35,8 @@ import (
 	"github.com/snapcore/snapd/overlord/configstate/config"
 	"github.com/snapcore/snapd/overlord/configstate/configcore"
 	"github.com/snapcore/snapd/testutil"
-)
+
+	"github.com/snapcore/snapd/snap/naming")
 
 var _ = check.Suite(&snapConfSuite{})
 
@@ -53,7 +54,7 @@ func (s *snapConfSuite) SetUpTest(c *check.C) {
 	config.ClearExternalConfigMap()
 }
 
-func (s *snapConfSuite) runGetConf(c *check.C, snapName string, keys []string, statusCode int) map[string]any {
+func (s *snapConfSuite) runGetConf(c *check.C, snapName naming.SnapName, keys []string, statusCode int) map[string]any {
 	req, err := http.NewRequest("GET", "/v2/snaps/"+snapName+"/conf?keys="+strings.Join(keys, ","), nil)
 	c.Check(err, check.IsNil)
 	rec := httptest.NewRecorder()

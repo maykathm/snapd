@@ -37,7 +37,8 @@ import (
 	"github.com/snapcore/snapd/overlord/snapstate"
 	"github.com/snapcore/snapd/overlord/state"
 	"github.com/snapcore/snapd/snap"
-)
+
+	"github.com/snapcore/snapd/snap/naming")
 
 var (
 	shortModelHelp = i18n.G("Get the active model for this device")
@@ -113,7 +114,7 @@ func (c *modelCommand) reportError(format string, a ...any) {
 
 // hasSnapdControlInterface returns true if the requesting snap has the
 // snapd-control plug and only if it is connected as well.
-func (c *modelCommand) hasSnapdControlInterface(st *state.State, snapName string) (bool, error) {
+func (c *modelCommand) hasSnapdControlInterface(st *state.State, snapName naming.SnapName) (bool, error) {
 	conns, err := ifacestate.ConnectionStates(st)
 	if err != nil {
 		return false, err
@@ -135,7 +136,7 @@ func (c *modelCommand) hasSnapdControlInterface(st *state.State, snapName string
 
 // getSnapInfoWithPublisher is a helper utility to read the snap.Info for the requesting snap
 // which also fills the publisher information.
-func (c *modelCommand) getSnapInfoWithPublisher(st *state.State, snapName string) (*snap.Info, error) {
+func (c *modelCommand) getSnapInfoWithPublisher(st *state.State, snapName naming.SnapName) (*snap.Info, error) {
 	var snapst snapstate.SnapState
 	if err := snapstate.Get(st, snapName, &snapst); err != nil {
 		return nil, fmt.Errorf("failed to get snapstate for snap %s: %v", snapName, err)

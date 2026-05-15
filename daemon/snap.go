@@ -37,7 +37,8 @@ import (
 	"github.com/snapcore/snapd/overlord/snapstate"
 	"github.com/snapcore/snapd/overlord/state"
 	"github.com/snapcore/snapd/snap"
-)
+
+	"github.com/snapcore/snapd/snap/naming")
 
 var errNoSnap = errors.New("snap not installed")
 
@@ -224,7 +225,7 @@ func clientHealthFromHealthstate(h *healthstate.HealthState) *client.SnapHealth 
 	}
 }
 
-func clientSnapRefreshInhibit(st *state.State, snapst *snapstate.SnapState, instanceName string) *client.SnapRefreshInhibit {
+func clientSnapRefreshInhibit(st *state.State, snapst *snapstate.SnapState, instanceName naming.InstanceName) *client.SnapRefreshInhibit {
 	proceedTime := snapst.RefreshInhibitProceedTime(st)
 	if proceedTime.IsZero() {
 		return nil

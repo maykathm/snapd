@@ -32,7 +32,8 @@ import (
 	"github.com/snapcore/snapd/osutil"
 	"github.com/snapcore/snapd/overlord/state"
 	"github.com/snapcore/snapd/testutil"
-)
+
+	"github.com/snapcore/snapd/snap/naming")
 
 type cookiesSuite struct {
 	testutil.BaseTest
@@ -53,7 +54,7 @@ func (s *cookiesSuite) TearDownTest(c *C) {
 	s.BaseTest.TearDownTest(c)
 }
 
-func checkCookie(c *C, st *state.State, snapName string) {
+func checkCookie(c *C, st *state.State, snapName naming.SnapName) {
 	var cookies map[string]string
 	var found int
 	var cookieID string

@@ -33,7 +33,8 @@ import (
 	"github.com/snapcore/snapd/overlord/snapstate"
 	"github.com/snapcore/snapd/overlord/state"
 	"github.com/snapcore/snapd/overlord/swfeats"
-)
+
+	"github.com/snapcore/snapd/snap/naming")
 
 var (
 	interfacesCmd = &Command{
@@ -159,7 +160,7 @@ func changeInterfaces(c *Command, r *http.Request, user *auth.UserState) Respons
 	st.Lock()
 	defer st.Unlock()
 
-	checkInstalled := func(snapName string) error {
+	checkInstalled := func(snapName naming.SnapName) error {
 		// empty snap name is fine, ResolveConnect/ResolveDisconnect handles it.
 		if snapName == "" {
 			return nil

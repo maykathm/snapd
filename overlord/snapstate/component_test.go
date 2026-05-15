@@ -39,7 +39,7 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-func (s *snapmgrTestSuite) mockComponentInfos(c *C, snapName string, compNames []string, compRevs []snap.Revision) {
+func (s *snapmgrTestSuite) mockComponentInfos(c *C, snapName naming.SnapName, compNames []string, compRevs []snap.Revision) {
 	cis := make([]*snap.ComponentInfo, len(compNames))
 	for i, comp := range compNames {
 		componentYaml := fmt.Sprintf(`component: %s+%s

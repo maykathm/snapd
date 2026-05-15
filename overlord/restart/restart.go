@@ -38,7 +38,8 @@ import (
 	"github.com/snapcore/snapd/osutil"
 	"github.com/snapcore/snapd/overlord/state"
 	"github.com/snapcore/snapd/release"
-)
+
+	"github.com/snapcore/snapd/snap/naming")
 
 type RestartType int32
 
@@ -537,7 +538,7 @@ func MarkTaskAsRestartBoundary(t *state.Task, dir RestartBoundaryDirection) {
 // change has run out of tasks to run.
 // For tasks that request restarts as a part of their undo, any tasks that previously scheduled
 // restarts as a part of their 'do' will be unscheduled.
-func FinishTaskWithRestart(t *state.Task, status state.Status, restartType RestartType, snapName string, rebootInfo *boot.RebootInfo) error {
+func FinishTaskWithRestart(t *state.Task, status state.Status, restartType RestartType, snapName naming.SnapName, rebootInfo *boot.RebootInfo) error {
 	switch restartType {
 	case RestartSystem, RestartSystemNow, RestartSystemHaltNow, RestartSystemPoweroffNow:
 		break

@@ -31,7 +31,8 @@ import (
 	"github.com/snapcore/snapd/overlord/state"
 	"github.com/snapcore/snapd/snap"
 	"github.com/snapcore/snapd/testutil"
-)
+
+	"github.com/snapcore/snapd/snap/naming")
 
 type rebootSuite struct {
 	testutil.BaseTest
@@ -103,7 +104,7 @@ func (s *rebootSuite) snapInstallTaskSetForSnapSetup(snapName, base string, snap
 	)
 }
 
-func (s *rebootSuite) componentExclusiveInstallTaskSetForSnapSetup(snapName string, snapType snap.Type) snapstate.SnapInstallTaskSet {
+func (s *rebootSuite) componentExclusiveInstallTaskSetForSnapSetup(snapName naming.SnapName, snapType snap.Type) snapstate.SnapInstallTaskSet {
 	snapsup := &snapstate.SnapSetup{
 		SideInfo: &snap.SideInfo{
 			RealName: snapName,

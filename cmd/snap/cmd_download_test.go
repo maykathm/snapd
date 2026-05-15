@@ -88,7 +88,7 @@ func (s *SnapSuite) TestPrintInstalHint(c *check.C) {
 
 func (s *SnapSuite) TestDownloadDirect(c *check.C) {
 	var n int
-	restore := snapCmd.MockDownloadContainers(func(snapName string, components []string, tsto *tooling.ToolingStore, opts tooling.DownloadSnapOptions) (*tooling.DownloadedSnap, error) {
+	restore := snapCmd.MockDownloadContainers(func(snapName naming.SnapName, components []string, tsto *tooling.ToolingStore, opts tooling.DownloadSnapOptions) (*tooling.DownloadedSnap, error) {
 		c.Check(snapName, check.Equals, "a-snap")
 		c.Check(opts.Revision, check.Equals, snap.R(0))
 		c.Check(opts.Basename, check.Equals, "some-base-name")
@@ -149,7 +149,7 @@ func (s *SnapSuite) TestDownloadDirectWithComponentsBasename(c *check.C) {
 
 func (s *SnapSuite) testDownloadDirectWithComponents(c *check.C, basename string, onlyComponents bool) {
 	var n int
-	restore := snapCmd.MockDownloadContainers(func(snapName string, components []string, tsto *tooling.ToolingStore, opts tooling.DownloadSnapOptions) (*tooling.DownloadedSnap, error) {
+	restore := snapCmd.MockDownloadContainers(func(snapName naming.SnapName, components []string, tsto *tooling.ToolingStore, opts tooling.DownloadSnapOptions) (*tooling.DownloadedSnap, error) {
 		c.Check(snapName, check.Equals, "a-snap")
 		c.Check(components, check.DeepEquals, []string{"comp-1", "comp-2"})
 		c.Check(opts.Revision, check.Equals, snap.R(0))
@@ -208,7 +208,7 @@ func (s *SnapSuite) testDownloadDirectWithComponents(c *check.C, basename string
 
 func (s *SnapSuite) TestDownloadDirectErrors(c *check.C) {
 	var n int
-	restore := snapCmd.MockDownloadContainers(func(snapName string, components []string, tsto *tooling.ToolingStore, opts tooling.DownloadSnapOptions) (*tooling.DownloadedSnap, error) {
+	restore := snapCmd.MockDownloadContainers(func(snapName naming.SnapName, components []string, tsto *tooling.ToolingStore, opts tooling.DownloadSnapOptions) (*tooling.DownloadedSnap, error) {
 		n++
 		return nil, fmt.Errorf("some-error")
 	})

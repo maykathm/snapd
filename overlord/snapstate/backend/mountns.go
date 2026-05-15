@@ -21,15 +21,16 @@ package backend
 
 import (
 	"github.com/snapcore/snapd/interfaces/mount"
-)
+
+	"github.com/snapcore/snapd/snap/naming")
 
 // Discard the mount namespace of a given snap.
-func (b Backend) DiscardSnapNamespace(snapName string) error {
+func (b Backend) DiscardSnapNamespace(snapName naming.SnapName) error {
 	return mount.DiscardSnapNamespace(snapName)
 }
 
 // Discard the mount namespace of a locked snap, e.g. during a refresh when
 // running applications is temporarily inhibited.
-func (b Backend) DiscardLockedSnapNamespace(snapName string) error {
+func (b Backend) DiscardLockedSnapNamespace(snapName naming.SnapName) error {
 	return mount.DiscardLockedSnapNamespace(snapName)
 }

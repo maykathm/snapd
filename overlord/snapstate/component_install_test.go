@@ -223,11 +223,11 @@ version: 1.0
 	return ci, compPath
 }
 
-func createTestSnapInfoForComponent(c *C, snapName string, snapRev snap.Revision, compName string) *snap.Info {
+func createTestSnapInfoForComponent(c *C, snapName naming.SnapName, snapRev snap.Revision, compName string) *snap.Info {
 	return createTestSnapInfoForComponents(c, snapName, snapRev, map[string]string{compName: "test"})
 }
 
-func createTestSnapInfoForComponents(c *C, snapName string, snapRev snap.Revision, compNamesToType map[string]string) *snap.Info {
+func createTestSnapInfoForComponents(c *C, snapName naming.SnapName, snapRev snap.Revision, compNamesToType map[string]string) *snap.Info {
 	snapType := "app"
 	for _, typ := range compNamesToType {
 		if typ == "kernel-modules" {
@@ -276,7 +276,7 @@ func createTestSnapSetup(info *snap.Info, flags snapstate.Flags) *snapstate.Snap
 	}
 }
 
-func setStateWithOneSnap(st *state.State, snapName string, snapRev snap.Revision) {
+func setStateWithOneSnap(st *state.State, snapName naming.SnapName, snapRev snap.Revision) {
 	ssi := &snap.SideInfo{RealName: snapName, Revision: snapRev,
 		SnapID: "some-snap-id"}
 	snapstate.Set(st, snapName, &snapstate.SnapState{
@@ -289,14 +289,14 @@ func setStateWithOneSnap(st *state.State, snapName string, snapRev snap.Revision
 	})
 }
 
-func setStateWithOneComponent(st *state.State, snapName string,
+func setStateWithOneComponent(st *state.State, snapName naming.SnapName,
 	snapRev snap.Revision, compName string, compRev snap.Revision) {
 	csi := snap.NewComponentSideInfo(naming.NewComponentRef(snapName, compName), compRev)
 	setStateWithComponents(st, snapName, snapRev,
 		[]*sequence.ComponentState{sequence.NewComponentState(csi, snap.StandardComponent)})
 }
 
-func setStateWithComponents(st *state.State, snapName string,
+func setStateWithComponents(st *state.State, snapName naming.SnapName,
 	snapRev snap.Revision, comps []*sequence.ComponentState) {
 	ssi := &snap.SideInfo{RealName: snapName, Revision: snapRev,
 		SnapID: "some-snap-id"}

@@ -45,6 +45,8 @@ import (
 	"github.com/snapcore/snapd/sandbox/cgroup"
 	"github.com/snapcore/snapd/snap"
 	"github.com/snapcore/snapd/timings"
+
+	"github.com/snapcore/snapd/snap/naming"
 )
 
 // Backend is responsible for maintaining mount files for snap-confine
@@ -132,12 +134,12 @@ func (b *Backend) Setup(appSet *interfaces.SnapAppSet, opts interfaces.Confineme
 		return nil
 	}
 
-	return b.updateOrDiscard(snapName, snapInfo)
+	return b.updateOrDiscard(appSet.Info().SnapName(), snapInfo)
 }
 
 // updateOrDiscard attempts to update the mount namespace for a snap, and if
 // that fails, tries to discard the namespace (unless the snap has enduring daemons).
-func (b *Backend) updateOrDiscard(snapName string, snapInfo *snap.Info) error {
+func (b *Backend) updateOrDiscard(snapName naming.SnapName, snapInfo *snap.Info) error {
 	logger.Debugf("update or discard mount ns for snap %v", snapInfo.InstanceName())
 
 	if err := UpdateSnapNamespace(snapName); err != nil {
@@ -160,7 +162,7 @@ func (b *Backend) updateOrDiscard(snapName string, snapInfo *snap.Info) error {
 // Remove removes mount configuration files of a given snap.
 //
 // This method should be called after removing a snap.
-func (b *Backend) Remove(snapName string) error {
+func (b *Backend) Remove(snapName naming.SnapName) error {
 	glob := fmt.Sprintf("snap.%s.*fstab", snapName)
 	_, _, err := osutil.EnsureDirState(dirs.SnapMountPolicyDir, glob, nil)
 	if err != nil {
@@ -268,7 +270,7 @@ func (b *Backend) ApplyDelayedEffects(appSet *interfaces.SnapAppSet, work []inte
 
 		// Assuming all non-deferred work was done in Setup(), perform only the
 		// remaining work, specifically update or discard the mount namespace
-		return b.updateOrDiscard(snapName, snapInfo)
+		return b.updateOrDiscard(appSet.Info().SnapName(), snapInfo)
 	}
 	return nil
 }
@@ -276,7 +278,7 @@ func (b *Backend) ApplyDelayedEffects(appSet *interfaces.SnapAppSet, work []inte
 func opportunisticDiscard(appSet *interfaces.SnapAppSet) error {
 	instanceName := appSet.InstanceName()
 	return snaplock.WithTryLock(instanceName, func() error {
-		paths, err := cgroup.InstancePathsOfSnap(instanceName, cgroup.InstancePathsOptions{
+		paths, err := cgroup.InstancePathsOfSnap(string(instanceName), cgroup.InstancePathsOptions{
 			ReturnCGroupPath: true,
 		})
 		if err != nil {
@@ -290,7 +292,7 @@ func opportunisticDiscard(appSet *interfaces.SnapAppSet) error {
 
 		logger.Debugf("no running applications belonging to snap %q, proceeding to discard the snap's mount namespace",
 			instanceName)
-		if err = DiscardLockedSnapNamespace(instanceName); err != nil {
+		if err = DiscardLockedSnapNamespace(appSet.Info().SnapName()); err != nil {
 			return fmt.Errorf("cannot discard mount namespace of snap %q: %w", instanceName, err)
 		}
 

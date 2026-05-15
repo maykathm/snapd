@@ -62,7 +62,8 @@ import (
 	"github.com/snapcore/snapd/seed/seedtest"
 	"github.com/snapcore/snapd/snap"
 	"github.com/snapcore/snapd/snap/snaptest"
-)
+
+	"github.com/snapcore/snapd/snap/naming")
 
 var _ = check.Suite(&systemsSuite{})
 
@@ -3118,7 +3119,7 @@ func (s *systemsCreateSuite) TestCreateSystemActionWithComponentsOffline(c *chec
 	c.Check(st.Change(res.Change), check.NotNil)
 }
 
-func (s *systemsCreateSuite) makeStandardComponent(c *check.C, snapName string, compName string) (compPath string, resourceRev, resourcePair asserts.Assertion) {
+func (s *systemsCreateSuite) makeStandardComponent(c *check.C, snapName naming.SnapName, compName string) (compPath string, resourceRev, resourcePair asserts.Assertion) {
 	return makeStandardComponent(c, s.storeSigning, s.storeSigning.AuthorityID, s.dev1acct.AccountID(), snapName, compName)
 }
 
@@ -3127,7 +3128,7 @@ func makeStandardComponent(
 	signer assertstest.SignerDB,
 	authorityID string,
 	accountID string,
-	snapName string,
+	snapName naming.SnapName,
 	compName string,
 ) (compPath string, resourceRev, resourcePair asserts.Assertion) {
 	yaml := fmt.Sprintf("component: %s+%s\nversion: 1\ntype: standard", snapName, compName)

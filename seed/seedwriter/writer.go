@@ -98,8 +98,8 @@ type OptionsSnap struct {
 	Components []OptionsComponent
 }
 
-func (s *OptionsSnap) SnapName() string {
-	return s.Name
+func (s *OptionsSnap) SnapName() naming.SnapName {
+	return naming.SnapName(s.Name)
 }
 
 func (s *OptionsSnap) ID() string {
@@ -291,7 +291,7 @@ type policy interface {
 	needsImplicitSnaps(availableByMode map[string]*naming.SnapSet) (bool, error)
 	implicitSnaps(availableByMode map[string]*naming.SnapSet) []*asserts.ModelSnap
 	implicitExtraSnaps(availableByMode map[string]*naming.SnapSet) []*OptionsSnap
-	recordSnapNameUsage(snapName string)
+	recordSnapNameUsage(snapName naming.SnapName)
 	isSystemSnapCandidate(sn *SeedSnap) bool
 	ignoreUndeterminedSystemSnap() bool
 }
@@ -469,7 +469,7 @@ func (w *Writer) SetOptionsSnaps(optSnaps []*OptionsSnap) error {
 			}
 			snapName := sn.Name
 			whichSnap = snapName
-			if _, instanceKey := snap.SplitInstanceName(snapName); instanceKey != "" {
+			if _, instanceKey := snap.SplitInstanceName(naming.InstanceName(snapName)); instanceKey != "" {
 				// be specific about this error
 				return fmt.Errorf("cannot use snap %q, parallel snap instances are unsupported", snapName)
 			}
@@ -874,7 +874,7 @@ func (w *Writer) modelSnapToSeed(modSnap *asserts.ModelSnap) (*SeedSnap, error) 
 				continue
 			}
 			seedCompsMap[comp] = SeedComponent{
-				ComponentRef: naming.NewComponentRef(modSnap.Name, comp),
+				ComponentRef: naming.NewComponentRef(naming.SnapName(modSnap.Name), comp),
 			}
 		}
 		// We add also components in command options if the model allows it
@@ -887,7 +887,7 @@ func (w *Writer) modelSnapToSeed(modSnap *asserts.ModelSnap) (*SeedSnap, error) 
 					return nil, err
 				}
 				seedCompsMap[comp.Name] = SeedComponent{
-					ComponentRef: naming.NewComponentRef(modSnap.Name, comp.Name),
+					ComponentRef: naming.NewComponentRef(naming.SnapName(modSnap.Name), comp.Name),
 				}
 			}
 		}
@@ -906,7 +906,7 @@ func (w *Writer) modelSnapToSeed(modSnap *asserts.ModelSnap) (*SeedSnap, error) 
 		optSnap = sn.optionSnap
 	}
 
-	channel, err := w.resolveChannel(modSnap.SnapName(), modSnap, optSnap)
+	channel, err := w.resolveChannel(string(modSnap.SnapName()), modSnap, optSnap)
 	if err != nil {
 		return nil, err
 	}
@@ -998,7 +998,7 @@ func (w *Writer) extraSnapToSeed(optSnap *OptionsSnap) (*SeedSnap, error) {
 		seedComps := make([]SeedComponent, 0, len(optSnap.Components))
 		for _, optComp := range optSnap.Components {
 			seedComps = append(seedComps, SeedComponent{
-				ComponentRef: naming.NewComponentRef(optSnap.Name, optComp.Name),
+				ComponentRef: naming.NewComponentRef(naming.SnapName(optSnap.Name), optComp.Name),
 			})
 		}
 		sn = &SeedSnap{
@@ -1013,7 +1013,7 @@ func (w *Writer) extraSnapToSeed(optSnap *OptionsSnap) (*SeedSnap, error) {
 		return nil, fmt.Errorf("internal error: option extra snap has no associated name: %#v %#v", optSnap, sn)
 	}
 
-	channel, err := w.resolveChannel(sn.SnapName(), nil, optSnap)
+	channel, err := w.resolveChannel(string(sn.SnapName()), nil, optSnap)
 	if err != nil {
 		return nil, err
 	}
@@ -1152,16 +1152,16 @@ func (w *Writer) checkBase(sn *SeedSnap) error {
 
 func (w *Writer) recordUsageWithThePolicy(modSnaps []*asserts.ModelSnap) {
 	for _, modSnap := range modSnaps {
-		w.policy.recordSnapNameUsage(modSnap.Name)
+		w.policy.recordSnapNameUsage(naming.SnapName(modSnap.Name))
 	}
 
 	for _, optSnap := range w.optionsSnaps {
 		snapName := optSnap.Name
 		sn := w.localSnaps[optSnap]
 		if sn != nil {
-			snapName = sn.Info.SnapName()
+			snapName = string(sn.Info.SnapName())
 		}
-		w.policy.recordSnapNameUsage(snapName)
+		w.policy.recordSnapNameUsage(naming.SnapName(snapName))
 	}
 }
 
@@ -1575,7 +1575,7 @@ func (w *Writer) validationSets() (*snapasserts.ValidationSets, error) {
 
 func (w *Writer) installedSnaps() []*snapasserts.InstalledSnap {
 	installedSnap := func(snap *SeedSnap) *snapasserts.InstalledSnap {
-		return snapasserts.NewInstalledSnap(snap.SnapName(), snap.ID(), snap.Info.Revision, nil)
+		return snapasserts.NewInstalledSnap(string(snap.SnapName()), snap.ID(), snap.Info.Revision, nil)
 	}
 
 	// TODO:COMPS: add components
@@ -1663,7 +1663,7 @@ func (w *Writer) SeedSnaps(copySnap func(name, src, dst string) error) error {
 				if err != nil {
 					return err
 				}
-				if err := copySnap(info.SnapName(), sn.Path, dst); err != nil {
+				if err := copySnap(string(info.SnapName()), sn.Path, dst); err != nil {
 					return err
 				}
 				// copy components

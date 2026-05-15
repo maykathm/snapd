@@ -96,7 +96,7 @@ var osutilCheckFreeSpace = osutil.CheckFreeSpace
 var TestingLeaveOutKernelUpdateGadgetAssets bool = false
 
 type minimalInstallInfo interface {
-	InstanceName() string
+	InstanceName() naming.InstanceName
 	Type() snap.Type
 	SnapBase() string
 	DownloadSize() int64
@@ -177,7 +177,7 @@ func safetyMarginDiskSpace(size uint64) uint64 {
 }
 
 // ConfigureSnap returns a set of tasks to configure snapName as done during installation/refresh.
-func ConfigureSnap(st *state.State, snapName string, confFlags int) *state.TaskSet {
+func ConfigureSnap(st *state.State, snapName naming.SnapName, confFlags int) *state.TaskSet {
 	// This is slightly ugly, ideally we would check the type instead
 	// of hardcoding the name here. Unfortunately we do not have the
 	// type until we actually run the change.
@@ -187,15 +187,15 @@ func ConfigureSnap(st *state.State, snapName string, confFlags int) *state.TaskS
 	return Configure(st, snapName, nil, confFlags)
 }
 
-var Configure = func(st *state.State, snapName string, patch map[string]any, flags int) *state.TaskSet {
+var Configure = func(st *state.State, snapName naming.SnapName, patch map[string]any, flags int) *state.TaskSet {
 	panic("internal error: snapstate.Configure is unset")
 }
 
-var DefaultConfigure = func(st *state.State, snapName string) *state.TaskSet {
+var DefaultConfigure = func(st *state.State, snapName naming.SnapName) *state.TaskSet {
 	panic("internal error: snapstate.DefaultConfigure is unset")
 }
 
-var SetupInstallHook = func(st *state.State, snapName string) *state.Task {
+var SetupInstallHook = func(st *state.State, snapName naming.SnapName) *state.Task {
 	panic("internal error: snapstate.SetupInstallHook is unset")
 }
 
@@ -215,27 +215,27 @@ var SetupRemoveComponentHook = func(st *state.State, snap, component string) *st
 	panic("internal error: snapstate.SetupRemoveComponentHook is unset")
 }
 
-var SetupPreRefreshHook = func(st *state.State, snapName string) *state.Task {
+var SetupPreRefreshHook = func(st *state.State, snapName naming.SnapName) *state.Task {
 	panic("internal error: snapstate.SetupPreRefreshHook is unset")
 }
 
-var SetupPostRefreshHook = func(st *state.State, snapName string) *state.Task {
+var SetupPostRefreshHook = func(st *state.State, snapName naming.SnapName) *state.Task {
 	panic("internal error: snapstate.SetupPostRefreshHook is unset")
 }
 
-var SetupRemoveHook = func(st *state.State, snapName string) *state.Task {
+var SetupRemoveHook = func(st *state.State, snapName naming.SnapName) *state.Task {
 	panic("internal error: snapstate.SetupRemoveHook is unset")
 }
 
-var CheckHealthHook = func(st *state.State, snapName string, rev snap.Revision) *state.Task {
+var CheckHealthHook = func(st *state.State, snapName naming.SnapName, rev snap.Revision) *state.Task {
 	panic("internal error: snapstate.CheckHealthHook is unset")
 }
 
-var SetupGateAutoRefreshHook = func(st *state.State, snapName string) *state.Task {
+var SetupGateAutoRefreshHook = func(st *state.State, snapName naming.SnapName) *state.Task {
 	panic("internal error: snapstate.SetupAutoRefreshGatingHook is unset")
 }
 
-var AddSnapToQuotaGroup = func(st *state.State, snapName string, quotaGroup string) (*state.Task, error) {
+var AddSnapToQuotaGroup = func(st *state.State, snapName naming.SnapName, quotaGroup string) (*state.Task, error) {
 	panic("internal error: snapstate.AddSnapToQuotaGroup is unset")
 }
 
@@ -958,7 +958,7 @@ func downloadTasks(
 	return ts, info, nil
 }
 
-func validatedInfoFromPathAndSideInfo(instanceName string, path string, si *snap.SideInfo) (*snap.Info, error) {
+func validatedInfoFromPathAndSideInfo(instanceName naming.InstanceName, path string, si *snap.SideInfo) (*snap.Info, error) {
 	var info *snap.Info
 	info, cont, err := backend.OpenSnapFile(path, si)
 	if err != nil {
@@ -1561,7 +1561,7 @@ func doUpdate(st *state.State, requested []string, updates []update, opts Option
 
 	if len(mustPruneAutoAliases) != 0 {
 		var err error
-		pruningAutoAliasesTs, err = applyAutoAliasesDelta(st, mustPruneAutoAliases, "prune", refreshAll, opts.ConflictOptions, func(snapName string, _ *state.TaskSet) {
+		pruningAutoAliasesTs, err = applyAutoAliasesDelta(st, mustPruneAutoAliases, "prune", refreshAll, opts.ConflictOptions, func(snapName naming.SnapName, _ *state.TaskSet) {
 			if nameSet[snapName] {
 				reportUpdated[snapName] = true
 			}
@@ -1573,7 +1573,7 @@ func doUpdate(st *state.State, requested []string, updates []update, opts Option
 	}
 
 	// wait for the auto-alias prune tasks as needed
-	scheduleUpdate := func(snapName string, ts *state.TaskSet) {
+	scheduleUpdate := func(snapName naming.SnapName, ts *state.TaskSet) {
 		if pruningAutoAliasesTs != nil && (mustPruneAutoAliases[snapName] != nil || transferTargets[snapName]) {
 			ts.WaitAll(pruningAutoAliasesTs)
 		}
@@ -1833,7 +1833,7 @@ func reRefreshSummary(updated []string, flags *Flags) string {
 	return msg
 }
 
-func applyAutoAliasesDelta(st *state.State, delta map[string][]string, op string, refreshAll bool, copts ConflictOptions, linkTs func(instanceName string, ts *state.TaskSet)) (*state.TaskSet, error) {
+func applyAutoAliasesDelta(st *state.State, delta map[string][]string, op string, refreshAll bool, copts ConflictOptions, linkTs func(instanceName naming.InstanceName, ts *state.TaskSet)) (*state.TaskSet, error) {
 	applyTs := state.NewTaskSet()
 	kind := "refresh-aliases"
 	msg := i18n.G("Refresh aliases for snap %q")
@@ -2151,7 +2151,7 @@ func firstNonEmpty(strs ...string) string {
 // resolveChannel conditionally resolves the channel for the given snap. If the
 // the revision is set and the channel is empty, then we assume that the caller
 // wants to install by revision and do not mutate the channel.
-func (r *RevisionOptions) resolveChannel(instanceName string, fallback string, deviceCtx DeviceContext) error {
+func (r *RevisionOptions) resolveChannel(instanceName naming.InstanceName, fallback string, deviceCtx DeviceContext) error {
 	// if the revision is set and the caller didn't provide a channel, then we
 	// shouldn't mess with the channel. this is because we don't want the caller
 	// to have to pick the right channel when refreshing/installing by revision.
@@ -4105,7 +4105,7 @@ func coreInfo(st *state.State) (*snap.Info, error) {
 // ConfigDefaults returns the configuration defaults for the snap as
 // specified in the gadget for the given device context.
 // If gadget is absent or the snap has no snap-id it returns ErrNoState.
-func ConfigDefaults(st *state.State, deviceCtx DeviceContext, snapName string) (map[string]any, error) {
+func ConfigDefaults(st *state.State, deviceCtx DeviceContext, snapName naming.SnapName) (map[string]any, error) {
 	info, err := GadgetInfo(st, deviceCtx)
 	if err != nil {
 		return nil, err
@@ -4321,7 +4321,7 @@ var cleanDownloads = func(st *state.State) error {
 // cleanSnapDownloads removes downloads that are no longer needed for the given snap.
 //
 // It is the caller's responsibility to lock state before calling this function.
-var cleanSnapDownloads = func(st *state.State, snapName string) error {
+var cleanSnapDownloads = func(st *state.State, snapName naming.SnapName) error {
 	keep, err := downloadsToKeep(st)
 	if err != nil {
 		return err

@@ -36,7 +36,8 @@ import (
 	"github.com/snapcore/snapd/snap"
 	"github.com/snapcore/snapd/timings"
 	"github.com/snapcore/snapd/wrappers"
-)
+
+	"github.com/snapcore/snapd/snap/naming")
 
 var wrappersAddSnapdSnapServices = wrappers.AddSnapdSnapServices
 var wrappersStartServices = wrappers.StartServices
@@ -469,7 +470,7 @@ func (b Backend) UnlinkComponent(cpi snap.ContainerPlaceInfo, snapRev snap.Revis
 	return nil
 }
 
-func (b Backend) KillSnapApps(snapName string, reason snap.AppKillReason, tm timings.Measurer) error {
+func (b Backend) KillSnapApps(snapName naming.SnapName, reason snap.AppKillReason, tm timings.Measurer) error {
 	if reason != snap.KillReasonOther {
 		logger.Debugf("KillSnapApps called for %q, reason: %v", snapName, reason)
 	} else {

@@ -287,7 +287,7 @@ func parseSeedRefreshTaskSets(uts *snapstate.UpdateTaskSets) (map[string]*state.
 	return taskSetsBySnap, findSeedRefreshTaskSet(uts.Refresh)
 }
 
-func mustTaskSetForSnap(c *C, taskSetsBySnap map[string]*state.TaskSet, snapName string) *state.TaskSet {
+func mustTaskSetForSnap(c *C, taskSetsBySnap map[string]*state.TaskSet, snapName naming.SnapName) *state.TaskSet {
 	ts := taskSetsBySnap[snapName]
 	c.Assert(ts, NotNil, Commentf("missing task set for %q", snapName))
 	return ts
@@ -5239,7 +5239,7 @@ func (s *snapmgrTestSuite) TestUpdateTasksCoreSetsIgnoreOnConfigure(c *C) {
 	defer func() { snapstate.Configure = oldConfigure }()
 
 	var configureFlags int
-	snapstate.Configure = func(st *state.State, snapName string, patch map[string]any, flags int) *state.TaskSet {
+	snapstate.Configure = func(st *state.State, snapName naming.SnapName, patch map[string]any, flags int) *state.TaskSet {
 		configureFlags = flags
 		return state.NewTaskSet()
 	}
@@ -13114,7 +13114,7 @@ func (s *snapmgrTestSuite) TestRefreshForcedOnRefreshInhibitionTimeoutError(c *C
 		chg.AddAll(ts)
 	}
 
-	restore = snapstate.MockOnRefreshInhibitionTimeout(func(chg *state.Change, snapName string) error {
+	restore = snapstate.MockOnRefreshInhibitionTimeout(func(chg *state.Change, snapName naming.SnapName) error {
 		return fmt.Errorf("boom!")
 	})
 	defer restore()
@@ -13449,7 +13449,7 @@ func (s *snapmgrTestSuite) TestPreDownloadCleansSnapDownloads(c *C) {
 	preDlChg.AddTask(preDlTask)
 
 	cleanSnapDownloadsCalled := false
-	restore = snapstate.MockCleanSnapDownloads(func(st *state.State, snapName string) error {
+	restore = snapstate.MockCleanSnapDownloads(func(st *state.State, snapName naming.SnapName) error {
 		if snapName == "some-snap" {
 			cleanSnapDownloadsCalled = true
 		}
@@ -13949,7 +13949,7 @@ func (s *snapmgrTestSuite) testUpdateManyRevOptsOrder(c *C, isThrottled map[stri
 	snapstate.ReplaceStore(s.state, &sto)
 
 	signer := assertstest.NewStoreStack("can0nical", nil)
-	valSetForSnap := func(snapName string) *snapasserts.ValidationSets {
+	valSetForSnap := func(snapName naming.SnapName) *snapasserts.ValidationSets {
 		headers := map[string]any{
 			"authority-id": "foo",
 			"account-id":   "foo",

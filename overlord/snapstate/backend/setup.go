@@ -36,7 +36,8 @@ import (
 	"github.com/snapcore/snapd/release"
 	"github.com/snapcore/snapd/snap"
 	"github.com/snapcore/snapd/systemd"
-)
+
+	"github.com/snapcore/snapd/snap/naming")
 
 var kernelEnsureKernelDriversTree = kernel.EnsureKernelDriversTree
 
@@ -53,7 +54,7 @@ type SetupSnapOptions struct {
 }
 
 // SetupSnap does prepare and mount the snap for further processing.
-func (b Backend) SetupSnap(snapFilePath, instanceName string, sideInfo *snap.SideInfo, dev snap.Device, setupOpts *SetupSnapOptions, meter progress.Meter) (snapType snap.Type, installRecord *InstallRecord, retErr error) {
+func (b Backend) SetupSnap(snapFilePath, instanceName naming.InstanceName, sideInfo *snap.SideInfo, dev snap.Device, setupOpts *SetupSnapOptions, meter progress.Meter) (snapType snap.Type, installRecord *InstallRecord, retErr error) {
 	if setupOpts == nil {
 		setupOpts = &SetupSnapOptions{}
 	}
@@ -128,7 +129,7 @@ func (b Backend) SetupSnap(snapFilePath, instanceName string, sideInfo *snap.Sid
 }
 
 // SetupKernelSnap does extra configuration for kernel snaps.
-func (b Backend) SetupKernelSnap(instanceName string, rev snap.Revision, meter progress.Meter) (err error) {
+func (b Backend) SetupKernelSnap(instanceName naming.InstanceName, rev snap.Revision, meter progress.Meter) (err error) {
 	// Build kernel tree that will be mounted from initramfs
 	cpi := snap.MinimalSnapContainerPlaceInfo(instanceName, rev)
 	destDir := kernel.DriversTreeDir(dirs.GlobalRootDir, instanceName, rev)
@@ -142,7 +143,7 @@ func (b Backend) SetupKernelSnap(instanceName string, rev snap.Revision, meter p
 		&kernel.KernelDriversTreeOptions{KernelInstall: true})
 }
 
-func (b Backend) RemoveKernelSnapSetup(instanceName string, rev snap.Revision, meter progress.Meter) error {
+func (b Backend) RemoveKernelSnapSetup(instanceName naming.InstanceName, rev snap.Revision, meter progress.Meter) error {
 	kernelTree := kernel.DriversTreeDir(dirs.GlobalRootDir, instanceName, rev)
 	return kernel.RemoveKernelDriversTree(kernelTree)
 }
@@ -347,7 +348,7 @@ func (b Backend) UndoSetupComponent(cpi snap.ContainerPlaceInfo, installRecord *
 }
 
 // RemoveSnapInhibitLock removes the file controlling inhibition of "snap run".
-func (b Backend) RemoveSnapInhibitLock(instanceName string, stateUnlocker runinhibit.Unlocker) error {
+func (b Backend) RemoveSnapInhibitLock(instanceName naming.InstanceName, stateUnlocker runinhibit.Unlocker) error {
 	if stateUnlocker == nil {
 		return errors.New("internal error: stateUnlocker cannot be nil")
 	}

@@ -57,6 +57,8 @@ import (
 	"github.com/snapcore/snapd/snapdenv"
 	"github.com/snapcore/snapd/strutil"
 	"github.com/snapcore/snapd/timings"
+
+	"github.com/snapcore/snapd/snap/naming"
 )
 
 var (
@@ -243,7 +245,7 @@ func snapConfineFromSnapProfile(info *snap.Info) (dir, glob string, content map[
 	//   /snap/core/111/usr/lib/snapd/snap-confine
 	// becomes
 	//   snap-confine.core.111
-	patchedProfileName := snapConfineProfileName(info.InstanceName(), info.Revision)
+	patchedProfileName := snapConfineProfileName(naming.SnapName(info.InstanceName()), info.Revision)
 	// remove other generated profiles, which is only relevant for the
 	// 'core' snap on classic system where we reexec, on core systems the
 	// profile is already a part of the rootfs snap
@@ -272,7 +274,7 @@ func snapConfineFromSnapProfile(info *snap.Info) (dir, glob string, content map[
 	return dirs.SnapAppArmorDir, patchedProfileGlob, content, nil
 }
 
-func snapConfineProfileName(snapName string, rev snap.Revision) string {
+func snapConfineProfileName(snapName naming.SnapName, rev snap.Revision) string {
 	return fmt.Sprintf("snap-confine.%s.%s", snapName, rev)
 }
 
@@ -333,7 +335,7 @@ func (b *Backend) setupSnapConfineReexec(info *snap.Info) error {
 }
 
 // nsProfile returns name of the apparmor profile for snap-update-ns for a given snap.
-func nsProfile(snapName string) string {
+func nsProfile(snapName naming.SnapName) string {
 	return fmt.Sprintf("snap-update-ns.%s", snapName)
 }
 
@@ -343,7 +345,7 @@ func nsProfile(snapName string) string {
 // Currently the list is just a pair. The first glob describes profiles for all
 // apps and hooks while the second profile describes the snap-update-ns profile
 // for the whole snap.
-func profileGlobs(snapName string) []string {
+func profileGlobs(snapName naming.SnapName) []string {
 	return append(interfaces.SecurityTagGlobs(snapName), nsProfile(snapName))
 }
 
@@ -454,7 +456,7 @@ func (b *Backend) prepareProfiles(appSet *interfaces.SnapAppSet, opts interfaces
 		return nil, fmt.Errorf("cannot create directory for apparmor profiles %q: %s", dir, err)
 	}
 
-	globs := profileGlobs(snapInfo.InstanceName())
+	globs := profileGlobs(naming.SnapName(snapInfo.InstanceName()))
 
 	changed, removedPaths, errEnsure := osutil.EnsureDirStateGlobs(dir, globs, content)
 	// XXX: in the old code this error was reported late, after doing load/removeCached.
@@ -542,11 +544,11 @@ func (b *Backend) Setup(appSet *interfaces.SnapAppSet, opts interfaces.Confineme
 // collects and returns them all.
 //
 // This method is useful mainly for regenerating profiles.
-func (b *Backend) SetupMany(appSets []*interfaces.SnapAppSet, confinement func(snapName string) interfaces.ConfinementOptions, sctx func(snapName string) interfaces.SetupContext, repo *interfaces.Repository, tm timings.Measurer) []error {
+func (b *Backend) SetupMany(appSets []*interfaces.SnapAppSet, confinement func(snapName naming.SnapName) interfaces.ConfinementOptions, sctx func(snapName naming.SnapName) interfaces.SetupContext, repo *interfaces.Repository, tm timings.Measurer) []error {
 	var allChangedPaths, allUnchangedPaths, allRemovedPaths []string
 	var fallback bool
 	for _, set := range appSets {
-		opts := confinement(set.InstanceName())
+		opts := confinement(naming.SnapName(set.InstanceName()))
 		prof, err := b.prepareProfiles(set, opts, repo)
 		if err != nil {
 			fallback = true
@@ -596,8 +598,8 @@ func (b *Backend) SetupMany(appSets []*interfaces.SnapAppSet, confinement func(s
 	if fallback {
 		for _, set := range appSets {
 			instanceName := set.InstanceName()
-			opts := confinement(instanceName)
-			if err := b.Setup(set, opts, sctx(instanceName), repo, tm); err != nil {
+			opts := confinement(naming.SnapName(instanceName))
+			if err := b.Setup(set, opts, sctx(naming.SnapName(instanceName)), repo, tm); err != nil {
 				errors = append(errors, fmt.Errorf("cannot setup profiles for snap %q: %s", instanceName, err))
 			}
 		}
@@ -628,7 +630,7 @@ func RemoveAllSnapAppArmorProfiles() error {
 }
 
 // Remove removes the apparmor profiles of a given snap from disk and the cache.
-func (b *Backend) Remove(snapName string) error {
+func (b *Backend) Remove(snapName naming.SnapName) error {
 	dir := dirs.SnapAppArmorDir
 	globs := profileGlobs(snapName)
 	cache := apparmor_sandbox.CacheDir
@@ -641,7 +643,7 @@ func (b *Backend) Remove(snapName string) error {
 	return errRemoveCached
 }
 
-func (b *Backend) RemoveLate(snapName string, rev snap.Revision, typ snap.Type) error {
+func (b *Backend) RemoveLate(snapName naming.SnapName, rev snap.Revision, typ snap.Type) error {
 	logger.Debugf("remove late for snap %v (%s) type %v", snapName, rev, typ)
 	if typ != snap.TypeSnapd {
 		// late remove is relevant only for snap confine profiles
@@ -706,7 +708,7 @@ func addUpdateNSProfile(snapInfo *snap.Info, snippets string, content map[string
 	policy := templatePattern.ReplaceAllStringFunc(updateNSTemplate, func(placeholder string) string {
 		switch placeholder {
 		case "###SNAP_INSTANCE_NAME###":
-			return snapInfo.InstanceName()
+			return string(snapInfo.InstanceName())
 		case "###SNIPPETS###":
 			if overlayRoot, _ := isRootWritableOverlay(); overlayRoot != "" {
 				snippets += strings.Replace(apparmor_sandbox.OverlayRootSnippet, "###UPPERDIR###", overlayRoot, -1)
@@ -729,7 +731,7 @@ func addUpdateNSProfile(snapInfo *snap.Info, snippets string, content map[string
 	})
 
 	// Ensure that the snap-update-ns profile is on disk.
-	profileName := nsProfile(snapInfo.InstanceName())
+	profileName := nsProfile(naming.SnapName(snapInfo.InstanceName()))
 	content[profileName] = &osutil.MemoryFileState{
 		Content: []byte(policy),
 		Mode:    0644,

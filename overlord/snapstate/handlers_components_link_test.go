@@ -53,7 +53,7 @@ func (s *linkCompSnapSuite) SetUpTest(c *C) {
 	}))
 }
 
-func (s *linkCompSnapSuite) testDoLinkComponent(c *C, snapName string, snapRev snap.Revision, kmodComps []*snap.ComponentSideInfo) {
+func (s *linkCompSnapSuite) testDoLinkComponent(c *C, snapName naming.SnapName, snapRev snap.Revision, kmodComps []*snap.ComponentSideInfo) {
 	const compName = "mycomp"
 	compRev := snap.R(7)
 	si := createTestSnapInfoForComponent(c, snapName, snapRev, compName)
@@ -139,7 +139,7 @@ func (s *linkCompSnapSuite) TestDoLinkComponentOtherCompPresent(c *C) {
 	s.testDoLinkComponent(c, snapName, snapRev, []*snap.ComponentSideInfo{kmodCsi})
 }
 
-func (s *linkCompSnapSuite) testDoLinkThenUndoLinkComponent(c *C, snapName string, snapRev snap.Revision) {
+func (s *linkCompSnapSuite) testDoLinkThenUndoLinkComponent(c *C, snapName naming.SnapName, snapRev snap.Revision) {
 	const compName = "mycomp"
 	compRev := snap.R(7)
 	si := createTestSnapInfoForComponent(c, snapName, snapRev, compName)
@@ -227,7 +227,7 @@ func (s *linkCompSnapSuite) TestDoLinkThenUndoLinkComponentOtherCompPresent(c *C
 	s.testDoLinkThenUndoLinkComponent(c, snapName, snapRev)
 }
 
-func (s *linkCompSnapSuite) testDoUnlinkComponent(c *C, snapName string, snapRev snap.Revision, compName string, compRev snap.Revision, unlinkTaskType string, kmodComps []*snap.ComponentSideInfo) {
+func (s *linkCompSnapSuite) testDoUnlinkComponent(c *C, snapName naming.SnapName, snapRev snap.Revision, compName string, compRev snap.Revision, unlinkTaskType string, kmodComps []*snap.ComponentSideInfo) {
 	si := createTestSnapInfoForComponent(c, snapName, snapRev, compName)
 	ssu := createTestSnapSetup(si, snapstate.Flags{})
 
@@ -372,7 +372,7 @@ func (s *linkCompSnapSuite) TestDoUnlinkCurrentComponentTwoTasks(c *C) {
 	s.state.Unlock()
 }
 
-func (s *linkCompSnapSuite) testDoUnlinkThenUndoUnlinkComponent(c *C, snapName string, snapRev snap.Revision, compName string, compRev snap.Revision, unlinkTaskType string) {
+func (s *linkCompSnapSuite) testDoUnlinkThenUndoUnlinkComponent(c *C, snapName naming.SnapName, snapRev snap.Revision, compName string, compRev snap.Revision, unlinkTaskType string) {
 	si := createTestSnapInfoForComponent(c, snapName, snapRev, compName)
 	ssu := createTestSnapSetup(si, snapstate.Flags{})
 

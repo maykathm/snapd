@@ -31,7 +31,8 @@ import (
 	"github.com/snapcore/snapd/store"
 	"github.com/snapcore/snapd/testutil"
 	userclient "github.com/snapcore/snapd/usersession/client"
-)
+
+	"github.com/snapcore/snapd/snap/naming")
 
 type (
 	ManagerBackend managerBackend
@@ -224,7 +225,7 @@ func MockCleanDownloads(mock func(st *state.State) error) func() {
 	}
 }
 
-func MockCleanSnapDownloads(mock func(st *state.State, snapName string) error) func() {
+func MockCleanSnapDownloads(mock func(st *state.State, snapName naming.SnapName) error) func() {
 	old := cleanSnapDownloads
 	cleanSnapDownloads = mock
 	return func() {
@@ -303,7 +304,7 @@ func MockHasActiveConnection(fn func(st *state.State, iface string) (bool, error
 	}
 }
 
-func MockOnRefreshInhibitionTimeout(fn func(chg *state.Change, snapName string) error) (restore func()) {
+func MockOnRefreshInhibitionTimeout(fn func(chg *state.Change, snapName naming.SnapName) error) (restore func()) {
 	old := onRefreshInhibitionTimeout
 	onRefreshInhibitionTimeout = fn
 	return func() {
@@ -369,7 +370,7 @@ func GetEnsuredDownloadsCleanedNext(m *SnapManager) time.Time {
 	return m.ensuredDownloadsCleanedNext
 }
 
-func MockPidsOfSnap(f func(instanceName string) (map[string][]int, error)) func() {
+func MockPidsOfSnap(f func(instanceName naming.InstanceName) (map[string][]int, error)) func() {
 	old := pidsOfSnap
 	pidsOfSnap = f
 	return func() {
@@ -436,7 +437,7 @@ func (m *autoRefresh) EnsureRefreshHoldAtLeast(d time.Duration) error {
 	return m.ensureRefreshHoldAtLeast(d)
 }
 
-func MockSecurityProfilesDiscardLate(fn func(snapName string, rev snap.Revision, typ snap.Type) error) (restore func()) {
+func MockSecurityProfilesDiscardLate(fn func(snapName naming.SnapName, rev snap.Revision, typ snap.Type) error) (restore func()) {
 	old := SecurityProfilesRemoveLate
 	SecurityProfilesRemoveLate = fn
 	return func() {

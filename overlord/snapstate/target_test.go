@@ -1398,7 +1398,7 @@ func (s *targetTestSuite) TestInstallWithIntegrityDataEssentialSnap(c *C) {
 	defer s.state.Unlock()
 
 	tests := []struct {
-		instanceName string
+		instanceName naming.InstanceName
 		Comment      string
 	}{
 		{"some-base", "integrity data should be used for base snaps"},

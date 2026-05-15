@@ -219,11 +219,11 @@ func (m *HookManager) StopHooks() {
 	m.runner.StopKinds("run-hook")
 }
 
-func (m *HookManager) hijacked(hookName, instanceName string) hijackFunc {
+func (m *HookManager) hijacked(hookName, instanceName naming.InstanceName) hijackFunc {
 	return m.hijackMap[hijackKey{hookName, instanceName}]
 }
 
-func (m *HookManager) RegisterHijack(hookName, instanceName string, f hijackFunc) {
+func (m *HookManager) RegisterHijack(hookName, instanceName naming.InstanceName, f hijackFunc) {
 	if _, ok := m.hijackMap[hijackKey{hookName, instanceName}]; ok {
 		panic(fmt.Sprintf("hook %s for snap %s already hijacked", hookName, instanceName))
 	}

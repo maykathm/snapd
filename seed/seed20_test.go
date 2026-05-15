@@ -158,7 +158,7 @@ func (s *seed20Suite) makeSnap(c *C, yamlKey, publisher string) {
 	s.MakeAssertedSnap(c, snapYaml[yamlKey], nil, snap.R(1), publisher, s.StoreSigning.Database)
 }
 
-func (s *seed20Suite) expectedPath(snapName string) string {
+func (s *seed20Suite) expectedPath(snapName naming.SnapName) string {
 	return filepath.Join(s.SeedDir, "snaps", s.AssertedSnapInfo(snapName).Filename())
 }
 

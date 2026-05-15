@@ -30,14 +30,8 @@ import (
 	"github.com/snapcore/snapd/snap"
 	"github.com/snapcore/snapd/snap/integrity"
 	"github.com/snapcore/snapd/timings"
-)
 
-var (
-	ErrNoAssertions       = errors.New("no seed assertions")
-	ErrNoPreseedAssertion = errors.New("no seed preseed assertion")
-	ErrNoMeta             = errors.New("no seed metadata")
-
-	open = Open
+	"github.com/snapcore/snapd/snap/naming"
 )
 
 // Component holds the details of a component in a seed.
@@ -70,8 +64,8 @@ type Snap struct {
 	Components []Component
 }
 
-func (s *Snap) SnapName() string {
-	return s.SideInfo.RealName
+func (s *Snap) SnapName() naming.SnapName {
+	return naming.SnapName(s.SideInfo.RealName)
 }
 
 func (s *Snap) ID() string {
@@ -86,6 +80,16 @@ func (s *Snap) PlaceInfo() snap.PlaceInfo {
 // AllModes can be passed to Seed.LoadMeta to load metadata for snaps
 // for all modes.
 const AllModes = ""
+
+var (
+	// ErrNoAssertions is returned when there is no assertions directory
+	// in the seed, this is legitimate only on classic.
+	ErrNoAssertions = errors.New("no assertions directory found in seed")
+
+	// ErrNoMeta is returned when there is no metadata nor snaps in the
+	// seed, this is legitimate only on classic.
+	ErrNoMeta = errors.New("no metadata nor snaps found in seed")
+)
 
 // Seed supports loading assertions and seed snaps' metadata.
 type Seed interface {
@@ -308,7 +312,7 @@ func ReadSeedAndBetterEarliestTime(seedDir, label string, earliestTime time.Time
 	if label == "" {
 		return nil, time.Time{}, fmt.Errorf("system label cannot be empty")
 	}
-	seed20, err := open(seedDir, label)
+	seed20, err := Open(seedDir, label)
 	if err != nil {
 		return nil, time.Time{}, err
 

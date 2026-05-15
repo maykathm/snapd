@@ -29,6 +29,8 @@ import (
 	"github.com/snapcore/snapd/dirs"
 	"github.com/snapcore/snapd/osutil"
 	"github.com/snapcore/snapd/snap"
+
+	"github.com/snapcore/snapd/snap/naming"
 )
 
 func generateDBusActivationFile(app *snap.AppInfo, busName string) ([]byte, error) {
@@ -79,7 +81,7 @@ func snapNameFromServiceFile(filename string) (owner string, err error) {
 }
 
 // snapServiceActivationFiles returns the list of service activation files for a snap.
-func snapServiceActivationFiles(dir, snapName string) (services []string, err error) {
+func snapServiceActivationFiles(dir string, instanceName naming.InstanceName) (services []string, err error) {
 	glob := filepath.Join(dir, "*.service")
 	matches, err := filepath.Glob(glob)
 	if err != nil {
@@ -90,7 +92,7 @@ func snapServiceActivationFiles(dir, snapName string) (services []string, err er
 		if err != nil {
 			return nil, err
 		}
-		if serviceSnap == snapName {
+		if serviceSnap == string(instanceName) {
 			services = append(services, filepath.Base(match))
 		}
 	}

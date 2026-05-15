@@ -33,7 +33,7 @@ type SecurityTag interface {
 	String() string
 
 	// InstanceName returns the snap name and instance key.
-	InstanceName() string
+	InstanceName() InstanceName
 }
 
 // AppSecurityTag exposes details of a validated snap application security tag.
@@ -44,7 +44,7 @@ type AppSecurityTag interface {
 }
 
 type appSecurityTag struct {
-	instanceName string
+	instanceName InstanceName
 	appName      string
 }
 
@@ -52,7 +52,7 @@ func (t appSecurityTag) String() string {
 	return fmt.Sprintf("snap.%s.%s", t.instanceName, t.appName)
 }
 
-func (t appSecurityTag) InstanceName() string {
+func (t appSecurityTag) InstanceName() InstanceName {
 	return t.instanceName
 }
 
@@ -73,7 +73,7 @@ type HookSecurityTag interface {
 }
 
 type hookSecurityTag struct {
-	instanceName  string
+	instanceName  InstanceName
 	hookName      string
 	componentName string
 }
@@ -82,7 +82,7 @@ func (t hookSecurityTag) String() string {
 	return fmt.Sprintf("snap.%s.hook.%s", t.instanceName, t.hookName)
 }
 
-func (t hookSecurityTag) InstanceName() string {
+func (t hookSecurityTag) InstanceName() InstanceName {
 	return t.instanceName
 }
 
@@ -135,7 +135,7 @@ func ParseSecurityTag(tag string) (SecurityTag, error) {
 		if err := ValidateApp(appName); err != nil {
 			return nil, errInvalidSecurityTag
 		}
-		return &appSecurityTag{instanceName: snapName, appName: appName}, nil
+		return &appSecurityTag{instanceName: InstanceName(snapName), appName: appName}, nil
 	}
 
 	hookLiteral, hookName := parts[2], parts[3]
@@ -147,7 +147,7 @@ func ParseSecurityTag(tag string) (SecurityTag, error) {
 	}
 
 	return &hookSecurityTag{
-		instanceName:  snapName,
+		instanceName:  InstanceName(snapName),
 		hookName:      hookName,
 		componentName: componentName,
 	}, nil

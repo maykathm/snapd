@@ -28,7 +28,8 @@ import (
 	"github.com/snapcore/snapd/overlord/state"
 	"github.com/snapcore/snapd/snap"
 	"github.com/snapcore/snapd/wrappers"
-)
+
+	"github.com/snapcore/snapd/snap/naming")
 
 // ServiceAction encapsulates a single service-related action (such as starting,
 // stopping or restarting) run against services of a given snap. The action is
@@ -37,7 +38,7 @@ import (
 // The names of services and explicit-services are app names (as defined in snap
 // yaml).
 type ServiceAction struct {
-	SnapName       string   `json:"snap-name"`
+	SnapName naming.SnapName   `json:"snap-name"`
 	Action         string   `json:"action"`
 	ActionModifier string   `json:"action-modifier,omitempty"`
 	Services       []string `json:"services,omitempty"`

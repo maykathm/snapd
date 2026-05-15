@@ -22,7 +22,8 @@ package metautil
 import (
 	"fmt"
 	"reflect"
-)
+
+	"github.com/snapcore/snapd/snap/naming")
 
 func convertValue(value reflect.Value, outputType reflect.Type) (reflect.Value, error) {
 	inputType := value.Type()
@@ -72,7 +73,7 @@ func convertValue(value reflect.Value, outputType reflect.Type) (reflect.Value, 
 // AttributeNotCompatibleError represents a type mismatch error between an interface
 // attribute and an expected type.
 type AttributeNotCompatibleError struct {
-	SnapName      string
+	SnapName naming.SnapName
 	InterfaceName string
 	AttributeName string
 	AttributeType reflect.Type
@@ -95,7 +96,7 @@ func (e AttributeNotCompatibleError) Is(target error) bool {
 // error messages, but are not otherwise significant. This function only
 // operates converting the attrVal parameter into a value which can fit into
 // the val parameter, which therefore must be a pointer.
-func SetValueFromAttribute(snapName string, ifaceName string, attrName string, attrVal any, val any) error {
+func SetValueFromAttribute(snapName naming.SnapName, ifaceName string, attrName string, attrVal any, val any) error {
 	rt := reflect.TypeOf(val)
 	if rt.Kind() != reflect.Pointer || val == nil {
 		return fmt.Errorf("internal error: cannot get %q attribute of interface %q with non-pointer value", attrName, ifaceName)

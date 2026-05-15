@@ -152,7 +152,7 @@ func (pol *policy20) implicitExtraSnaps(map[string]*naming.SnapSet) []*OptionsSn
 	return nil
 }
 
-func (pol *policy20) recordSnapNameUsage(_ string) {}
+func (pol *policy20) recordSnapNameUsage(_ naming.SnapName) {}
 
 func (pol *policy20) isSystemSnapCandidate(sn *SeedSnap) bool {
 	if sn.modelSnap != nil {
@@ -249,7 +249,7 @@ func (tr *tree20) componentPath(sn *SeedSnap, sc *SeedComponent) (string, error)
 		return "", err
 	}
 
-	cpi := snap.MinimalComponentContainerPlaceInfo(sc.ComponentName, sc.Info.Revision, sc.SnapName)
+	cpi := snap.MinimalComponentContainerPlaceInfo(sc.ComponentName, sc.Info.Revision, string(sc.SnapName))
 	return filepath.Join(componentsDir, cpi.Filename()), nil
 }
 
@@ -451,7 +451,7 @@ func (tr *tree20) writeMeta(snapsFromModel []*SeedSnap, extraSnaps []*SeedSnap) 
 		}
 
 		optionsSnaps = append(optionsSnaps, &internal.Snap20{
-			Name: sn.SnapName(),
+			Name: string(sn.SnapName()),
 			// even if unasserted != "" SnapID is useful
 			// to cross-ref the model entry
 			SnapID:     sn.modelSnap.ID(),
@@ -470,7 +470,7 @@ func (tr *tree20) writeMeta(snapsFromModel []*SeedSnap, extraSnaps []*SeedSnap) 
 		}
 
 		optionsSnaps = append(optionsSnaps, &internal.Snap20{
-			Name:       sn.SnapName(),
+			Name:       string(sn.SnapName()),
 			SnapID:     sn.Info.ID(),
 			Unasserted: unasserted,
 			Channel:    channel,

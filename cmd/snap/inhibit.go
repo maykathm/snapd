@@ -34,7 +34,8 @@ import (
 	"github.com/snapcore/snapd/logger"
 	"github.com/snapcore/snapd/osutil"
 	"github.com/snapcore/snapd/snap"
-)
+
+	"github.com/snapcore/snapd/snap/naming")
 
 var runinhibitWaitWhileInhibited = runinhibit.WaitWhileInhibited
 
@@ -63,7 +64,7 @@ var errOngoingSnapRefresh = fmt.Errorf("snap is being refreshed")
 // NOTE: A snap without a hint file is considered not inhibited and a nil FileLock is returned.
 //
 // NOTE: It is the caller's responsibility to release the returned file lock.
-func waitWhileInhibited(ctx context.Context, cli *client.Client, snapName string, appName string) (info *snap.Info, app *snap.AppInfo, hintFlock *osutil.FileLock, err error) {
+func waitWhileInhibited(ctx context.Context, cli *client.Client, snapName naming.SnapName, appName string) (info *snap.Info, app *snap.AppInfo, hintFlock *osutil.FileLock, err error) {
 	var flow inhibitionFlow
 	notified := false
 	notInhibited := func(ctx context.Context) (err error) {
@@ -165,12 +166,12 @@ type inhibitionFlow interface {
 	FinishInhibitionNotification(ctx context.Context) error
 }
 
-var newInhibitionFlow = func(cli *client.Client, instanceName string) inhibitionFlow {
+var newInhibitionFlow = func(cli *client.Client, instanceName naming.InstanceName) inhibitionFlow {
 	return &noticesFlow{instanceName: instanceName, cli: cli}
 }
 
 type noticesFlow struct {
-	instanceName string
+	instanceName naming.InstanceName
 
 	cli *client.Client
 }

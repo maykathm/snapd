@@ -193,11 +193,11 @@ type SnapSetup struct {
 	IntegrityDataInfo *snap.IntegrityDataInfo `json:"integrity-data-info,omitempty"`
 }
 
-func (snapsup *SnapSetup) InstanceName() string {
+func (snapsup *SnapSetup) InstanceName() naming.InstanceName {
 	return snap.InstanceName(snapsup.SnapName(), snapsup.InstanceKey)
 }
 
-func (snapsup *SnapSetup) SnapName() string {
+func (snapsup *SnapSetup) SnapName() naming.SnapName {
 	if snapsup.SideInfo.RealName == "" {
 		panic("SnapSetup.SideInfo.RealName not set")
 	}
@@ -277,7 +277,7 @@ func (compsu *ComponentSetup) Revision() snap.Revision {
 // BlobPath returns the path to the component/squashfs file that backs the
 // component that is being setup. Unless the component was downloaded to a
 // custom location, this will be under dirs.SnapBlobDir.
-func (compsu *ComponentSetup) BlobPath(instanceName string) string {
+func (compsu *ComponentSetup) BlobPath(instanceName naming.InstanceName) string {
 	if instanceName == "" {
 		instanceName = compsu.CompSideInfo.Component.SnapName
 	}
@@ -621,9 +621,9 @@ const (
 var snapReadInfo = snap.ReadInfo
 
 // AutomaticSnapshot allows to hook snapshot manager's AutomaticSnapshot.
-var AutomaticSnapshot func(st *state.State, instanceName string) (ts *state.TaskSet, err error)
+var AutomaticSnapshot func(st *state.State, instanceName naming.InstanceName) (ts *state.TaskSet, err error)
 var AutomaticSnapshotExpiration func(st *state.State) (time.Duration, error)
-var EstimateSnapshotSize func(st *state.State, instanceName string, users []string) (uint64, error)
+var EstimateSnapshotSize func(st *state.State, instanceName naming.InstanceName, users []string) (uint64, error)
 
 func readInfo(name string, si *snap.SideInfo, flags int) (*snap.Info, error) {
 	info, err := snapReadInfo(name, si)
@@ -746,7 +746,7 @@ func (snapst *SnapState) CurrentComponentInfo(cref naming.ComponentRef) (*snap.C
 	return ReadComponentInfo(si, csi)
 }
 
-func (snapst *SnapState) InstanceName() string {
+func (snapst *SnapState) InstanceName() naming.InstanceName {
 	cur := snapst.CurrentSideInfo()
 	if cur == nil {
 		return ""

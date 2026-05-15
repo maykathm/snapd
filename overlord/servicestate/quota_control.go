@@ -32,7 +32,8 @@ import (
 	"github.com/snapcore/snapd/snap/quota"
 	"github.com/snapcore/snapd/snapdenv"
 	"github.com/snapcore/snapd/systemd"
-)
+
+	"github.com/snapcore/snapd/snap/naming")
 
 var (
 	systemdVersionError error
@@ -434,7 +435,7 @@ func EnsureSnapAbsentFromQuota(st *state.State, snap string) error {
 // with proper conflict detection for the affected quota-group. Conflict detection for the snap being
 // added must be done by the larger context, as this function is intended to be used in the context
 // of a more complex change.
-func AddSnapToQuotaGroup(st *state.State, snapName string, quotaGroup string) (*state.Task, error) {
+func AddSnapToQuotaGroup(st *state.State, snapName naming.SnapName, quotaGroup string) (*state.Task, error) {
 	if err := CheckQuotaChangeConflictMany(st, []string{quotaGroup}); err != nil {
 		return nil, err
 	}

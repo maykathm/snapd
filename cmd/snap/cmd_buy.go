@@ -28,7 +28,8 @@ import (
 
 	"github.com/snapcore/snapd/client"
 	"github.com/snapcore/snapd/i18n"
-)
+
+	"github.com/snapcore/snapd/snap/naming")
 
 var shortBuyHelp = i18n.G("Buy a snap")
 var longBuyHelp = i18n.G(`
@@ -61,7 +62,7 @@ func (x *cmdBuy) Execute(args []string) error {
 	return buySnap(x.client, string(x.Positional.SnapName))
 }
 
-func buySnap(cli *client.Client, snapName string) error {
+func buySnap(cli *client.Client, snapName naming.SnapName) error {
 	user := cli.LoggedInUser()
 	if user == nil {
 		return errors.New(i18n.G("You need to be logged in to purchase software. Please run 'snap login' and try again."))

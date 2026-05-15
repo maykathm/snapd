@@ -40,7 +40,8 @@ import (
 	"github.com/snapcore/snapd/osutil"
 	"github.com/snapcore/snapd/polkit/validate"
 	"github.com/snapcore/snapd/snap"
-)
+
+	"github.com/snapcore/snapd/snap/naming")
 
 const polkitSummary = `allows installing polkit rules and/or access to polkitd to check authorisation`
 
@@ -266,7 +267,7 @@ func (iface *polkitInterface) addPolkitRules(spec *polkit.Specification, plug *i
 }
 
 type polkitMissingAttrErr struct {
-	snapName string
+	snapName naming.SnapName
 }
 
 func (err *polkitMissingAttrErr) Error() string {

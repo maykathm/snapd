@@ -27,7 +27,8 @@ import (
 	"syscall"
 
 	"github.com/snapcore/snapd/dirs"
-)
+
+	"github.com/snapcore/snapd/snap/naming")
 
 // Alias represents a command alias with a name and its application target.
 type Alias struct {
@@ -89,12 +90,12 @@ func (b Backend) UpdateAliases(add []*Alias, remove []*Alias) error {
 }
 
 // RemoveSnapAliases removes all the aliases targeting the given snap.
-func (b Backend) RemoveSnapAliases(snapName string) error {
+func (b Backend) RemoveSnapAliases(snapName naming.SnapName) error {
 	removeSymlinksTo(dirs.CompletersDir, snapName)
 	return removeSymlinksTo(dirs.SnapBinariesDir, snapName)
 }
 
-func removeSymlinksTo(dir, snapName string) error {
+func removeSymlinksTo(dir, snapName naming.SnapName) error {
 	cands, err := filepath.Glob(filepath.Join(dir, "*"))
 	if err != nil {
 		return err

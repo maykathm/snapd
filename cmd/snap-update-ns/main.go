@@ -32,14 +32,15 @@ import (
 
 	"github.com/snapcore/snapd/dirs"
 	"github.com/snapcore/snapd/logger"
-)
+
+	"github.com/snapcore/snapd/snap/naming")
 
 var opts struct {
 	FromSnapConfine bool `long:"from-snap-confine"`
 	UserMounts      bool `long:"user-mounts"`
 	UserID          int  `short:"u"`
 	Positionals     struct {
-		SnapName string `positional-arg-name:"SNAP_NAME" required:"yes"`
+		SnapName naming.SnapName `positional-arg-name:"SNAP_NAME" required:"yes"`
 	} `positional-args:"true"`
 }
 
@@ -98,13 +99,13 @@ func run() error {
 
 	var upCtx MountProfileUpdateContext
 	if opts.UserMounts {
-		userUpCtx, err := NewUserProfileUpdateContext(opts.Positionals.SnapName, opts.FromSnapConfine, os.Getuid())
+		userUpCtx, err := NewUserProfileUpdateContext(naming.InstanceName(opts.Positionals.SnapName), opts.FromSnapConfine, os.Getuid())
 		if err != nil {
 			return fmt.Errorf("cannot create user profile update context: %v", err)
 		}
 		upCtx = userUpCtx
 	} else {
-		upCtx = NewSystemProfileUpdateContext(opts.Positionals.SnapName, opts.FromSnapConfine)
+		upCtx = NewSystemProfileUpdateContext(naming.InstanceName(opts.Positionals.SnapName), opts.FromSnapConfine)
 	}
 	return executeMountProfileUpdate(upCtx)
 }
@@ -120,7 +121,7 @@ func run() error {
 //
 // Nothing in snapd creates or removes those files. The content may be attached
 // to bug reports to be investigated by snapd developers.
-func setupOptInLogging(snapName string, userMounts bool) {
+func setupOptInLogging(snapName naming.SnapName, userMounts bool) {
 	var path string
 	if userMounts {
 		path = filepath.Join(dirs.SnapRunNsDir, fmt.Sprintf("snap.%s.user.%d.log", snapName, os.Getuid()))

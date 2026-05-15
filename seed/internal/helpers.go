@@ -24,11 +24,11 @@ import (
 	"github.com/snapcore/snapd/snap/naming"
 )
 
-func MakeSystemSnap(snapName string, defaultChannel string, modes []string) *asserts.ModelSnap {
+func MakeSystemSnap(snapName naming.SnapName, defaultChannel string, modes []string) *asserts.ModelSnap {
 	return &asserts.ModelSnap{
-		Name:           snapName,
+		Name:           string(snapName),
 		SnapID:         naming.WellKnownSnapID(snapName),
-		SnapType:       snapName, // same as snapName for core, snapd
+		SnapType:       string(snapName), // same as snapName for core, snapd
 		Modes:          modes,
 		DefaultChannel: defaultChannel,
 		Presence:       "required",

@@ -25,6 +25,7 @@ import (
 	"strings"
 
 	"github.com/snapcore/snapd/dirs"
+	"github.com/snapcore/snapd/snap/naming"
 )
 
 // GuessAppsForBroken guesses what apps and services a broken snap has
@@ -36,7 +37,7 @@ func GuessAppsForBroken(info *Info) map[string]*AppInfo {
 
 	// guess binaries first
 	name := info.InstanceName()
-	for _, p := range []string{name, fmt.Sprintf("%s.*", name)} {
+	for _, p := range []string{string(name), fmt.Sprintf("%s.*", name)} {
 		matches, _ := filepath.Glob(filepath.Join(dirs.SnapBinariesDir, p))
 		for _, m := range matches {
 			l := strings.SplitN(filepath.Base(m), ".", 2)
@@ -46,7 +47,7 @@ func GuessAppsForBroken(info *Info) map[string]*AppInfo {
 				// be available under '<snap>' name, if the snap
 				// was installed with instance key, the app will
 				// be named `<snap>_<instance>'
-				appname = InstanceSnap(l[0])
+				appname = string(InstanceSnap(naming.InstanceName(l[0])))
 			} else {
 				appname = l[1]
 			}

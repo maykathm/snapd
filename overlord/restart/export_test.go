@@ -21,7 +21,8 @@ package restart
 
 import (
 	"github.com/snapcore/snapd/boot"
-)
+
+	"github.com/snapcore/snapd/snap/naming")
 
 var (
 	MarkTaskForRestart          = markTaskForRestart
@@ -29,6 +30,6 @@ var (
 	ProcessRestartForChange     = processRestartForChange
 )
 
-func RestartParametersInit(rt *RestartParameters, snapName string, restartType RestartType, rebootInfo *boot.RebootInfo) {
+func RestartParametersInit(rt *RestartParameters, snapName naming.SnapName, restartType RestartType, rebootInfo *boot.RebootInfo) {
 	rt.init(snapName, restartType, rebootInfo)
 }

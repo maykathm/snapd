@@ -22,10 +22,11 @@ package restart
 import (
 	"github.com/snapcore/snapd/boot"
 	"github.com/snapcore/snapd/bootloader"
-)
+
+	"github.com/snapcore/snapd/snap/naming")
 
 type RestartParameters struct {
-	SnapName          string              `json:"snap-name,omitempty"`
+	SnapName naming.SnapName              `json:"snap-name,omitempty"`
 	RestartType       RestartType         `json:"restart-type,omitempty"`
 	BootloaderOptions *bootloader.Options `json:"bootloader-options,omitempty"`
 }
@@ -42,7 +43,7 @@ var restartTypeOrder = []RestartType{
 	RestartSystem,
 }
 
-func (rt *RestartParameters) init(snapName string, restartType RestartType, rebootInfo *boot.RebootInfo) {
+func (rt *RestartParameters) init(snapName naming.SnapName, restartType RestartType, rebootInfo *boot.RebootInfo) {
 	for _, r := range restartTypeOrder {
 		// Only set if the one stored isn't already same priority
 		// or higher.

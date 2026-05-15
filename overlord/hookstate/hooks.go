@@ -30,7 +30,8 @@ import (
 	"github.com/snapcore/snapd/overlord/configstate/config"
 	"github.com/snapcore/snapd/overlord/snapstate"
 	"github.com/snapcore/snapd/overlord/state"
-)
+
+	"github.com/snapcore/snapd/snap/naming")
 
 func init() {
 	snapstate.SetupInstallHook = SetupInstallHook
@@ -44,7 +45,7 @@ func init() {
 	snapstate.SetupGateAutoRefreshHook = SetupGateAutoRefreshHook
 }
 
-func SetupInstallHook(st *state.State, snapName string) *state.Task {
+func SetupInstallHook(st *state.State, snapName naming.SnapName) *state.Task {
 	hooksup := &HookSetup{
 		Snap:     snapName,
 		Hook:     "install",
@@ -114,7 +115,7 @@ func SetupRemoveComponentHook(st *state.State, snap, component string) *state.Ta
 	return task
 }
 
-func SetupPostRefreshHook(st *state.State, snapName string) *state.Task {
+func SetupPostRefreshHook(st *state.State, snapName naming.SnapName) *state.Task {
 	hooksup := &HookSetup{
 		Snap:     snapName,
 		Hook:     "post-refresh",
@@ -125,7 +126,7 @@ func SetupPostRefreshHook(st *state.State, snapName string) *state.Task {
 	return HookTask(st, summary, hooksup, nil)
 }
 
-func SetupPreRefreshHook(st *state.State, snapName string) *state.Task {
+func SetupPreRefreshHook(st *state.State, snapName naming.SnapName) *state.Task {
 	hooksup := &HookSetup{
 		Snap:     snapName,
 		Hook:     "pre-refresh",
@@ -342,7 +343,7 @@ func NewGateAutoRefreshHookHandler(context *Context) *gateAutoRefreshHookHandler
 	}
 }
 
-func SetupGateAutoRefreshHook(st *state.State, snapName string) *state.Task {
+func SetupGateAutoRefreshHook(st *state.State, snapName naming.SnapName) *state.Task {
 	hookSup := &HookSetup{
 		Snap:     snapName,
 		Hook:     "gate-auto-refresh",
@@ -359,7 +360,7 @@ func (h *SnapHookHandler) Before() error                 { return nil }
 func (h *SnapHookHandler) Done() error                   { return nil }
 func (h *SnapHookHandler) Error(err error) (bool, error) { return false, nil }
 
-func SetupRemoveHook(st *state.State, snapName string) *state.Task {
+func SetupRemoveHook(st *state.State, snapName naming.SnapName) *state.Task {
 	hooksup := &HookSetup{
 		Snap:        snapName,
 		Hook:        "remove",

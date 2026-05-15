@@ -28,7 +28,8 @@ import (
 	"github.com/snapcore/snapd/overlord/state"
 	"github.com/snapcore/snapd/snap"
 	"github.com/snapcore/snapd/strutil"
-)
+
+	"github.com/snapcore/snapd/snap/naming")
 
 // FinalTasks are task kinds for final tasks in a change which means no further
 // change work should be performed afterward, usually these are tasks that
@@ -342,11 +343,11 @@ func checkChangeConflictManyWithOptions(st *state.State, instanceNames []string,
 // changes that alters the snap (like remove, install, refresh) are in
 // progress. It also ensures that snapst (if not nil) did not get
 // modified. If a conflict is detected an error is returned.
-func CheckChangeConflict(st *state.State, instanceName string, snapst *SnapState) error {
+func CheckChangeConflict(st *state.State, instanceName naming.InstanceName, snapst *SnapState) error {
 	return checkChangeConflictIgnoringOneChange(st, instanceName, snapst, ConflictOptions{})
 }
 
-func checkChangeConflictIgnoringOneChange(st *state.State, instanceName string, snapst *SnapState, opts ConflictOptions) error {
+func checkChangeConflictIgnoringOneChange(st *state.State, instanceName naming.InstanceName, snapst *SnapState, opts ConflictOptions) error {
 	if err := checkChangeConflictManyWithOptions(st, []string{instanceName}, opts); err != nil {
 		return err
 	}

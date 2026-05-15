@@ -27,12 +27,12 @@ import (
 
 // ComponentRef contains the component name and the owner snap name.
 type ComponentRef struct {
-	SnapName      string `yaml:"snap-name" json:"snap-name"`
-	ComponentName string `yaml:"component-name" json:"component-name"`
+	SnapName      SnapName `yaml:"snap-name" json:"snap-name"`
+	ComponentName string   `yaml:"component-name" json:"component-name"`
 }
 
 // NewComponentRef returns a reference to a snap component.
-func NewComponentRef(snapName, componentName string) ComponentRef {
+func NewComponentRef(snapName SnapName, componentName string) ComponentRef {
 	return ComponentRef{SnapName: snapName, ComponentName: componentName}
 }
 
@@ -52,8 +52,7 @@ func (cr ComponentRef) String() string {
 
 // Validate validates the component.
 func (cr ComponentRef) Validate() error {
-	for _, name := range []string{cr.SnapName, cr.ComponentName} {
-		// Same restrictions as snap names
+	for _, name := range []string{string(cr.SnapName), cr.ComponentName} {
 		if err := ValidateSnap(name); err != nil {
 			return err
 		}
@@ -72,24 +71,17 @@ func (cid *ComponentRef) UnmarshalYAML(unmarshall func(any) error) error {
 		return err
 	}
 
-	*cid = ComponentRef{SnapName: snap, ComponentName: comp}
+	*cid = ComponentRef{SnapName: SnapName(snap), ComponentName: comp}
 
 	return nil
 }
 
-// snapPackComponentFilename is a regular expression that matches what snap pack
-// creates when building a component. For example, "foo+bar_1.0.0.comp" matches
-// this expression.
 var snapPackComponentFilename = regexp.MustCompile(fmt.Sprintf(`^(%[1]s)\+(%[1]s)(?:_.*)?\.comp$`, almostValidNameRegexString))
 
-// ComponentRefFromSnapPackFilename parses a filename created when creating a
-// component with "snap pack". These are generally in one of two forms:
-//   - <snap>+<comp>.comp
-//   - <snap>+<comp>_<version>.comp
 func ComponentRefFromSnapPackFilename(filename string) (ComponentRef, error) {
 	matches := snapPackComponentFilename.FindStringSubmatch(filename)
 	if len(matches) != 3 {
 		return ComponentRef{}, fmt.Errorf("cannot parse snap pack component filename: %q", filename)
 	}
-	return NewComponentRef(matches[1], matches[2]), nil
+	return NewComponentRef(SnapName(matches[1]), matches[2]), nil
 }

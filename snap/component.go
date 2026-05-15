@@ -110,8 +110,8 @@ func (csi *ComponentSideInfo) Equal(other *ComponentSideInfo) bool {
 
 // ComponentBaseDir returns where components are to be found for the
 // snap with name instanceName.
-func ComponentsBaseDir(instanceName string) string {
-	return filepath.Join(BaseDir(instanceName), "components")
+func ComponentsBaseDir(instanceName naming.InstanceName) string {
+	return filepath.Join(BaseDir(string(instanceName)), "components")
 }
 
 // componentPlaceInfo holds information about where to put a component in the
@@ -139,8 +139,8 @@ func MinimalComponentContainerPlaceInfo(compName string, compRev Revision, snapI
 }
 
 // ContainerName returns the component name.
-func (c *componentPlaceInfo) ContainerName() string {
-	return fmt.Sprintf("%s+%s", c.snapInstance, c.compName)
+func (c *componentPlaceInfo) ContainerName() naming.InstanceName {
+	return naming.InstanceName(fmt.Sprintf("%s+%s", c.snapInstance, c.compName))
 }
 
 // Filename returns the container file name.
@@ -188,8 +188,8 @@ func (c *componentPlaceInfo) DmVerityDigest() (string, error) {
 // method on the ContainerPlaceInfo. If that changes, callers of this function
 // may need to change how the parameters are initialized.
 func ComponentLinkPath(cpi ContainerPlaceInfo, snapRev Revision) string {
-	instanceName, compName, _ := strings.Cut(cpi.ContainerName(), "+")
-	compBase := ComponentsBaseDir(instanceName)
+	instanceName, compName, _ := strings.Cut(string(cpi.ContainerName()), "+")
+	compBase := ComponentsBaseDir(naming.InstanceName(instanceName))
 	return filepath.Join(compBase, snapRev.String(), compName)
 }
 

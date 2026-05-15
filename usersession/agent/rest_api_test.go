@@ -43,7 +43,8 @@ import (
 	"github.com/snapcore/snapd/testutil"
 	"github.com/snapcore/snapd/usersession/agent"
 	"github.com/snapcore/snapd/usersession/client"
-)
+
+	"github.com/snapcore/snapd/snap/naming")
 
 type restSuite struct {
 	testutil.BaseTest
@@ -1084,7 +1085,7 @@ func createLocalizedDesktopFile(c *C, name string, localizedNames map[string]str
 	return parser
 }
 
-func createSnapInfo(snapName string) *snap.Info {
+func createSnapInfo(snapName naming.SnapName) *snap.Info {
 	si := snap.Info{
 		SideInfo: snap.SideInfo{
 			RealName: snapName,

@@ -171,7 +171,7 @@ func validateContainer(c snap.Container, s *snap.Info, logf func(format string, 
 }
 
 // checkSnap ensures that the snap can be installed.
-func checkSnap(st *state.State, snapFilePath, instanceName string, si *snap.SideInfo, curInfo *snap.Info, flags Flags, deviceCtx DeviceContext) error {
+func checkSnap(st *state.State, snapFilePath, instanceName naming.InstanceName, si *snap.SideInfo, curInfo *snap.Info, flags Flags, deviceCtx DeviceContext) error {
 	// This assumes that the snap was already verified or --dangerous was used.
 
 	s, c, err := openSnapFile(snapFilePath, si)

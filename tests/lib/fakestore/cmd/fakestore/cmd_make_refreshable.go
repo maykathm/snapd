@@ -23,6 +23,8 @@ import (
 	"fmt"
 
 	"github.com/snapcore/snapd/tests/lib/fakestore/refresh"
+
+	"github.com/snapcore/snapd/snap/naming"
 )
 
 type cmdMakeRefreshable struct {
@@ -30,7 +32,7 @@ type cmdMakeRefreshable struct {
 	SnapBlob     string `long:"snap-blob" description:"File or directory with new snap revision contents"`
 	SnapOrigBlob string `long:"snap-orig-blob" description:"File or directory with original snap revision contents"`
 	Positional   struct {
-		SnapName string `description:"snap name" positional-arg-name:"snap-name"`
+		SnapName naming.SnapName `description:"snap name" positional-arg-name:"snap-name"`
 	} `positional-args:"yes" required:"1"`
 }
 
@@ -39,7 +41,7 @@ func (x *cmdMakeRefreshable) Execute(args []string) error {
 		return fmt.Errorf("unexpected additional arguments %v", args)
 	}
 	// setup fake new revisions of snaps for refresh
-	return refresh.MakeFakeRefreshForSnaps(x.Positional.SnapName, x.TopDir, x.SnapBlob, x.SnapOrigBlob)
+	return refresh.MakeFakeRefreshForSnaps(string(x.Positional.SnapName), x.TopDir, x.SnapBlob, x.SnapOrigBlob)
 }
 
 var shortMakeRefreshableHelp = "Makes new versions of the given snaps"

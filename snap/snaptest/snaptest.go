@@ -34,6 +34,8 @@ import (
 	"github.com/snapcore/snapd/snap/pack"
 	"github.com/snapcore/snapd/snap/snapdir"
 	"github.com/snapcore/snapd/snap/squashfs"
+
+	"github.com/snapcore/snapd/snap/naming"
 )
 
 func mockSnap(c *check.C, instanceName, yamlText string, sideInfo *snap.SideInfo) *snap.Info {
@@ -51,7 +53,7 @@ func mockSnap(c *check.C, instanceName, yamlText string, sideInfo *snap.SideInfo
 
 	if instanceName != "" {
 		// Set the snap instance name
-		snapName, instanceKey := snap.SplitInstanceName(instanceName)
+		snapName, instanceKey := snap.SplitInstanceName(naming.InstanceName(instanceName))
 		snapInfo.InstanceKey = instanceKey
 
 		// Make sure snap name/instance name checks out
@@ -105,7 +107,7 @@ func MockComponent(c *check.C, yamlText string, info *snap.Info, csi snap.Compon
 	c.Assert(err, check.IsNil)
 
 	// Put the component.yaml on disk, in the right spot.
-	mountDir := snap.ComponentMountDir(infoForName.Component.ComponentName, csi.Revision, info.InstanceName())
+	mountDir := snap.ComponentMountDir(infoForName.Component.ComponentName, csi.Revision, string(info.InstanceName()))
 	metaDir := filepath.Join(mountDir, "meta")
 	err = os.MkdirAll(metaDir, 0755)
 	c.Assert(err, check.IsNil)
@@ -121,7 +123,7 @@ func MockComponent(c *check.C, yamlText string, info *snap.Info, csi snap.Compon
 	cpi := snap.MinimalComponentContainerPlaceInfo(
 		csi.Component.ComponentName,
 		csi.Revision,
-		info.SnapName(),
+		string(info.SnapName()),
 	)
 	err = os.Rename(compPath, cpi.MountFile())
 	c.Assert(err, check.IsNil)
@@ -157,7 +159,7 @@ func MockSnapCurrent(c *check.C, yamlText string, sideInfo *snap.SideInfo) *snap
 func MockComponentCurrent(c *check.C, yamlText string, info *snap.Info, csi snap.ComponentSideInfo) *snap.ComponentInfo {
 	ci := MockComponent(c, yamlText, info, csi)
 
-	mountDir := snap.ComponentMountDir(ci.Component.ComponentName, ci.Revision, info.InstanceName())
+	mountDir := snap.ComponentMountDir(ci.Component.ComponentName, ci.Revision, string(info.InstanceName()))
 	link := filepath.Join(snap.ComponentsBaseDir(info.InstanceName()), info.Revision.String(), ci.Component.ComponentName)
 	err := os.MkdirAll(filepath.Dir(link), 0755)
 	c.Assert(err, check.IsNil)
@@ -275,8 +277,8 @@ func PopulateDir(dir string, files [][]string) {
 	}
 }
 
-func AssertedSnapID(snapName string) string {
-	cleanedName := strings.Replace(snapName, "-", "", -1)
+func AssertedSnapID(snapName naming.SnapName) string {
+	cleanedName := strings.Replace(string(snapName), "-", "", -1)
 	return cleanedName + strings.Repeat("id", 16)[len(cleanedName):]
 }
 
@@ -358,7 +360,7 @@ func MakeSnapFileAndDir(c *check.C, snapYamlContent string, files [][]string, si
 
 	err := osutil.ChDir(info.MountDir(), func() error {
 		snapName, err := pack.Pack(info.MountDir(), &pack.Options{
-			SnapName: info.MountFile(),
+			SnapName: naming.SnapName(info.MountFile()),
 		})
 		c.Check(snapName, check.Equals, info.MountFile())
 		return err

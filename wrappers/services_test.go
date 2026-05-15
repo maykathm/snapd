@@ -36,7 +36,8 @@ import (
 	"github.com/snapcore/snapd/dirs/dirstest"
 	"github.com/snapcore/snapd/gadget/quantity"
 
-	// imported to ensure actual interfaces are defined (in production this is guaranteed by ifacestate)
+	// imported to ensure actual interfaces are defined (in production this is guaranteed by ifacestate
+	"github.com/snapcore/snapd/snap/naming")
 	_ "github.com/snapcore/snapd/interfaces/builtin"
 	"github.com/snapcore/snapd/osutil"
 	"github.com/snapcore/snapd/osutil/user"
@@ -1239,7 +1240,7 @@ Storage=auto
 }
 
 type changesObservation struct {
-	snapName string
+	snapName naming.SnapName
 	grp      *quota.Group
 	unitType string
 	name     string

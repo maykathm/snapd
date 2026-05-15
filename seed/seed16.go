@@ -154,7 +154,7 @@ func (s *seed16) addSnap(sn *internal.Snap16, pinnedTrack string, handler Contai
 		var newPath string
 		if sn.Unasserted {
 			var err error
-			pinfo := snap.MinimalSnapContainerPlaceInfo(sn.Name, snap.Revision{N: -1})
+			pinfo := snap.MinimalSnapContainerPlaceInfo(naming.InstanceName(sn.Name), snap.Revision{N: -1})
 			newPath, err = handler.HandleUnassertedContainer(pinfo, path, tm)
 			if err != nil {
 				return nil, err
@@ -178,7 +178,7 @@ func (s *seed16) addSnap(sn *internal.Snap16, pinnedTrack string, handler Contai
 				var snapSHA3_384 string
 				var snapSize uint64
 				// NOTE: this revision is not really correct
-				cpi := snap.MinimalSnapContainerPlaceInfo(sn.Name, snap.R(0))
+				cpi := snap.MinimalSnapContainerPlaceInfo(naming.InstanceName(sn.Name), snap.R(0))
 				newPath, snapSHA3_384, snapSize, err = handler.HandleAndDigestAssertedContainer(cpi, path, tm)
 				if err != nil {
 					return
@@ -214,7 +214,7 @@ func (s *seed16) addSnap(sn *internal.Snap16, pinnedTrack string, handler Contai
 }
 
 type essentialSnapMissingError struct {
-	SnapName string
+	SnapName naming.SnapName
 }
 
 func (e *essentialSnapMissingError) Error() string {
@@ -277,9 +277,9 @@ func (s *seed16) loadEssentialMeta(essentialTypes []snap.Type, required *naming.
 	}
 
 	// add the essential snaps
-	addEssential := func(snapName string, pinnedTrack string, essType snap.Type) (*Snap, error) {
+	addEssential := func(snapName naming.SnapName, pinnedTrack string, essType snap.Type) (*Snap, error) {
 		// be idempotent
-		if added[snapName] {
+		if added[string(snapName)] {
 			return nil, nil
 		}
 
@@ -297,7 +297,7 @@ func (s *seed16) loadEssentialMeta(essentialTypes []snap.Type, required *naming.
 			}
 		}
 
-		yamlSnap := seeding[snapName]
+		yamlSnap := seeding[string(snapName)]
 		if yamlSnap == nil {
 			return nil, &essentialSnapMissingError{SnapName: snapName}
 		}
@@ -307,14 +307,14 @@ func (s *seed16) loadEssentialMeta(essentialTypes []snap.Type, required *naming.
 			return nil, err
 		}
 
-		if essType == snap.TypeBase && snapName == "core" {
+		if essType == snap.TypeBase && string(snapName) == "core" {
 			essType = snap.TypeOS
 		}
 
 		seedSnap.EssentialType = essType
 		seedSnap.Essential = true
 		seedSnap.Required = true
-		added[snapName] = true
+		added[string(snapName)] = true
 
 		return seedSnap, nil
 	}
@@ -328,20 +328,20 @@ func (s *seed16) loadEssentialMeta(essentialTypes []snap.Type, required *naming.
 			}
 		}
 		if !classicWithSnapd {
-			if _, err := addEssential(baseSnap, "", snap.TypeBase); err != nil {
+			if _, err := addEssential(naming.SnapName(baseSnap), "", snap.TypeBase); err != nil {
 				return err
 			}
 		}
 	}
 
 	if kernelName := model.Kernel(); kernelName != "" {
-		if _, err := addEssential(kernelName, model.KernelTrack(), snap.TypeKernel); err != nil {
+		if _, err := addEssential(naming.SnapName(kernelName), model.KernelTrack(), snap.TypeKernel); err != nil {
 			return err
 		}
 	}
 
 	if gadgetName := model.Gadget(); gadgetName != "" {
-		gadget, err := addEssential(gadgetName, model.GadgetTrack(), snap.TypeGadget)
+		gadget, err := addEssential(naming.SnapName(gadgetName), model.GadgetTrack(), snap.TypeGadget)
 		if err != nil {
 			return err
 		}
@@ -363,7 +363,7 @@ func (s *seed16) loadEssentialMeta(essentialTypes []snap.Type, required *naming.
 			if baseSnap != "" && gadgetBase != baseSnap {
 				return fmt.Errorf("cannot use gadget snap because its base %q is different from model base %q", gadgetBase, model.Base())
 			}
-			if _, err = addEssential(gadgetBase, "", snap.TypeBase); err != nil {
+			if _, err = addEssential(naming.SnapName(gadgetBase), "", snap.TypeBase); err != nil {
 				return err
 			}
 		}
@@ -461,7 +461,7 @@ func (s *seed16) ModeSnap(snapName, mode string) (*Snap, error) {
 		return nil, fmt.Errorf("internal error: Core 16/18 have only run mode, got: %s", mode)
 	}
 	for _, sn := range s.snaps {
-		if sn.SnapName() == snapName {
+		if string(sn.SnapName()) == snapName {
 			return sn, nil
 		}
 	}

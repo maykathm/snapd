@@ -797,7 +797,7 @@ func setChangeAccessedAt(st *state.State, accessed time.Time, changeID string) {
 // If the key does not exist, an error of type *NoAttributeError is returned.
 // The provided key may be formed as a dotted key path through nested maps.
 // For example, the "a.b.c" key describes the {a: {b: {c: value}}} map.
-func getAttribute(snapName string, subkeys []string, pos int, attrs map[string]any, result any) error {
+func getAttribute(snapName naming.SnapName, subkeys []string, pos int, attrs map[string]any, result any) error {
 	if pos >= len(subkeys) {
 		return fmt.Errorf("internal error: invalid subkeys index %d for subkeys %q", pos, subkeys)
 	}

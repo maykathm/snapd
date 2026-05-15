@@ -36,6 +36,8 @@ import (
 	"github.com/snapcore/snapd/logger"
 	"github.com/snapcore/snapd/overlord/auth"
 	"github.com/snapcore/snapd/snap"
+
+	"github.com/snapcore/snapd/snap/naming"
 )
 
 // TODO: rename this type to something more general, since it is used for more
@@ -56,7 +58,7 @@ type RefreshOptions struct {
 // snap action: install/refresh
 
 type CurrentSnap struct {
-	InstanceName     string
+	InstanceName     naming.InstanceName
 	SnapID           string
 	Revision         snap.Revision
 	TrackingChannel  string
@@ -108,7 +110,7 @@ const (
 
 type SnapAction struct {
 	Action       string
-	InstanceName string
+	InstanceName naming.InstanceName
 	SnapID       string
 	Channel      string
 	Revision     snap.Revision
@@ -370,7 +372,7 @@ func (s *Store) snapAction(ctx context.Context, currentSnaps []*CurrentSnap, act
 			return nil, nil, err
 		}
 		curSnaps[instanceKey] = curSnap
-		instanceNameToKey[curSnap.InstanceName] = instanceKey
+		instanceNameToKey[string(curSnap.InstanceName)] = instanceKey
 
 		channel := curSnap.TrackingChannel
 		if channel == "" {
@@ -459,7 +461,7 @@ func (s *Store) snapAction(ctx context.Context, currentSnaps []*CurrentSnap, act
 				return nil, nil, fmt.Errorf("internal error: unsupported download with instance name %q", a.InstanceName)
 			}
 		} else {
-			instanceKey = instanceNameToKey[a.InstanceName]
+			instanceKey = instanceNameToKey[string(a.InstanceName)]
 			refreshes[instanceKey] = a
 		}
 
@@ -660,7 +662,7 @@ func (s *Store) snapAction(ctx context.Context, currentSnaps []*CurrentSnap, act
 		if res.Result == "error" {
 			if a := installs[res.InstanceKey]; a != nil {
 				if res.Name != "" {
-					installErrors[a.InstanceName] = translateSnapActionError("install", a.Channel, res.Error.Code, res.Error.Message, res.Error.Extra.Releases)
+					installErrors[string(a.InstanceName)] = translateSnapActionError("install", a.Channel, res.Error.Code, res.Error.Message, res.Error.Extra.Releases)
 					continue
 				}
 			} else if a := downloads[res.InstanceKey]; a != nil {
@@ -681,7 +683,7 @@ func (s *Store) snapAction(ctx context.Context, currentSnaps []*CurrentSnap, act
 					if channel == "" && a.Revision.Unset() {
 						channel = cur.TrackingChannel
 					}
-					refreshErrors[cur.InstanceName] = translateSnapActionError("refresh", channel, res.Error.Code, res.Error.Message, res.Error.Extra.Releases)
+					refreshErrors[string(cur.InstanceName)] = translateSnapActionError("refresh", channel, res.Error.Code, res.Error.Message, res.Error.Extra.Releases)
 					continue
 				}
 			}
@@ -695,7 +697,7 @@ func (s *Store) snapAction(ctx context.Context, currentSnaps []*CurrentSnap, act
 
 		snapInfo.Channel = res.EffectiveChannel
 
-		var instanceName string
+		var instanceName naming.InstanceName
 		if res.Result == "refresh" {
 			cur := curSnaps[res.InstanceKey]
 			if cur == nil {
@@ -714,7 +716,7 @@ func (s *Store) snapAction(ctx context.Context, currentSnaps []*CurrentSnap, act
 			//   then we check if the snap's revision is in the list of blocked
 			//   revisions.
 			if !refreshes[res.InstanceKey].ResourceInstall && (currentSnapMatchesStoreSnap(cur, res.Snap) || findRev(rrev, cur.Block)) {
-				refreshErrors[cur.InstanceName] = ErrNoUpdateAvailable
+				refreshErrors[string(cur.InstanceName)] = ErrNoUpdateAvailable
 				continue
 			}
 			instanceName = cur.InstanceName

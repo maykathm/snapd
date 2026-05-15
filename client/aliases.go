@@ -22,6 +22,8 @@ package client
 import (
 	"bytes"
 	"encoding/json"
+
+	"github.com/snapcore/snapd/snap/naming"
 )
 
 // aliasAction represents an action performed on aliases.
@@ -54,10 +56,10 @@ func (client *Client) Alias(snapName, app, alias string) (changeID string, err e
 }
 
 // // DisableAllAliases disables all aliases of a snap, removing all manual ones.
-func (client *Client) DisableAllAliases(snapName string) (changeID string, err error) {
+func (client *Client) DisableAllAliases(snapName naming.SnapName) (changeID string, err error) {
 	return client.performAliasAction(&aliasAction{
 		Action: "unalias",
-		Snap:   snapName,
+		Snap:   string(snapName),
 	})
 }
 
@@ -80,10 +82,10 @@ func (client *Client) Unalias(aliasOrSnap string) (changeID string, err error) {
 
 // Prefer enables all aliases of a snap in preference to conflicting aliases
 // of other snaps whose aliases will be disabled (removed for manual ones).
-func (client *Client) Prefer(snapName string) (changeID string, err error) {
+func (client *Client) Prefer(snapName naming.SnapName) (changeID string, err error) {
 	return client.performAliasAction(&aliasAction{
 		Action: "prefer",
-		Snap:   snapName,
+		Snap:   string(snapName),
 	})
 }
 

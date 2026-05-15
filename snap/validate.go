@@ -41,8 +41,8 @@ import (
 )
 
 // ValidateInstanceName checks if a string can be used as a snap instance name.
-func ValidateInstanceName(instanceName string) error {
-	return naming.ValidateInstance(instanceName)
+func ValidateInstanceName(instanceName naming.InstanceName) error {
+	return naming.ValidateInstance(string(instanceName))
 }
 
 // ValidateName checks if a string can be used as a snap name.
@@ -62,7 +62,7 @@ func ValidateDesktopPrefix(prefix string) bool {
 		return false
 	}
 	if len(tokens) == 2 {
-		if err := ValidateInstanceName(tokens[1]); err != nil {
+		if err := ValidateInstanceName(naming.InstanceName(tokens[1])); err != nil {
 			return false
 		}
 	}
@@ -440,7 +440,7 @@ func Validate(info *Info) error {
 		return err
 	}
 
-	if err := ValidateName(info.SnapName()); err != nil {
+	if err := ValidateName(string(info.SnapName())); err != nil {
 		return err
 	}
 	if err := ValidateInstanceName(name); err != nil {
@@ -567,7 +567,7 @@ func ValidateBase(info *Info) error {
 	}
 
 	if info.Base != "" {
-		baseSnapName, instanceKey := SplitInstanceName(info.Base)
+		baseSnapName, instanceKey := SplitInstanceName(naming.InstanceName(info.Base))
 		if instanceKey != "" {
 			return fmt.Errorf("base cannot specify a snap instance name: %q", info.Base)
 		}
@@ -650,7 +650,7 @@ func ValidateLayoutAll(info *Info) error {
 	// Validate that layout are not attempting to define elements that normally
 	// come from other snaps. This is separate from the ValidateLayout below to
 	// simplify argument passing.
-	thisSnapMntDir := filepath.Join("/snap/", info.SnapName())
+	thisSnapMntDir := filepath.Join("/snap/", string(info.SnapName()))
 	for _, path := range paths {
 		if strings.HasPrefix(path, "/snap/") && !strings.HasPrefix(path, thisSnapMntDir) {
 			return fmt.Errorf("layout %q defines a layout in space belonging to another snap", path)
@@ -1485,7 +1485,7 @@ func (prqt *SelfContainedSetPrereqTracker) Check() (warnings, errs []error) {
 			case 0:
 				errs = append(errs, fmt.Errorf("cannot use snap %q: default provider %q or any alternative provider for content %q is missing", info.InstanceName(), defaultProvider, wantedTag))
 			case 1:
-				if candSlots[0].Snap.InstanceName() == defaultProvider {
+				if string(candSlots[0].Snap.InstanceName()) == defaultProvider {
 					continue
 				}
 				// XXX TODO: consider also publisher
@@ -1497,7 +1497,7 @@ func (prqt *SelfContainedSetPrereqTracker) Check() (warnings, errs []error) {
 				}
 				sort.Strings(slots)
 				w := &ProviderWarning{
-					Snap:            info.InstanceName(),
+					Snap:            string(info.InstanceName()),
 					Plug:            plugName,
 					ContentTag:      wantedTag,
 					DefaultProvider: defaultProvider,

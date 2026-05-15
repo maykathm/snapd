@@ -37,7 +37,8 @@ import (
 	"github.com/snapcore/snapd/i18n"
 	"github.com/snapcore/snapd/logger"
 	"github.com/snapcore/snapd/snap"
-)
+
+	"github.com/snapcore/snapd/snap/naming")
 
 type reportIssueCmd struct {
 	clientMixin
@@ -141,7 +142,7 @@ func guessLikelyIssueReportingLink(allFlatLinks map[string][]string) string {
 	return ""
 }
 
-func (x *reportIssueCmd) reportContacts(snapName string) (hadLinks bool, likelyIssueReportingLink string) {
+func (x *reportIssueCmd) reportContacts(snapName naming.SnapName) (hadLinks bool, likelyIssueReportingLink string) {
 	remoteSnap, _, remoteErr := x.client.FindOne(snap.InstanceSnap(snapName))
 	localSnap, _, localErr := x.client.Snap(snapName)
 

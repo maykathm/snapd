@@ -264,7 +264,7 @@ func (s *Store) snapEssentialInfo(fn, snapID string, bs asserts.Backstore) (*ess
 	}
 
 	return &essentialInfo{
-		Name:        cached.info.SnapName(),
+		Name:        string(cached.info.SnapName()),
 		SnapID:      snapID,
 		DeveloperID: develID,
 		DevelName:   devel,
@@ -297,12 +297,12 @@ func addComponentBlobToRevisionSet(snaps map[string]*revisionSet, snapIDs map[st
 		return fmt.Errorf("cannot get digest for: %v: %v", fn, err)
 	}
 
-	set, ok := snaps[snapName]
+	set, ok := snaps[string(snapName)]
 	if !ok {
 		return fmt.Errorf("cannot find snap %q for component: %q", snapName, info.Component)
 	}
 
-	snapID, ok := snapIDs[snapName]
+	snapID, ok := snapIDs[string(snapName)]
 	if !ok {
 		return fmt.Errorf("cannot find snap id for snap %q", snapName)
 	}
@@ -1340,7 +1340,7 @@ func addSnapIDs(bs asserts.Backstore, initial map[string]string) (map[string]str
 
 	hit := func(a asserts.Assertion) {
 		decl := a.(*asserts.SnapDeclaration)
-		m[decl.SnapID()] = decl.SnapName()
+		m[decl.SnapID()] = string(decl.SnapName())
 	}
 
 	err := bs.Search(asserts.SnapDeclarationType, nil, hit, asserts.SnapDeclarationType.MaxSupportedFormat())

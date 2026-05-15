@@ -29,7 +29,8 @@ import (
 	"github.com/snapcore/snapd/overlord/state"
 	statedot "github.com/snapcore/snapd/overlord/state/dot"
 	"github.com/snapcore/snapd/snap"
-)
+
+	"github.com/snapcore/snapd/snap/naming")
 
 type hookSetup struct {
 	Snap string `json:"snap"`
@@ -41,7 +42,7 @@ type snapSetup struct {
 	InstanceKey string         `json:"instance-key,omitempty"`
 }
 
-func (snapsup *snapSetup) InstanceName() string {
+func (snapsup *snapSetup) InstanceName() naming.InstanceName {
 	if snapsup.SideInfo == nil || snapsup.SideInfo.RealName == "" {
 		return ""
 	}

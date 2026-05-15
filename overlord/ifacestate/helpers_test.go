@@ -46,7 +46,8 @@ import (
 	"github.com/snapcore/snapd/snap/snaptest"
 	"github.com/snapcore/snapd/testutil"
 	"github.com/snapcore/snapd/timings"
-)
+
+	"github.com/snapcore/snapd/snap/naming")
 
 type helpersSuite struct {
 	testutil.BaseTest
@@ -139,15 +140,15 @@ func (s *helpersSuite) TestCoreSnapdSystemMapper(c *C) {
 // caseMapper implements SnapMapper to use upper case internally and lower case externally.
 type caseMapper struct{}
 
-func (m *caseMapper) RemapSnapFromState(snapName string) string {
+func (m *caseMapper) RemapSnapFromState(snapName naming.SnapName) string {
 	return strings.ToUpper(snapName)
 }
 
-func (m *caseMapper) RemapSnapToState(snapName string) string {
+func (m *caseMapper) RemapSnapToState(snapName naming.SnapName) string {
 	return strings.ToLower(snapName)
 }
 
-func (m *caseMapper) RemapSnapFromRequest(snapName string) string {
+func (m *caseMapper) RemapSnapFromRequest(snapName naming.SnapName) string {
 	return strings.ToUpper(snapName)
 }
 
@@ -476,8 +477,8 @@ func (s *helpersSuite) TestProfileRegenerationSetupMany(c *C) {
 	backend := &ifacetest.TestSecurityBackendSetupMany{
 		TestSecurityBackend: ifacetest.TestSecurityBackend{BackendName: "fake"},
 		SetupManyCallback: func(appSets []*interfaces.SnapAppSet,
-			confinement func(snapName string) interfaces.ConfinementOptions,
-			sctx func(snapName string) interfaces.SetupContext,
+			confinement func(snapName naming.SnapName) interfaces.ConfinementOptions,
+			sctx func(snapName naming.SnapName) interfaces.SetupContext,
 			repo *interfaces.Repository, tm timings.Measurer,
 		) []error {
 			c.Check(appSets, HasLen, 2)
@@ -578,8 +579,8 @@ func (s *helpersSuite) TestProfileRegenerationSetupManyFailsSystemKeyNotWritten(
 	backend := &ifacetest.TestSecurityBackendSetupMany{
 		TestSecurityBackend: ifacetest.TestSecurityBackend{BackendName: "fake"},
 		SetupManyCallback: func(appSets []*interfaces.SnapAppSet,
-			confinement func(snapName string) interfaces.ConfinementOptions,
-			sctx func(snapName string) interfaces.SetupContext,
+			confinement func(snapName naming.SnapName) interfaces.ConfinementOptions,
+			sctx func(snapName naming.SnapName) interfaces.SetupContext,
 			repo *interfaces.Repository, tm timings.Measurer,
 		) []error {
 			c.Check(appSets, HasLen, 2)
@@ -826,7 +827,7 @@ func (s *helpersSuite) TestDiscardLateBackendViaSnapstate(c *C) {
 	defer restore()
 
 	backend := &ifacetest.TestSecurityBackendDiscardingLate{
-		RemoveLateCallback: func(snapName string, rev snap.Revision, typ snap.Type) error {
+		RemoveLateCallback: func(snapName naming.SnapName, rev snap.Revision, typ snap.Type) error {
 			if snapName == "this-fails" {
 				return fmt.Errorf("remove late fails")
 			}

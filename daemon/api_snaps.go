@@ -537,7 +537,7 @@ func snapInstall(ctx context.Context, inst *snapInstruction, st *state.State) (*
 	}, nil
 }
 
-func installRefreshMessage(snapName string, inst *snapInstruction) string {
+func installRefreshMessage(snapName naming.SnapName, inst *snapInstruction) string {
 	var b strings.Builder
 	if inst.Action == "install" {
 		fmt.Fprintf(&b, i18n.G("Install %q snap"), snapName)

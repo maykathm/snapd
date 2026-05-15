@@ -94,7 +94,7 @@ type uploadedContainer struct {
 	tmpPath string
 	// instanceName is optional and can only be set if only one snap or
 	// component was uploaded.
-	instanceName string
+	instanceName naming.InstanceName
 	// componentName is optional and can only be set if one component was
 	// uploaded. instanceName must be set if componentName is set.
 	// be derived from the filename.
@@ -521,7 +521,7 @@ func multiPathInstallMessage(sli *sideloadedInfo) string {
 }
 
 func sideloadSnap(_ context.Context, st *state.State, upload *uploadedContainer, flags sideloadFlags) (*state.Change, *apiError) {
-	var instanceName string
+	var instanceName naming.InstanceName
 	if upload.instanceName != "" {
 		// caller has specified desired instance name
 		instanceName = upload.instanceName
@@ -686,7 +686,7 @@ func readComponentInfoAndDeriveSideInfo(
 	upload *uploadedContainer,
 	flags sideloadFlags,
 	model *asserts.Model,
-	matchingSnap func(instanceName string, cref naming.ComponentRef) (*snap.Info, *apiError),
+	matchingSnap func(instanceName naming.InstanceName, cref naming.ComponentRef) (*snap.Info, *apiError),
 ) (*snap.ComponentInfo, *snap.Info, *apiError) {
 	if flags.dangerousOK {
 		return readComponentInfoDangerous(upload, matchingSnap)
@@ -695,7 +695,7 @@ func readComponentInfoAndDeriveSideInfo(
 	// either use the component ref that is provided by the caller, or do our
 	// best to infer it from the filename of the assumed component file
 	var cref naming.ComponentRef
-	var instanceName string
+	var instanceName naming.InstanceName
 
 	// if a component name was provided, then a snap (or possible instance) name
 	// must have also been provided
@@ -770,7 +770,7 @@ func readComponentInfoAndDeriveSideInfo(
 
 func readComponentInfoDangerous(
 	upload *uploadedContainer,
-	matchingSnap func(instanceName string, cref naming.ComponentRef) (*snap.Info, *apiError),
+	matchingSnap func(instanceName naming.InstanceName, cref naming.ComponentRef) (*snap.Info, *apiError),
 ) (*snap.ComponentInfo, *snap.Info, *apiError) {
 	compInfo, err := readComponentInfoFromCont(upload.tmpPath, nil)
 	if err != nil {
@@ -797,7 +797,7 @@ func readComponentInfoDangerous(
 	return compInfo, info, nil
 }
 
-func installedSnapInfo(st *state.State, instanceName string) (*snap.Info, error) {
+func installedSnapInfo(st *state.State, instanceName naming.InstanceName) (*snap.Info, error) {
 	var snapst snapstate.SnapState
 	if err := snapstate.Get(st, instanceName, &snapst); err != nil {
 		return nil, err
@@ -814,7 +814,7 @@ func installedSnapInfo(st *state.State, instanceName string) (*snap.Info, error)
 // installedSnapInfoMatcher returns a function that looks for the components
 // associated snap in the set of installed snaps.
 func installedSnapInfoMatcher(st *state.State) func(string, naming.ComponentRef) (*snap.Info, *apiError) {
-	return func(instanceName string, cref naming.ComponentRef) (*snap.Info, *apiError) {
+	return func(instanceName naming.InstanceName, cref naming.ComponentRef) (*snap.Info, *apiError) {
 		info, err := installedSnapInfo(st, instanceName)
 		if err != nil {
 			if errors.Is(err, state.ErrNoState) {
@@ -831,7 +831,7 @@ func installedSnapInfoMatcher(st *state.State) func(string, naming.ComponentRef)
 // not found in the uploads, then it falls back to looking at the installed set
 // of snaps.
 func uploadedOrInstalledSnapInfoMatcher(st *state.State, snaps []sideloadSnapInfo) func(string, naming.ComponentRef) (*snap.Info, *apiError) {
-	return func(instanceName string, cref naming.ComponentRef) (*snap.Info, *apiError) {
+	return func(instanceName naming.InstanceName, cref naming.ComponentRef) (*snap.Info, *apiError) {
 		for _, sn := range snaps {
 			// this is safe, since instance names are not supported when
 			// sideloading multiple blobs at once

@@ -32,7 +32,8 @@ import (
 	"github.com/snapcore/snapd/progress"
 	"github.com/snapcore/snapd/snap"
 	"github.com/snapcore/snapd/strutil"
-)
+
+	"github.com/snapcore/snapd/snap/naming")
 
 var (
 	allUsers      = snap.AllUsers
@@ -167,7 +168,7 @@ func (b Backend) ClearTrashedData(oldSnap *snap.Info) {
 
 // HideSnapData moves the snap's data directory in ~/snap into the corresponding
 // ~/.snap/data directory, for each user using the snap.
-func (b Backend) HideSnapData(snapName string) error {
+func (b Backend) HideSnapData(snapName naming.SnapName) error {
 	hiddenDirOpts := &dirs.SnapDirOptions{HiddenSnapDataDir: true}
 
 	users, err := allUsers(nil)
@@ -220,7 +221,7 @@ func (b Backend) HideSnapData(snapName string) error {
 
 // UndoHideSnapData moves the snap's data directory in ~/.snap/data into ~/snap,
 // for each user using the snap.
-func (b Backend) UndoHideSnapData(snapName string) error {
+func (b Backend) UndoHideSnapData(snapName naming.SnapName) error {
 	hiddenDirOpts := &dirs.SnapDirOptions{HiddenSnapDataDir: true}
 
 	users, err := allUsers(hiddenDirOpts)
@@ -308,7 +309,7 @@ type UndoInfo struct {
 // specified revision. If no error occurred, returns a non-nil undoInfo so that
 // the operation can be undone. If an error occurred, an attempt is made to undo
 // so no undoInfo is returned.
-func (b Backend) InitExposedSnapHome(snapName string, rev snap.Revision, opts *dirs.SnapDirOptions) (undoInfo *UndoInfo, retErr error) {
+func (b Backend) InitExposedSnapHome(snapName naming.SnapName, rev snap.Revision, opts *dirs.SnapDirOptions) (undoInfo *UndoInfo, retErr error) {
 	users, err := allUsers(opts)
 	if err != nil {
 		return nil, err
@@ -388,7 +389,7 @@ func (b Backend) InitExposedSnapHome(snapName string, rev snap.Revision, opts *d
 }
 
 // UndoInitExposedSnapHome undoes the ~/Snap initialization according to the undoInfo.
-func (b Backend) UndoInitExposedSnapHome(snapName string, undoInfo *UndoInfo) error {
+func (b Backend) UndoInitExposedSnapHome(snapName naming.SnapName, undoInfo *UndoInfo) error {
 	opts := &dirs.SnapDirOptions{HiddenSnapDataDir: true}
 	if undoInfo == nil {
 		undoInfo = &UndoInfo{}

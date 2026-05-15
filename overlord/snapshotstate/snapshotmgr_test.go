@@ -40,7 +40,8 @@ import (
 	"github.com/snapcore/snapd/overlord/state"
 	"github.com/snapcore/snapd/snap"
 	"github.com/snapcore/snapd/testutil"
-)
+
+	"github.com/snapcore/snapd/snap/naming")
 
 func (snapshotSuite) TestManager(c *check.C) {
 	st := state.New(nil)
@@ -762,7 +763,7 @@ func (rs *readerSuite) TestDoRestoreFailsAndRevertsOnSetConfigError(c *check.C) 
 }
 
 func (rs *readerSuite) TestUndoRestore(c *check.C) {
-	defer snapshotstate.MockConfigSetSnapConfig(func(st *state.State, snapName string, raw *json.RawMessage) error {
+	defer snapshotstate.MockConfigSetSnapConfig(func(st *state.State, snapName naming.SnapName, raw *json.RawMessage) error {
 		rs.calls = append(rs.calls, "set config")
 		c.Check(string(*raw), check.Equals, `{"foo":"bar"}`)
 		return nil
@@ -780,7 +781,7 @@ func (rs *readerSuite) TestUndoRestore(c *check.C) {
 }
 
 func (rs *readerSuite) TestUndoRestoreNoConfig(c *check.C) {
-	defer snapshotstate.MockConfigSetSnapConfig(func(st *state.State, snapName string, raw *json.RawMessage) error {
+	defer snapshotstate.MockConfigSetSnapConfig(func(st *state.State, snapName naming.SnapName, raw *json.RawMessage) error {
 		rs.calls = append(rs.calls, "set config")
 		c.Check(raw, check.IsNil)
 		return nil

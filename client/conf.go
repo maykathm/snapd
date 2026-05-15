@@ -24,26 +24,28 @@ import (
 	"encoding/json"
 	"net/url"
 	"strings"
+
+	"github.com/snapcore/snapd/snap/naming"
 )
 
 // SetConf requests a snap to apply the provided patch to the configuration.
-func (client *Client) SetConf(snapName string, patch map[string]any) (changeID string, err error) {
+func (client *Client) SetConf(snapName naming.SnapName, patch map[string]any) (changeID string, err error) {
 	b, err := json.Marshal(patch)
 	if err != nil {
 		return "", err
 	}
-	return client.doAsync("PUT", "/v2/snaps/"+snapName+"/conf", nil, nil, bytes.NewReader(b))
+	return client.doAsync("PUT", "/v2/snaps/"+string(snapName)+"/conf", nil, nil, bytes.NewReader(b))
 }
 
 // Conf asks for a snap's current configuration.
 //
 // Note that the configuration may include json.Numbers.
-func (client *Client) Conf(snapName string, keys []string) (configuration map[string]any, err error) {
+func (client *Client) Conf(snapName naming.SnapName, keys []string) (configuration map[string]any, err error) {
 	// Prepare query
 	query := url.Values{}
 	query.Set("keys", strings.Join(keys, ","))
 
-	_, err = client.doSync("GET", "/v2/snaps/"+snapName+"/conf", query, nil, nil, &configuration)
+	_, err = client.doSync("GET", "/v2/snaps/"+string(snapName)+"/conf", query, nil, nil, &configuration)
 	if err != nil {
 		return nil, err
 	}

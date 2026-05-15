@@ -35,7 +35,8 @@ import (
 	"github.com/snapcore/snapd/snap"
 	"github.com/snapcore/snapd/testutil"
 	"github.com/snapcore/snapd/timings"
-)
+
+	"github.com/snapcore/snapd/snap/naming")
 
 var _ = check.Suite(&postDebugSuite{})
 
@@ -357,7 +358,7 @@ func (s *postDebugSuite) TestRefreshAppAwarenessHappy(c *check.C) {
 	st.Set("refresh-candidates", &candidates)
 	st.Unlock()
 
-	restore := daemon.MockCgroupPidsOfSnap(func(instanceName string) (map[string][]int, error) {
+	restore := daemon.MockCgroupPidsOfSnap(func(instanceName naming.InstanceName) (map[string][]int, error) {
 		return map[string][]int{
 			"snap.snap-a.app": {101, 102, 103},
 		}, nil
@@ -397,7 +398,7 @@ func (s *postDebugSuite) TestRefreshAppAwarenessUnhappy(c *check.C) {
 	})
 	st.Unlock()
 
-	restore := daemon.MockCgroupPidsOfSnap(func(instanceName string) (map[string][]int, error) {
+	restore := daemon.MockCgroupPidsOfSnap(func(instanceName naming.InstanceName) (map[string][]int, error) {
 		return nil, errors.New("boom!")
 	})
 	defer restore()

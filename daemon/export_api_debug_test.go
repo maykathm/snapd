@@ -35,6 +35,6 @@ var (
 	MinLane = minLane
 )
 
-func MockCgroupPidsOfSnap(f func(instanceName string) (map[string][]int, error)) (restore func()) {
+func MockCgroupPidsOfSnap(f func(instanceName naming.InstanceName) (map[string][]int, error)) (restore func()) {
 	return testutil.Mock(&cgroupPidsOfSnap, f)
 }

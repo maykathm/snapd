@@ -33,7 +33,8 @@ import (
 	"github.com/snapcore/snapd/dirs"
 	"github.com/snapcore/snapd/logger"
 	"github.com/snapcore/snapd/osutil"
-)
+
+	"github.com/snapcore/snapd/snap/naming")
 
 const defaultFreezerCgroupV1Dir = "/sys/fs/cgroup/freezer"
 const maxFreezeTimeout = 3000 * time.Millisecond
@@ -64,7 +65,7 @@ func init() {
 // act on all tracking groups of a snap.
 //
 // This operation can be mocked with MockFreezing
-var FreezeSnapProcesses = func(ctx context.Context, snapName string) error {
+var FreezeSnapProcesses = func(ctx context.Context, snapName naming.SnapName) error {
 	return errors.New("FreezeSnapProcesses not implemented")
 }
 
@@ -76,14 +77,14 @@ var FreezeSnapProcesses = func(ctx context.Context, snapName string) error {
 // act on all tracking groups of a snap.
 //
 // This operation can be mocked with MockFreezing
-var ThawSnapProcesses = func(snapName string) error {
+var ThawSnapProcesses = func(snapName naming.SnapName) error {
 	return errors.New("ThawSnapProcesses not implemented")
 }
 
 // freezeSnapProcessesImplV1 freezes all the processes originating from the given snap.
 // Processes are frozen regardless of which particular snap application they
 // originate from.
-var freezeSnapProcessesImplV1 = func(ctx context.Context, snapName string) error {
+var freezeSnapProcessesImplV1 = func(ctx context.Context, snapName naming.SnapName) error {
 	fname := filepath.Join(freezerCgroupV1Dir, fmt.Sprintf("snap.%s", snapName), "freezer.state")
 	if err := os.WriteFile(fname, []byte("FROZEN"), 0644); errors.Is(err, fs.ErrNotExist) {
 		// When there's no freezer cgroup we don't have to freeze anything.
@@ -122,7 +123,7 @@ var freezeSnapProcessesImplV1 = func(ctx context.Context, snapName string) error
 	}
 }
 
-var thawSnapProcessesImplV1 = func(snapName string) error {
+var thawSnapProcessesImplV1 = func(snapName naming.SnapName) error {
 	fname := filepath.Join(freezerCgroupV1Dir, fmt.Sprintf("snap.%s", snapName), "freezer.state")
 	if err := os.WriteFile(fname, []byte("THAWED"), 0644); err != nil && errors.Is(err, fs.ErrNotExist) {
 		// When there's no freezer cgroup we don't have to thaw anything.
@@ -135,7 +136,7 @@ var thawSnapProcessesImplV1 = func(snapName string) error {
 	return nil
 }
 
-func applyToSnap(snapName string, action func(groupName string) error, skipError func(err error) bool) error {
+func applyToSnap(snapName naming.SnapName, action func(groupName string) error, skipError func(err error) bool) error {
 	if action == nil {
 		return fmt.Errorf("internal error: action is nil")
 	}
@@ -240,7 +241,7 @@ func skipErrNotExist(err error) bool {
 // freezeSnapProcessesImplV2 freezes all the processes originating from the
 // given snap. Processes are frozen regardless of which particular snap
 // application they originate from.
-func freezeSnapProcessesImplV2(ctx context.Context, snapName string) error {
+func freezeSnapProcessesImplV2(ctx context.Context, snapName naming.SnapName) error {
 	// in case of v2, the process calling this code, (eg. snap-update-ns)
 	// may already be part of the trackign cgroup for particular snap, care
 	// must be taken to not freeze ourselves
@@ -279,7 +280,7 @@ func thawOneV2(dir string) error {
 	return nil
 }
 
-func thawSnapProcessesV2(snapName string, skipError func(error) bool) error {
+func thawSnapProcessesV2(snapName naming.SnapName, skipError func(error) bool) error {
 	if skipError == nil {
 		return fmt.Errorf("internal error: skip error is nil")
 	}
@@ -292,13 +293,13 @@ func thawSnapProcessesV2(snapName string, skipError func(error) bool) error {
 	return applyToSnap(snapName, thawOne, skipError)
 }
 
-func thawSnapProcessesImplV2(snapName string) error {
+func thawSnapProcessesImplV2(snapName naming.SnapName) error {
 	// thaw skipping ENOENT errors
 	return thawSnapProcessesV2(snapName, skipErrNotExist)
 }
 
 // MockFreezing replaces the real implementation of freeze and thaw.
-func MockFreezing(freeze func(ctx context.Context, snapName string) error, thaw func(snapName string) error) (restore func()) {
+func MockFreezing(freeze func(ctx context.Context, snapName naming.SnapName) error, thaw func(snapName naming.SnapName) error) (restore func()) {
 	oldFreeze := FreezeSnapProcesses
 	oldThaw := ThawSnapProcesses
 

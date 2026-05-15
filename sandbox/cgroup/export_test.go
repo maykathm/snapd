@@ -26,7 +26,8 @@ import (
 	"github.com/godbus/dbus/v5"
 
 	"github.com/snapcore/snapd/testutil"
-)
+
+	"github.com/snapcore/snapd/snap/naming")
 
 var (
 	Cgroup2SuperMagic       = cgroup2SuperMagic
@@ -131,11 +132,11 @@ func (iw *inotifyWatcher) MonitorDelete(folders []string, name string, channel c
 
 var NewInotifyWatcher = newInotifyWatcher
 
-func MockFreezeSnapProcessesImplV1(fn func(ctx context.Context, snapName string) error) (restore func()) {
+func MockFreezeSnapProcessesImplV1(fn func(ctx context.Context, snapName naming.SnapName) error) (restore func()) {
 	return testutil.Mock(&freezeSnapProcessesImplV1, fn)
 }
 
-func MockThawSnapProcessesImplV1(fn func(snapName string) error) (restore func()) {
+func MockThawSnapProcessesImplV1(fn func(snapName naming.SnapName) error) (restore func()) {
 	return testutil.Mock(&thawSnapProcessesImplV1, fn)
 }
 

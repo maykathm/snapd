@@ -67,7 +67,7 @@ func (s *snapmgrTestSuite) TestRemoveTasks(c *C) {
 }
 
 func (s *snapmgrTestSuite) TestRemoveTasksAutoSnapshotDisabled(c *C) {
-	snapstate.AutomaticSnapshot = func(st *state.State, instanceName string) (ts *state.TaskSet, err error) {
+	snapstate.AutomaticSnapshot = func(st *state.State, instanceName naming.InstanceName) (ts *state.TaskSet, err error) {
 		return nil, snapstate.ErrNothingToDo
 	}
 
@@ -180,7 +180,7 @@ func (s *snapmgrTestSuite) testRemoveDiskSpaceCheck(c *C, featureFlag, automatic
 	defer restore()
 
 	var automaticSnapshotCalled bool
-	snapstate.AutomaticSnapshot = func(st *state.State, instanceName string) (ts *state.TaskSet, err error) {
+	snapstate.AutomaticSnapshot = func(st *state.State, instanceName naming.InstanceName) (ts *state.TaskSet, err error) {
 		automaticSnapshotCalled = true
 		if automaticSnapshot {
 			t := s.state.NewTask("foo", "")
@@ -1410,7 +1410,7 @@ func (s *snapmgrTestSuite) testRemoveManyDiskSpaceCheck(c *C, featureFlag, autom
 	var checkFreeSpaceCall, snapshotSizeCall int
 
 	// restored by TearDownTest
-	snapstate.EstimateSnapshotSize = func(st *state.State, instanceName string, users []string) (uint64, error) {
+	snapstate.EstimateSnapshotSize = func(st *state.State, instanceName naming.InstanceName, users []string) (uint64, error) {
 		snapshotSizeCall++
 		// expect two snapshot size estimations
 		switch instanceName {
@@ -1436,7 +1436,7 @@ func (s *snapmgrTestSuite) testRemoveManyDiskSpaceCheck(c *C, featureFlag, autom
 	defer restore()
 
 	var automaticSnapshotCalled bool
-	snapstate.AutomaticSnapshot = func(st *state.State, instanceName string) (ts *state.TaskSet, err error) {
+	snapstate.AutomaticSnapshot = func(st *state.State, instanceName naming.InstanceName) (ts *state.TaskSet, err error) {
 		automaticSnapshotCalled = true
 		if automaticSnapshot {
 			t := s.state.NewTask("foo", "")

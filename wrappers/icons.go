@@ -28,9 +28,10 @@ import (
 	"github.com/snapcore/snapd/dirs"
 	"github.com/snapcore/snapd/osutil"
 	"github.com/snapcore/snapd/snap"
-)
 
-func findIconFiles(snapName string, rootDir string) (icons []string, err error) {
+	"github.com/snapcore/snapd/snap/naming")
+
+func findIconFiles(snapName naming.SnapName, rootDir string) (icons []string, err error) {
 	if !osutil.IsDirectory(rootDir) {
 		return nil, nil
 	}
@@ -65,7 +66,7 @@ func findIconFiles(snapName string, rootDir string) (icons []string, err error) 
 	return icons, err
 }
 
-func deriveIconContent(instanceName string, rootDir string, icons []string) (content map[string]map[string]osutil.FileState, err error) {
+func deriveIconContent(instanceName naming.InstanceName, rootDir string, icons []string) (content map[string]map[string]osutil.FileState, err error) {
 	content = make(map[string]map[string]osutil.FileState)
 	snapPrefix := fmt.Sprintf("snap.%s.", snap.InstanceSnap(instanceName))
 	instancePrefix := fmt.Sprintf("snap.%s.", instanceName)

@@ -763,7 +763,7 @@ func (s *snapmgrTestSuite) TestInstallFailsOnBusySnap(c *C) {
 	})
 
 	// mock that "some-snap" has an app and that this app has pids running
-	restore := snapstate.MockPidsOfSnap(func(instanceName string) (map[string][]int, error) {
+	restore := snapstate.MockPidsOfSnap(func(instanceName naming.InstanceName) (map[string][]int, error) {
 		c.Assert(instanceName, Equals, "some-snap")
 		return map[string][]int{
 			"snap.some-snap.app": {1234},
@@ -819,7 +819,7 @@ func (s *snapmgrTestSuite) TestInstallWithIgnoreRunningProceedsOnBusySnap(c *C) 
 	})
 
 	// With an app belonging to the snap that is apparently running.
-	restore := snapstate.MockPidsOfSnap(func(instanceName string) (map[string][]int, error) {
+	restore := snapstate.MockPidsOfSnap(func(instanceName naming.InstanceName) (map[string][]int, error) {
 		c.Assert(instanceName, Equals, "pkg")
 		return map[string][]int{
 			"snap.pkg.app": {1234},
@@ -890,7 +890,7 @@ func (s *snapmgrTestSuite) TestInstallDespiteBusySnap(c *C) {
 		return info, nil
 	})
 	// And with cgroup information indicating the app has a process with pid 1234.
-	restore := snapstate.MockPidsOfSnap(func(instanceName string) (map[string][]int, error) {
+	restore := snapstate.MockPidsOfSnap(func(instanceName naming.InstanceName) (map[string][]int, error) {
 		c.Assert(instanceName, Equals, "some-snap")
 		return map[string][]int{
 			"snap.some-snap.some-app": {1234},
@@ -6911,7 +6911,7 @@ func (s *snapmgrTestSuite) TestInstallManyComponentsUndoRunThrough(c *C) {
 	})
 }
 
-func undoOps(instanceName string, snapType snap.Type, newSequence, prevSequence *sequence.RevisionSideState) []fakeOp {
+func undoOps(instanceName naming.InstanceName, snapType snap.Type, newSequence, prevSequence *sequence.RevisionSideState) []fakeOp {
 	forRefresh := prevSequence != nil
 
 	newComponents := newSequence.Components

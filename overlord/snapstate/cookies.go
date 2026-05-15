@@ -30,7 +30,8 @@ import (
 	"github.com/snapcore/snapd/osutil"
 	"github.com/snapcore/snapd/overlord/state"
 	"github.com/snapcore/snapd/randutil"
-)
+
+	"github.com/snapcore/snapd/snap/naming")
 
 func cookies(st *state.State) (map[string]string, error) {
 	var snapCookies map[string]string
@@ -101,7 +102,7 @@ func (m *SnapManager) SyncCookies(st *state.State) error {
 	return nil
 }
 
-func (m *SnapManager) createSnapCookie(st *state.State, instanceName string) error {
+func (m *SnapManager) createSnapCookie(st *state.State, instanceName naming.InstanceName) error {
 	snapCookies, err := cookies(st)
 	if err != nil {
 		return err
@@ -124,7 +125,7 @@ func (m *SnapManager) createSnapCookie(st *state.State, instanceName string) err
 	return nil
 }
 
-func (m *SnapManager) removeSnapCookie(st *state.State, instanceName string) error {
+func (m *SnapManager) removeSnapCookie(st *state.State, instanceName naming.InstanceName) error {
 	if err := removeCookieFile(instanceName); err != nil {
 		return err
 	}
@@ -153,7 +154,7 @@ func makeCookie() (string, error) {
 	return randutil.CryptoToken(39)
 }
 
-func createCookieFile(instanceName string) (cookieID string, err error) {
+func createCookieFile(instanceName naming.InstanceName) (cookieID string, err error) {
 	cookieID, err = makeCookie()
 	if err != nil {
 		return "", err
@@ -166,7 +167,7 @@ func createCookieFile(instanceName string) (cookieID string, err error) {
 	return cookieID, nil
 }
 
-func removeCookieFile(instanceName string) error {
+func removeCookieFile(instanceName naming.InstanceName) error {
 	path := filepath.Join(dirs.SnapCookieDir, fmt.Sprintf("snap.%s", instanceName))
 	if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
 		return fmt.Errorf("Failed to remove cookie file %q: %s", path, err)

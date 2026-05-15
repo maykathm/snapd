@@ -325,7 +325,7 @@ func (s *snapmgrBaseTest) SetUpTest(c *C) {
 	}))
 
 	oldEstimateSnapshotSize := snapstate.EstimateSnapshotSize
-	snapstate.EstimateSnapshotSize = func(st *state.State, instanceName string, users []string) (uint64, error) {
+	snapstate.EstimateSnapshotSize = func(st *state.State, instanceName naming.InstanceName, users []string) (uint64, error) {
 		return 1, nil
 	}
 	restoreInstallSize := snapstate.MockInstallSize(func(st *state.State, snaps []snapstate.MinimalInstallInfo, userID int, prqt snapstate.PrereqTracker) (uint64, error) {
@@ -334,7 +334,7 @@ func (s *snapmgrBaseTest) SetUpTest(c *C) {
 	s.AddCleanup(restoreInstallSize)
 
 	oldAutomaticSnapshot := snapstate.AutomaticSnapshot
-	snapstate.AutomaticSnapshot = func(st *state.State, instanceName string) (ts *state.TaskSet, err error) {
+	snapstate.AutomaticSnapshot = func(st *state.State, instanceName naming.InstanceName) (ts *state.TaskSet, err error) {
 		task := st.NewTask("save-snapshot", "...")
 		ts = state.NewTaskSet(task)
 		return ts, nil
@@ -420,7 +420,7 @@ SNAPD_APPARMOR_REEXEC=1
 		return nil, nil
 	}
 
-	s.AddCleanup(snapstate.MockSecurityProfilesDiscardLate(func(snapName string, rev snap.Revision, typ snap.Type) error {
+	s.AddCleanup(snapstate.MockSecurityProfilesDiscardLate(func(snapName naming.SnapName, rev snap.Revision, typ snap.Type) error {
 		return nil
 	}))
 	s.AddCleanup(osutil.MockMountInfo(""))
@@ -3748,7 +3748,7 @@ func (s *snapmgrTestSuite) TestEnsureRemovesVulnerableSnapdSnap(c *C) {
 	s.testEnsureRemovesVulnerableSnap(c, "snapd")
 }
 
-func (s *snapmgrTestSuite) testEnsureRemovesVulnerableSnap(c *C, snapName string) {
+func (s *snapmgrTestSuite) testEnsureRemovesVulnerableSnap(c *C, snapName naming.SnapName) {
 	// make the currently installed snap info file fixed but an old version
 	// vulnerable
 	fixedInfoFile := `
@@ -3904,7 +3904,7 @@ func (s *snapmgrTestSuite) TestEnsureSkipsCheckingBothCoreAndSnapdSnapsInfoFileW
 	})
 	st.Unlock()
 
-	infoFileFor := func(snapName string) string {
+	infoFileFor := func(snapName naming.SnapName) string {
 		return filepath.Join(dirs.SnapMountDir, snapName, "1", dirs.CoreLibExecDir, "info")
 	}
 
@@ -3936,7 +3936,7 @@ func (s *snapmgrTestSuite) TestEnsureSkipsCheckingBothCoreAndSnapdSnapsInfoFileW
 	c.Assert(ensureErr, IsNil)
 }
 
-func (s *snapmgrTestSuite) testEnsureSkipsCheckingSnapdInfoFileWhenStateSet(c *C, snapName string) {
+func (s *snapmgrTestSuite) testEnsureSkipsCheckingSnapdInfoFileWhenStateSet(c *C, snapName naming.SnapName) {
 	// special policy only on classic
 	r := release.MockOnClassic(true)
 	defer r()
@@ -5258,7 +5258,7 @@ func (s *snapmgrQuerySuite) TestHasSnapOfType(c *C) {
 	c.Check(ok, Equals, true)
 
 	for _, x := range []struct {
-		snapName string
+		snapName naming.SnapName
 		snapType snap.Type
 	}{
 		{
@@ -12934,7 +12934,7 @@ func (s *snapStateSuite) TestShouldScheduleUpdateCertDBForRefresh(c *C) {
 		name     string
 		ctx      snapstate.DeviceContext
 		snapType snap.Type
-		snapName string
+		snapName naming.SnapName
 		expected bool
 	}{
 		{name: "base-snap refresh", ctx: modelBaseCtx, snapType: snap.TypeBase, snapName: "core18", expected: true},

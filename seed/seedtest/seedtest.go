@@ -70,7 +70,7 @@ func (ss *SeedSnaps) SetupAssertSigning(storeBrandID string) {
 	ss.Brands = assertstest.NewSigningAccounts(ss.StoreSigning)
 }
 
-func (ss *SeedSnaps) AssertedSnapID(snapName string) string {
+func (ss *SeedSnaps) AssertedSnapID(snapName naming.SnapName) string {
 	snapID := naming.WellKnownSnapID(snapName)
 	if snapID != "" {
 		return snapID
@@ -207,12 +207,12 @@ func (ss *SeedSnaps) makeAssertedSnap(
 		ss.resPairs = make(map[string][]*asserts.SnapResourcePair)
 	}
 
-	ss.snaps[snapName] = snapFile
-	info.SideInfo.RealName = snapName
-	ss.infos[snapName] = info
+	ss.snaps[string(snapName)] = snapFile
+	info.SideInfo.RealName = string(snapName)
+	ss.infos[string(snapName)] = info
 	snapDecl := declA.(*asserts.SnapDeclaration)
 	snapRev := revA.(*asserts.SnapRevision)
-	ss.snapRevs[snapName] = snapRev
+	ss.snapRevs[string(snapName)] = snapRev
 
 	if len(compRevisions) == 0 {
 		compRevisions = make(map[string]snap.Revision, len(info.Components))
@@ -304,10 +304,10 @@ func (ss *SeedSnaps) makeAssertedSnap(
 		cinfo.ComponentSideInfo = *snap.NewComponentSideInfo(cref, compRev)
 		cinfos = append(cinfos, cinfo)
 	}
-	ss.compInfos[snapName] = cinfos
-	ss.comps[snapName] = resResults
-	ss.resRevs[snapName] = resRevs
-	ss.resPairs[snapName] = resPairs
+	ss.compInfos[string(snapName)] = cinfos
+	ss.comps[string(snapName)] = resResults
+	ss.resRevs[string(snapName)] = resRevs
+	ss.resPairs[string(snapName)] = resPairs
 
 	return snapDecl, snapRev
 }
@@ -324,32 +324,32 @@ func (ss *SeedSnaps) MakeAssertedDelegatedSnap(
 	return ss.makeAssertedSnap(c, snapYaml, files, revision, nil, nil, developerID, ss.Brands.Signing(delegateID), revProvenance, resourceProvenance, revisionAuthority, dbs...)
 }
 
-func (ss *SeedSnaps) AssertedSnap(snapName string) (snapFile string) {
-	return ss.snaps[snapName]
+func (ss *SeedSnaps) AssertedSnap(snapName naming.SnapName) (snapFile string) {
+	return ss.snaps[string(snapName)]
 }
 
-func (ss *SeedSnaps) AssertedSnapInfo(snapName string) *snap.Info {
-	return ss.infos[snapName]
+func (ss *SeedSnaps) AssertedSnapInfo(snapName naming.SnapName) *snap.Info {
+	return ss.infos[string(snapName)]
 }
 
-func (ss *SeedSnaps) AssertedSnapComponents(snapName string) []store.SnapResourceResult {
-	return ss.comps[snapName]
+func (ss *SeedSnaps) AssertedSnapComponents(snapName naming.SnapName) []store.SnapResourceResult {
+	return ss.comps[string(snapName)]
 }
 
-func (ss *SeedSnaps) AssertedSnapRevision(snapName string) *asserts.SnapRevision {
-	return ss.snapRevs[snapName]
+func (ss *SeedSnaps) AssertedSnapRevision(snapName naming.SnapName) *asserts.SnapRevision {
+	return ss.snapRevs[string(snapName)]
 }
 
-func (ss *SeedSnaps) AssertedResourceRevision(snapName string) []*asserts.SnapResourceRevision {
-	return ss.resRevs[snapName]
+func (ss *SeedSnaps) AssertedResourceRevision(snapName naming.SnapName) []*asserts.SnapResourceRevision {
+	return ss.resRevs[string(snapName)]
 }
 
-func (ss *SeedSnaps) AssertedResourcePair(snapName string) []*asserts.SnapResourcePair {
-	return ss.resPairs[snapName]
+func (ss *SeedSnaps) AssertedResourcePair(snapName naming.SnapName) []*asserts.SnapResourcePair {
+	return ss.resPairs[string(snapName)]
 }
 
-func (ss *SeedSnaps) AssertedComponentInfos(snapName string) []*snap.ComponentInfo {
-	return ss.compInfos[snapName]
+func (ss *SeedSnaps) AssertedComponentInfos(snapName naming.SnapName) []*snap.ComponentInfo {
+	return ss.compInfos[string(snapName)]
 }
 
 // TestingSeed16 helps setting up a populated Core 16/18 testing seed.
@@ -370,7 +370,7 @@ func (s *TestingSeed16) AssertsDir() string {
 func (s *TestingSeed16) MakeAssertedSnap(c *C, snapYaml string, files [][]string, revision snap.Revision, developerID string) (snapFname string, snapDecl *asserts.SnapDeclaration, snapRev *asserts.SnapRevision) {
 	decl, rev := s.SeedSnaps.MakeAssertedSnap(c, snapYaml, files, revision, developerID)
 
-	snapFile := s.snaps[decl.SnapName()]
+	snapFile := s.snaps[string(decl.SnapName())]
 
 	snapFname = filepath.Base(snapFile)
 	targetFile := filepath.Join(s.SnapsDir(), snapFname)
@@ -523,7 +523,7 @@ func (s *TestingSeed20) MakeSeedWithModel(c *C, label string, model *asserts.Mod
 		c.Assert(err, IsNil)
 
 		// Add components from option paths
-		compPaths := compPathsBySnap[info.SnapName()]
+		compPaths := compPathsBySnap[string(info.SnapName())]
 		seedComps := make(map[string]*seedwriter.SeedComponent, len(compPaths))
 		for _, compPath := range compPaths {
 			compf, err := snapfile.Open(compPath)
@@ -562,7 +562,7 @@ func (s *TestingSeed20) MakeSeedWithModel(c *C, label string, model *asserts.Mod
 			return aRefs, nil
 		}
 		prev := len(sf.Refs())
-		if err = sf.Save(s.snapRevs[sn.SnapName()]); err != nil {
+		if err = sf.Save(s.snapRevs[string(sn.SnapName())]); err != nil {
 			return nil, err
 		}
 
@@ -572,7 +572,7 @@ func (s *TestingSeed20) MakeSeedWithModel(c *C, label string, model *asserts.Mod
 		}
 
 		// Components assertions
-		for _, resRev := range s.resRevs[sn.SnapName()] {
+		for _, resRev := range s.resRevs[string(sn.SnapName())] {
 			if _, ok := seededResources[resRev.ResourceName()]; !ok {
 				continue
 			}
@@ -581,7 +581,7 @@ func (s *TestingSeed20) MakeSeedWithModel(c *C, label string, model *asserts.Mod
 				return nil, err
 			}
 		}
-		for _, resPair := range s.resPairs[sn.SnapName()] {
+		for _, resPair := range s.resPairs[string(sn.SnapName())] {
 			if _, ok := seededResources[resPair.ResourceName()]; !ok {
 				continue
 			}
@@ -630,7 +630,7 @@ func (s *TestingSeed20) MakeSeedWithModel(c *C, label string, model *asserts.Mod
 			err = os.Rename(s.AssertedSnap(name), sn.Path)
 			c.Assert(err, IsNil)
 			for _, comp := range sn.Components {
-				err = os.Rename(s.AssertedSnap(comp.String()), comp.Path)
+				err = os.Rename(s.AssertedSnap(naming.SnapName(comp.String())), comp.Path)
 				c.Assert(err, IsNil)
 			}
 		}

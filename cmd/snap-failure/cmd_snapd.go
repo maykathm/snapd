@@ -33,6 +33,8 @@ import (
 	"github.com/snapcore/snapd/osutil"
 	"github.com/snapcore/snapd/release"
 	"github.com/snapcore/snapd/snapdtool"
+
+	"github.com/snapcore/snapd/snap/naming"
 )
 
 func init() {
@@ -63,8 +65,8 @@ type cmdSnapd struct{}
 var errNoSnapd = errors.New("no snapd sequence file found")
 var errNoPrevious = errors.New("no revision to go back to")
 
-func prevRevision(snapName string) (string, error) {
-	seqFile := filepath.Join(dirs.SnapSeqDir, snapName+".json")
+func prevRevision(snapName naming.SnapName) (string, error) {
+	seqFile := filepath.Join(dirs.SnapSeqDir, string(snapName)+".json")
 	content, err := os.ReadFile(seqFile)
 	if os.IsNotExist(err) {
 		return "", errNoSnapd

@@ -36,7 +36,8 @@ import (
 	"github.com/snapcore/snapd/client/clientutil"
 	"github.com/snapcore/snapd/dirs"
 	"github.com/snapcore/snapd/systemd"
-)
+
+	"github.com/snapcore/snapd/snap/naming")
 
 // dialSessionAgent connects to a user's session agent
 //
@@ -507,7 +508,7 @@ func (client *Client) ServiceStatus(ctx context.Context, services []string) (map
 
 // PendingSnapRefreshInfo holds information about pending snap refresh provided to userd.
 type PendingSnapRefreshInfo struct {
-	InstanceName        string        `json:"instance-name"`
+	InstanceName naming.InstanceName        `json:"instance-name"`
 	TimeRemaining       time.Duration `json:"time-remaining,omitempty"`
 	BusyAppName         string        `json:"busy-app-name,omitempty"`
 	BusyAppDesktopEntry string        `json:"busy-app-desktop-entry,omitempty"`
@@ -526,7 +527,7 @@ func (client *Client) PendingRefreshNotification(ctx context.Context, refreshInf
 
 // FinishedSnapRefreshInfo holds information about a finished refresh provided to userd.
 type FinishedSnapRefreshInfo struct {
-	InstanceName string `json:"instance-name"`
+	InstanceName naming.InstanceName `json:"instance-name"`
 }
 
 // FinishRefreshNotification closes notification about a snap refresh.

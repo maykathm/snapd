@@ -2496,7 +2496,7 @@ func (s *installSuite) TestApplyPreseededDataSnapMismatch(c *C) {
 	preseedAsPath := filepath.Join(ubuntuSeedDir, "systems", sysLabel, "preseed")
 
 	for _, tc := range []struct {
-		snapName string
+		snapName naming.SnapName
 		rev      string
 		snapID   string
 		err      string

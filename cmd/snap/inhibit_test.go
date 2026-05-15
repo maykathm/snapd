@@ -42,7 +42,8 @@ import (
 	"github.com/snapcore/snapd/testutil"
 	"gopkg.in/check.v1"
 	. "gopkg.in/check.v1"
-)
+
+	"github.com/snapcore/snapd/snap/naming")
 
 type fakeInhibitionFlow struct {
 	start  func(ctx context.Context) error
@@ -74,7 +75,7 @@ func (s *RunSuite) TestWaitWhileInhibitedRunThrough(c *C) {
 	c.Assert(runinhibit.LockWithHint("snapname", runinhibit.HintInhibitedForRefresh, inhibitInfo, nil), IsNil)
 
 	var waitWhileInhibitedCalled int
-	restore := snaprun.MockWaitWhileInhibited(func(ctx context.Context, snapName string, notInhibited func(ctx context.Context) error, inhibited func(ctx context.Context, hint runinhibit.Hint, inhibitInfo *runinhibit.InhibitInfo) (cont bool, err error), interval time.Duration) (flock *osutil.FileLock, retErr error) {
+	restore := snaprun.MockWaitWhileInhibited(func(ctx context.Context, snapName naming.SnapName, notInhibited func(ctx context.Context) error, inhibited func(ctx context.Context, hint runinhibit.Hint, inhibitInfo *runinhibit.InhibitInfo) (cont bool, err error), interval time.Duration) (flock *osutil.FileLock, retErr error) {
 		waitWhileInhibitedCalled++
 
 		c.Check(snapName, Equals, "snapname")
@@ -169,7 +170,7 @@ func (s *RunSuite) TestWaitWhileInhibitedErrorOnFinishNotification(c *C) {
 	c.Assert(runinhibit.LockWithHint("snapname", runinhibit.HintInhibitedForRefresh, inhibitInfo, nil), IsNil)
 
 	var waitWhileInhibitedCalled int
-	restore := snaprun.MockWaitWhileInhibited(func(ctx context.Context, snapName string, notInhibited func(ctx context.Context) error, inhibited func(ctx context.Context, hint runinhibit.Hint, inhibitInfo *runinhibit.InhibitInfo) (cont bool, err error), interval time.Duration) (flock *osutil.FileLock, retErr error) {
+	restore := snaprun.MockWaitWhileInhibited(func(ctx context.Context, snapName naming.SnapName, notInhibited func(ctx context.Context) error, inhibited func(ctx context.Context, hint runinhibit.Hint, inhibitInfo *runinhibit.InhibitInfo) (cont bool, err error), interval time.Duration) (flock *osutil.FileLock, retErr error) {
 		waitWhileInhibitedCalled++
 
 		c.Check(snapName, Equals, "snapname")
@@ -262,7 +263,7 @@ func (s *RunSuite) TestWaitWhileInhibitedGateRefreshNoNotification(c *C) {
 	c.Assert(runinhibit.LockWithHint("snapname", runinhibit.HintInhibitedGateRefresh, inhibitInfo, nil), IsNil)
 
 	var called int
-	restore := snaprun.MockWaitWhileInhibited(func(ctx context.Context, snapName string, notInhibited func(ctx context.Context) error, inhibited func(ctx context.Context, hint runinhibit.Hint, inhibitInfo *runinhibit.InhibitInfo) (cont bool, err error), interval time.Duration) (flock *osutil.FileLock, retErr error) {
+	restore := snaprun.MockWaitWhileInhibited(func(ctx context.Context, snapName naming.SnapName, notInhibited func(ctx context.Context) error, inhibited func(ctx context.Context, hint runinhibit.Hint, inhibitInfo *runinhibit.InhibitInfo) (cont bool, err error), interval time.Duration) (flock *osutil.FileLock, retErr error) {
 		called++
 
 		c.Check(snapName, Equals, "snapname")

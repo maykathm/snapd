@@ -463,7 +463,7 @@ func (s *setupSuite) TestSetupComponentUndoIdempotent(c *C) {
 		compRev, installRecord)
 }
 
-func (s *setupSuite) testSetupComponentDo(c *C, compName, snapName, instanceName string, compRev, snapRev snap.Revision) *backend.InstallRecord {
+func (s *setupSuite) testSetupComponentDo(c *C, compName, snapName, instanceName naming.InstanceName, compRev, snapRev snap.Revision) *backend.InstallRecord {
 	componentYaml := fmt.Sprintf(`component: %s+%s
 type: standard
 version: 1.0
@@ -495,7 +495,7 @@ version: 1.0
 	return installRecord
 }
 
-func (s *setupSuite) testSetupComponentUndo(c *C, compName, snapName, instanceName string, compRev snap.Revision, installRecord *backend.InstallRecord) {
+func (s *setupSuite) testSetupComponentUndo(c *C, compName, snapName, instanceName naming.InstanceName, compRev snap.Revision, installRecord *backend.InstallRecord) {
 	// undo undoes the mount unit and the instdir creation
 	cpi := snap.MinimalComponentContainerPlaceInfo(compName, compRev, instanceName)
 
@@ -508,7 +508,7 @@ func (s *setupSuite) testSetupComponentUndo(c *C, compName, snapName, instanceNa
 	c.Assert(osutil.FileExists(cpi.MountFile()), Equals, false)
 }
 
-func (s *setupSuite) testSetupComponentDoUndo(c *C, compName, snapName, instanceName string) {
+func (s *setupSuite) testSetupComponentDoUndo(c *C, compName, snapName, instanceName naming.InstanceName) {
 	snapRev := snap.R(11)
 	compRev := snap.R(33)
 

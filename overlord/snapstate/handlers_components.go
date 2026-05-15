@@ -365,7 +365,7 @@ type undoComponentOpts struct {
 	maybeInitramfsMounted bool
 }
 
-func (m *SnapManager) undoSetupComponent(t *state.Task, csi *snap.ComponentSideInfo, instanceName string, opts undoComponentOpts) error {
+func (m *SnapManager) undoSetupComponent(t *state.Task, csi *snap.ComponentSideInfo, instanceName naming.InstanceName, opts undoComponentOpts) error {
 	st := t.State()
 	st.Lock()
 	deviceCtx, err := DeviceCtx(st, t, nil)
@@ -586,7 +586,7 @@ func (m *SnapManager) doUnlinkComponent(t *state.Task, _ *tomb.Tomb) (err error)
 	return nil
 }
 
-func (m *SnapManager) unlinkComponent(t *state.Task, snapSt *SnapState, instanceName string, snapRev snap.Revision, cref naming.ComponentRef) (err error) {
+func (m *SnapManager) unlinkComponent(t *state.Task, snapSt *SnapState, instanceName naming.InstanceName, snapRev snap.Revision, cref naming.ComponentRef) (err error) {
 	unlinkedComp := snapSt.Sequence.RemoveComponentForRevision(snapRev, cref)
 	if unlinkedComp == nil {
 		return fmt.Errorf("internal error while unlinking: %s expected but not found", cref)
@@ -667,7 +667,7 @@ func (m *SnapManager) undoUnlinkComponent(t *state.Task, _ *tomb.Tomb) (err erro
 	return nil
 }
 
-func (m *SnapManager) relinkComponent(t *state.Task, snapSt *SnapState, instanceName string, snapRev snap.Revision) (err error) {
+func (m *SnapManager) relinkComponent(t *state.Task, snapSt *SnapState, instanceName naming.InstanceName, snapRev snap.Revision) (err error) {
 	setupTask, err := componentSetupTask(t)
 	if err != nil {
 		return err

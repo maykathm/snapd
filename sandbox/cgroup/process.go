@@ -32,7 +32,7 @@ func snapNameFromPidUsingTrackingCgroup(pid int) (string, error) {
 		return "", err
 	}
 	if parsedTag := SecurityTagFromCgroupPath(path); parsedTag != nil {
-		return parsedTag.InstanceName(), nil
+		return string(parsedTag.InstanceName()), nil
 	}
 	return "", fmt.Errorf("cannot find snap security tag")
 }

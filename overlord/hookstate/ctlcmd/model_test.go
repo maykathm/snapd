@@ -49,7 +49,8 @@ import (
 	"github.com/snapcore/snapd/store/storetest"
 	"github.com/snapcore/snapd/sysconfig"
 	"github.com/snapcore/snapd/testutil"
-)
+
+	"github.com/snapcore/snapd/snap/naming")
 
 type modelSuite struct {
 	testutil.BaseTest
@@ -169,7 +170,7 @@ func (s *modelSuite) setupBrands() {
 	assertstatetest.AddMany(s.state, otherAcct)
 }
 
-func (s *modelSuite) addSnapDeclaration(c *C, snapID, developerID, snapName string) {
+func (s *modelSuite) addSnapDeclaration(c *C, snapID, developerID, snapName naming.SnapName) {
 	declA, err := s.storeSigning.Sign(asserts.SnapDeclarationType, map[string]any{
 		"series":       "16",
 		"snap-id":      snapID,

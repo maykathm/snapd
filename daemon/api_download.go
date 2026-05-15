@@ -39,7 +39,8 @@ import (
 	"github.com/snapcore/snapd/randutil"
 	"github.com/snapcore/snapd/snap"
 	"github.com/snapcore/snapd/store"
-)
+
+	"github.com/snapcore/snapd/snap/naming")
 
 var snapDownloadCmd = &Command{
 	Path:        "/v2/download",
@@ -51,7 +52,7 @@ var validRangeRegexp = regexp.MustCompile(`^\s*bytes=(\d+)-\s*$`)
 
 // SnapDownloadAction is used to request a snap download
 type snapDownloadAction struct {
-	SnapName string `json:"snap-name"`
+	SnapName naming.SnapName `json:"snap-name"`
 	snapRevisionOptions
 
 	// HeaderPeek if set requests a peek at the header without the
@@ -164,7 +165,7 @@ func streamOneSnap(ctx context.Context, c *Command, action snapDownloadAction, u
 	return ss
 }
 
-func newSnapStream(snapName string, info *snap.Info, secret []byte) (*snapStream, error) {
+func newSnapStream(snapName naming.SnapName, info *snap.Info, secret []byte) (*snapStream, error) {
 	dlInfo := &info.DownloadInfo
 	fname := filepath.Base(info.MountFile())
 	tokenJSON := downloadTokenJSON{
@@ -184,7 +185,7 @@ func newSnapStream(snapName string, info *snap.Info, secret []byte) (*snapStream
 	}, nil
 }
 
-func newResumingSnapStream(snapName string, tokStr string, secret []byte) (*snapStream, error) {
+func newResumingSnapStream(snapName naming.SnapName, tokStr string, secret []byte) (*snapStream, error) {
 	d, err := unsealDownloadToken(tokStr, secret)
 	if err != nil {
 		return nil, err
@@ -201,7 +202,7 @@ func newResumingSnapStream(snapName string, tokStr string, secret []byte) (*snap
 }
 
 type downloadTokenJSON struct {
-	SnapName string             `json:"snap-name"`
+	SnapName naming.SnapName             `json:"snap-name"`
 	Filename string             `json:"filename"`
 	Info     *snap.DownloadInfo `json:"dl-info"`
 }

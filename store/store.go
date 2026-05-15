@@ -994,7 +994,7 @@ type SnapSpec struct {
 func (s *Store) SnapInfo(ctx context.Context, snapSpec SnapSpec, user *auth.UserState) (*snap.Info, error) {
 	fields := strings.Join(s.infoFields, ",")
 
-	si, resp, err := s.snapInfo(ctx, snapSpec.Name, fields, user)
+	si, resp, err := s.snapInfo(ctx, naming.SnapName(snapSpec.Name), fields, user)
 	if err != nil {
 		return nil, err
 	}
@@ -1014,12 +1014,12 @@ func (s *Store) SnapInfo(ctx context.Context, snapSpec SnapSpec, user *auth.User
 	return info, nil
 }
 
-func (s *Store) snapInfo(ctx context.Context, snapName string, fields string, user *auth.UserState) (*storeInfo, *http.Response, error) {
+func (s *Store) snapInfo(ctx context.Context, snapName naming.SnapName, fields string, user *auth.UserState) (*storeInfo, *http.Response, error) {
 	query := url.Values{}
 	query.Set("fields", fields)
 	query.Set("architecture", s.architecture)
 
-	u, err := s.endpointURL(path.Join(snapInfoEndpPath, snapName), query)
+	u, err := s.endpointURL(path.Join(snapInfoEndpPath, string(snapName)), query)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -1055,7 +1055,7 @@ func (s *Store) SnapExists(ctx context.Context, snapSpec SnapSpec, user *auth.Us
 	// request the minimal amount information
 	fields := "channel-map"
 
-	si, _, err := s.snapInfo(ctx, snapSpec.Name, fields, user)
+	si, _, err := s.snapInfo(ctx, naming.SnapName(snapSpec.Name), fields, user)
 	if err != nil {
 		return nil, nil, err
 	}

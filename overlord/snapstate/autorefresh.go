@@ -44,7 +44,8 @@ import (
 	"github.com/snapcore/snapd/timeutil"
 	"github.com/snapcore/snapd/timings"
 	userclient "github.com/snapcore/snapd/usersession/client"
-)
+
+	"github.com/snapcore/snapd/snap/naming")
 
 // the default refresh pattern
 const defaultRefreshScheduleStr = "00:00~24:00/4"
@@ -110,7 +111,7 @@ func (rc *refreshCandidate) DownloadSize() int64 {
 	return rc.DownloadInfo.Size
 }
 
-func (rc *refreshCandidate) InstanceName() string {
+func (rc *refreshCandidate) InstanceName() naming.InstanceName {
 	return rc.SnapSetup.InstanceName()
 }
 
@@ -850,7 +851,7 @@ func inhibitRefresh(st *state.State, snapst *SnapState, snapsup *SnapSetup, info
 }
 
 // IsSnapMonitored checks if there's already a goroutine waiting for this snap to close.
-func IsSnapMonitored(st *state.State, snapName string) bool {
+func IsSnapMonitored(st *state.State, snapName naming.SnapName) bool {
 	return monitoringAbort(st, snapName) != nil
 }
 
@@ -1018,7 +1019,7 @@ func incrementSnapRefreshFailures(st *state.State, snapsup *SnapSetup, severity 
 	return nil
 }
 
-func computeSnapRefreshFailureSeverity(chg *state.Change, unlinkTask *state.Task, snapName string) snap.RefreshFailureSeverity {
+func computeSnapRefreshFailureSeverity(chg *state.Change, unlinkTask *state.Task, snapName naming.SnapName) snap.RefreshFailureSeverity {
 	// It is ok to pass nil for the DeviceContext as the situation here is auto-refresh and not remodel.
 	bootBase, err := deviceModelBootBase(chg.State(), nil)
 	if err != nil {

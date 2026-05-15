@@ -47,7 +47,8 @@ import (
 	"fmt"
 	"syscall"
 	"unsafe"
-)
+
+	"github.com/snapcore/snapd/snap/naming")
 
 var (
 	// ErrNoNamespace is returned when a snap namespace does not exist.
@@ -102,8 +103,8 @@ func freeArgv(argv []*C.char) {
 //
 // This function is here only to make the C.validate_instance_name
 // code testable from go, as cgo is not directly importable from test packages.
-func validateInstanceName(instanceName string) int {
-	cStr := C.CString(instanceName)
+func validateInstanceName(instanceName naming.InstanceName) int {
+	cStr := C.CString(string(instanceName))
 	defer C.free(unsafe.Pointer(cStr))
 	return int(C.validate_instance_name(cStr))
 }
@@ -114,7 +115,7 @@ func validateInstanceName(instanceName string) int {
 //
 // This function is here only to make the C.validate_instance_name
 // code testable from go, as cgo is not directly importable from test packages.
-func processArguments(args []string) (snapName string, shouldSetNs bool, processUserFstab bool, uid uint) {
+func processArguments(args []string) (snapName naming.SnapName, shouldSetNs bool, processUserFstab bool, uid uint) {
 	argv := makeArgv(args)
 	defer freeArgv(argv)
 
@@ -124,7 +125,7 @@ func processArguments(args []string) (snapName string, shouldSetNs bool, process
 	var uidOut C.ulong
 	C.process_arguments(C.int(len(args)), &argv[0], &snapNameOut, &shouldSetNsOut, &processUserFstabOut, &uidOut)
 	if snapNameOut != nil {
-		snapName = C.GoString(snapNameOut)
+		snapName = naming.SnapName(naming.SnapName(C.GoString(snapNameOut)))
 	}
 	shouldSetNs = bool(shouldSetNsOut)
 	processUserFstab = bool(processUserFstabOut)

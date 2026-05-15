@@ -26,6 +26,8 @@ import (
 
 	"github.com/snapcore/snapd/interfaces"
 	"github.com/snapcore/snapd/snap"
+
+	"github.com/snapcore/snapd/snap/naming"
 )
 
 // Specification assists in collecting paths and content associated with an
@@ -95,10 +97,10 @@ type ConnectedPlugCallback interface {
 		slot *interfaces.ConnectedSlot) error
 }
 
-func getConnectedPlugCallback(iface interfaces.Interface, instanceName string) (
+func getConnectedPlugCallback(iface interfaces.Interface, instanceName naming.InstanceName) (
 	ConnectedPlugCallback, error) {
 	if iface, ok := iface.(ConnectedPlugCallback); ok {
-		if !interfaces.IsTheSystemSnap(instanceName) {
+		if !interfaces.IsTheSystemSnap(naming.SnapName(instanceName)) {
 			return nil, errors.New("internal error: symlinks plugs can be defined only by the system snap")
 		}
 		return iface, nil
@@ -124,7 +126,7 @@ func (spec *Specification) AddConnectedSlot(iface interfaces.Interface, plug *in
 		SymlinksConnectedSlot(spec *Specification, plug *interfaces.ConnectedPlug, slot *interfaces.ConnectedSlot) error
 	}
 	if iface, ok := iface.(definer); ok {
-		if !interfaces.IsTheSystemSnap(plug.Snap().InstanceName()) {
+		if !interfaces.IsTheSystemSnap(naming.SnapName(plug.Snap().InstanceName())) {
 			return errors.New("internal error: symlinks plugs can be defined only by the system snap")
 		}
 		return iface.SymlinksConnectedSlot(spec, plug, slot)
@@ -149,7 +151,7 @@ func (spec *Specification) AddPermanentPlug(iface interfaces.Interface, plug *sn
 		SymlinksPermanentPlug(spec *Specification, plug *snap.PlugInfo) error
 	}
 	if iface, ok := iface.(definer); ok {
-		if !interfaces.IsTheSystemSnap(plug.Snap.InstanceName()) {
+		if !interfaces.IsTheSystemSnap(naming.SnapName(plug.Snap.InstanceName())) {
 			return errors.New("internal error: symlinks plugs can be defined only by the system snap")
 		}
 		return iface.SymlinksPermanentPlug(spec, plug)

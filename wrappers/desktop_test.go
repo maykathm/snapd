@@ -34,7 +34,8 @@ import (
 	"github.com/snapcore/snapd/snap/snaptest"
 	"github.com/snapcore/snapd/testutil"
 	"github.com/snapcore/snapd/wrappers"
-)
+
+	"github.com/snapcore/snapd/snap/naming")
 
 type desktopSuite struct {
 	testutil.BaseTest
@@ -963,7 +964,7 @@ X-SnapInstanceName=foo`)
 	}
 
 	found := make(map[string]string, 2)
-	err := wrappers.ForAllDesktopFiles(func(base, instanceName string) error {
+	err := wrappers.ForAllDesktopFiles(func(base, instanceName naming.InstanceName) error {
 		found[base] = instanceName
 		return nil
 	})
@@ -989,7 +990,7 @@ Name=foo`)
 	c.Assert(os.WriteFile(filepath.Join(dirs.SnapDesktopFilesDir, "no-instance-name.desktop"), mockNoInstanceName, 0644), IsNil)
 	c.Assert(os.WriteFile(filepath.Join(dirs.SnapDesktopFilesDir, "invalid.desktop"), mockInvalid, 0644), IsNil)
 
-	err := wrappers.ForAllDesktopFiles(func(base, instanceName string) error {
+	err := wrappers.ForAllDesktopFiles(func(base, instanceName naming.InstanceName) error {
 		return errors.New("unexpected call")
 	})
 	c.Assert(err, IsNil)

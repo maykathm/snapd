@@ -82,8 +82,8 @@ type StoreService interface {
 
 type managerBackend interface {
 	// install related
-	SetupSnap(snapFilePath, instanceName string, si *snap.SideInfo, dev snap.Device, opts *backend.SetupSnapOptions, meter progress.Meter) (snap.Type, *backend.InstallRecord, error)
-	SetupKernelSnap(instanceName string, rev snap.Revision, meter progress.Meter) (err error)
+	SetupSnap(snapFilePath, instanceName naming.InstanceName, si *snap.SideInfo, dev snap.Device, opts *backend.SetupSnapOptions, meter progress.Meter) (snap.Type, *backend.InstallRecord, error)
+	SetupKernelSnap(instanceName naming.InstanceName, rev snap.Revision, meter progress.Meter) (err error)
 	SetupComponent(compFilePath string, compPi snap.ContainerPlaceInfo, dev snap.Device, meter progress.Meter) (installRecord *backend.InstallRecord, err error)
 	SetupKernelModulesComponents(currentComps, finalComps []*snap.ComponentSideInfo, ksnapName string, ksnapRev snap.Revision, meter progress.Meter) (err error)
 	CopySnapData(newSnap, oldSnap *snap.Info, opts *dirs.SnapDirOptions, meter progress.Meter) error
@@ -107,7 +107,7 @@ type managerBackend interface {
 	// remove related
 	UnlinkSnap(info *snap.Info, linkCtx backend.LinkContext, meter progress.Meter) error
 	UnlinkComponent(cpi snap.ContainerPlaceInfo, snapRev snap.Revision) error
-	KillSnapApps(snapName string, reason snap.AppKillReason, tm timings.Measurer) error
+	KillSnapApps(snapName naming.SnapName, reason snap.AppKillReason, tm timings.Measurer) error
 	RemoveSnapFiles(s snap.PlaceInfo, typ snap.Type, installRecord *backend.InstallRecord, dev snap.Device, meter progress.Meter) error
 	RemoveSnapDir(s snap.PlaceInfo, hasOtherInstances bool) error
 	RemoveSnapData(info *snap.Info, opts *dirs.SnapDirOptions) error
@@ -116,15 +116,15 @@ type managerBackend interface {
 	RemoveSnapDataDir(info *snap.Info, hasOtherInstances bool, opts *dirs.SnapDirOptions) error
 	RemoveComponentDir(cpi snap.ContainerPlaceInfo) error
 	RemoveContainerMountUnits(cpi snap.ContainerPlaceInfo, meter progress.Meter) error
-	DiscardSnapNamespace(snapName string) error
-	DiscardLockedSnapNamespace(snapName string) error
-	RemoveSnapInhibitLock(snapName string, stateUnlocker runinhibit.Unlocker) error
+	DiscardSnapNamespace(snapName naming.SnapName) error
+	DiscardLockedSnapNamespace(snapName naming.SnapName) error
+	RemoveSnapInhibitLock(snapName naming.SnapName, stateUnlocker runinhibit.Unlocker) error
 	RemoveAllSnapAppArmorProfiles() error
-	RemoveKernelSnapSetup(instanceName string, rev snap.Revision, meter progress.Meter) error
+	RemoveKernelSnapSetup(instanceName naming.InstanceName, rev snap.Revision, meter progress.Meter) error
 
 	// alias related
 	UpdateAliases(add []*backend.Alias, remove []*backend.Alias) error
-	RemoveSnapAliases(snapName string) error
+	RemoveSnapAliases(snapName naming.SnapName) error
 
 	// testing helpers
 	CurrentInfo(cur *snap.Info)
@@ -136,9 +136,9 @@ type managerBackend interface {
 	// WithSnapLock(info *snap.Info, action func() error) error
 
 	// ~/.snap/data migration related
-	HideSnapData(snapName string) error
-	UndoHideSnapData(snapName string) error
-	InitExposedSnapHome(snapName string, rev snap.Revision, opts *dirs.SnapDirOptions) (*backend.UndoInfo, error)
-	UndoInitExposedSnapHome(snapName string, undoInfo *backend.UndoInfo) error
+	HideSnapData(snapName naming.SnapName) error
+	UndoHideSnapData(snapName naming.SnapName) error
+	InitExposedSnapHome(snapName naming.SnapName, rev snap.Revision, opts *dirs.SnapDirOptions) (*backend.UndoInfo, error)
+	UndoInitExposedSnapHome(snapName naming.SnapName, undoInfo *backend.UndoInfo) error
 	InitXDGDirs(info *snap.Info) error
 }

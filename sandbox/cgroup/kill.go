@@ -29,7 +29,8 @@ import (
 	"time"
 
 	"github.com/snapcore/snapd/logger"
-)
+
+	"github.com/snapcore/snapd/snap/naming")
 
 // KillSnapProcesses sends a signal to all the processes belonging to
 // a given snap.
@@ -50,7 +51,7 @@ import (
 //   - cgroup v2: stop forking through pids.max, kill processes until cgroup is drained.
 //     This is to address kernel versions without v2 freezer support so we use pids.max
 //     to prevent fork bombs from racing with snapd.
-var KillSnapProcesses = func(ctx context.Context, snapName string) error {
+var KillSnapProcesses = func(ctx context.Context, snapName naming.SnapName) error {
 	return errors.New("KillSnapProcesses not implemented")
 }
 
@@ -119,7 +120,7 @@ func isCgroupNotExistErr(err error) bool {
 	return errors.Is(err, fs.ErrNotExist) || errors.Is(err, syscall.ENODEV)
 }
 
-func killSnapProcessesImplV1(ctx context.Context, snapName string) error {
+func killSnapProcessesImplV1(ctx context.Context, snapName naming.SnapName) error {
 	ctxWithTimeout, cancel := context.WithTimeout(ctx, maxKillTimeout)
 	defer cancel()
 
@@ -173,7 +174,7 @@ func killSnapProcessesImplV1(ctx context.Context, snapName string) error {
 	return firstErr
 }
 
-func killSnapProcessesImplV2(ctx context.Context, snapName string) error {
+func killSnapProcessesImplV2(ctx context.Context, snapName naming.SnapName) error {
 	ctxWithTimeout, cancel := context.WithTimeout(ctx, maxKillTimeout)
 	defer cancel()
 

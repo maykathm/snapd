@@ -69,8 +69,8 @@ type ModelSnap struct {
 }
 
 // SnapName implements naming.SnapRef.
-func (s *ModelSnap) SnapName() string {
-	return s.Name
+func (s *ModelSnap) SnapName() naming.SnapName {
+	return naming.SnapName(s.Name)
 }
 
 // ID implements naming.SnapRef.
@@ -1133,7 +1133,7 @@ func assembleModel(assert assertionBase) (Assertion, error) {
 			// the assumption is that base names are very stable
 			// essentially fixed
 			modSnaps.base = baseSnap
-			snapID := naming.WellKnownSnapID(modSnaps.base.Name)
+			snapID := naming.WellKnownSnapID(naming.SnapName(modSnaps.base.Name))
 			if snapID == "" && grade != ModelDangerous {
 				return nil, fmt.Errorf(`cannot specify not well-known base %q without a corresponding "snaps" header entry`, modSnaps.base.Name)
 			}

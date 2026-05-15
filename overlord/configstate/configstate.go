@@ -38,7 +38,8 @@ import (
 	"github.com/snapcore/snapd/overlord/state"
 	"github.com/snapcore/snapd/snap"
 	"github.com/snapcore/snapd/sysconfig"
-)
+
+	"github.com/snapcore/snapd/snap/naming")
 
 func init() {
 	snapstate.Configure = Configure
@@ -55,7 +56,7 @@ func ConfigureHookTimeout() time.Duration {
 	return timeout
 }
 
-func canConfigure(st *state.State, snapName string) error {
+func canConfigure(st *state.State, snapName naming.SnapName) error {
 	// the "core" snap/pseudonym can always be configured as it
 	// is handled internally
 	if snapName == "core" {
@@ -96,7 +97,7 @@ func canConfigure(st *state.State, snapName string) error {
 // ConfigureInstalled returns a taskset to apply the given
 // configuration patch for an installed snap. It returns
 // snap.NotInstalledError if the snap is not installed.
-func ConfigureInstalled(st *state.State, snapName string, patch map[string]any, flags int) (*state.TaskSet, error) {
+func ConfigureInstalled(st *state.State, snapName naming.SnapName, patch map[string]any, flags int) (*state.TaskSet, error) {
 	if err := canConfigure(st, snapName); err != nil {
 		return nil, err
 	}
@@ -106,7 +107,7 @@ func ConfigureInstalled(st *state.State, snapName string, patch map[string]any, 
 }
 
 // Configure returns a taskset to apply the given configuration patch.
-func Configure(st *state.State, snapName string, patch map[string]any, flags int) *state.TaskSet {
+func Configure(st *state.State, snapName naming.SnapName, patch map[string]any, flags int) *state.TaskSet {
 	summary := fmt.Sprintf(i18n.G("Run configure hook of %q snap"), snapName)
 	// regular configuration hook
 	hooksup := &hookstate.HookSetup{
@@ -133,7 +134,7 @@ func Configure(st *state.State, snapName string, patch map[string]any, flags int
 }
 
 // DefaultConfigure returns a taskset to apply the given default-configuration patch.
-func DefaultConfigure(st *state.State, snapName string) *state.TaskSet {
+func DefaultConfigure(st *state.State, snapName naming.SnapName) *state.TaskSet {
 	summary := fmt.Sprintf(i18n.G("Run default-configure hook of %q snap if present"), snapName)
 	hooksup := &hookstate.HookSetup{
 		Snap:     snapName,
@@ -149,7 +150,7 @@ func DefaultConfigure(st *state.State, snapName string) *state.TaskSet {
 }
 
 // RemapSnapFromRequest renames a snap as received from an API request
-func RemapSnapFromRequest(snapName string) string {
+func RemapSnapFromRequest(snapName naming.SnapName) string {
 	if snapName == "system" {
 		return "core"
 	}
@@ -157,7 +158,7 @@ func RemapSnapFromRequest(snapName string) string {
 }
 
 // RemapSnapToResponse renames a snap as about to be sent from an API response
-func RemapSnapToResponse(snapName string) string {
+func RemapSnapToResponse(snapName naming.SnapName) string {
 	if snapName == "core" {
 		return "system"
 	}

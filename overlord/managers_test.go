@@ -118,7 +118,7 @@ var (
 )
 
 type automaticSnapshotCall struct {
-	InstanceName string
+	InstanceName naming.InstanceName
 	SnapConfig   map[string]any
 	Usernames    []string
 	Options      *snap.SnapshotOptions
@@ -873,7 +873,7 @@ hooks:
 
 func (s *mgrsSuite) TestHappyRemove(c *C) {
 	oldEstimateSnapshotSize := snapstate.EstimateSnapshotSize
-	snapstate.EstimateSnapshotSize = func(st *state.State, instanceName string, users []string) (uint64, error) {
+	snapstate.EstimateSnapshotSize = func(st *state.State, instanceName naming.InstanceName, users []string) (uint64, error) {
 		return 0, nil
 	}
 	defer func() {

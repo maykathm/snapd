@@ -50,7 +50,8 @@ import (
 	"github.com/snapcore/snapd/store/storetest"
 	"github.com/snapcore/snapd/systemd"
 	"github.com/snapcore/snapd/testutil"
-)
+
+	"github.com/snapcore/snapd/snap/naming")
 
 type fakeStore struct {
 	storetest.Store
@@ -853,7 +854,7 @@ apps:
 		if t.Kind() != "exec-command" && t.Kind() != "service-control" {
 			continue
 		}
-		var snapName string
+		var snapName naming.SnapName
 		if strings.Contains(t.Summary(), "one") {
 			snapName = "one"
 		} else if strings.Contains(t.Summary(), "two") {

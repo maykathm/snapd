@@ -33,7 +33,8 @@ import (
 	"github.com/snapcore/snapd/overlord/state"
 	"github.com/snapcore/snapd/snap"
 	"github.com/snapcore/snapd/strutil"
-)
+
+	"github.com/snapcore/snapd/snap/naming")
 
 var checkTimeout = 30 * time.Second
 
@@ -49,7 +50,7 @@ func init() {
 	snapstate.CheckHealthHook = Hook
 }
 
-func Hook(st *state.State, snapName string, snapRev snap.Revision) *state.Task {
+func Hook(st *state.State, snapName naming.SnapName, snapRev snap.Revision) *state.Task {
 	summary := fmt.Sprintf("Run health check of %q snap", snapName)
 	hooksup := &hookstate.HookSetup{
 		Snap:     snapName,

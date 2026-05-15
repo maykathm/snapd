@@ -28,10 +28,12 @@ import (
 
 	"github.com/snapcore/snapd/dirs"
 	"github.com/snapcore/snapd/osutil"
+
+	"github.com/snapcore/snapd/snap/naming"
 )
 
 // lockFileName returns the name of the lock file for the given snap.
-func lockFileName(snapName string) string {
+func lockFileName(snapName naming.SnapName) string {
 	return filepath.Join(dirs.SnapRunLockDir, fmt.Sprintf("%s.lock", snapName))
 }
 
@@ -41,7 +43,7 @@ func lockFileName(snapName string) string {
 // synchronize operations between snapd and snap-confine (and snap-update-ns
 // in some cases). Any process holding the snap lock must not do any
 // interactions with snapd to avoid deadlocks due to locked snap state.
-func OpenLock(snapName string) (*osutil.FileLock, error) {
+func OpenLock(snapName naming.SnapName) (*osutil.FileLock, error) {
 	if err := os.MkdirAll(dirs.SnapRunLockDir, 0700); err != nil {
 		return nil, fmt.Errorf("cannot create lock directory: %s", err)
 	}
@@ -55,8 +57,8 @@ func OpenLock(snapName string) (*osutil.FileLock, error) {
 // WithLock executes a given function while holding the snap lock.
 //
 // Errors returned by f are passed directly to the caller.
-func WithLock(instanceName string, f func() error) error {
-	lock, err := OpenLock(instanceName)
+func WithLock(instanceName naming.InstanceName, f func() error) error {
+	lock, err := OpenLock(naming.SnapName(instanceName))
 	if err != nil {
 		return err
 	}
@@ -73,8 +75,8 @@ func WithLock(instanceName string, f func() error) error {
 // lock. Returns osutil.ErrAlreadyLocked if lock could not be taken.
 //
 // Errors returned by f are passed directly to the caller.
-func WithTryLock(instanceName string, f func() error) error {
-	lock, err := OpenLock(instanceName)
+func WithTryLock(instanceName naming.InstanceName, f func() error) error {
+	lock, err := OpenLock(naming.SnapName(instanceName))
 	if err != nil {
 		return err
 	}

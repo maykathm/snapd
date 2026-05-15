@@ -27,6 +27,8 @@ import (
 
 	"github.com/snapcore/snapd/dirs"
 	"github.com/snapcore/snapd/osutil"
+
+	"github.com/snapcore/snapd/snap/naming"
 )
 
 // UserProfileUpdateContext contains information about update to per-user mount namespace.
@@ -68,7 +70,7 @@ func isPlausibleHome(path string) error {
 }
 
 // NewUserProfileUpdateContext returns encapsulated information for performing a per-user mount namespace update.
-func NewUserProfileUpdateContext(instanceName string, fromSnapConfine bool, uid int) (*UserProfileUpdateContext, error) {
+func NewUserProfileUpdateContext(instanceName naming.InstanceName, fromSnapConfine bool, uid int) (*UserProfileUpdateContext, error) {
 	realHome := os.Getenv("SNAP_REAL_HOME")
 	var realHomeError error
 	if realHome == "" {
@@ -82,8 +84,8 @@ func NewUserProfileUpdateContext(instanceName string, fromSnapConfine bool, uid 
 		CommonProfileUpdateContext: CommonProfileUpdateContext{
 			instanceName:       instanceName,
 			fromSnapConfine:    fromSnapConfine,
-			currentProfilePath: currentUserProfilePath(instanceName, uid),
-			desiredProfilePath: desiredUserProfilePath(instanceName),
+			currentProfilePath: currentUserProfilePath(naming.SnapName(instanceName), uid),
+			desiredProfilePath: desiredUserProfilePath(naming.SnapName(instanceName)),
 		},
 		uid:       uid,
 		home:      realHome,
@@ -150,11 +152,11 @@ func (upCtx *UserProfileUpdateContext) LoadCurrentProfile() (*osutil.MountProfil
 }
 
 // desiredUserProfilePath returns the path of the fstab-like file with the desired, user-specific mount profile for a snap.
-func desiredUserProfilePath(snapName string) string {
+func desiredUserProfilePath(snapName naming.SnapName) string {
 	return fmt.Sprintf("%s/snap.%s.user-fstab", dirs.SnapMountPolicyDir, snapName)
 }
 
 // currentUserProfilePath returns the path of the fstab-like file with the applied, user-specific mount profile for a snap.
-func currentUserProfilePath(snapName string, uid int) string {
+func currentUserProfilePath(snapName naming.SnapName, uid int) string {
 	return fmt.Sprintf("%s/snap.%s.%d.user-fstab", dirs.SnapRunNsDir, snapName, uid)
 }

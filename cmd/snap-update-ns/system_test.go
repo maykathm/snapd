@@ -32,7 +32,8 @@ import (
 	"github.com/snapcore/snapd/osutil"
 	"github.com/snapcore/snapd/osutil/sys"
 	"github.com/snapcore/snapd/sandbox/cgroup"
-)
+
+	"github.com/snapcore/snapd/snap/naming")
 
 type systemSuite struct{}
 
@@ -47,11 +48,11 @@ func (s *systemSuite) TestLockCgroup(c *C) {
 
 	var frozen []string
 	var thawed []string
-	happyFreeze := func(ctx context.Context, snapName string) error {
+	happyFreeze := func(ctx context.Context, snapName naming.SnapName) error {
 		frozen = append(frozen, snapName)
 		return nil
 	}
-	happyThaw := func(snapName string) error {
+	happyThaw := func(snapName naming.SnapName) error {
 		thawed = append(thawed, snapName)
 		return nil
 	}

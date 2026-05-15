@@ -741,7 +741,7 @@ func findDevInfo20() (*deviceInfo, error) {
 	return &deviceInfo{
 		Brand: l[0],
 		Model: l[1],
-		Base:  baseSn.SnapName(),
+		Base:  string(baseSn.SnapName()),
 		Mode:  mode,
 	}, nil
 }

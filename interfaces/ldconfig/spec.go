@@ -24,6 +24,8 @@ import (
 
 	"github.com/snapcore/snapd/interfaces"
 	"github.com/snapcore/snapd/snap"
+
+	"github.com/snapcore/snapd/snap/naming"
 )
 
 // Specification assists in collecting library directories associated with an
@@ -45,7 +47,7 @@ type Specification struct {
 
 // SnapSlot is the key for libDirs: directories are per snap slot.
 type SnapSlot struct {
-	SnapName string
+	SnapName naming.SnapName
 	SlotName string
 }
 
@@ -59,7 +61,7 @@ func (spec *Specification) AddLibDirs(dirs []string) error {
 	if spec.libDirs == nil {
 		spec.libDirs = make(map[SnapSlot][]string)
 	}
-	spec.libDirs[SnapSlot{SnapName: spec.slotSnapName, SlotName: spec.slotName}] = dirs
+	spec.libDirs[SnapSlot{SnapName: naming.SnapName(spec.slotSnapName), SlotName: spec.slotName}] = dirs
 	return nil
 }
 
@@ -79,10 +81,10 @@ type ConnectedPlugCallback interface {
 		slot *interfaces.ConnectedSlot) error
 }
 
-func getConnectedPlugCallback(iface interfaces.Interface, instanceName string) (
+func getConnectedPlugCallback(iface interfaces.Interface, instanceName naming.InstanceName) (
 	ConnectedPlugCallback, error) {
 	if iface, ok := iface.(ConnectedPlugCallback); ok {
-		if !interfaces.IsTheSystemSnap(instanceName) {
+		if !interfaces.IsTheSystemSnap(naming.SnapName(instanceName)) {
 			return nil, errors.New("internal error: ldconfig plugs can be defined only by the system snap")
 		}
 		return iface, nil
@@ -98,7 +100,7 @@ func (spec *Specification) AddConnectedPlug(iface interfaces.Interface, plug *in
 	}
 	if connectedPlugCallback != nil {
 		// Set the contextual information
-		spec.slotSnapName = slot.Snap().SnapName()
+		spec.slotSnapName = string(slot.Snap().SnapName())
 		spec.slotName = slot.Name()
 		return connectedPlugCallback.LdconfigConnectedPlug(spec, plug, slot)
 	}
@@ -112,7 +114,7 @@ func (spec *Specification) AddConnectedSlot(iface interfaces.Interface, plug *in
 			slot *interfaces.ConnectedSlot) error
 	}
 	if iface, ok := iface.(definer); ok {
-		if !interfaces.IsTheSystemSnap(plug.Snap().InstanceName()) {
+		if !interfaces.IsTheSystemSnap(naming.SnapName(plug.Snap().InstanceName())) {
 			return errors.New("internal error: ldconfig plugs can be defined only by the system snap")
 		}
 		return iface.LdconfigConnectedSlot(spec, plug, slot)
@@ -137,7 +139,7 @@ func (spec *Specification) AddPermanentPlug(iface interfaces.Interface, plug *sn
 		LdconfigPermanentPlug(spec *Specification, plug *snap.PlugInfo) error
 	}
 	if iface, ok := iface.(definer); ok {
-		if !interfaces.IsTheSystemSnap(plug.Snap.InstanceName()) {
+		if !interfaces.IsTheSystemSnap(naming.SnapName(plug.Snap.InstanceName())) {
 			return errors.New("internal error: ldconfig plugs can be defined only by the system snap")
 		}
 		return iface.LdconfigPermanentPlug(spec, plug)

@@ -29,7 +29,8 @@ import (
 	"github.com/snapcore/snapd/testutil"
 	"github.com/snapcore/snapd/timings"
 	"github.com/snapcore/snapd/wrappers"
-)
+
+	"github.com/snapcore/snapd/snap/naming")
 
 var (
 	AddMountUnit       = addMountUnit
@@ -74,7 +75,7 @@ func MockKernelEnsureKernelDriversTree(f func(kMntPts kernel.MountPoints, compsM
 	return testutil.Mock(&kernelEnsureKernelDriversTree, f)
 }
 
-func MockCgroupKillSnapProcesses(f func(ctx context.Context, snapName string) error) func() {
+func MockCgroupKillSnapProcesses(f func(ctx context.Context, snapName naming.SnapName) error) func() {
 	return testutil.Mock(&cgroupKillSnapProcesses, f)
 }
 

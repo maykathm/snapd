@@ -41,7 +41,8 @@ import (
 	"github.com/snapcore/snapd/overlord/state"
 	"github.com/snapcore/snapd/snap"
 	"github.com/snapcore/snapd/testutil"
-)
+
+	"github.com/snapcore/snapd/snap/naming")
 
 var (
 	CreateQuotaValues = createQuotaValues
@@ -306,7 +307,7 @@ func MockSnapstateHoldRefreshesBySystem(f func(st *state.State, level snapstate.
 	}
 }
 
-func MockSnapstateRemoveComponents(mock func(st *state.State, snapName string, compName []string, opts snapstate.RemoveComponentsOpts) ([]*state.TaskSet, error)) (restore func()) {
+func MockSnapstateRemoveComponents(mock func(st *state.State, snapName naming.SnapName, compName []string, opts snapstate.RemoveComponentsOpts) ([]*state.TaskSet, error)) (restore func()) {
 	oldSnapstateRemoveComponents := snapstateRemoveComponents
 	snapstateRemoveComponents = mock
 	return func() {

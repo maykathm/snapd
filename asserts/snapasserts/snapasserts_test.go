@@ -847,7 +847,7 @@ provenance: prov`, nil)
 	c.Check(err, ErrorMatches, `safely handling snaps with different provenance but same hash not yet supported`)
 }
 
-func assertedSnapID(snapName string) string {
+func assertedSnapID(snapName naming.SnapName) string {
 	snapID := naming.WellKnownSnapID(snapName)
 	if snapID != "" {
 		return snapID

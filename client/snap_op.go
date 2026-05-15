@@ -28,6 +28,8 @@ import (
 	"mime/multipart"
 	"os"
 	"path/filepath"
+
+	"github.com/snapcore/snapd/snap/naming"
 )
 
 // TransactionType says whether we want to treat each snap separately
@@ -141,7 +143,7 @@ type multiActionData struct {
 // Install adds the snap with the given name from the given channel (or
 // the system default channel if not).
 func (client *Client) Install(name string, components []string, options *SnapOptions) (changeID string, err error) {
-	return client.doSnapAction("install", name, components, options)
+	return client.doSnapAction("install", naming.SnapName(name), components, options)
 }
 
 func (client *Client) InstallMany(names []string, components map[string][]string, options *SnapOptions) (changeID string, err error) {
@@ -151,7 +153,7 @@ func (client *Client) InstallMany(names []string, components map[string][]string
 // Remove removes the snap with the given name, or only the specified
 // components if present.
 func (client *Client) Remove(name string, components []string, options *SnapOptions) (changeID string, err error) {
-	return client.doSnapAction("remove", name, components, options)
+	return client.doSnapAction("remove", naming.SnapName(name), components, options)
 }
 
 // RemoveMany removes the snaps in names and the components as a map
@@ -163,7 +165,7 @@ func (client *Client) RemoveMany(names []string, components map[string][]string,
 // Refresh refreshes the snap with the given name (switching it to track
 // the given channel if given).
 func (client *Client) Refresh(name string, components []string, options *SnapOptions) (changeID string, err error) {
-	return client.doSnapAction("refresh", name, components, options)
+	return client.doSnapAction("refresh", naming.SnapName(name), components, options)
 }
 
 func (client *Client) RefreshMany(names []string, components map[string][]string, options *SnapOptions) (changeID string, err error) {
@@ -171,7 +173,7 @@ func (client *Client) RefreshMany(names []string, components map[string][]string
 }
 
 func (client *Client) HoldRefreshes(name string, options *SnapOptions) (changeID string, err error) {
-	return client.doSnapAction("hold", name, nil, options)
+	return client.doSnapAction("hold", naming.SnapName(name), nil, options)
 }
 
 func (client *Client) HoldRefreshesMany(names []string, options *SnapOptions) (changeID string, err error) {
@@ -179,7 +181,7 @@ func (client *Client) HoldRefreshesMany(names []string, options *SnapOptions) (c
 }
 
 func (client *Client) UnholdRefreshes(name string, options *SnapOptions) (changeID string, err error) {
-	return client.doSnapAction("unhold", name, nil, options)
+	return client.doSnapAction("unhold", naming.SnapName(name), nil, options)
 }
 
 func (client *Client) UnholdRefreshesMany(names []string, options *SnapOptions) (changeID string, err error) {
@@ -187,21 +189,21 @@ func (client *Client) UnholdRefreshesMany(names []string, options *SnapOptions) 
 }
 
 func (client *Client) Enable(name string, options *SnapOptions) (changeID string, err error) {
-	return client.doSnapAction("enable", name, nil, options)
+	return client.doSnapAction("enable", naming.SnapName(name), nil, options)
 }
 
 func (client *Client) Disable(name string, options *SnapOptions) (changeID string, err error) {
-	return client.doSnapAction("disable", name, nil, options)
+	return client.doSnapAction("disable", naming.SnapName(name), nil, options)
 }
 
 // Revert rolls the snap back to the previous on-disk state
 func (client *Client) Revert(name string, options *SnapOptions) (changeID string, err error) {
-	return client.doSnapAction("revert", name, nil, options)
+	return client.doSnapAction("revert", naming.SnapName(name), nil, options)
 }
 
 // Switch moves the snap to a different channel without a refresh
 func (client *Client) Switch(name string, options *SnapOptions) (changeID string, err error) {
-	return client.doSnapAction("switch", name, nil, options)
+	return client.doSnapAction("switch", naming.SnapName(name), nil, options)
 }
 
 // SnapshotMany snapshots many snaps (all, if names empty) for many users (all, if users is empty).
@@ -224,7 +226,7 @@ func (client *Client) SnapshotMany(names []string, users []string) (setID uint64
 
 var ErrDangerousNotApplicable = fmt.Errorf("dangerous option only meaningful when installing from a local file")
 
-func (client *Client) doSnapAction(actionName string, snapName string, components []string, options *SnapOptions) (changeID string, err error) {
+func (client *Client) doSnapAction(actionName string, snapName naming.SnapName, components []string, options *SnapOptions) (changeID string, err error) {
 	if options != nil && options.Dangerous {
 		return "", ErrDangerousNotApplicable
 	}
@@ -431,7 +433,7 @@ type snapRevisionOptions struct {
 }
 
 type downloadAction struct {
-	SnapName string `json:"snap-name"`
+	SnapName naming.SnapName `json:"snap-name"`
 
 	snapRevisionOptions
 
@@ -460,7 +462,7 @@ func (client *Client) Download(name string, options *DownloadOptions) (dlInfo *D
 		options = &DownloadOptions{}
 	}
 	action := downloadAction{
-		SnapName: name,
+		SnapName: naming.SnapName(name),
 		snapRevisionOptions: snapRevisionOptions{
 			Channel:   options.Channel,
 			CohortKey: options.CohortKey,

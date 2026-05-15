@@ -30,7 +30,8 @@ import (
 	"github.com/snapcore/snapd/overlord/state"
 	"github.com/snapcore/snapd/snap"
 	"github.com/snapcore/snapd/testutil"
-)
+
+	"github.com/snapcore/snapd/snap/naming")
 
 type discardSnapSuite struct {
 	baseHandlerSuite
@@ -238,7 +239,7 @@ func (s *discardSnapSuite) TestDoDiscardSnapNoErrorsForActive(c *C) {
 
 func (s *discardSnapSuite) TestDoDiscardSnapdRemovesLate(c *C) {
 	var removeLateCalledFor [][]string
-	restore := snapstate.MockSecurityProfilesDiscardLate(func(snapName string, rev snap.Revision, typ snap.Type) error {
+	restore := snapstate.MockSecurityProfilesDiscardLate(func(snapName naming.SnapName, rev snap.Revision, typ snap.Type) error {
 		removeLateCalledFor = append(removeLateCalledFor, []string{
 			snapName, rev.String(), string(typ),
 		})

@@ -26,9 +26,9 @@ import (
 	"github.com/snapcore/snapd/interfaces/utils"
 	"github.com/snapcore/snapd/metautil"
 	"github.com/snapcore/snapd/snap"
-)
 
-// Connection represents a connection between a particular plug and slot.
+	"github.com/snapcore/snapd/snap/naming"
+) // Connection represents a connection between a particular plug and slot.
 type Connection struct {
 	Plug *ConnectedPlug
 	Slot *ConnectedSlot
@@ -113,7 +113,7 @@ func lookupAttr(staticAttrs map[string]any, dynamicAttrs map[string]any, path st
 	return v, true
 }
 
-func getAttribute(snapName string, ifaceName string, staticAttrs map[string]any, dynamicAttrs map[string]any, path string, val any) error {
+func getAttribute(snapName naming.SnapName, ifaceName string, staticAttrs map[string]any, dynamicAttrs map[string]any, path string, val any) error {
 	v, ok := lookupAttr(staticAttrs, dynamicAttrs, path)
 	if !ok {
 		err := fmt.Errorf("snap %q does not have attribute %q for interface %q", snapName, path, ifaceName)
@@ -210,7 +210,7 @@ func appAndHookRunnables(apps []*snap.AppInfo, hooks []*snap.HookInfo) []snap.Ru
 
 // StaticAttr returns a static attribute with the given key, or error if attribute doesn't exist.
 func (plug *ConnectedPlug) StaticAttr(key string, val any) error {
-	return getAttribute(plug.Snap().InstanceName(), plug.Interface(), plug.staticAttrs, nil, key, val)
+	return getAttribute(plug.Snap().SnapName(), plug.Interface(), plug.staticAttrs, nil, key, val)
 }
 
 // StaticAttrs returns all static attributes.
@@ -227,7 +227,7 @@ func (plug *ConnectedPlug) DynamicAttrs() map[string]any {
 // attribute if dynamic one doesn't exist. Error is returned if neither dynamic nor static
 // attribute exist.
 func (plug *ConnectedPlug) Attr(key string, val any) error {
-	return getAttribute(plug.Snap().InstanceName(), plug.Interface(), plug.staticAttrs, plug.dynamicAttrs, key, val)
+	return getAttribute(plug.Snap().SnapName(), plug.Interface(), plug.staticAttrs, plug.dynamicAttrs, key, val)
 }
 
 func (plug *ConnectedPlug) Lookup(path string) (any, bool) {
@@ -248,7 +248,7 @@ func (plug *ConnectedPlug) SetAttr(key string, value any) error {
 
 // Ref returns the PlugRef for this plug.
 func (plug *ConnectedPlug) Ref() *PlugRef {
-	return &PlugRef{Snap: plug.Snap().InstanceName(), Name: plug.Name()}
+	return &PlugRef{Snap: string(plug.Snap().SnapName()), Name: plug.Name()}
 }
 
 // Interface returns the name of the interface for this slot.
@@ -273,7 +273,7 @@ func (slot *ConnectedSlot) Apps() map[string]*snap.AppInfo {
 
 // StaticAttr returns a static attribute with the given key, or error if attribute doesn't exist.
 func (slot *ConnectedSlot) StaticAttr(key string, val any) error {
-	return getAttribute(slot.Snap().InstanceName(), slot.Interface(), slot.staticAttrs, nil, key, val)
+	return getAttribute(slot.Snap().SnapName(), slot.Interface(), slot.staticAttrs, nil, key, val)
 }
 
 // StaticAttrs returns all static attributes.
@@ -290,7 +290,7 @@ func (slot *ConnectedSlot) DynamicAttrs() map[string]any {
 // attribute if dynamic one doesn't exist. Error is returned if neither dynamic nor static
 // attribute exist.
 func (slot *ConnectedSlot) Attr(key string, val any) error {
-	return getAttribute(slot.Snap().InstanceName(), slot.Interface(), slot.staticAttrs, slot.dynamicAttrs, key, val)
+	return getAttribute(slot.Snap().SnapName(), slot.Interface(), slot.staticAttrs, slot.dynamicAttrs, key, val)
 }
 
 func (slot *ConnectedSlot) Lookup(path string) (any, bool) {
@@ -311,7 +311,7 @@ func (slot *ConnectedSlot) SetAttr(key string, value any) error {
 
 // Ref returns the SlotRef for this slot.
 func (slot *ConnectedSlot) Ref() *SlotRef {
-	return &SlotRef{Snap: slot.Snap().InstanceName(), Name: slot.Name()}
+	return &SlotRef{Snap: string(slot.Snap().SnapName()), Name: slot.Name()}
 }
 
 // Interface returns the name of the interface for this connection.

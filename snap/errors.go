@@ -23,6 +23,8 @@ import (
 	"fmt"
 	"sort"
 	"strings"
+
+	"github.com/snapcore/snapd/snap/naming"
 )
 
 // Should not construct this error directly. Use NewAlreadyInstalledSnapsError,
@@ -108,9 +110,9 @@ func NewAlreadyInstalledSnapsError(snaps []string) *AlreadyInstalledError {
 	return NewAlreadyInstalledError(snaps, nil)
 }
 
-func NewAlreadyInstalledComponentsError(snapName string, comps []string) *AlreadyInstalledError {
+func NewAlreadyInstalledComponentsError(snapName naming.SnapName, comps []string) *AlreadyInstalledError {
 	return NewAlreadyInstalledError(nil, map[string][]string{
-		snapName: comps,
+		string(snapName): comps,
 	})
 }
 

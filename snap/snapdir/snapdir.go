@@ -28,6 +28,7 @@ import (
 	"github.com/snapcore/snapd/osutil"
 	"github.com/snapcore/snapd/snap"
 	"github.com/snapcore/snapd/snap/internal"
+	"github.com/snapcore/snapd/snap/naming"
 )
 
 func IsSnapDir(path string) bool {
@@ -214,8 +215,8 @@ func (s *SnapDir) Unpack(src, dstDir string) error {
 
 // NewContainerFromDir returns a snap.Container that is implemented by a
 // SnapDir. It should be used as the implementation of snap.NewContainerFromDir.
-func NewContainerFromDir(path string) snap.Container {
-	return New(path)
+func NewContainerFromDir(snapName naming.SnapName) snap.Container {
+	return New(string(snapName))
 }
 
 func init() {

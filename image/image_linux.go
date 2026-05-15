@@ -566,7 +566,7 @@ func (s *imageSeeder) deriveInfoForLocalSnaps(localCompsPaths []string, f seedwr
 	return snaps, s.w.InfoDerived()
 }
 
-func (s *imageSeeder) validationSetKeysAndRevisionForSnap(snapName string) ([]snapasserts.ValidationSetKey, snap.Revision, error) {
+func (s *imageSeeder) validationSetKeysAndRevisionForSnap(snapName naming.SnapName) ([]snapasserts.ValidationSetKey, snap.Revision, error) {
 	vsas, err := s.db.FindMany(asserts.ValidationSetType, nil)
 	if err != nil && !errors.Is(err, &asserts.NotFoundError{}) {
 		return nil, snap.Revision{}, err

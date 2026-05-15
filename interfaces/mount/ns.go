@@ -27,10 +27,12 @@ import (
 	"github.com/snapcore/snapd/dirs"
 	"github.com/snapcore/snapd/osutil"
 	"github.com/snapcore/snapd/snapdtool"
+
+	"github.com/snapcore/snapd/snap/naming"
 )
 
 // mountNsPath returns path of the mount namespace file of a given snap
-func mountNsPath(snapName string) string {
+func mountNsPath(snapName naming.SnapName) string {
 	// NOTE: This value has to be synchronized with snap-confine
 	return filepath.Join(dirs.SnapRunNsDir, fmt.Sprintf("%s.mnt", snapName))
 }
@@ -41,10 +43,10 @@ type runNamespaceToolOpts struct {
 }
 
 // Run an internal tool on a given snap namespace, if one exists.
-func runNamespaceTool(toolName, snapName string, runOpts runNamespaceToolOpts) ([]byte, error) {
+func runNamespaceTool(toolName, snapName naming.SnapName, runOpts runNamespaceToolOpts) ([]byte, error) {
 	mntFile := mountNsPath(snapName)
 	if osutil.FileExists(mntFile) {
-		toolPath, err := snapdtool.InternalToolPath(toolName)
+		toolPath, err := snapdtool.InternalToolPath(string(toolName))
 		if err != nil {
 			return nil, err
 		}
@@ -53,7 +55,7 @@ func runNamespaceTool(toolName, snapName string, runOpts runNamespaceToolOpts) (
 		if runOpts.SnapIsLocked {
 			opts = append(opts, "--snap-already-locked")
 		}
-		opts = append(opts, snapName)
+		opts = append(opts, string(snapName))
 		cmd := exec.Command(toolPath, opts...)
 		output, err := cmd.CombinedOutput()
 		return output, err
@@ -62,7 +64,7 @@ func runNamespaceTool(toolName, snapName string, runOpts runNamespaceToolOpts) (
 }
 
 // Discard the mount namespace of a given snap.
-func DiscardSnapNamespace(snapName string) error {
+func DiscardSnapNamespace(snapName naming.SnapName) error {
 	output, err := runNamespaceTool("snap-discard-ns", snapName, runNamespaceToolOpts{})
 	if err != nil {
 		return fmt.Errorf("cannot discard preserved mount namespace of snap %q: %s", snapName, osutil.OutputErr(output, err))
@@ -72,7 +74,7 @@ func DiscardSnapNamespace(snapName string) error {
 
 // Discard the mount namespace of a given snap. The snap must be locked, which
 // the tool is expected to verify.
-func DiscardLockedSnapNamespace(snapName string) error {
+func DiscardLockedSnapNamespace(snapName naming.SnapName) error {
 	output, err := runNamespaceTool("snap-discard-ns", snapName, runNamespaceToolOpts{
 		SnapIsLocked: true,
 	})
@@ -83,7 +85,7 @@ func DiscardLockedSnapNamespace(snapName string) error {
 }
 
 // Update the mount namespace of a given snap.
-func UpdateSnapNamespace(snapName string) error {
+func UpdateSnapNamespace(snapName naming.SnapName) error {
 	output, err := runNamespaceTool("snap-update-ns", snapName, runNamespaceToolOpts{})
 	if err != nil {
 		return fmt.Errorf("cannot update preserved mount namespace of snap %q: %s", snapName, osutil.OutputErr(output, err))

@@ -50,7 +50,8 @@ import (
 	"github.com/snapcore/snapd/strutil"
 	"github.com/snapcore/snapd/timings"
 	"github.com/snapcore/snapd/wrappers"
-)
+
+	"github.com/snapcore/snapd/snap/naming")
 
 type fakeOp struct {
 	op string
@@ -1125,7 +1126,7 @@ apps:
     before: [svc2]
 `
 
-func (f *fakeSnappyBackend) SetupSnap(snapFilePath, instanceName string, si *snap.SideInfo, dev snap.Device, opts *backend.SetupSnapOptions, p progress.Meter) (snap.Type, *backend.InstallRecord, error) {
+func (f *fakeSnappyBackend) SetupSnap(snapFilePath, instanceName naming.InstanceName, si *snap.SideInfo, dev snap.Device, opts *backend.SetupSnapOptions, p progress.Meter) (snap.Type, *backend.InstallRecord, error) {
 	p.Notify("setup-snap")
 	revno := snap.R(0)
 	if si != nil {
@@ -1155,7 +1156,7 @@ func (f *fakeSnappyBackend) SetupSnap(snapFilePath, instanceName string, si *sna
 	return snapType, &backend.InstallRecord{}, nil
 }
 
-func (f *fakeSnappyBackend) SetupKernelSnap(instanceName string, rev snap.Revision, meter progress.Meter) (err error) {
+func (f *fakeSnappyBackend) SetupKernelSnap(instanceName naming.InstanceName, rev snap.Revision, meter progress.Meter) (err error) {
 	meter.Notify("prepare-kernel-snap")
 	f.appendOp(&fakeOp{
 		op: "prepare-kernel-snap",
@@ -1163,7 +1164,7 @@ func (f *fakeSnappyBackend) SetupKernelSnap(instanceName string, rev snap.Revisi
 	return nil
 }
 
-func (f *fakeSnappyBackend) RemoveKernelSnapSetup(instanceName string, rev snap.Revision, meter progress.Meter) error {
+func (f *fakeSnappyBackend) RemoveKernelSnapSetup(instanceName naming.InstanceName, rev snap.Revision, meter progress.Meter) error {
 	meter.Notify("remove-kernel-snap-setup")
 	f.appendOp(&fakeOp{
 		op: "remove-kernel-snap-setup",
@@ -1525,7 +1526,7 @@ func (f *fakeSnappyBackend) StopServices(svcs []*snap.AppInfo, rmSvcs map[string
 	return f.maybeErrForLastOp()
 }
 
-func (f *fakeSnappyBackend) KillSnapApps(snapName string, reason snap.AppKillReason, tm timings.Measurer) error {
+func (f *fakeSnappyBackend) KillSnapApps(snapName naming.SnapName, reason snap.AppKillReason, tm timings.Measurer) error {
 	testLock, err := snaplock.OpenLock(snapName)
 	if err != nil {
 		return err
@@ -1708,7 +1709,7 @@ func (f *fakeSnappyBackend) RemoveSnapDir(s snap.PlaceInfo, otherInstances bool)
 	return f.maybeErrForLastOp()
 }
 
-func (f *fakeSnappyBackend) DiscardSnapNamespace(snapName string) error {
+func (f *fakeSnappyBackend) DiscardSnapNamespace(snapName naming.SnapName) error {
 	f.appendOp(&fakeOp{
 		op:   "discard-namespace",
 		name: snapName,
@@ -1716,7 +1717,7 @@ func (f *fakeSnappyBackend) DiscardSnapNamespace(snapName string) error {
 	return f.maybeErrForLastOp()
 }
 
-func (f *fakeSnappyBackend) DiscardLockedSnapNamespace(snapName string) error {
+func (f *fakeSnappyBackend) DiscardLockedSnapNamespace(snapName naming.SnapName) error {
 	f.appendOp(&fakeOp{
 		op:   "discard-namespace-locked",
 		name: snapName,
@@ -1731,7 +1732,7 @@ func (f *fakeSnappyBackend) RemoveAllSnapAppArmorProfiles() error {
 	return f.maybeErrForLastOp()
 }
 
-func (f *fakeSnappyBackend) RemoveSnapInhibitLock(snapName string, stateUnlocker runinhibit.Unlocker) error {
+func (f *fakeSnappyBackend) RemoveSnapInhibitLock(snapName naming.SnapName, stateUnlocker runinhibit.Unlocker) error {
 	f.appendOp(&fakeOp{
 		op:   "remove-inhibit-lock",
 		name: snapName,
@@ -1805,7 +1806,7 @@ func (f *fakeSnappyBackend) UpdateAliases(add []*backend.Alias, remove []*backen
 	return f.maybeErrForLastOp()
 }
 
-func (f *fakeSnappyBackend) RemoveSnapAliases(snapName string) error {
+func (f *fakeSnappyBackend) RemoveSnapAliases(snapName naming.SnapName) error {
 	f.appendOp(&fakeOp{
 		op:   "remove-snap-aliases",
 		name: snapName,
@@ -1849,17 +1850,17 @@ func (f *fakeSnappyBackend) RunInhibitSnapForUnlink(info *snap.Info, hint runinh
 	return lock, err
 }
 
-func (f *fakeSnappyBackend) HideSnapData(snapName string) error {
+func (f *fakeSnappyBackend) HideSnapData(snapName naming.SnapName) error {
 	f.appendOp(&fakeOp{op: "hide-snap-data", name: snapName})
 	return f.maybeErrForLastOp()
 }
 
-func (f *fakeSnappyBackend) UndoHideSnapData(snapName string) error {
+func (f *fakeSnappyBackend) UndoHideSnapData(snapName naming.SnapName) error {
 	f.appendOp(&fakeOp{op: "undo-hide-snap-data", name: snapName})
 	return f.maybeErrForLastOp()
 }
 
-func (f *fakeSnappyBackend) InitExposedSnapHome(snapName string, rev snap.Revision, opts *dirs.SnapDirOptions) (*backend.UndoInfo, error) {
+func (f *fakeSnappyBackend) InitExposedSnapHome(snapName naming.SnapName, rev snap.Revision, opts *dirs.SnapDirOptions) (*backend.UndoInfo, error) {
 	f.appendOp(&fakeOp{op: "init-exposed-snap-home", name: snapName, revno: rev})
 
 	if err := f.maybeErrForLastOp(); err != nil {
@@ -1869,7 +1870,7 @@ func (f *fakeSnappyBackend) InitExposedSnapHome(snapName string, rev snap.Revisi
 	return &backend.UndoInfo{Created: []string{randutil.RandomString(10)}}, nil
 }
 
-func (f *fakeSnappyBackend) UndoInitExposedSnapHome(snapName string, undoInfo *backend.UndoInfo) error {
+func (f *fakeSnappyBackend) UndoInitExposedSnapHome(snapName naming.SnapName, undoInfo *backend.UndoInfo) error {
 	f.appendOp(&fakeOp{op: "undo-init-exposed-snap-home", name: snapName, undoInfo: undoInfo})
 	return f.maybeErrForLastOp()
 }

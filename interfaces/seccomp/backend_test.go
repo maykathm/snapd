@@ -44,7 +44,8 @@ import (
 	"github.com/snapcore/snapd/strutil"
 	"github.com/snapcore/snapd/testutil"
 	"github.com/snapcore/snapd/timings"
-)
+
+	"github.com/snapcore/snapd/snap/naming")
 
 type backendSuite struct {
 	ifacetest.BackendSuite
@@ -151,7 +152,7 @@ func (s *backendSuite) TestInstallingComponentWritesHookProfilesInstance(c *C) {
 	s.testInstallingComponentWritesHookProfiles(c, instanceName)
 }
 
-func (s *backendSuite) testInstallingComponentWritesHookProfiles(c *C, instanceName string) {
+func (s *backendSuite) testInstallingComponentWritesHookProfiles(c *C, instanceName naming.InstanceName) {
 	testedConfinementOpts := []interfaces.ConfinementOptions{
 		{},
 	}
@@ -248,7 +249,7 @@ func (s *backendSuite) TestRemovingSnapRemovesComponentProfilesInstance(c *C) {
 	s.testRemovingSnapRemovesComponentProfiles(c, instanceName)
 }
 
-func (s *backendSuite) testRemovingSnapRemovesComponentProfiles(c *C, instanceName string) {
+func (s *backendSuite) testRemovingSnapRemovesComponentProfiles(c *C, instanceName naming.InstanceName) {
 	for _, opts := range testedConfinementOpts {
 		info := s.InstallSnapWithComponents(c, opts, instanceName, ifacetest.SnapWithComponentsYaml, 0, []string{ifacetest.ComponentYaml})
 		s.RemoveSnap(c, info)
@@ -302,7 +303,7 @@ func (s *backendSuite) TestUpdatingSnapToOneWithMoreComponentsInstance(c *C) {
 	s.testUpdatingSnapToOneWithMoreComponents(c, instanceName)
 }
 
-func (s *backendSuite) testUpdatingSnapToOneWithMoreComponents(c *C, instanceName string) {
+func (s *backendSuite) testUpdatingSnapToOneWithMoreComponents(c *C, instanceName naming.InstanceName) {
 	for _, opts := range testedConfinementOpts {
 		info := s.InstallSnap(c, opts, instanceName, ifacetest.SnapWithComponentsYaml, 0)
 		info = s.UpdateSnapWithComponents(c, info, opts, ifacetest.SnapWithComponentsYaml, 0, []string{ifacetest.ComponentYaml})
@@ -330,7 +331,7 @@ func (s *backendSuite) TestUpdatingSnapToOneWithFewerComponentsInstance(c *C) {
 	s.testUpdatingSnapToOneWithFewerComponents(c, instanceName)
 }
 
-func (s *backendSuite) testUpdatingSnapToOneWithFewerComponents(c *C, instanceName string) {
+func (s *backendSuite) testUpdatingSnapToOneWithFewerComponents(c *C, instanceName naming.InstanceName) {
 	for _, opts := range testedConfinementOpts {
 		info := s.InstallSnapWithComponents(c, opts, instanceName, ifacetest.SnapWithComponentsYaml, 0, []string{ifacetest.ComponentYaml})
 		info = s.UpdateSnapWithComponents(c, info, opts, ifacetest.SnapWithComponentsYaml, 0, nil)

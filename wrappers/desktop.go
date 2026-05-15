@@ -34,6 +34,8 @@ import (
 	"github.com/snapcore/snapd/logger"
 	"github.com/snapcore/snapd/osutil"
 	"github.com/snapcore/snapd/snap"
+
+	"github.com/snapcore/snapd/snap/naming"
 )
 
 // From the freedesktop Desktop Entry Specification¹,
@@ -115,7 +117,7 @@ func detectAppAndRewriteExecLine(s *snap.Info, desktopFile, line string) (appInf
 			// wrapper uses s.InstanceName(), with the instance key
 			// set the command will be 'snap_foo.app' instead of
 			// 'snap.app', need to account for that
-			validCmd = snap.JoinSnapApp(s.SnapName(), app.Name)
+			validCmd = snap.JoinSnapApp(string(s.SnapName()), app.Name)
 		}
 		// check the prefix to allow %flag style args
 		// this is ok because desktop files are not run through sh
@@ -305,7 +307,7 @@ func deriveDesktopFilesContent(s *snap.Info) (map[string]osutil.FileState, error
 //
 // Only the desktop file base and parsed instance name are passed to the
 // callback function.
-func forAllDesktopFiles(cb func(base, instanceName string) error) error {
+func forAllDesktopFiles(cb func(base, instanceName naming.InstanceName) error) error {
 	installedDesktopFiles, err := findDesktopFiles(dirs.SnapDesktopFilesDir)
 	if err != nil {
 		return err
@@ -330,7 +332,7 @@ func forAllDesktopFiles(cb func(base, instanceName string) error) error {
 			continue
 		}
 
-		if err := cb(base, de.SnapInstanceName); err != nil {
+		if err := cb(naming.InstanceName(base), naming.InstanceName(de.SnapInstanceName)); err != nil {
 			return err
 		}
 	}
@@ -372,16 +374,16 @@ func EnsureSnapDesktopFiles(snaps []*snap.Info) error {
 			return err
 		}
 
-		addGlobPatternAndConflictCheck := func(base, instanceName string) error {
+		addGlobPatternAndConflictCheck := func(base, instanceName naming.InstanceName) error {
 			// Check if a target desktop file belongs to another snap
-			_, hasTarget := content[base]
+			_, hasTarget := content[string(base)]
 			if hasTarget && instanceName != info.InstanceName() {
-				return fmt.Errorf("cannot install %q: %q already exists for another snap", base, filepath.Join(dirs.SnapDesktopFilesDir, base))
+				return fmt.Errorf("cannot install %q: %q already exists for another snap", base, filepath.Join(dirs.SnapDesktopFilesDir, string(base)))
 			}
-			if instanceName == info.InstanceName() && !hasTarget && !hasDesktopPrefix(info, base) {
+			if instanceName == info.InstanceName() && !hasTarget && !hasDesktopPrefix(info, string(base)) {
 				// An unmangled desktop file exists for the snap, add to glob
 				// patterns for removal
-				desktopFilesGlobs = append(desktopFilesGlobs, base)
+				desktopFilesGlobs = append(desktopFilesGlobs, string(base))
 			}
 			return nil
 		}
@@ -413,11 +415,11 @@ func RemoveSnapDesktopFiles(s *snap.Info) error {
 
 	desktopFilesGlobs := []string{fmt.Sprintf("%s_*.desktop", s.DesktopPrefix())}
 
-	addGlobPattern := func(base, instanceName string) error {
-		if instanceName == s.InstanceName() && !hasDesktopPrefix(s, base) {
+	addGlobPattern := func(base, instanceName naming.InstanceName) error {
+		if instanceName == s.InstanceName() && !hasDesktopPrefix(s, string(base)) {
 			// An unmangled desktop file exists for the snap, add to glob
 			// patterns for removal
-			desktopFilesGlobs = append(desktopFilesGlobs, base)
+			desktopFilesGlobs = append(desktopFilesGlobs, string(base))
 		}
 
 		return nil

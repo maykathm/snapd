@@ -27,7 +27,8 @@ import (
 	"github.com/snapcore/snapd/osutil"
 	"github.com/snapcore/snapd/osutil/sys"
 	"github.com/snapcore/snapd/testutil"
-)
+
+	"github.com/snapcore/snapd/snap/naming")
 
 var (
 	// change
@@ -292,7 +293,7 @@ func (upCtx *CommonProfileUpdateContext) SetFromSnapConfine(v bool) {
 	upCtx.fromSnapConfine = v
 }
 
-func NewCommonProfileUpdateContext(instanceName string, fromSnapConfine bool, currentProfilePath, desiredProfilePath string) *CommonProfileUpdateContext {
+func NewCommonProfileUpdateContext(instanceName naming.InstanceName, fromSnapConfine bool, currentProfilePath, desiredProfilePath string) *CommonProfileUpdateContext {
 	return &CommonProfileUpdateContext{
 		instanceName:       instanceName,
 		fromSnapConfine:    fromSnapConfine,

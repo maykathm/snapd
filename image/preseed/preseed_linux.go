@@ -154,7 +154,7 @@ var systemSnapFromSeed = func(seedDir, sysLabel string) (systemSnap string, base
 
 	var systemSnapPath, baseSnapPath string
 	for _, ess := range seed.EssentialSnaps() {
-		if ess.SnapName() == required {
+		if string(ess.SnapName()) == required {
 			systemSnapPath = ess.Path
 		}
 		if ess.EssentialType == "base" {

@@ -38,7 +38,8 @@ import (
 	"github.com/snapcore/snapd/store"
 	"github.com/snapcore/snapd/store/tooling"
 	"github.com/snapcore/snapd/testutil"
-)
+
+	"github.com/snapcore/snapd/snap/naming")
 
 var RunMain = run
 
@@ -402,7 +403,7 @@ func MockIoutilTempDir(f func(string, string) (string, error)) (restore func()) 
 	}
 }
 
-func MockDownloadContainers(f func(snapName string, components []string, tsto *tooling.ToolingStore, opts tooling.DownloadSnapOptions) (*tooling.DownloadedSnap, error)) (restore func()) {
+func MockDownloadContainers(f func(snapName naming.SnapName, components []string, tsto *tooling.ToolingStore, opts tooling.DownloadSnapOptions) (*tooling.DownloadedSnap, error)) (restore func()) {
 	old := downloadContainers
 	downloadContainers = f
 	return func() {
@@ -442,7 +443,7 @@ func MockOsChmod(f func(string, os.FileMode) error) (restore func()) {
 	}
 }
 
-func MockWaitWhileInhibited(f func(ctx context.Context, snapName string, notInhibited func(ctx context.Context) error, inhibited func(ctx context.Context, hint runinhibit.Hint, inhibitInfo *runinhibit.InhibitInfo) (cont bool, err error), interval time.Duration) (flock *osutil.FileLock, retErr error)) (restore func()) {
+func MockWaitWhileInhibited(f func(ctx context.Context, snapName naming.SnapName, notInhibited func(ctx context.Context) error, inhibited func(ctx context.Context, hint runinhibit.Hint, inhibitInfo *runinhibit.InhibitInfo) (cont bool, err error), interval time.Duration) (flock *osutil.FileLock, retErr error)) (restore func()) {
 	restore = testutil.Backup(&runinhibitWaitWhileInhibited)
 	runinhibitWaitWhileInhibited = f
 	return restore
