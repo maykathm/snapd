@@ -31,6 +31,7 @@ import (
 	"github.com/snapcore/snapd/overlord/state"
 	"github.com/snapcore/snapd/overlord/swfeats"
 	"github.com/snapcore/snapd/snap"
+	"github.com/snapcore/snapd/snap/naming"
 )
 
 var (
@@ -98,9 +99,11 @@ func changeAliases(c *Command, r *http.Request, user *auth.UserState) Response {
 		}
 		if a.Snap != "" {
 			a.Alias = ""
-			taskset, err = snapstate.DisableAllAliases(st, a.Snap)
+			taskset, err = snapstate.DisableAllAliases(st, naming.InstanceName(a.Snap))
 		} else {
-			taskset, a.Snap, err = snapstate.RemoveManualAlias(st, a.Alias)
+			var snapName naming.InstanceName
+			taskset, snapName, err = snapstate.RemoveManualAlias(st, a.Alias)
+			a.Snap = string(snapName)
 		}
 	case "prefer":
 		taskset, err = snapstate.Prefer(st, a.Snap)

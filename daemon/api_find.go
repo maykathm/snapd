@@ -31,6 +31,7 @@ import (
 	"github.com/snapcore/snapd/logger"
 	"github.com/snapcore/snapd/overlord/auth"
 	"github.com/snapcore/snapd/snap"
+	"github.com/snapcore/snapd/snap/naming"
 	"github.com/snapcore/snapd/store"
 )
 
@@ -171,7 +172,7 @@ func findOne(c *Command, r *http.Request, user *auth.UserState, name string) Res
 	case store.ErrInvalidCredentials:
 		return Unauthorized("%v", err)
 	case store.ErrSnapNotFound:
-		return SnapNotFound(name, err)
+		return SnapNotFound(naming.SnapName(name), err)
 	default:
 		return InternalError("%v", err)
 	}

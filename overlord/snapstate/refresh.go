@@ -46,7 +46,7 @@ var IsConfdbHookname = func(string) bool {
 // refreshAppsCheck returns an error if the snap has processes running that aren't
 // services and aren't marked to be ignored (refresh-mode: "ignore-running").
 var refreshAppsCheck = func(info *snap.Info) error {
-	knownPids, err := pidsOfSnap(info.InstanceName())
+	knownPids, err := pidsOfSnap(string(info.InstanceName()))
 	if err != nil {
 		return err
 	}

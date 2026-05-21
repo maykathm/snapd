@@ -294,7 +294,7 @@ func (ig *setupInfoGetter) ComponentInfo(st *state.State, cref naming.ComponentR
 	// use the components that are already installed
 
 	var snapst snapstate.SnapState
-	if err := snapstate.Get(st, snapInfo.InstanceName(), &snapst); err != nil {
+	if err := snapstate.Get(st, string(snapInfo.InstanceName()), &snapst); err != nil {
 		if errors.Is(err, state.ErrNoState) {
 			return nil, "", false, nil
 		}
@@ -312,7 +312,7 @@ func (ig *setupInfoGetter) ComponentInfo(st *state.State, cref naming.ComponentR
 	cpi := snap.MinimalComponentContainerPlaceInfo(
 		cref.ComponentName,
 		info.Revision,
-		snapInfo.InstanceName(),
+		string(snapInfo.InstanceName()),
 	)
 
 	return info, cpi.MountFile(), true, nil
@@ -354,7 +354,7 @@ func (ig *setupInfoGetter) SnapInfo(st *state.State, name string) (info *snap.In
 		if err != nil {
 			return nil, "", false, err
 		}
-		if snapsup.SnapName() != name {
+		if string(snapsup.SnapName()) != name {
 			continue
 		}
 		// by the time this task runs, the file has already been
@@ -474,7 +474,7 @@ func createSystemForModelFromValidatedSnaps(
 		var comps []seedwriter.OptionsComponent
 		modelComponents[sn.Name] = make(map[string]*snap.ComponentInfo)
 		for compName, comp := range sn.Components {
-			cref := naming.NewComponentRef(sn.Name, compName)
+			cref := naming.NewComponentRef(naming.SnapName(sn.Name), compName)
 			compInfo, compPath, present, err := getInfo.ComponentInfo(st, cref, snapInfo)
 			if err != nil {
 				return fmt.Errorf("cannot obtain component %q information: %v", cref, err)
@@ -586,7 +586,7 @@ func createSystemForModelFromValidatedSnaps(
 		}
 
 		seedComps := make(map[string]*seedwriter.SeedComponent, len(sn.Components))
-		for compPath, comp := range modelComponents[info.SnapName()] {
+		for compPath, comp := range modelComponents[string(info.SnapName())] {
 			if asserted {
 				_, compAssertions, err := seedwriter.DeriveComponentSideInfo(compPath, comp, info, model, sf, db)
 				if err != nil {
@@ -628,7 +628,7 @@ func createSystemForModelFromValidatedSnaps(
 		if len(toDownload) > 0 {
 			which := make([]string, 0, len(toDownload))
 			for _, sn := range toDownload {
-				which = append(which, sn.SnapName())
+				which = append(which, string(sn.SnapName()))
 			}
 			return "", fmt.Errorf("internal error: need to download snaps: %v", strings.Join(which, ", "))
 		}
@@ -654,7 +654,7 @@ func createSystemForModelFromValidatedSnaps(
 	if len(unassertedSnaps) > 0 {
 		locals := make([]string, len(unassertedSnaps))
 		for i, sn := range unassertedSnaps {
-			locals[i] = sn.SnapName()
+			locals[i] = string(sn.SnapName())
 		}
 		logger.Noticef("system %q contains unasserted snaps %s", label, strutil.Quoted(locals))
 	}

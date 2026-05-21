@@ -103,16 +103,16 @@ func allActiveSnapNames(st *state.State) ([]string, error) {
 }
 
 func EstimateSnapshotSize(st *state.State, instanceName naming.InstanceName, users []string) (uint64, error) {
-	cur, err := snapstateCurrentInfo(st, instanceName)
+	cur, err := snapstateCurrentInfo(st, string(instanceName))
 	if err != nil {
 		return 0, err
 	}
-	rawCfg, err := configGetSnapConfig(st, instanceName)
+	rawCfg, err := configGetSnapConfig(st, naming.SnapName(instanceName))
 	if err != nil {
 		return 0, err
 	}
 
-	opts, err := getSnapDirOpts(st, cur.InstanceName())
+	opts, err := getSnapDirOpts(st, string(cur.InstanceName()))
 	if err != nil {
 		return 0, err
 	}
@@ -459,7 +459,7 @@ func AutomaticSnapshot(st *state.State, snapName naming.SnapName) (ts *state.Tas
 	task := st.NewTask("save-snapshot", desc)
 	snapshot := snapshotSetup{
 		SetID: setID,
-		Snap:  snapName,
+		Snap:  string(snapName),
 		Auto:  true,
 	}
 	task.Set("snapshot-setup", &snapshot)

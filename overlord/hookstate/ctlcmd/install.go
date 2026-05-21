@@ -52,7 +52,7 @@ func (c *installCommand) Execute([]string) error {
 		return err
 	}
 
-	comps, err := validateSnapAndCompsNames(c.Positional.Names, ctx.InstanceName())
+	comps, err := validateSnapAndCompsNames(c.Positional.Names, string(ctx.InstanceName()))
 	if err != nil {
 		return err
 	}

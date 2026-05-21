@@ -188,7 +188,7 @@ func (s *snapmgrTestSuite) TestAutoAliasesDelta(c *C) {
 func (s *snapmgrTestSuite) TestAutoAliasesDeltaAll(c *C) {
 	seen := make(map[string]bool)
 	snapstate.AutoAliases = func(st *state.State, info *snap.Info) (map[string]string, error) {
-		seen[info.InstanceName()] = true
+		seen[string(info.InstanceName())] = true
 		if info.InstanceName() == "alias-snap" {
 			return map[string]string{
 				"alias1": "cmd1",

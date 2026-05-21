@@ -38,6 +38,7 @@ import (
 	"github.com/snapcore/snapd/overlord/swfeats"
 	"github.com/snapcore/snapd/progress"
 	"github.com/snapcore/snapd/snap"
+	"github.com/snapcore/snapd/snap/naming"
 	"github.com/snapcore/snapd/strutil"
 )
 
@@ -174,18 +175,18 @@ func appInfosFor(st *state.State, names []string, opts appInfoOptions) ([]*snap.
 			}
 		}
 
-		if len(apps) == 0 && requested[snapName] {
+		if len(apps) == 0 && requested[string(snapName)] {
 			return nil, AppNotFound("snap %q has no %ss", snapName, opts)
 		}
 
-		includeAll := len(requested) == 0 || requested[snapName]
+		includeAll := len(requested) == 0 || requested[string(snapName)]
 		if includeAll {
 			// want all services in a snap
-			found[snapName] = true
+			found[string(snapName)] = true
 		}
 
 		for _, app := range apps {
-			appName := snapName + "." + app.Name
+			appName := string(snapName) + "." + app.Name
 			if includeAll || requested[appName] {
 				appInfos = append(appInfos, app)
 				found[appName] = true
@@ -196,7 +197,7 @@ func appInfosFor(st *state.State, names []string, opts appInfoOptions) ([]*snap.
 	for k := range requested {
 		if !found[k] {
 			if snapNames[k] {
-				return nil, SnapNotFound(k, fmt.Errorf("snap %q not found", k))
+				return nil, SnapNotFound(naming.SnapName(k), fmt.Errorf("snap %q not found", k))
 			} else {
 				snap, app := splitAppName(k)
 				return nil, AppNotFound("snap %q has no %s %q", snap, opts, app)

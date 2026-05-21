@@ -28,6 +28,7 @@ import (
 
 	"github.com/snapcore/snapd/client"
 	"github.com/snapcore/snapd/i18n"
+	"github.com/snapcore/snapd/snap/naming"
 )
 
 var shortUnsetHelp = i18n.G("Remove configuration options")
@@ -126,7 +127,7 @@ func (x *cmdUnset) Execute(args []string) error {
 			return fmt.Errorf("cannot use --wait-for in non-confdb write")
 		}
 
-		id, err = x.client.SetConf(snapName, patchValues)
+		id, err = x.client.SetConf(naming.SnapName(snapName), patchValues)
 	}
 
 	if err != nil {

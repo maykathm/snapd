@@ -152,7 +152,7 @@ NeedDaemonReload=no
 
 		// service only
 		app = &client.AppInfo{
-			Snap:   snp.InstanceName(),
+			Snap:   string(snp.InstanceName()),
 			Name:   "svc",
 			Daemon: "simple",
 		}
@@ -170,7 +170,7 @@ NeedDaemonReload=no
 
 		// service  + timer
 		app = &client.AppInfo{
-			Snap:   snp.InstanceName(),
+			Snap:   string(snp.InstanceName()),
 			Name:   "svc",
 			Daemon: "simple",
 		}
@@ -195,7 +195,7 @@ NeedDaemonReload=no
 
 		// service with socket
 		app = &client.AppInfo{
-			Snap:   snp.InstanceName(),
+			Snap:   string(snp.InstanceName()),
 			Name:   "svc",
 			Daemon: "simple",
 		}
@@ -224,7 +224,7 @@ NeedDaemonReload=no
 		// service with slot activation will always be enabled as we cannot
 		// disable/enable slot activation at the moment.
 		app = &client.AppInfo{
-			Snap:   snp.InstanceName(),
+			Snap:   string(snp.InstanceName()),
 			Name:   "svc",
 			Daemon: "simple",
 		}
@@ -257,7 +257,7 @@ NeedDaemonReload=no
 		// When using a decorator without any uid provided, the global status is
 		// fetched, which is only enablement
 		app = &client.AppInfo{
-			Snap:   snp.InstanceName(),
+			Snap:   string(snp.InstanceName()),
 			Name:   "svc",
 			Daemon: "simple",
 		}
@@ -365,7 +365,7 @@ NeedDaemonReload=no
 		disabled = !enabled
 
 		app = &client.AppInfo{
-			Snap:   snp.InstanceName(),
+			Snap:   string(snp.InstanceName()),
 			Name:   "svc",
 			Daemon: "simple",
 		}

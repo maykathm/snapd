@@ -30,6 +30,7 @@ import (
 	"github.com/snapcore/snapd/client"
 	"github.com/snapcore/snapd/client/clientutil"
 	"github.com/snapcore/snapd/i18n"
+	"github.com/snapcore/snapd/snap/naming"
 )
 
 var shortSetHelp = i18n.G("Change configuration options")
@@ -135,7 +136,7 @@ func (x *cmdSet) Execute([]string) error {
 		if x.WaitFor != "" {
 			return fmt.Errorf("cannot use --wait-for in non-confdb write")
 		}
-		chgID, err = x.client.SetConf(snapName, patchValues)
+		chgID, err = x.client.SetConf(naming.SnapName(snapName), patchValues)
 	}
 
 	if err != nil {

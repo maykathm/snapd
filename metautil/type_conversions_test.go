@@ -26,6 +26,7 @@ import (
 	. "gopkg.in/check.v1"
 
 	"github.com/snapcore/snapd/metautil"
+	"github.com/snapcore/snapd/snap/naming"
 	"github.com/snapcore/snapd/testutil"
 )
 
@@ -138,7 +139,7 @@ func (s *conversionssSuite) TestSetValueFromAttributeUnhappy(c *C) {
 	}
 
 	for _, td := range data {
-		err := metautil.SetValueFromAttribute(td.snapName, td.ifaceName, td.attrName, td.inputValue, td.outputValue)
+		err := metautil.SetValueFromAttribute(naming.SnapName(td.snapName), td.ifaceName, td.attrName, td.inputValue, td.outputValue)
 		c.Check(err, ErrorMatches, td.expectedError, Commentf("input value %v", td.inputValue))
 	}
 }

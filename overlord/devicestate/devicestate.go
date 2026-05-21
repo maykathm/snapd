@@ -258,11 +258,11 @@ func checkGadgetOrKernel(st *state.State, snapInfo, curInfo *snap.Info, _ snap.C
 		return fmt.Errorf("cannot install %s snap on classic if not requested by the model", kind)
 	}
 
-	if snapInfo.InstanceName() != snapInfo.SnapName() {
+	if naming.SnapName(snapInfo.InstanceName()) != snapInfo.SnapName() {
 		return fmt.Errorf("cannot install %q, parallel installation of kernel or gadget snaps is not supported", snapInfo.InstanceName())
 	}
 
-	if snapInfo.InstanceName() != expectedName {
+	if string(snapInfo.InstanceName()) != expectedName {
 		return fmt.Errorf("cannot install %s %q, model assertion requests %q", kind, snapInfo.InstanceName(), expectedName)
 	}
 
@@ -365,7 +365,7 @@ func CanManageRefreshes(st *state.State) bool {
 			if plugInfo.Interface == "snapd-control" && plugInfo.Attrs["refresh-schedule"] == "managed" {
 				snapName := info.InstanceName()
 				plugName := plugInfo.Name
-				if interfaceConnected(st, snapName, plugName) {
+				if interfaceConnected(st, string(snapName), plugName) {
 					return true
 				}
 			}
@@ -667,7 +667,7 @@ func checkForComponentRemodelingChanges(
 	// if the snap itself, and its channel, are already valid in the incoming
 	// model
 	for _, c := range requiredComponents {
-		csi := snapst.CurrentComponentSideInfo(naming.NewComponentRef(rt.name, c))
+		csi := snapst.CurrentComponentSideInfo(naming.NewComponentRef(naming.SnapName(rt.name), c))
 		if csi == nil {
 			needsComponentChanges = true
 			break
@@ -687,7 +687,7 @@ func checkForComponentRemodelingChanges(
 	if !snapNeedsRevisionChange {
 		requiredOptionalComponents = make([]string, 0, len(optionalComponents))
 		for _, c := range optionalComponents {
-			csi := snapst.CurrentComponentSideInfo(naming.NewComponentRef(rt.name, c))
+			csi := snapst.CurrentComponentSideInfo(naming.NewComponentRef(naming.SnapName(rt.name), c))
 			if csi == nil {
 				continue
 			}
@@ -738,7 +738,7 @@ func (r *remodeler) installGoal(sn remodelSnapTarget, components []string) (snap
 
 		comps := make([]snapstate.PathComponent, 0, len(components))
 		for _, c := range components {
-			cref := naming.NewComponentRef(sn.name, c)
+			cref := naming.NewComponentRef(naming.SnapName(sn.name), c)
 			lc, ok := r.localComponents[cref.String()]
 			if !ok {
 				return nil, fmt.Errorf("cannot find locally provided component: %q", cref)
@@ -764,7 +764,7 @@ func (r *remodeler) installGoal(sn remodelSnapTarget, components []string) (snap
 	}
 
 	return snapstateStoreInstallGoal(snapstate.StoreSnap{
-		InstanceName: sn.name,
+		InstanceName: naming.InstanceName(sn.name),
 		Components:   components,
 		RevOpts: snapstate.RevisionOptions{
 			Channel:        sn.channel,
@@ -799,7 +799,7 @@ func (r *remodeler) installedRevisionUpdateGoal(
 	ss := snapst.Sequence.Revisions[index]
 	comps := make([]snapstate.PathComponent, 0, len(ss.Components))
 	for _, c := range components {
-		cref := naming.NewComponentRef(snap.InstanceSnap(sn.name), c)
+		cref := naming.NewComponentRef(naming.SnapName(sn.name), c)
 		cs := ss.FindComponent(cref)
 		if cs == nil {
 			return nil, fmt.Errorf("cannot find required component in set of already installed components: %s", cref)
@@ -813,7 +813,7 @@ func (r *remodeler) installedRevisionUpdateGoal(
 		cpi := snap.MinimalComponentContainerPlaceInfo(
 			cs.SideInfo.Component.ComponentName,
 			cs.SideInfo.Revision,
-			snapst.InstanceName(),
+			string(snapst.InstanceName()),
 		)
 
 		comps = append(comps, snapstate.PathComponent{
@@ -831,7 +831,7 @@ func (r *remodeler) installedRevisionUpdateGoal(
 	}
 
 	return snapstatePathUpdateGoal(snapstate.PathSnap{
-		InstanceName: sn.name,
+		InstanceName: naming.InstanceName(sn.name),
 		Path:         snap.MountFile(sn.name, constraints.Revision),
 		SideInfo:     &sideInfo,
 		Components:   comps,
@@ -863,7 +863,7 @@ func (r *remodeler) updateGoal(st *state.State, sn remodelSnapTarget, components
 		// also double check this while installing the snap/components.
 		comps := make([]snapstate.PathComponent, 0, len(components))
 		for _, c := range components {
-			cref := naming.NewComponentRef(sn.name, c)
+			cref := naming.NewComponentRef(naming.SnapName(sn.name), c)
 
 			lc, ok := r.localComponents[cref.String()]
 			if !ok {
@@ -890,7 +890,7 @@ func (r *remodeler) updateGoal(st *state.State, sn remodelSnapTarget, components
 	}
 
 	return snapstateStoreUpdateGoal(snapstate.StoreUpdate{
-		InstanceName: sn.name,
+		InstanceName: naming.InstanceName(sn.name),
 		RevOpts: snapstate.RevisionOptions{
 			Channel:        sn.channel,
 			ValidationSets: r.vsets,
@@ -1202,7 +1202,7 @@ func remodelTasks(ctx context.Context, st *state.State, current, new *asserts.Mo
 		}
 
 		_, sets, err := rm.maybeInstallOrUpdate(ctx, st, remodelSnapTarget{
-			name:         modelSnap.SnapName(),
+			name:         string(modelSnap.SnapName()),
 			channel:      newModelSnapChannel,
 			newModelSnap: modelSnap,
 		})
@@ -1418,7 +1418,7 @@ func verifyModelValidationSets(st *state.State, newModel *asserts.Model, offline
 func checkForRequiredSnapsNotRequiredInModel(model *asserts.Model, vSets *snapasserts.ValidationSets) error {
 	snapsInModel := make(map[string]bool, len(model.RequiredWithEssentialSnaps()))
 	for _, sn := range model.RequiredWithEssentialSnaps() {
-		snapsInModel[sn.SnapName()] = true
+		snapsInModel[string(sn.SnapName())] = true
 	}
 
 	for _, sn := range vSets.RequiredSnaps() {
@@ -2008,7 +2008,7 @@ func RemoveRecoverySystem(st *state.State, label string) (*state.Change, error) 
 func checkForRequiredSnapsNotPresentInModel(model *asserts.Model, vSets *snapasserts.ValidationSets) error {
 	snapsInModel := make(map[string]bool, len(model.AllSnaps()))
 	for _, sn := range model.AllSnaps() {
-		snapsInModel[sn.SnapName()] = true
+		snapsInModel[string(sn.SnapName())] = true
 	}
 
 	for _, sn := range vSets.RequiredSnaps() {
@@ -2184,7 +2184,7 @@ func CreateRecoverySystem(st *state.State, label string, opts CreateRecoverySyst
 			tracker.Add(info)
 
 			for comp := range sn.Components {
-				cref := naming.NewComponentRef(sn.Name, comp)
+				cref := naming.NewComponentRef(naming.SnapName(sn.Name), comp)
 				rev := constraints.Component(comp).Revision
 
 				localComp, err := offlineComponentInfo(cref, rev, opts.LocalComponents)
@@ -2380,7 +2380,7 @@ func installedComponentRevision(st *state.State, snapName, compName string) (boo
 		return false, snap.Revision{}, err
 	}
 
-	csi := snapst.CurrentComponentSideInfo(naming.NewComponentRef(snapName, compName))
+	csi := snapst.CurrentComponentSideInfo(naming.NewComponentRef(naming.SnapName(snapName), compName))
 	if csi == nil {
 		return false, snap.Revision{}, nil
 	}

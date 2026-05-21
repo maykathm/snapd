@@ -31,6 +31,7 @@ import (
 	"github.com/snapcore/snapd/overlord/state"
 	"github.com/snapcore/snapd/snap"
 	"github.com/snapcore/snapd/snap/integrity"
+	"github.com/snapcore/snapd/snap/naming"
 	"github.com/snapcore/snapd/store"
 	"github.com/snapcore/snapd/strutil"
 )
@@ -129,13 +130,13 @@ var installSize = func(st *state.State, snaps []minimalInstallInfo, userID int, 
 
 	accountedSnaps := map[string]bool{}
 	for _, snap := range curSnaps {
-		accountedSnaps[snap.InstanceName] = true
+		accountedSnaps[string(snap.InstanceName)] = true
 	}
 
 	// if the prerequisites are included in the install, don't query the store
 	// for info on them
 	for _, snap := range snaps {
-		accountedSnaps[snap.InstanceName()] = true
+		accountedSnaps[string(snap.InstanceName())] = true
 	}
 
 	var prereqs []string
@@ -167,7 +168,7 @@ var installSize = func(st *state.State, snaps []minimalInstallInfo, userID int, 
 		if inst.DownloadSize() == 0 {
 			return 0, fmt.Errorf("internal error: download info missing for %q", inst.InstanceName())
 		}
-		snapSizes[inst.InstanceName()] = uint64(inst.DownloadSize())
+		snapSizes[string(inst.InstanceName())] = uint64(inst.DownloadSize())
 		resolveBaseAndContentProviders(inst)
 	}
 
@@ -186,7 +187,7 @@ var installSize = func(st *state.State, snaps []minimalInstallInfo, userID int, 
 		for _, prereq := range prereqs {
 			action := &store.SnapAction{
 				Action:       "install",
-				InstanceName: prereq,
+				InstanceName: naming.InstanceName(prereq),
 				Channel:      channel,
 			}
 			actions = append(actions, action)
@@ -201,7 +202,7 @@ var installSize = func(st *state.State, snaps []minimalInstallInfo, userID int, 
 		}
 		prereqs = []string{}
 		for _, res := range results {
-			snapSizes[res.InstanceName()] = uint64(res.Size)
+			snapSizes[string(res.InstanceName())] = uint64(res.Size)
 			// results may have new base or content providers
 			resolveBaseAndContentProviders(installSnapInfo{res.Info})
 		}
@@ -217,7 +218,7 @@ var installSize = func(st *state.State, snaps []minimalInstallInfo, userID int, 
 		return 0, err
 	}
 	for _, snap := range curSnaps {
-		delete(snapSizes, snap.InstanceName)
+		delete(snapSizes, string(snap.InstanceName))
 	}
 
 	var total uint64
@@ -275,7 +276,7 @@ func currentSnapsImpl(st *state.State) ([]*store.CurrentSnap, error) {
 
 	var names []string
 	for _, snapst := range snapStates {
-		names = append(names, snapst.InstanceName())
+		names = append(names, string(snapst.InstanceName()))
 	}
 
 	holds, err := SnapHolds(st, names)
@@ -328,7 +329,7 @@ func collectCurrentSnaps(snapStates map[string]*SnapState, holds map[string][]st
 			IgnoreValidation: snapst.IgnoreValidation,
 			Epoch:            snapInfo.Epoch,
 			CohortKey:        snapst.CohortKey,
-			HeldBy:           holds[snapInfo.InstanceName()],
+			HeldBy:           holds[string(snapInfo.InstanceName())],
 			Resources:        resources,
 		}
 		curSnaps = append(curSnaps, installed)
@@ -385,7 +386,7 @@ func storeUpdatePlan(ctx context.Context, st *state.State, allSnaps map[string]*
 		// drop anything from the plan that we're about to retry. we'll add them
 		// back after we get the non-throttled responses from the store.
 		if err := plan.filter(func(t target) (bool, error) {
-			_, retrying := needsRetry[t.info.InstanceName()]
+			_, retrying := needsRetry[string(t.info.InstanceName())]
 			return !retrying, nil
 		}); err != nil {
 			return updatePlan{}, err
@@ -422,7 +423,7 @@ func detectThrottledUpdatesToRetry(st *state.State, requested map[string]StoreUp
 
 	targetByName := make(map[string]target, len(plan.targets))
 	for _, update := range plan.targets {
-		targetByName[update.info.InstanceName()] = update
+		targetByName[string(update.info.InstanceName())] = update
 	}
 
 	retry = make(map[string]StoreUpdate)
@@ -449,7 +450,7 @@ func detectThrottledUpdatesToRetry(st *state.State, requested map[string]StoreUp
 			if !plan.refreshAll() {
 				continue
 			}
-			req = StoreUpdate{InstanceName: name}
+			req = StoreUpdate{InstanceName: naming.InstanceName(name)}
 		}
 
 		retry[name] = req
@@ -493,10 +494,10 @@ func storeUpdatePlanCore(
 
 	// make sure that all requested updates can be handled by this planner
 	for _, update := range updates {
-		snapst, ok := allSnaps[update.InstanceName]
+		snapst, ok := allSnaps[string(update.InstanceName)]
 		if !ok {
 			if !update.InstallIfMissing {
-				return updatePlan{}, snap.NotInstalledError{Snap: update.InstanceName}
+				return updatePlan{}, snap.NotInstalledError{Snap: string(update.InstanceName)}
 			}
 			snapst = &SnapState{}
 		}
@@ -562,12 +563,12 @@ func storeUpdatePlanCore(
 	}
 
 	for _, sar := range sars {
-		up, ok := updates[sar.InstanceName()]
+		up, ok := updates[string(sar.InstanceName())]
 		if !ok {
 			return updatePlan{}, fmt.Errorf("unsolicited snap action result: %q", sar.InstanceName())
 		}
 
-		snapst, ok := allSnaps[sar.InstanceName()]
+		snapst, ok := allSnaps[string(sar.InstanceName())]
 		if !ok {
 			snapst = &SnapState{}
 		}
@@ -615,7 +616,7 @@ func storeUpdatePlanCore(
 	}
 
 	for _, t := range plan.targets {
-		up, ok := updates[t.info.InstanceName()]
+		up, ok := updates[string(t.info.InstanceName())]
 		if !ok {
 			return updatePlan{}, fmt.Errorf("internal error: target created for snap without an update: %s", t.info.InstanceName())
 		}
@@ -691,7 +692,7 @@ func collectCurrentSnapsAndActions(
 			return nil
 		}
 
-		req, ok := updates[installed.InstanceName]
+		req, ok := updates[string(installed.InstanceName)]
 		if !ok {
 			return nil
 		}
@@ -706,7 +707,7 @@ func collectCurrentSnapsAndActions(
 		}
 
 		if !req.RevOpts.Revision.Unset() && snapst.LastIndex(req.RevOpts.Revision) != -1 {
-			hasLocalRevision[snapst.InstanceName()] = snapst
+			hasLocalRevision[string(snapst.InstanceName())] = snapst
 			return nil
 		}
 
@@ -734,7 +735,7 @@ func collectCurrentSnapsAndActions(
 		// consider this snap for a store update, but we still should return it
 		// as a target for potentially switching channels or cohort keys
 		if !action.Revision.Unset() && action.Revision == installed.Revision {
-			hasLocalRevision[installed.InstanceName] = snapst
+			hasLocalRevision[string(installed.InstanceName)] = snapst
 			return nil
 		}
 
@@ -798,7 +799,7 @@ func installActionsForAmend(st *state.State, updates map[string]StoreUpdate, opt
 	var localAmends []string
 	for _, up := range updates {
 		var snapst SnapState
-		if err := Get(st, up.InstanceName, &snapst); err != nil {
+		if err := Get(st, string(up.InstanceName), &snapst); err != nil {
 			if errors.Is(err, state.ErrNoState) {
 				continue
 			}
@@ -814,7 +815,7 @@ func installActionsForAmend(st *state.State, updates map[string]StoreUpdate, opt
 		// we allow changing snap revisions of a local-only snap without the
 		// --amend flag as long as we already have had the revision installed
 		if !up.RevOpts.Revision.Unset() && snapst.LastIndex(up.RevOpts.Revision) != -1 {
-			localAmends = append(localAmends, snapst.InstanceName())
+			localAmends = append(localAmends, string(snapst.InstanceName()))
 			continue
 		}
 
@@ -1038,7 +1039,7 @@ func sendInstallOrDownloadActions(ctx context.Context, st *state.State, action s
 
 	if err != nil {
 		if opts.ExpectOneSnap {
-			return nil, singleActionResultErr(actions[0].InstanceName, actions[0].Action, err)
+			return nil, singleActionResultErr(string(actions[0].InstanceName), actions[0].Action, err)
 		}
 		return nil, err
 	}

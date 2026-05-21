@@ -23,6 +23,7 @@ import (
 	"github.com/snapcore/snapd/asserts"
 	"github.com/snapcore/snapd/asserts/assertstest"
 	"github.com/snapcore/snapd/snap/snaptest"
+	"github.com/snapcore/snapd/snap/naming"
 )
 
 func ModelWithBase(baseName string) *asserts.Model {
@@ -76,7 +77,7 @@ func MakeModel20(gadgetName string, override map[string]any) *asserts.Model {
 			},
 			map[string]any{
 				"name":            gadgetName,
-				"id":              snaptest.AssertedSnapID(gadgetName),
+				"id":              snaptest.AssertedSnapID(naming.SnapName(gadgetName)),
 				"type":            "gadget",
 				"default-channel": "20",
 			},

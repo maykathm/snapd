@@ -39,6 +39,7 @@ import (
 	"github.com/snapcore/snapd/overlord/state"
 	"github.com/snapcore/snapd/release"
 	"github.com/snapcore/snapd/snap"
+	"github.com/snapcore/snapd/snap/naming"
 	"github.com/snapcore/snapd/store"
 	"github.com/snapcore/snapd/store/storetest"
 	"github.com/snapcore/snapd/testutil"
@@ -190,7 +191,7 @@ func (s *prereqSuite) TestDoPrereqWithBaseNone(c *C) {
 		if t.Kind() == "link-snap" {
 			snapsup, err := snapstate.TaskSnapSetup(t)
 			c.Assert(err, IsNil)
-			linkedSnaps = append(linkedSnaps, snapsup.InstanceName())
+			linkedSnaps = append(linkedSnaps, string(snapsup.InstanceName()))
 		} else if t.Kind() == "prerequisites" {
 			c.Assert(t.Lanes(), DeepEquals, []int{lane})
 			lane++
@@ -239,7 +240,7 @@ func (s *prereqSuite) TestDoPrereqManyTransactional(c *C) {
 		if t.Kind() == "link-snap" {
 			snapsup, err := snapstate.TaskSnapSetup(t)
 			c.Assert(err, IsNil)
-			linkedSnaps = append(linkedSnaps, snapsup.InstanceName())
+			linkedSnaps = append(linkedSnaps, string(snapsup.InstanceName()))
 		}
 	}
 	c.Check(linkedSnaps, testutil.DeepUnsortedMatches, expectedLinkedSnaps)
@@ -364,7 +365,7 @@ func (s *prereqSuite) TestDoPrereqTalksToStoreAndQueues(c *C) {
 		if t.Kind() == "link-snap" {
 			snapsup, err := snapstate.TaskSnapSetup(t)
 			c.Assert(err, IsNil)
-			linkedSnaps = append(linkedSnaps, snapsup.InstanceName())
+			linkedSnaps = append(linkedSnaps, string(snapsup.InstanceName()))
 		}
 	}
 	c.Check(linkedSnaps, testutil.DeepUnsortedMatches, expectedLinkedSnaps)
@@ -394,10 +395,10 @@ func (s *prereqSuite) TestDoPrereqRetryWhenBaseInFlight(c *C) {
 
 			snapsup, _ := snapstate.TaskSnapSetup(task)
 			var snapst snapstate.SnapState
-			snapstate.Get(st, snapsup.InstanceName(), &snapst)
+			snapstate.Get(st, string(snapsup.InstanceName()), &snapst)
 			snapst.Current = snapsup.Revision()
 			snapst.Sequence.Revisions = append(snapst.Sequence.Revisions, sequence.NewRevisionSideState(snapsup.SideInfo, nil))
-			snapstate.Set(st, snapsup.InstanceName(), &snapst)
+			snapstate.Set(st, string(snapsup.InstanceName()), &snapst)
 
 			// check that prerequisites task is not done yet, it must wait for core.
 			// This check guarantees that prerequisites task found link-snap snap
@@ -486,10 +487,10 @@ func (s *prereqSuite) TestDoPrereqRetryWhenDifferentLaneWaitsOnBaseInFlight(c *C
 			// setup everything as if the snap is installed
 			snapsup, _ := snapstate.TaskSnapSetup(task)
 			var snapst snapstate.SnapState
-			snapstate.Get(st, snapsup.InstanceName(), &snapst)
+			snapstate.Get(st, string(snapsup.InstanceName()), &snapst)
 			snapst.Current = snapsup.Revision()
 			snapst.Sequence.Revisions = append(snapst.Sequence.Revisions, sequence.NewRevisionSideState(snapsup.SideInfo, nil))
-			snapstate.Set(st, snapsup.InstanceName(), &snapst)
+			snapstate.Set(st, string(snapsup.InstanceName()), &snapst)
 
 			// prerequisites must still retry when only another lane for the same
 			// snap is already waiting on the base link-snap.
@@ -574,10 +575,10 @@ func (s *prereqSuite) TestDoPrereqFailWhenCircularDependencyDetected(c *C) {
 
 			snapsup, _ := snapstate.TaskSnapSetup(task)
 			var snapst snapstate.SnapState
-			snapstate.Get(st, snapsup.InstanceName(), &snapst)
+			snapstate.Get(st, string(snapsup.InstanceName()), &snapst)
 			snapst.Current = snapsup.Revision()
 			snapst.Sequence.Revisions = append(snapst.Sequence.Revisions, sequence.NewRevisionSideState(snapsup.SideInfo, nil))
-			snapstate.Set(st, snapsup.InstanceName(), &snapst)
+			snapstate.Set(st, string(snapsup.InstanceName()), &snapst)
 
 			return nil
 		}, nil)
@@ -898,7 +899,7 @@ func (s *prereqSuite) testDoPrereqBasePullsInSnapd(c *C, base string) {
 			op: "storesvc-snap-action:action",
 			action: store.SnapAction{
 				Action:       "install",
-				InstanceName: base,
+				InstanceName: naming.InstanceName(base),
 				Channel:      "stable",
 			},
 			revno: snap.R(11),

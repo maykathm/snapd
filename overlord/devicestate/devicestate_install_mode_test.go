@@ -474,7 +474,7 @@ components:
 			sequence.NewComponentState(csi, snap.KernelModulesComponent))
 		snaptest.MockComponent(c, compYaml, kernelInfo, *csi)
 		compFn := snaptest.MakeTestComponentWithFiles(c, comp.name, compYaml, nil)
-		cpi := snap.MinimalComponentContainerPlaceInfo(comp.name, comp.rev, kernelInfo.SnapName())
+		cpi := snap.MinimalComponentContainerPlaceInfo(comp.name, comp.rev, string(kernelInfo.SnapName()))
 		err := os.Rename(compFn, cpi.MountFile())
 		c.Assert(err, IsNil)
 	}
@@ -1320,7 +1320,7 @@ func (fs *fakeSeed) ModeSnaps(mode string) ([]*seed.Snap, error) {
 
 func (fs *fakeSeed) ModeSnap(snapName, mode string) (*seed.Snap, error) {
 	for _, sn := range fs.essentialSnaps {
-		if sn.SnapName() == snapName {
+		if string(sn.SnapName()) == snapName {
 			return sn, nil
 		}
 	}
@@ -3398,7 +3398,7 @@ func (s *deviceMgrInstallModeSuite) TestInstallWithUbuntuSaveSnapFoldersHappy(c 
 
 	snapFolderDir := filepath.Join(snapSaveDir, "snap")
 	ucSnapFolderExists := func(snapName naming.SnapName) bool {
-		exists, isDir, err := osutil.DirExists(filepath.Join(snapFolderDir, snapName))
+		exists, isDir, err := osutil.DirExists(filepath.Join(snapFolderDir, string(snapName)))
 		return err == nil && exists && isDir
 	}
 

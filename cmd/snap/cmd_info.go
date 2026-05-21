@@ -40,6 +40,7 @@ import (
 	"github.com/snapcore/snapd/i18n"
 	"github.com/snapcore/snapd/osutil"
 	"github.com/snapcore/snapd/snap"
+	"github.com/snapcore/snapd/snap/naming"
 	"github.com/snapcore/snapd/snap/snapfile"
 	"github.com/snapcore/snapd/snap/squashfs"
 	"github.com/snapcore/snapd/strutil"
@@ -718,7 +719,7 @@ func (x *infoCmd) Execute([]string) error {
 		if diskSnap, err := clientSnapFromPath(snapName); err == nil {
 			iw.setupDiskSnap(norm(snapName), diskSnap)
 		} else {
-			remoteSnap, resInfo, _ := x.client.FindOne(snap.InstanceSnap(snapName))
+			remoteSnap, resInfo, _ := x.client.FindOne(snap.InstanceSnap(naming.InstanceName(snapName)))
 			localSnap, _, _ := x.client.Snap(snapName)
 			iw.setupSnap(localSnap, remoteSnap, resInfo)
 		}

@@ -32,6 +32,7 @@ import (
 	"github.com/snapcore/snapd/overlord/state"
 	"github.com/snapcore/snapd/overlord/swfeats"
 	"github.com/snapcore/snapd/snap"
+	"github.com/snapcore/snapd/snap/naming"
 	"github.com/snapcore/snapd/strutil"
 )
 
@@ -49,7 +50,7 @@ var configureSnapChangeKind = swfeats.RegisterChangeKind("configure-snap")
 
 func getSnapConf(c *Command, r *http.Request, user *auth.UserState) Response {
 	vars := muxVars(r)
-	snapName := configstate.RemapSnapFromRequest(vars["name"])
+	snapName := configstate.RemapSnapFromRequest(naming.SnapName(vars["name"]))
 
 	keys := strutil.CommaSeparatedList(r.URL.Query().Get("keys"))
 
@@ -147,7 +148,7 @@ func pruneExperimentalFlags(key string, val any) any {
 
 func setSnapConf(c *Command, r *http.Request, user *auth.UserState) Response {
 	vars := muxVars(r)
-	snapName := configstate.RemapSnapFromRequest(vars["name"])
+	snapName := configstate.RemapSnapFromRequest(naming.SnapName(vars["name"]))
 
 	var patchValues map[string]any
 	if err := jsonutil.DecodeWithNumber(r.Body, &patchValues); err != nil {
@@ -158,11 +159,11 @@ func setSnapConf(c *Command, r *http.Request, user *auth.UserState) Response {
 	st.Lock()
 	defer st.Unlock()
 
-	taskset, err := configstate.ConfigureInstalled(st, snapName, patchValues, 0)
+	taskset, err := configstate.ConfigureInstalled(st, naming.SnapName(snapName), patchValues, 0)
 	if err != nil {
 		// TODO: just return snap-not-installed instead ?
 		if _, ok := err.(*snap.NotInstalledError); ok {
-			return SnapNotFound(snapName, err)
+			return SnapNotFound(naming.SnapName(snapName), err)
 		}
 		return errToResponse(err, []string{snapName}, InternalError, "%v")
 	}

@@ -34,6 +34,7 @@ import (
 	"github.com/snapcore/snapd/osutil"
 	"github.com/snapcore/snapd/osutil/sys"
 	"github.com/snapcore/snapd/sandbox/cgroup"
+	"github.com/snapcore/snapd/snap/naming"
 	"github.com/snapcore/snapd/testutil"
 )
 
@@ -88,7 +89,7 @@ func (s *mainSuite) TestExecuteMountProfileUpdate(c *C) {
 	err = os.WriteFile(currentProfilePath, nil, 0644)
 	c.Assert(err, IsNil)
 
-	upCtx := update.NewSystemProfileUpdateContext(snapName, false)
+	upCtx := update.NewSystemProfileUpdateContext(naming.InstanceName(snapName), false)
 	var profilePath string
 	var savedProfile string
 	restore = update.MockSaveMountProfile(func(p *osutil.MountProfile, fname string, uid sys.UserID, gid sys.GroupID) (err error) {
@@ -447,7 +448,7 @@ none $HOME/.local/share none x-snapd.kind=ensure-dir,x-snapd.must-exist-dir=$HOM
 	tmpHomeDir := c.MkDir()
 	restoreEnv := update.MockSnapConfineUserEnv("/run/user/1000/snap.snapname", tmpHomeDir)
 	defer restoreEnv()
-	upCtx, err := update.NewUserProfileUpdateContext(snapName, true, 1000)
+	upCtx, err := update.NewUserProfileUpdateContext(naming.InstanceName(snapName), true, 1000)
 	c.Assert(err, IsNil)
 	err = update.ExecuteMountProfileUpdate(upCtx)
 	c.Assert(err, IsNil)
@@ -488,7 +489,7 @@ none $HOME/.local/share none x-snapd.kind=ensure-dir,x-snapd.must-exist-dir=$HOM
 	tmpHomeDir := c.MkDir() + "/does-not-exist"
 	restoreEnv := update.MockSnapConfineUserEnv("/run/user/1000/snap.snapname", tmpHomeDir)
 	defer restoreEnv()
-	upCtx, err := update.NewUserProfileUpdateContext(snapName, true, 1000)
+	upCtx, err := update.NewUserProfileUpdateContext(naming.InstanceName(snapName), true, 1000)
 	c.Assert(err, IsNil)
 	err = update.ExecuteMountProfileUpdate(upCtx)
 	c.Assert(err, ErrorMatches, `cannot expand mount entry \(none \$HOME/.local/share none x-snapd.kind=ensure-dir,x-snapd.must-exist-dir=\$HOME 0 0\): cannot use invalid home directory `+fmt.Sprintf("\"%s\"", tmpHomeDir)+": no such file or directory")

@@ -76,7 +76,7 @@ func findSymmetricAutoconnectTask(st *state.State, plugSnap, slotSnap string, in
 			}
 			otherSnap := snapsup.InstanceName()
 
-			if (otherSnap == plugSnap && installedSnap == slotSnap) || (otherSnap == slotSnap && installedSnap == plugSnap) {
+			if (string(otherSnap) == plugSnap && string(installedSnap) == slotSnap) || (string(otherSnap) == slotSnap && string(installedSnap) == plugSnap) {
 				return true, nil
 			}
 		}
@@ -93,7 +93,7 @@ type connectOpts struct {
 
 // Connect returns a set of tasks for connecting an interface.
 func Connect(st *state.State, plugSnap, plugName, slotSnap, slotName string) (*state.TaskSet, error) {
-	if err := snapstate.CheckChangeConflictMany(st, []string{plugSnap, slotSnap}, ""); err != nil {
+	if err := snapstate.CheckChangeConflictMany(st, []string{string(plugSnap), string(slotSnap)}, ""); err != nil {
 		return nil, err
 	}
 
@@ -322,7 +322,7 @@ func initialConnectAttributes(st *state.State, plugSnapInfo *snap.Info, plugSnap
 func Disconnect(st *state.State, conn *interfaces.Connection) (*state.TaskSet, error) {
 	plugSnap := conn.Plug.Snap().InstanceName()
 	slotSnap := conn.Slot.Snap().InstanceName()
-	if err := snapstate.CheckChangeConflictMany(st, []string{plugSnap, slotSnap}, ""); err != nil {
+	if err := snapstate.CheckChangeConflictMany(st, []string{string(plugSnap), string(slotSnap)}, ""); err != nil {
 		return nil, err
 	}
 
@@ -394,18 +394,18 @@ func disconnectTasks(st *state.State, conn *interfaces.Connection, flags disconn
 	slotName := conn.Slot.Name()
 
 	var plugSnapst, slotSnapst snapstate.SnapState
-	if err := snapstate.Get(st, slotSnap, &slotSnapst); err != nil {
+	if err := snapstate.Get(st, string(slotSnap), &slotSnapst); err != nil {
 		return nil, err
 	}
-	if err := snapstate.Get(st, plugSnap, &plugSnapst); err != nil {
+	if err := snapstate.Get(st, string(plugSnap), &plugSnapst); err != nil {
 		return nil, err
 	}
 
 	summary := fmt.Sprintf(i18n.G("Disconnect %s:%s from %s:%s"),
 		plugSnap, plugName, slotSnap, slotName)
 	disconnectTask := st.NewTask("disconnect", summary)
-	disconnectTask.Set("slot", interfaces.SlotRef{Snap: slotSnap, Name: slotName})
-	disconnectTask.Set("plug", interfaces.PlugRef{Snap: plugSnap, Name: plugName})
+	disconnectTask.Set("slot", interfaces.SlotRef{Snap: string(slotSnap), Name: slotName})
+	disconnectTask.Set("plug", interfaces.PlugRef{Snap: string(plugSnap), Name: plugName})
 	if flags.Forget {
 		disconnectTask.Set("forget", true)
 	}
@@ -449,13 +449,13 @@ func disconnectTasks(st *state.State, conn *interfaces.Connection, flags disconn
 		hookName := fmt.Sprintf("disconnect-slot-%s", slotName)
 		if slotSnapInfo.Hooks[hookName] != nil {
 			disconnectSlotHookSetup := &hookstate.HookSetup{
-				Snap:        slotSnap,
+				Snap:        string(slotSnap),
 				Hook:        hookName,
 				Optional:    true,
 				IgnoreError: flags.IgnoreHookError,
 			}
 			undoDisconnectSlotHookSetup := &hookstate.HookSetup{
-				Snap:        slotSnap,
+				Snap:        string(slotSnap),
 				Hook:        "connect-slot-" + slotName,
 				Optional:    true,
 				IgnoreError: flags.IgnoreHookError,
@@ -473,13 +473,13 @@ func disconnectTasks(st *state.State, conn *interfaces.Connection, flags disconn
 		hookName := fmt.Sprintf("disconnect-plug-%s", plugName)
 		if plugSnapInfo.Hooks[hookName] != nil {
 			disconnectPlugHookSetup := &hookstate.HookSetup{
-				Snap:        plugSnap,
+				Snap:        string(plugSnap),
 				Hook:        hookName,
 				Optional:    true,
 				IgnoreError: flags.IgnoreHookError,
 			}
 			undoDisconnectPlugHookSetup := &hookstate.HookSetup{
-				Snap:        plugSnap,
+				Snap:        string(plugSnap),
 				Hook:        "connect-plug-" + plugName,
 				Optional:    true,
 				IgnoreError: flags.IgnoreHookError,
@@ -581,7 +581,7 @@ func OnSnapLinkageChanged(st *state.State, snapsup *snapstate.SnapSetup) error {
 	instanceName := snapsup.InstanceName()
 
 	var snapst snapstate.SnapState
-	if err := snapstate.Get(st, instanceName, &snapst); err != nil && !errors.Is(err, state.ErrNoState) {
+	if err := snapstate.Get(st, string(instanceName), &snapst); err != nil && !errors.Is(err, state.ErrNoState) {
 		return err
 	}
 	if !snapst.IsInstalled() {
@@ -600,7 +600,7 @@ func OnSnapLinkageChanged(st *state.State, snapsup *snapstate.SnapSetup) error {
 			Components: snapst.CurrentComponentSideInfos(),
 		}
 	}
-	snapstate.Set(st, instanceName, &snapst)
+	snapstate.Set(st, string(instanceName), &snapst)
 	return nil
 }
 

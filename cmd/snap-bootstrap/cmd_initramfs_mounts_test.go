@@ -50,6 +50,7 @@ import (
 	"github.com/snapcore/snapd/seed"
 	"github.com/snapcore/snapd/seed/seedtest"
 	"github.com/snapcore/snapd/snap"
+	"github.com/snapcore/snapd/snap/naming"
 	"github.com/snapcore/snapd/systemd"
 	"github.com/snapcore/snapd/testutil"
 )
@@ -626,7 +627,7 @@ func (s *baseInitramfsMountsSuite) setupSeedGeneric(c *C, modelAssertTime time.T
 			},
 			map[string]any{
 				"name":            base,
-				"id":              testSeed.AssertedSnapID(base),
+				"id":              testSeed.AssertedSnapID(naming.SnapName(base)),
 				"type":            "base",
 				"default-channel": "latest",
 			},

@@ -341,7 +341,7 @@ func (iface *sharedMemoryInterface) MountConnectedPlug(spec *mount.Specification
 	}
 
 	return spec.AddMountEntry(osutil.MountEntry{
-		Name:    filepath.Join(devShm, "snap."+plug.Snap().InstanceName()),
+		Name:    filepath.Join(devShm, "snap."+string(plug.Snap().InstanceName())),
 		Dir:     "/dev/shm",
 		Options: []string{"bind", "rw"},
 	})

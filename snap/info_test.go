@@ -437,7 +437,7 @@ func (s *infoSuite) TestInstallDate(c *C) {
 	info := snaptest.MockSnap(c, sampleYaml, si)
 	// not current -> Zero
 	c.Check(info.InstallDate(), IsNil)
-	c.Check(snap.InstallDate(info.InstanceName()).IsZero(), Equals, true)
+	c.Check(snap.InstallDate(string(info.InstanceName())).IsZero(), Equals, true)
 
 	mountdir := info.MountDir()
 	dir, rev := filepath.Split(mountdir)
@@ -451,7 +451,7 @@ func (s *infoSuite) TestInstallDate(c *C) {
 	c.Check(instTime.IsZero(), Equals, false)
 
 	c.Check(info.InstallDate().Equal(instTime), Equals, true)
-	c.Check(snap.InstallDate(info.InstanceName()).Equal(instTime), Equals, true)
+	c.Check(snap.InstallDate(string(info.InstanceName())).Equal(instTime), Equals, true)
 }
 
 func (s *infoSuite) TestReadInfoNotFound(c *C) {
@@ -875,7 +875,7 @@ func (s *infoSuite) checkInstalledSnapAndSnapFile(c *C, instanceName, yaml strin
 	sideInfo := &snap.SideInfo{Revision: snap.R(42)}
 	info0 := snaptest.MockSnapInstance(c, instanceName, yaml, sideInfo)
 	snaptest.PopulateDir(info0.MountDir(), emptyHooks(hooks...))
-	info, err := snap.ReadInfo(info0.InstanceName(), sideInfo)
+	info, err := snap.ReadInfo(string(info0.InstanceName()), sideInfo)
 	c.Check(err, IsNil)
 	checker(c, info)
 

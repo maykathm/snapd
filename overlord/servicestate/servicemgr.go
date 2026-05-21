@@ -226,7 +226,7 @@ func serviceControlAffectedSnaps(t *state.Task) ([]string, error) {
 	if err := t.Get("service-action", &serviceAction); err != nil {
 		return nil, fmt.Errorf("internal error: cannot obtain service action from task: %s", t.Summary())
 	}
-	return []string{serviceAction.SnapName}, nil
+	return []string{string(serviceAction.SnapName)}, nil
 }
 
 func getBootTime() (time.Time, error) {

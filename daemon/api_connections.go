@@ -29,6 +29,7 @@ import (
 	"github.com/snapcore/snapd/overlord/ifacestate"
 	"github.com/snapcore/snapd/overlord/snapstate"
 	"github.com/snapcore/snapd/overlord/state"
+	"github.com/snapcore/snapd/snap/naming"
 )
 
 var connectionsCmd = &Command{
@@ -180,7 +181,7 @@ func collectConnections(ifaceMgr *ifacestate.InterfaceManager, filter collectFil
 	}
 
 	for _, plug := range ifaces.Plugs {
-		plugRef := interfaces.PlugRef{Snap: plug.Snap.InstanceName(), Name: plug.Name}
+		plugRef := interfaces.PlugRef{Snap: string(plug.Snap.InstanceName()), Name: plug.Name}
 		connectedSlots, connected := plugConns[plugRef.String()]
 		if !connected && filter.connected {
 			continue
@@ -205,7 +206,7 @@ func collectConnections(ifaceMgr *ifacestate.InterfaceManager, filter collectFil
 		connsjson.Plugs = append(connsjson.Plugs, pj)
 	}
 	for _, slot := range ifaces.Slots {
-		slotRef := interfaces.SlotRef{Snap: slot.Snap.InstanceName(), Name: slot.Name}
+		slotRef := interfaces.SlotRef{Snap: string(slot.Snap.InstanceName()), Name: slot.Name}
 		connectedPlugs, connected := slotConns[slotRef.String()]
 		if !connected && filter.connected {
 			continue
@@ -263,11 +264,11 @@ func getConnections(c *Command, r *http.Request, user *auth.UserState) Response 
 	}
 	onlyConnected := qselect == ""
 
-	snapName = ifacestate.RemapSnapFromRequest(snapName)
+	snapName = string(ifacestate.RemapSnapFromRequest(naming.SnapName(snapName)))
 	if snapName != "" {
 		if err := checkSnapInstalled(c.d.overlord.State(), snapName); err != nil {
 			if errors.Is(err, state.ErrNoState) {
-				return SnapNotFound(snapName, err)
+				return SnapNotFound(naming.SnapName(snapName), err)
 			}
 			return InternalError("cannot access snap state: %v", err)
 		}

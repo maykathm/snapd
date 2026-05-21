@@ -62,6 +62,7 @@ import (
 	"github.com/snapcore/snapd/overlord/swfeats"
 	"github.com/snapcore/snapd/sandbox"
 	"github.com/snapcore/snapd/snap"
+	"github.com/snapcore/snapd/snap/naming"
 	"github.com/snapcore/snapd/snap/snaptest"
 	"github.com/snapcore/snapd/store"
 	"github.com/snapcore/snapd/store/storetest"
@@ -429,7 +430,7 @@ type storeUpdateGoalRecorder struct {
 func (s *storeUpdateGoalRecorder) names() []string {
 	names := make([]string, 0, len(s.snaps))
 	for _, snap := range s.snaps {
-		names = append(names, snap.InstanceName)
+		names = append(names, string(snap.InstanceName))
 	}
 	return names
 }
@@ -625,11 +626,11 @@ func (s *apiBaseSuite) mockSnap(c *check.C, yamlText string) *snap.Info {
 	defer st.Unlock()
 
 	// Put a side info into the state
-	snapstate.Set(st, snapInfo.InstanceName(), &snapstate.SnapState{
+	snapstate.Set(st, string(snapInfo.InstanceName()), &snapstate.SnapState{
 		Active: true,
 		Sequence: snapstatetest.NewSequenceFromSnapSideInfos([]*snap.SideInfo{
 			{
-				RealName: snapInfo.SnapName(),
+				RealName: string(snapInfo.SnapName()),
 				Revision: snapInfo.Revision,
 				SnapID:   "ididid",
 			},
@@ -646,7 +647,7 @@ func (s *apiBaseSuite) mockSnap(c *check.C, yamlText string) *snap.Info {
 }
 
 func (s *apiBaseSuite) mkInstalledInState(c *check.C, d *daemon.Daemon, instanceName, developer, version string, revision snap.Revision, active bool, extraYaml string) *snap.Info {
-	snapName, instanceKey := snap.SplitInstanceName(instanceName)
+	snapName, instanceKey := snap.SplitInstanceName(naming.InstanceName(instanceName))
 
 	if revision.Local() && developer != "" {
 		panic("not supported")

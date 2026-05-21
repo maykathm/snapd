@@ -31,6 +31,7 @@ import (
 	"github.com/snapcore/snapd/overlord/devicestate"
 	"github.com/snapcore/snapd/overlord/snapstate"
 	"github.com/snapcore/snapd/overlord/state"
+	"github.com/snapcore/snapd/snap/naming"
 )
 
 var (
@@ -340,7 +341,7 @@ func snapsForSubcluster(
 			if snapst.IsInstalled() {
 				if sn.Channel != "" && snapst.TrackingChannel != sn.Channel {
 					updates = append(updates, snapstate.StoreUpdate{
-						InstanceName: sn.Instance,
+						InstanceName: naming.InstanceName(sn.Instance),
 						RevOpts: snapstate.RevisionOptions{
 							Channel: sn.Channel,
 						},
@@ -350,7 +351,7 @@ func snapsForSubcluster(
 			}
 
 			ss := snapstate.StoreSnap{
-				InstanceName:  sn.Instance,
+				InstanceName:  naming.InstanceName(sn.Instance),
 				SkipIfPresent: true,
 				RevOpts: snapstate.RevisionOptions{
 					Channel: sn.Channel,

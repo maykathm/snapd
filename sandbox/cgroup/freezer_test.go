@@ -31,6 +31,7 @@ import (
 
 	"github.com/snapcore/snapd/dirs"
 	"github.com/snapcore/snapd/sandbox/cgroup"
+	"github.com/snapcore/snapd/snap/naming"
 	"github.com/snapcore/snapd/testutil"
 )
 
@@ -44,7 +45,7 @@ func (s *freezerV1Suite) TestFreezeSnapProcessesV1(c *C) {
 	dirs.SetRootDir(c.MkDir())
 	defer dirs.SetRootDir("")
 
-	n := "foo"                                                                 // snap name
+	n := naming.SnapName("foo")                                                // snap name
 	p := filepath.Join(cgroup.FreezerCgroupV1Dir(), fmt.Sprintf("snap.%s", n)) // snap freezer cgroup
 	f := filepath.Join(p, "freezer.state")                                     // freezer.state file of the cgroup
 
@@ -79,7 +80,7 @@ func (s *freezerV1Suite) TestThawSnapProcessesV1(c *C) {
 	dirs.SetRootDir(c.MkDir())
 	defer dirs.SetRootDir("")
 
-	n := "foo"                                                                 // snap name
+	n := naming.SnapName("foo")                                                // snap name
 	p := filepath.Join(cgroup.FreezerCgroupV1Dir(), fmt.Sprintf("snap.%s", n)) // snap freezer cgroup
 	f := filepath.Join(p, "freezer.state")                                     // freezer.state file of the cgroup
 

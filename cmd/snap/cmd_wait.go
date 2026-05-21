@@ -29,6 +29,7 @@ import (
 
 	"github.com/snapcore/snapd/client"
 	"github.com/snapcore/snapd/i18n"
+	"github.com/snapcore/snapd/snap/naming"
 )
 
 type cmdWait struct {
@@ -121,7 +122,7 @@ func (x *cmdWait) Execute(args []string) error {
 	}
 
 	for {
-		conf, err := x.client.Conf(snapName, []string{confKey})
+		conf, err := x.client.Conf(naming.SnapName(snapName), []string{confKey})
 		if err != nil && !isNoOption(err) {
 			return err
 		}

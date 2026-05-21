@@ -495,7 +495,7 @@ func (m *DeviceManager) ensureUbuntuSaveSnapFolders() error {
 	}
 
 	for _, s := range snaps {
-		saveDir := snap.CommonDataSaveDir(s.InstanceName())
+		saveDir := snap.CommonDataSaveDir(string(s.InstanceName()))
 		if err := os.MkdirAll(saveDir, 0755); err != nil {
 			return err
 		}
@@ -2811,7 +2811,7 @@ func (m *DeviceManager) loadSystemAndEssentialSnaps(wantedSystemLabel string, ty
 			return nil, fmt.Errorf("cannot use snap info, expected %s but got %s", typ, snapInfo.SnapType)
 		}
 		// Read components in the seed too, for the mode we are interested in
-		snapForMode, err := s.ModeSnap(seedSnap.SnapName(), modeForComps)
+		snapForMode, err := s.ModeSnap(string(seedSnap.SnapName()), modeForComps)
 		if err != nil {
 			return nil, fmt.Errorf("internal error while retrieving %s for %s mode: %v",
 				seedSnap.SnapName(), modeForComps, err)
@@ -3188,7 +3188,7 @@ func (m *DeviceManager) runFDESetupHook(req *fde.SetupRequest) ([]byte, error) {
 		return nil, fmt.Errorf("cannot get kernel info to run fde-setup hook: %v", err)
 	}
 	hooksup := &hookstate.HookSetup{
-		Snap:     kernelInfo.InstanceName(),
+		Snap:     string(kernelInfo.InstanceName()),
 		Revision: kernelInfo.Revision,
 		Hook:     "fde-setup",
 		// XXX: should this be configurable somehow?

@@ -26,6 +26,7 @@ import (
 	"github.com/snapcore/snapd/overlord/state"
 	"github.com/snapcore/snapd/overlord/swfeats"
 	"github.com/snapcore/snapd/snap"
+	"github.com/snapcore/snapd/snap/naming"
 	"github.com/snapcore/snapd/strutil"
 )
 
@@ -41,7 +42,7 @@ func migrateHome(st *state.State, snaps []string) Response {
 	tss, err := snapstateMigrateHome(st, snaps)
 	if err != nil {
 		if terr, ok := err.(snap.NotInstalledError); ok {
-			return SnapNotFound(terr.Snap, err)
+			return SnapNotFound(naming.SnapName(terr.Snap), err)
 		}
 
 		return InternalError(err.Error())

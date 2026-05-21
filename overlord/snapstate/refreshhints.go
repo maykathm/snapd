@@ -32,6 +32,7 @@ import (
 	"github.com/snapcore/snapd/overlord/state"
 	"github.com/snapcore/snapd/overlord/swfeats"
 	"github.com/snapcore/snapd/release"
+	"github.com/snapcore/snapd/snap/naming"
 	"github.com/snapcore/snapd/store"
 	"github.com/snapcore/snapd/strutil"
 	"github.com/snapcore/snapd/timings"
@@ -169,7 +170,7 @@ func refreshHintsFromUpdatePlan(st *state.State, plan updatePlan, deviceCtx Devi
 		ignoreValidation := make(map[string]bool, len(plan.targets))
 		for _, t := range plan.targets {
 			if t.setup.IgnoreValidation {
-				ignoreValidation[t.info.InstanceName()] = true
+				ignoreValidation[string(t.info.InstanceName())] = true
 			}
 		}
 
@@ -187,7 +188,7 @@ func refreshHintsFromUpdatePlan(st *state.State, plan updatePlan, deviceCtx Devi
 	for _, t := range plan.targets {
 		info := t.info
 		var snapst SnapState
-		if err := Get(st, info.InstanceName(), &snapst); err != nil {
+		if err := Get(st, string(info.InstanceName()), &snapst); err != nil {
 			return nil, err
 		}
 
@@ -208,10 +209,10 @@ func refreshHintsFromUpdatePlan(st *state.State, plan updatePlan, deviceCtx Devi
 			continue
 		}
 
-		hints[info.InstanceName()] = &refreshCandidate{
+		hints[string(info.InstanceName())] = &refreshCandidate{
 			SnapSetup:  snapsup,
 			Components: compsups,
-			Monitored:  IsSnapMonitored(st, info.InstanceName()),
+			Monitored:  IsSnapMonitored(st, naming.SnapName(info.InstanceName())),
 		}
 	}
 	return hints, nil
@@ -266,7 +267,7 @@ func pruneRefreshCandidates(st *state.State, snaps ...string) error {
 
 	for _, snapName := range snaps {
 		delete(candidates, snapName)
-		abortMonitoring(st, snapName)
+		abortMonitoring(st, naming.SnapName(snapName))
 	}
 
 	if len(candidates) == 0 {
@@ -324,7 +325,7 @@ func updateRefreshCandidates(st *state.State, hints map[string]*refreshCandidate
 
 	// stop monitoring candidates which were deleted
 	for _, dropped := range deleted {
-		abortMonitoring(st, dropped)
+		abortMonitoring(st, naming.SnapName(dropped))
 	}
 
 	st.Set("refresh-candidates", oldHints)

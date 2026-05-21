@@ -25,6 +25,7 @@ import (
 	"github.com/snapcore/snapd/cmd/snaplock/runinhibit"
 	"github.com/snapcore/snapd/osutil"
 	"github.com/snapcore/snapd/snap"
+	"github.com/snapcore/snapd/snap/naming"
 )
 
 func (b Backend) RunInhibitSnapForUnlink(info *snap.Info, hint runinhibit.Hint, stateUnlocker runinhibit.Unlocker, decision func() error) (lock *osutil.FileLock, retErr error) {
@@ -40,7 +41,7 @@ func (b Backend) RunInhibitSnapForUnlink(info *snap.Info, hint runinhibit.Hint, 
 	// sufficient to perform the check, even though individual processes
 	// may fork or exit, we will have per-security-tag information about
 	// what is running.
-	lock, err := snaplock.OpenLock(info.InstanceName())
+	lock, err := snaplock.OpenLock(naming.SnapName(info.InstanceName()))
 	if err != nil {
 		return nil, err
 	}
@@ -71,7 +72,7 @@ func (b Backend) RunInhibitSnapForUnlink(info *snap.Info, hint runinhibit.Hint, 
 	// and hard checks, as it would effectively make hard check a no-op,
 	// but it might provide a nicer user experience.
 	inhibitInfo := runinhibit.InhibitInfo{Previous: info.SnapRevision()}
-	if err := runinhibit.LockWithHint(info.InstanceName(), hint, inhibitInfo, stateUnlocker); err != nil {
+	if err := runinhibit.LockWithHint(naming.SnapName(info.InstanceName()), hint, inhibitInfo, stateUnlocker); err != nil {
 		return nil, err
 	}
 	return lock, nil

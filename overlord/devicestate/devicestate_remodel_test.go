@@ -496,7 +496,7 @@ func (s *deviceMgrRemodelSuite) testRemodelTasksSwitchTrack(c *C, whatRefreshes 
 		tDownload := s.state.NewTask("fake-download", fmt.Sprintf("Download %s", name))
 		tDownload.Set("snap-setup", &snapstate.SnapSetup{
 			SideInfo: &snap.SideInfo{
-				RealName: name,
+				RealName: string(name),
 			},
 		})
 		tValidate := s.state.NewTask("validate-snap", fmt.Sprintf("Validate %s", name))
@@ -525,7 +525,7 @@ func (s *deviceMgrRemodelSuite) testRemodelTasksSwitchTrack(c *C, whatRefreshes 
 		tDownload := s.state.NewTask("fake-download", fmt.Sprintf("Download %s to track %s", name, channel))
 		tDownload.Set("snap-setup", &snapstate.SnapSetup{
 			SideInfo: &snap.SideInfo{
-				RealName: name,
+				RealName: string(name),
 			},
 		})
 		tValidate := s.state.NewTask("validate-snap", fmt.Sprintf("Validate %s", name))
@@ -589,7 +589,7 @@ epoch: 1
 	}
 
 	si := &snap.SideInfo{
-		RealName: name,
+		RealName: string(name),
 		Revision: snap.R(revision),
 		SnapID:   id,
 	}
@@ -677,7 +677,7 @@ func (s *deviceMgrRemodelSuite) testRemodelSwitchTasks(c *C, whatNewTrack map[st
 			name := g.snap.SideInfo.RealName
 			snapstateInstallWithDeviceContextCalled++
 
-			newTrack, ok := whatNewTrack[name]
+			newTrack, ok := whatNewTrack[string(name)]
 			c.Check(ok, Equals, true)
 			c.Check(g.snap.RevOpts.Channel, Equals, newTrack)
 			if localSnaps != nil {
@@ -695,7 +695,7 @@ func (s *deviceMgrRemodelSuite) testRemodelSwitchTasks(c *C, whatNewTrack map[st
 			tDownload := s.state.NewTask("fake-download", fmt.Sprintf("Download %s", name))
 			tDownload.Set("snap-setup", &snapstate.SnapSetup{
 				SideInfo: &snap.SideInfo{
-					RealName: name,
+					RealName: string(name),
 				},
 			})
 			tValidate := s.state.NewTask("validate-snap", fmt.Sprintf("Validate %s", name))
@@ -711,14 +711,14 @@ func (s *deviceMgrRemodelSuite) testRemodelSwitchTasks(c *C, whatNewTrack map[st
 			channel := sn.RevOpts.Channel
 
 			snapstateInstallWithDeviceContextCalled++
-			newTrack, ok := whatNewTrack[name]
+			newTrack, ok := whatNewTrack[string(name)]
 			c.Check(ok, Equals, true)
 			c.Check(channel, Equals, newTrack)
 
 			tDownload := s.state.NewTask("fake-download", fmt.Sprintf("Download %s", name))
 			tDownload.Set("snap-setup", &snapstate.SnapSetup{
 				SideInfo: &snap.SideInfo{
-					RealName: name,
+					RealName: string(name),
 				},
 			})
 			tValidate := s.state.NewTask("validate-snap", fmt.Sprintf("Validate %s", name))
@@ -799,7 +799,7 @@ func (s *deviceMgrRemodelSuite) TestRemodelRequiredSnaps(c *C) {
 		tDownload := s.state.NewTask("fake-download", fmt.Sprintf("Download %s", name))
 		tDownload.Set("snap-setup", &snapstate.SnapSetup{
 			SideInfo: &snap.SideInfo{
-				RealName: name,
+				RealName: string(name),
 			},
 		})
 		tValidate := s.state.NewTask("validate-snap", fmt.Sprintf("Validate %s", name))
@@ -921,7 +921,7 @@ func (s *deviceMgrRemodelSuite) TestRemodelSwitchKernelTrack(c *C) {
 		tDownload := s.state.NewTask("fake-download", fmt.Sprintf("Download %s", name))
 		tDownload.Set("snap-setup", &snapstate.SnapSetup{
 			SideInfo: &snap.SideInfo{
-				RealName: name,
+				RealName: string(name),
 			},
 		})
 		tValidate := s.state.NewTask("validate-snap", fmt.Sprintf("Validate %s", name))
@@ -1101,7 +1101,7 @@ func (s *deviceMgrRemodelSuite) TestRemodelStoreSwitch(c *C) {
 		tDownload := s.state.NewTask("fake-download", fmt.Sprintf("Download %s", name))
 		tDownload.Set("snap-setup", &snapstate.SnapSetup{
 			SideInfo: &snap.SideInfo{
-				RealName: name,
+				RealName: string(name),
 			},
 		})
 		tValidate := s.state.NewTask("validate-snap", fmt.Sprintf("Validate %s", name))
@@ -1306,7 +1306,7 @@ func (s *deviceMgrRemodelSuite) TestRemodelClash(c *C) {
 		tDownload := s.state.NewTask("fake-download", fmt.Sprintf("Download %s", name))
 		tDownload.Set("snap-setup", &snapstate.SnapSetup{
 			SideInfo: &snap.SideInfo{
-				RealName: name,
+				RealName: string(name),
 			},
 		})
 		tValidate := s.state.NewTask("validate-snap", fmt.Sprintf("Validate %s", name))
@@ -1387,7 +1387,7 @@ func (s *deviceMgrRemodelSuite) TestRemodelClashInProgress(c *C) {
 		tDownload := s.state.NewTask("fake-download", fmt.Sprintf("Download %s", name))
 		tDownload.Set("snap-setup", &snapstate.SnapSetup{
 			SideInfo: &snap.SideInfo{
-				RealName: name,
+				RealName: string(name),
 			},
 		})
 		tValidate := s.state.NewTask("validate-snap", fmt.Sprintf("Validate %s", name))
@@ -1451,7 +1451,7 @@ func (s *deviceMgrRemodelSuite) TestRemodelClashWithRecoverySystem(c *C) {
 		tDownload := s.state.NewTask("fake-download", fmt.Sprintf("Download %s", name))
 		tDownload.Set("snap-setup", &snapstate.SnapSetup{
 			SideInfo: &snap.SideInfo{
-				RealName: name,
+				RealName: string(name),
 			},
 		})
 		tValidate := s.state.NewTask("validate-snap", fmt.Sprintf("Validate %s", name))
@@ -2337,7 +2337,7 @@ func (s *deviceMgrRemodelSuite) TestRemodelUC20RequiredSnapsAndRecoverySystem(c 
 		tDownload := s.state.NewTask("fake-download", fmt.Sprintf("Download %s", name))
 		tDownload.Set("snap-setup", &snapstate.SnapSetup{
 			SideInfo: &snap.SideInfo{
-				RealName: name,
+				RealName: string(name),
 			},
 		})
 		tValidate := s.state.NewTask("validate-snap", fmt.Sprintf("Validate %s", name))
@@ -2363,7 +2363,7 @@ func (s *deviceMgrRemodelSuite) TestRemodelUC20RequiredSnapsAndRecoverySystem(c 
 		tDownload := s.state.NewTask("fake-download", fmt.Sprintf("Download %s from track %s", name, channel))
 		tDownload.Set("snap-setup", &snapstate.SnapSetup{
 			SideInfo: &snap.SideInfo{
-				RealName: name,
+				RealName: string(name),
 			},
 		})
 		tValidate := s.state.NewTask("validate-snap", fmt.Sprintf("Validate %s", name))
@@ -2674,7 +2674,7 @@ func (s *deviceMgrRemodelSuite) testRemodelUC20SwitchKernelGadgetBaseSnaps(c *C,
 			tDownload := s.state.NewTask("fake-download", fmt.Sprintf("Download %s from track %s", name, channel))
 			tDownload.Set("snap-setup", &snapstate.SnapSetup{
 				SideInfo: &snap.SideInfo{
-					RealName: name,
+					RealName: string(name),
 				},
 			})
 			tValidate := s.state.NewTask("validate-snap", fmt.Sprintf("Validate %s", name))
@@ -2701,7 +2701,7 @@ func (s *deviceMgrRemodelSuite) testRemodelUC20SwitchKernelGadgetBaseSnaps(c *C,
 			tDownload := s.state.NewTask("fake-download", fmt.Sprintf("Download %s from track %s", name, channel))
 			tDownload.Set("snap-setup", &snapstate.SnapSetup{
 				SideInfo: &snap.SideInfo{
-					RealName: name,
+					RealName: string(name),
 				},
 			})
 			tValidate := s.state.NewTask("validate-snap", fmt.Sprintf("Validate %s", name))
@@ -2814,7 +2814,7 @@ func (s *deviceMgrRemodelSuite) testRemodelUC20SwitchKernelGadgetBaseSnaps(c *C,
 			},
 			map[string]any{
 				"name":            newGadget,
-				"id":              snaptest.AssertedSnapID(newGadget),
+				"id":              snaptest.AssertedSnapID(naming.SnapName(newGadget)),
 				"type":            "gadget",
 				"default-channel": "21/stable",
 			},
@@ -3587,7 +3587,7 @@ func (s *deviceMgrRemodelSuite) TestRemodelUC20SwitchKernelBaseGadgetSnapsInstal
 		si := &snap.SideInfo{
 			RealName: alreadyInstalledName,
 			Revision: snap.R(222),
-			SnapID:   snaptest.AssertedSnapID(alreadyInstalledName),
+			SnapID:   snaptest.AssertedSnapID(naming.SnapName(alreadyInstalledName)),
 		}
 		info := snaptest.MakeSnapFileAndDir(c, snapYaml, nil, si)
 		snapstate.Set(s.state, alreadyInstalledName, &snapstate.SnapState{
@@ -3775,7 +3775,7 @@ func (s *deviceMgrRemodelSuite) testRemodelUC20SwitchKernelBaseGadgetSnapsInstal
 			name := g.snaps[0].InstanceName
 			channel := g.snaps[0].RevOpts.Channel
 
-			c.Assert(strutil.ListContains([]string{"core24-new", "pc-kernel-new", "pc-new"}, name), Equals, true,
+			c.Assert(strutil.ListContains([]string{"core24-new", "pc-kernel-new", "pc-new"}, string(name)), Equals, true,
 				Commentf("unexpected snap %q", name))
 			callsToMockedUpdate++
 			c.Check(opts.Flags.Required, Equals, false)
@@ -3796,9 +3796,9 @@ func (s *deviceMgrRemodelSuite) testRemodelUC20SwitchKernelBaseGadgetSnapsInstal
 			}
 			tSwitchChannel.Set("snap-setup", &snapstate.SnapSetup{
 				SideInfo: &snap.SideInfo{
-					RealName: name,
+					RealName: string(name),
 					Revision: rev,
-					SnapID:   snaptest.AssertedSnapID(name),
+					SnapID:   snaptest.AssertedSnapID(naming.SnapName(name)),
 				},
 				Flags: snapstate.Flags{}.ForSnapSetup(),
 				Type:  snap.Type(typ),
@@ -3813,7 +3813,7 @@ func (s *deviceMgrRemodelSuite) testRemodelUC20SwitchKernelBaseGadgetSnapsInstal
 			si := g.snaps[0].SideInfo
 
 			callsToMockedUpdatePath++
-			c.Assert(strutil.ListContains([]string{"core24-new", "pc-kernel-new", "pc-new"}, name), Equals, true,
+			c.Assert(strutil.ListContains([]string{"core24-new", "pc-kernel-new", "pc-new"}, string(name)), Equals, true,
 				Commentf("unexpected snap %q", name))
 			c.Check(opts.Flags.Required, Equals, false)
 			c.Check(opts.Flags.NoReRefresh, Equals, true)
@@ -3922,7 +3922,7 @@ func (s *deviceMgrRemodelSuite) testRemodelUC20SwitchKernelBaseGadgetSnapsInstal
 		si := &snap.SideInfo{
 			RealName: alreadyInstalledName,
 			Revision: rev,
-			SnapID:   snaptest.AssertedSnapID(alreadyInstalledName),
+			SnapID:   snaptest.AssertedSnapID(naming.SnapName(alreadyInstalledName)),
 		}
 		info := snaptest.MakeSnapFileAndDir(c, snapYaml, nil, si)
 		snapstate.Set(s.state, alreadyInstalledName, &snapstate.SnapState{
@@ -3969,7 +3969,7 @@ func (s *deviceMgrRemodelSuite) testRemodelUC20SwitchKernelBaseGadgetSnapsInstal
 	var localSnaps []snapstate.PathSnap
 	if opts.localSnaps {
 		for i, name := range []string{"pc-kernel-new", "core24-new", "pc-new"} {
-			si, path := createLocalSnap(c, name, snaptest.AssertedSnapID(name), 222+i, "", "", nil)
+			si, path := createLocalSnap(c, name, snaptest.AssertedSnapID(naming.SnapName(name)), 222+i, "", "", nil)
 			localSnaps = append(localSnaps, snapstate.PathSnap{SideInfo: si, Path: path})
 		}
 	}
@@ -4112,7 +4112,7 @@ func (s *deviceMgrRemodelSuite) TestRemodelUC20SwitchKernelBaseSnapsInstalledSna
 		tDownload := s.state.NewTask("fake-download", fmt.Sprintf("Download %s from track %s", name, channel))
 		tDownload.Set("snap-setup", &snapstate.SnapSetup{
 			SideInfo: &snap.SideInfo{
-				RealName: name,
+				RealName: string(name),
 				Revision: snap.R(10),
 			},
 			Channel: channel,
@@ -4204,7 +4204,7 @@ func (s *deviceMgrRemodelSuite) TestRemodelUC20SwitchKernelBaseSnapsInstalledSna
 		si := &snap.SideInfo{
 			RealName: alreadyInstalledName,
 			Revision: snap.R(222),
-			SnapID:   snaptest.AssertedSnapID(alreadyInstalledName),
+			SnapID:   snaptest.AssertedSnapID(naming.SnapName(alreadyInstalledName)),
 		}
 		info := snaptest.MakeSnapFileAndDir(c, snapYaml, nil, si)
 		snapstate.Set(s.state, alreadyInstalledName, &snapstate.SnapState{
@@ -4694,7 +4694,7 @@ func (s *deviceMgrRemodelSuite) TestRemodelUC20BaseNoDownloadSimpleChannelSwitch
 		tSwitchChannel := s.state.NewTask("switch-snap-channel", fmt.Sprintf("Switch %s channel to %s", name, channel))
 		tSwitchChannel.Set("snap-setup", &snapstate.SnapSetup{
 			SideInfo: &snap.SideInfo{
-				RealName: name,
+				RealName: string(name),
 				Channel:  channel,
 			},
 		})
@@ -4893,7 +4893,7 @@ func (s *deviceMgrRemodelSuite) TestRemodelUC20EssentialNoDownloadSimpleChannelS
 		tSwitchChannel := s.state.NewTask("switch-snap-channel", fmt.Sprintf("Switch %s channel to %s", name, channel))
 		tSwitchChannel.Set("snap-setup", &snapstate.SnapSetup{
 			SideInfo: &snap.SideInfo{
-				RealName: name,
+				RealName: string(name),
 				Channel:  channel,
 			},
 		})
@@ -5961,7 +5961,7 @@ func (s *deviceMgrRemodelSuite) TestUC20RemodelSetModelWithReboot(c *C) {
 		Revision: snap.R(1),
 		RealName: "pc",
 	})
-	snapstate.Set(s.state, info.InstanceName(), &snapstate.SnapState{
+	snapstate.Set(s.state, string(info.InstanceName()), &snapstate.SnapState{
 		SnapType: string(info.Type()),
 		Active:   true,
 		Sequence: snapstatetest.NewSequenceFromSnapSideInfos([]*snap.SideInfo{&info.SideInfo}),
@@ -6354,7 +6354,7 @@ plugs:
 	})
 
 	if missingWhen != "install" {
-		snapstate.Set(s.state, info.InstanceName(), &snapstate.SnapState{
+		snapstate.Set(s.state, string(info.InstanceName()), &snapstate.SnapState{
 			SnapType:        string(info.Type()),
 			Active:          true,
 			Sequence:        snapstatetest.NewSequenceFromSnapSideInfos([]*snap.SideInfo{&info.SideInfo}),
@@ -6657,7 +6657,7 @@ plugs:
 		Revision: snap.R(1),
 		RealName: "bar-missing-deps",
 	})
-	snapstate.Set(s.state, barInfo.InstanceName(), &snapstate.SnapState{
+	snapstate.Set(s.state, string(barInfo.InstanceName()), &snapstate.SnapState{
 		SnapType:        string(barInfo.Type()),
 		Active:          true,
 		Sequence:        snapstatetest.NewSequenceFromSnapSideInfos([]*snap.SideInfo{&barInfo.SideInfo}),
@@ -6813,14 +6813,14 @@ func mockSnapstateUpdateOne(c *C, snaps map[string]expectedSnap) (restore func()
 		// validation sets
 		c.Assert(rev.Unset(), Equals, true)
 
-		expected, ok := snaps[name]
+		expected, ok := snaps[string(name)]
 		c.Assert(ok, Equals, true, Commentf("unexpected snap update: %q", name))
 
 		download := st.NewTask("fake-download", "download snap")
 
 		si := snap.SideInfo{
 			RealName: expected.name,
-			SnapID:   snaptest.AssertedSnapID(expected.name),
+			SnapID:   snaptest.AssertedSnapID(naming.SnapName(expected.name)),
 			Revision: expected.revision,
 		}
 		download.Set("snap-setup", snapstate.SnapSetup{
@@ -6828,7 +6828,7 @@ func mockSnapstateUpdateOne(c *C, snaps map[string]expectedSnap) (restore func()
 			Type:     expected.snapType,
 		})
 
-		updated[name] = download.ID()
+		updated[string(name)] = download.ID()
 
 		ts := state.NewTaskSet(download)
 		ts.MarkEdge(download, snapstate.BeginEdge)
@@ -6851,7 +6851,7 @@ func mockSnapstateUpdateOne(c *C, snaps map[string]expectedSnap) (restore func()
 			expectedComp, ok := expected.components[comp]
 			c.Assert(ok, Equals, true)
 
-			cref := naming.NewComponentRef(name, comp)
+			cref := naming.NewComponentRef(naming.SnapName(name), comp)
 
 			download := st.NewTask("mock-download-component", "download component")
 			download.Set("component-setup", &snapstate.ComponentSetup{
@@ -6918,10 +6918,10 @@ func mockSnapstateInstallOneFromFile(c *C, snaps map[string]expectedSnap) (resto
 		g := goal.(*pathInstallGoalRecorder)
 		name := g.snap.InstanceName
 		if name == "" {
-			name = g.snap.SideInfo.RealName
+			name = naming.InstanceName(g.snap.SideInfo.RealName)
 		}
 
-		expected, ok := snaps[name]
+		expected, ok := snaps[string(name)]
 		c.Assert(ok, Equals, true, Commentf("unexpected snap installation: %q", name))
 
 		c.Assert(g.snap.RevOpts.Revision, Equals, expected.revision)
@@ -7027,12 +7027,12 @@ func mockSnapstateUpdateOneFromFile(c *C, snaps map[string]expectedSnap) (restor
 		g := goal.(*pathUpdateGoalRecorder)
 		name := g.snaps[0].InstanceName
 		if name == "" {
-			name = g.snaps[0].SideInfo.RealName
+			name = naming.InstanceName(g.snaps[0].SideInfo.RealName)
 		}
 
 		components := g.snaps[0].Components
 
-		expected, ok := snaps[name]
+		expected, ok := snaps[string(name)]
 		c.Assert(ok, Equals, true, Commentf("unexpected snap update: %q", name))
 
 		c.Assert(g.snaps[0].RevOpts.Revision, Equals, expected.revision)
@@ -7045,7 +7045,7 @@ func mockSnapstateUpdateOneFromFile(c *C, snaps map[string]expectedSnap) (restor
 
 		si := snap.SideInfo{
 			RealName: expected.name,
-			SnapID:   snaptest.AssertedSnapID(expected.name),
+			SnapID:   snaptest.AssertedSnapID(naming.SnapName(expected.name)),
 			Revision: expected.revision,
 		}
 		prepare.Set("snap-setup", snapstate.SnapSetup{
@@ -7054,7 +7054,7 @@ func mockSnapstateUpdateOneFromFile(c *C, snaps map[string]expectedSnap) (restor
 			Type:     expected.snapType,
 		})
 
-		updated[name] = prepare.ID()
+		updated[string(name)] = prepare.ID()
 
 		ts := state.NewTaskSet(prepare)
 		ts.MarkEdge(prepare, snapstate.BeginEdge)
@@ -7143,7 +7143,7 @@ func mockSnapstateInstallComponentPath(c *C, snaps map[string]expectedSnap) (res
 		path string,
 		opts snapstate.Options,
 	) (*state.TaskSet, error) {
-		sn, ok := snaps[info.InstanceName()]
+		sn, ok := snaps[string(info.InstanceName())]
 		c.Assert(ok, Equals, true, Commentf("unexpected component installation for snap: %q", info.InstanceName()))
 		c.Assert(info.Revision, Equals, sn.revision)
 
@@ -7208,7 +7208,7 @@ func mockSnapstateInstallOne(c *C, snaps map[string]expectedSnap) (restore func(
 		// validation sets
 		c.Assert(rev.Unset(), Equals, true)
 
-		expected, ok := snaps[name]
+		expected, ok := snaps[string(name)]
 		c.Assert(ok, Equals, true, Commentf("unexpected snap installation: %q", name))
 
 		download := st.NewTask("fake-download", "download snap")
@@ -7245,7 +7245,7 @@ func mockSnapstateInstallOne(c *C, snaps map[string]expectedSnap) (restore func(
 			expectedComp, ok := expected.components[comp]
 			c.Assert(ok, Equals, true)
 
-			cref := naming.NewComponentRef(name, comp)
+			cref := naming.NewComponentRef(naming.SnapName(name), comp)
 
 			download := st.NewTask("mock-download-component", "download component")
 			download.Set("component-setup", &snapstate.ComponentSetup{
@@ -7313,7 +7313,7 @@ func mockSnapstateInstallComponents(c *C, snaps map[string]expectedSnap) (restor
 		// sort this for test consistency
 		sort.Strings(names)
 
-		sn, ok := snaps[info.InstanceName()]
+		sn, ok := snaps[string(info.InstanceName())]
 		c.Assert(ok, Equals, true, Commentf("unexpected component installation for snap: %q", info.InstanceName()))
 		c.Assert(info.Revision, Equals, sn.revision)
 
@@ -9754,7 +9754,7 @@ func (s *deviceMgrSuite) testRemodelInvalidFromValidationSet(c *C, invalidSnap s
 		"snaps": []any{
 			map[string]any{
 				"name":     invalidSnap,
-				"id":       snaptest.AssertedSnapID(invalidSnap),
+				"id":       snaptest.AssertedSnapID(naming.SnapName(invalidSnap)),
 				"presence": "invalid",
 			},
 		},
@@ -10913,7 +10913,7 @@ func (s *deviceMgrRemodelSuite) TestRemodelHybridSystemSkipSeed(c *C) {
 		tDownload := s.state.NewTask("fake-download", fmt.Sprintf("Download %s from track %s", name, channel))
 		tDownload.Set("snap-setup", &snapstate.SnapSetup{
 			SideInfo: &snap.SideInfo{
-				RealName: name,
+				RealName: string(name),
 			},
 		})
 		tValidate := s.state.NewTask("validate-snap", fmt.Sprintf("Validate %s", name))
@@ -11048,7 +11048,7 @@ func (s *deviceMgrRemodelSuite) TestRemodelHybridSystem(c *C) {
 		tDownload := s.state.NewTask("fake-download", fmt.Sprintf("Download %s from track %s", name, channel))
 		tDownload.Set("snap-setup", &snapstate.SnapSetup{
 			SideInfo: &snap.SideInfo{
-				RealName: name,
+				RealName: string(name),
 			},
 		})
 		tValidate := s.state.NewTask("validate-snap", fmt.Sprintf("Validate %s", name))

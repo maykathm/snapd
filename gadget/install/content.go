@@ -35,6 +35,7 @@ import (
 	"github.com/snapcore/snapd/logger"
 	"github.com/snapcore/snapd/osutil/mkfs"
 	"github.com/snapcore/snapd/snap"
+	"github.com/snapcore/snapd/snap/naming"
 	"github.com/snapcore/snapd/sysconfig"
 	"github.com/snapcore/snapd/systemd"
 )
@@ -180,7 +181,7 @@ func writeFilesystemContent(laidOut *gadget.LaidOutStructure, kSnapInfo *KernelS
 			}
 		}
 
-		cpi := snap.MinimalSnapContainerPlaceInfo(kSnapInfo.Name, kSnapInfo.Revision)
+		cpi := snap.MinimalSnapContainerPlaceInfo(naming.InstanceName(kSnapInfo.Name), kSnapInfo.Revision)
 		// Create mount unit to make the kernel snap content available from
 		// the drivers tree.
 		if err := writeContainerMountUnit(destRoot, cpi); err != nil {

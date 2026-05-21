@@ -23,6 +23,7 @@ import (
 	. "gopkg.in/check.v1"
 
 	"github.com/snapcore/snapd/interfaces"
+	"github.com/snapcore/snapd/snap/naming"
 )
 
 type SystemSuite struct{}
@@ -31,9 +32,9 @@ var _ = Suite(&SystemSuite{})
 
 func (s *SystemSuite) TestIsTheSystemSnap(c *C) {
 	for _, name := range []string{"", "snapd", "core"} {
-		c.Check(interfaces.IsTheSystemSnap(name), Equals, true)
+		c.Check(interfaces.IsTheSystemSnap(naming.SnapName(name)), Equals, true)
 	}
 	for _, name := range []string{"other", "blah", "core24"} {
-		c.Check(interfaces.IsTheSystemSnap(name), Equals, false)
+		c.Check(interfaces.IsTheSystemSnap(naming.SnapName(name)), Equals, false)
 	}
 }

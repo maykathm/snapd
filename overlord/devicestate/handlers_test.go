@@ -510,7 +510,7 @@ func (s *deviceMgrSuite) TestDoPrepareRemodeling(c *C) {
 		tDownload := s.state.NewTask("fake-download", fmt.Sprintf("Download %s", name))
 		tDownload.Set("snap-setup", &snapstate.SnapSetup{
 			SideInfo: &snap.SideInfo{
-				RealName: name,
+				RealName: string(name),
 			},
 		})
 		tValidate := s.state.NewTask("validate-snap", fmt.Sprintf("Validate %s", name))

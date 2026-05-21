@@ -38,6 +38,7 @@ import (
 	"github.com/snapcore/snapd/overlord/snapstate/backend"
 	"github.com/snapcore/snapd/progress"
 	"github.com/snapcore/snapd/snap"
+	"github.com/snapcore/snapd/snap/naming"
 	"github.com/snapcore/snapd/snap/snaptest"
 	"github.com/snapcore/snapd/testutil"
 )
@@ -1151,7 +1152,7 @@ func (s *copydataSuite) TestInitSnapUserHome(c *C) {
 	dirPath := filepath.Join(revDir, "dir")
 	c.Assert(os.Mkdir(dirPath, 0775), IsNil)
 
-	undoInfo, err := s.be.InitExposedSnapHome(snapName, rev, opts)
+	undoInfo, err := s.be.InitExposedSnapHome(naming.SnapName(snapName), rev, opts)
 	c.Assert(err, IsNil)
 	exposedHome := filepath.Join(homeDir, dirs.ExposedSnapHomeDir, snapName)
 	c.Check(undoInfo.Created, DeepEquals, []string{exposedHome})
@@ -1203,9 +1204,9 @@ func (s *copydataSuite) TestInitExposedHomeIgnoreXDGDirs(c *C) {
 	localPath := filepath.Join(revDir, ".local", "share")
 	c.Assert(os.MkdirAll(localPath, 0700), IsNil)
 
-	undoInfo, err := s.be.InitExposedSnapHome(snapName, rev, opts)
+	undoInfo, err := s.be.InitExposedSnapHome(naming.SnapName(snapName), rev, opts)
 	c.Assert(err, IsNil)
-	exposedHome := snap.UserExposedHomeDir(homeDir, snapName)
+	exposedHome := snap.UserExposedHomeDir(homeDir, naming.SnapName(snapName))
 	c.Check(undoInfo.Created, DeepEquals, []string{exposedHome})
 
 	cachePath = filepath.Join(exposedHome, ".cache")
@@ -1252,7 +1253,7 @@ func (s *copydataSuite) TestInitSnapFailOnFirstErr(c *C) {
 	rev, err := snap.ParseRevision("2")
 	c.Assert(err, IsNil)
 
-	undoInfo, err := s.be.InitExposedSnapHome(snapName, rev, nil)
+	undoInfo, err := s.be.InitExposedSnapHome(naming.SnapName(snapName), rev, nil)
 	c.Assert(err, ErrorMatches, ".*: boom")
 	c.Check(undoInfo, IsNil)
 
@@ -1301,7 +1302,7 @@ func (s *copydataSuite) TestInitSnapUndoOnErr(c *C) {
 	rev, err := snap.ParseRevision("2")
 	c.Assert(err, IsNil)
 
-	undoInfo, err := s.be.InitExposedSnapHome(snapName, rev, nil)
+	undoInfo, err := s.be.InitExposedSnapHome(naming.SnapName(snapName), rev, nil)
 	c.Assert(err, ErrorMatches, ".*: boom")
 	c.Check(undoInfo, IsNil)
 
@@ -1330,9 +1331,9 @@ func (s *copydataSuite) TestInitSnapNothingToCopy(c *C) {
 	rev, err := snap.ParseRevision("2")
 	c.Assert(err, IsNil)
 
-	undoInfo, err := s.be.InitExposedSnapHome(snapName, rev, nil)
+	undoInfo, err := s.be.InitExposedSnapHome(naming.SnapName(snapName), rev, nil)
 	c.Assert(err, IsNil)
-	c.Check(undoInfo.Created, DeepEquals, []string{snap.UserExposedHomeDir(usr.HomeDir, snapName)})
+	c.Check(undoInfo.Created, DeepEquals, []string{snap.UserExposedHomeDir(usr.HomeDir, naming.SnapName(snapName))})
 
 	newHomeDir := filepath.Join(usr.HomeDir, dirs.ExposedSnapHomeDir, snapName)
 	exists, _, err := osutil.DirExists(newHomeDir)
@@ -1357,7 +1358,7 @@ func (s *copydataSuite) TestInitAlreadyExistsFile(c *C) {
 	snapName := "some-snap"
 
 	// ~/Snap/some-snap already exists but is file
-	newHome := snap.UserExposedHomeDir(usr.HomeDir, snapName)
+	newHome := snap.UserExposedHomeDir(usr.HomeDir, naming.SnapName(snapName))
 	parent := filepath.Dir(newHome)
 	c.Assert(os.MkdirAll(parent, 0700), IsNil)
 	c.Assert(os.WriteFile(newHome, nil, 0600), IsNil)
@@ -1365,7 +1366,7 @@ func (s *copydataSuite) TestInitAlreadyExistsFile(c *C) {
 	rev, err := snap.ParseRevision("2")
 	c.Assert(err, IsNil)
 
-	undoInfo, err := s.be.InitExposedSnapHome(snapName, rev, nil)
+	undoInfo, err := s.be.InitExposedSnapHome(naming.SnapName(snapName), rev, nil)
 	c.Assert(err, ErrorMatches, fmt.Sprintf("cannot initialize new user HOME %q: already exists but is not a directory", newHome))
 	c.Check(undoInfo, IsNil)
 
@@ -1388,14 +1389,14 @@ func (s *copydataSuite) TestInitAlreadyExistsDir(c *C) {
 	snapName := "some-snap"
 
 	// ~/Snap/some-snap already exists but is file
-	newHome := snap.UserExposedHomeDir(usr.HomeDir, snapName)
+	newHome := snap.UserExposedHomeDir(usr.HomeDir, naming.SnapName(snapName))
 	c.Assert(os.MkdirAll(newHome, 0700), IsNil)
 	c.Assert(os.WriteFile(filepath.Join(newHome, "file"), nil, 0600), IsNil)
 
 	rev, err := snap.ParseRevision("2")
 	c.Assert(err, IsNil)
 
-	undoInfo, err := s.be.InitExposedSnapHome(snapName, rev, nil)
+	undoInfo, err := s.be.InitExposedSnapHome(naming.SnapName(snapName), rev, nil)
 	c.Assert(err, IsNil)
 	c.Check(undoInfo.Created, HasLen, 0)
 
@@ -1427,7 +1428,7 @@ func (s *copydataSuite) TestRemoveExposedHome(c *C) {
 	var undoInfo backend.UndoInfo
 	undoInfo.Created = append(undoInfo.Created, exposedDir)
 
-	c.Assert(s.be.UndoInitExposedSnapHome(snapName, &undoInfo), IsNil)
+	c.Assert(s.be.UndoInitExposedSnapHome(naming.SnapName(snapName), &undoInfo), IsNil)
 
 	exists, _, err := osutil.DirExists(exposedDir)
 	c.Assert(err, IsNil)
@@ -1478,7 +1479,7 @@ func (s *copydataSuite) TestRemoveExposedKeepGoingOnFail(c *C) {
 	buf, restLogger := logger.MockLogger()
 	defer restLogger()
 
-	err := s.be.UndoInitExposedSnapHome(snapName, &undoInfo)
+	err := s.be.UndoInitExposedSnapHome(naming.SnapName(snapName), &undoInfo)
 	// the first error is returned
 	c.Assert(err, ErrorMatches, fmt.Sprintf(`cannot remove %q: first error`, filepath.Join(dirs.GlobalRootDir, "usr1", "Snap")))
 	// second error is logged

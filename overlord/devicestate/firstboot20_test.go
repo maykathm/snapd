@@ -219,7 +219,7 @@ volumes:
 		snapEntry := map[string]any{
 			"name":            name,
 			"type":            "app",
-			"id":              s.AssertedSnapID(name),
+			"id":              s.AssertedSnapID(naming.SnapName(name)),
 			"default-channel": channel,
 		}
 		for h, v := range s.extraSnapModelDetails[name] {
@@ -232,7 +232,7 @@ volumes:
 		snapEntry := map[string]any{
 			"name":            snapWithComps,
 			"type":            "app",
-			"id":              s.AssertedSnapID(snapWithComps),
+			"id":              s.AssertedSnapID(naming.SnapName(snapWithComps)),
 			"default-channel": "latest/stable",
 			"components": map[string]any{
 				"comp1": "required",
@@ -311,7 +311,7 @@ func checkSnapstateDevModeFlags(c *C, tsAll []*state.TaskSet, snapsWithDevModeFl
 		}
 		snapsup, err := snapstate.TaskSnapSetup(task0)
 		c.Assert(err, IsNil, Commentf("%#v", task0))
-		if strutil.ListContains(allDevModeSnaps, snapsup.InstanceName()) {
+		if strutil.ListContains(allDevModeSnaps, string(snapsup.InstanceName())) {
 			c.Assert(snapsup.DevMode, Equals, true)
 			matched++
 		} else {
@@ -325,7 +325,7 @@ func checkSnapstateDevModeFlags(c *C, tsAll []*state.TaskSet, snapsWithDevModeFl
 func checkSeedSnapLanes(c *C, model *asserts.Model, tss []*state.TaskSet) {
 	isEssential := func(name string) bool {
 		for _, sn := range model.EssentialSnaps() {
-			if sn.SnapName() == name {
+			if string(sn.SnapName()) == name {
 				return true
 			}
 		}
@@ -502,8 +502,8 @@ func (s *firstBoot20Suite) testPopulateFromSeedCore20Happy(c *C, m *boot.Modeenv
 		c.Assert(snapst.Required, Equals, true)
 		c.Check(snapst.TrackingChannel, Equals, "latest/stable")
 
-		cref1 := naming.NewComponentRef(compsSnap, "comp1")
-		cref2 := naming.NewComponentRef(compsSnap, "comp2")
+		cref1 := naming.NewComponentRef(naming.SnapName(compsSnap), "comp1")
+		cref2 := naming.NewComponentRef(naming.SnapName(compsSnap), "comp2")
 		cinfos, err := snapst.CurrentComponentInfos()
 		c.Assert(err, IsNil)
 		c.Assert(len(cinfos), Equals, 2)

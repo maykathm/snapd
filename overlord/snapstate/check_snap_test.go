@@ -41,6 +41,7 @@ import (
 	"github.com/snapcore/snapd/snap/snaptest"
 	"github.com/snapcore/snapd/snapdtool"
 	"github.com/snapcore/snapd/testutil"
+	"github.com/snapcore/snapd/snap/naming"
 )
 
 type checkSnapSuite struct {
@@ -439,7 +440,7 @@ func (s *checkSnapSuite) TestCheckUnassertedOrAssertedGadgetKernelSnapVsModelGra
 			defer essRestore()
 
 			st.Unlock()
-			err := snapstate.CheckSnap(st, "snap-path", t.essType, nil, nil, snapstate.Flags{}, t.deviceCtx)
+			err := snapstate.CheckSnap(st, "snap-path", naming.InstanceName(t.essType), nil, nil, snapstate.Flags{}, t.deviceCtx)
 			st.Lock()
 			comm := Commentf("%s %s %s", t.deviceCtx.Model().Grade(), t.essType, t.snapID)
 			if t.err == "" {
@@ -1278,7 +1279,7 @@ func (s *checkSnapSuite) testCheckSnapSystemUsernamesCallsCommon(c *C, expectedU
 		mockUserAdd := testutil.MockCommand(c, "useradd", "")
 		defer mockUserAdd.Restore()
 
-		err = snapstate.CheckSnap(s.st, "snap-path", info.SnapName(), nil, nil, snapstate.Flags{}, nil)
+		err = snapstate.CheckSnap(s.st, "snap-path", naming.InstanceName(info.SnapName()), nil, nil, snapstate.Flags{}, nil)
 		c.Assert(err, IsNil)
 		if classic {
 			c.Check(mockGroupAdd.Calls(), DeepEquals, [][]string{

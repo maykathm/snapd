@@ -23,6 +23,7 @@ import (
 	"github.com/jessevdk/go-flags"
 
 	"github.com/snapcore/snapd/i18n"
+	"github.com/snapcore/snapd/snap/naming"
 )
 
 type cmdPrefer struct {
@@ -52,7 +53,7 @@ func (x *cmdPrefer) Execute(args []string) error {
 		return ErrExtraArgs
 	}
 
-	id, err := x.client.Prefer(string(x.Positionals.Snap))
+	id, err := x.client.Prefer(naming.SnapName(x.Positionals.Snap))
 	if err != nil {
 		return err
 	}

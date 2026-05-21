@@ -35,7 +35,8 @@ import (
 	"github.com/snapcore/snapd/testutil"
 	"github.com/snapcore/snapd/wrappers"
 
-	"github.com/snapcore/snapd/snap/naming")
+	"github.com/snapcore/snapd/snap/naming"
+)
 
 type desktopSuite struct {
 	testutil.BaseTest
@@ -963,7 +964,7 @@ X-SnapInstanceName=foo`)
 		c.Assert(os.WriteFile(filepath.Join(dirs.SnapDesktopFilesDir, df), mockDesktopFile, 0644), IsNil)
 	}
 
-	found := make(map[string]string, 2)
+	found := make(map[naming.InstanceName]naming.InstanceName, 2)
 	err := wrappers.ForAllDesktopFiles(func(base, instanceName naming.InstanceName) error {
 		found[base] = instanceName
 		return nil
@@ -971,8 +972,8 @@ X-SnapInstanceName=foo`)
 	c.Assert(err, IsNil)
 
 	c.Check(found, HasLen, 2)
-	c.Check(found["foo_foo.desktop"], Equals, "foo")
-	c.Check(found["foo_bar.desktop"], Equals, "foo")
+	c.Check(found["foo_foo.desktop"], Equals, naming.InstanceName("foo"))
+	c.Check(found["foo_bar.desktop"], Equals, naming.InstanceName("foo"))
 }
 
 func (s *desktopSuite) TestForAllDesktopFilesSkipsBadDesktopFiles(c *C) {

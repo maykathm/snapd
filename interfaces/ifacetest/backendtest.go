@@ -26,6 +26,7 @@ import (
 	"github.com/snapcore/snapd/interfaces"
 	"github.com/snapcore/snapd/osutil"
 	"github.com/snapcore/snapd/snap"
+	"github.com/snapcore/snapd/snap/naming"
 	"github.com/snapcore/snapd/snap/snaptest"
 	"github.com/snapcore/snapd/testutil"
 	"github.com/snapcore/snapd/timings"
@@ -220,7 +221,7 @@ func (s *BackendSuite) AddSnap(c *C, instanceName, snapYaml string, revision int
 	c.Assert(err, IsNil)
 
 	if instanceName != "" {
-		_, instanceKey := snap.SplitInstanceName(instanceName)
+		_, instanceKey := snap.SplitInstanceName(naming.InstanceName(instanceName))
 		snapInfo.InstanceKey = instanceKey
 		c.Assert(snapInfo.InstanceName(), Equals, instanceName)
 	}
@@ -246,7 +247,7 @@ func (s *BackendSuite) InstallSnapWithComponents(c *C, opts interfaces.Confineme
 	})
 
 	if instanceName != "" {
-		_, instanceKey := snap.SplitInstanceName(instanceName)
+		_, instanceKey := snap.SplitInstanceName(naming.InstanceName(instanceName))
 		snapInfo.InstanceKey = instanceKey
 		c.Assert(snapInfo.InstanceName(), Equals, instanceName)
 	}
@@ -287,7 +288,7 @@ func (s *BackendSuite) UpdateSnapWithComponents(c *C, oldSnapInfo *snap.Info, op
 	appSet, err := interfaces.NewSnapAppSet(snapInfo, componentInfos)
 	c.Assert(err, IsNil)
 
-	s.Repo.RemoveSnap(oldSnapInfo.InstanceName())
+	s.Repo.RemoveSnap(naming.SnapName(oldSnapInfo.InstanceName()))
 
 	err = s.Repo.AddAppSet(appSet)
 	c.Assert(err, IsNil)
@@ -317,7 +318,7 @@ func (s *BackendSuite) UpdateSnapMaybeErr(c *C, oldSnapInfo *snap.Info, opts int
 	c.Assert(err, IsNil)
 
 	c.Assert(newSnapInfo.InstanceName(), Equals, oldSnapInfo.InstanceName())
-	s.Repo.RemoveSnap(oldSnapInfo.InstanceName())
+	s.Repo.RemoveSnap(naming.SnapName(oldSnapInfo.InstanceName()))
 
 	err = s.Repo.AddAppSet(appSet)
 	c.Assert(err, IsNil)
@@ -329,7 +330,7 @@ func (s *BackendSuite) UpdateSnapMaybeErr(c *C, oldSnapInfo *snap.Info, opts int
 
 // RemoveSnap "removes" an "installed" snap.
 func (s *BackendSuite) RemoveSnap(c *C, snapInfo *snap.Info) {
-	err := s.Backend.Remove(snapInfo.InstanceName())
+	err := s.Backend.Remove(naming.SnapName(snapInfo.InstanceName()))
 	c.Assert(err, IsNil)
-	s.Repo.RemoveSnap(snapInfo.InstanceName())
+	s.Repo.RemoveSnap(naming.SnapName(snapInfo.InstanceName()))
 }

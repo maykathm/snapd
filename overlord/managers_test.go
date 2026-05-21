@@ -650,11 +650,11 @@ func (ms *baseMgrsSuite) mockInstalledSnapWithRevAndFiles(c *C, snapYaml string,
 
 	info := snaptest.MockSnapWithFiles(c, snapYaml, &snap.SideInfo{Revision: rev}, files)
 	si := &snap.SideInfo{
-		RealName: info.SnapName(),
+		RealName: string(info.SnapName()),
 		SnapID:   fakeSnapID(info.SnapName()),
 		Revision: info.Revision,
 	}
-	snapstate.Set(st, info.InstanceName(), &snapstate.SnapState{
+	snapstate.Set(st, string(info.InstanceName()), &snapstate.SnapState{
 		Active:   true,
 		Sequence: snapstatetest.NewSequenceFromSnapSideInfos([]*snap.SideInfo{si}),
 		Current:  info.Revision,
@@ -1028,11 +1028,12 @@ apps:
 	c.Assert(quotas["grp"].Snaps, DeepEquals, []string{"foo"})
 }
 
-func fakeSnapID(name string) string {
-	if id := naming.WellKnownSnapID(name); id != "" {
+func fakeSnapID[T ~string](name T) string {
+	snapName := naming.SnapName(name)
+	if id := naming.WellKnownSnapID(snapName); id != "" {
 		return id
 	}
-	return snaptest.AssertedSnapID(name)
+	return snaptest.AssertedSnapID(snapName)
 }
 
 const (
@@ -1081,7 +1082,7 @@ func (s *baseMgrsSuite) prereqSnapAssertions(c *C, extraHeaders ...map[string]an
 		for h, v := range extraHeaders {
 			headers[h] = v
 		}
-		headers["snap-id"] = fakeSnapID(headers["snap-name"].(string))
+		headers["snap-id"] = fakeSnapID(naming.SnapName(headers["snap-name"].(string)))
 		a, err := s.storeSigning.Sign(asserts.SnapDeclarationType, headers, nil, "")
 		c.Assert(err, IsNil)
 		err = s.storeSigning.Add(a)
@@ -1100,7 +1101,7 @@ func (s *baseMgrsSuite) makeStoreTestSnapWithFiles(c *C, snapYaml string, revno 
 	snapDigest, size, err := asserts.SnapFileSHA3_384(snapPath)
 	c.Assert(err, IsNil)
 
-	s.makeStoreSnapRevision(c, info.SnapName(), revno, snapDigest, size)
+	s.makeStoreSnapRevision(c, string(info.SnapName()), revno, snapDigest, size)
 
 	return snapPath, snapDigest
 }
@@ -1194,11 +1195,11 @@ func (s *baseMgrsSuite) mockStore(c *C) *httptest.Server {
 			panic(err)
 		}
 
-		name := info.SnapName()
+		name := string(info.SnapName())
 
 		hit := strings.Replace(hitTemplate, "@URL@", baseURL.String()+"/api/v1/snaps/download/"+name+"/"+revno, -1)
 		hit = strings.Replace(hit, "@NAME@", name, -1)
-		hit = strings.Replace(hit, "@SNAPID@", fakeSnapID(name), -1)
+		hit = strings.Replace(hit, "@SNAPID@", fakeSnapID(naming.SnapName(name)), -1)
 		hit = strings.Replace(hit, "@ICON@", path.Join(iconURL.String(), "icon.svg"), -1)
 		hit = strings.Replace(hit, "@VERSION@", info.Version, -1)
 		hit = strings.Replace(hit, "@REVISION@", revno, -1)
@@ -1457,8 +1458,8 @@ func (s *baseMgrsSuite) serveSnap(snapPath, revno string) {
 	if err != nil {
 		panic(err)
 	}
-	name := info.SnapName()
-	s.serveIDtoName[fakeSnapID(name)] = name
+	name := string(info.SnapName())
+	s.serveIDtoName[fakeSnapID(naming.SnapName(name))] = name
 
 	if oldPath := s.serveSnapPath[name]; oldPath != "" {
 		oldRev := s.serveRevision[name]
@@ -3239,7 +3240,7 @@ func (s *mgrsSuite) installLocalTestSnap(c *C, snapYamlContent string) *snap.Inf
 	c.Assert(err, IsNil)
 
 	// store current state
-	snapName := info.InstanceName()
+	snapName := string(info.InstanceName())
 	var snapst snapstate.SnapState
 	snapstate.Get(st, snapName, &snapst)
 
@@ -6102,16 +6103,16 @@ func (ms *mgrsSuite) TestRefreshSimplePrevRev(c *C) {
 	info := snaptest.MockSnapWithFiles(c, snapYaml, &snap.SideInfo{Revision: snap.R(1)}, nil)
 	snaptest.MockSnapWithFiles(c, snapYaml, &snap.SideInfo{Revision: snap.R(2)}, nil)
 	si1 := &snap.SideInfo{
-		RealName: info.SnapName(),
+		RealName: string(info.SnapName()),
 		SnapID:   fakeSnapID(info.SnapName()),
 		Revision: snap.R(1),
 	}
 	si2 := &snap.SideInfo{
-		RealName: info.SnapName(),
+		RealName: string(info.SnapName()),
 		SnapID:   fakeSnapID(info.SnapName()),
 		Revision: snap.R(2),
 	}
-	snapstate.Set(st, info.InstanceName(), &snapstate.SnapState{
+	snapstate.Set(st, string(info.InstanceName()), &snapstate.SnapState{
 		Active:   true,
 		Sequence: snapstatetest.NewSequenceFromSnapSideInfos([]*snap.SideInfo{si1, si2}),
 		Current:  snap.R(2),
@@ -6205,16 +6206,16 @@ func (ms *mgrsSuite) TestRefreshSimpleRevertToLocalFromLocalFile(c *C) {
 	info := snaptest.MockSnapWithFiles(c, snapYaml, &snap.SideInfo{Revision: snap.R(1)}, nil)
 	snaptest.MockSnapWithFiles(c, snapYaml, &snap.SideInfo{Revision: snap.R(2)}, nil)
 	si1 := &snap.SideInfo{
-		RealName: info.SnapName(),
+		RealName: string(info.SnapName()),
 		SnapID:   fakeSnapID(info.SnapName()),
 		Revision: snap.R(1),
 	}
 	si2 := &snap.SideInfo{
-		RealName: info.SnapName(),
+		RealName: string(info.SnapName()),
 		SnapID:   fakeSnapID(info.SnapName()),
 		Revision: snap.R(2),
 	}
-	snapstate.Set(st, info.InstanceName(), &snapstate.SnapState{
+	snapstate.Set(st, string(info.InstanceName()), &snapstate.SnapState{
 		Active:   true,
 		Sequence: snapstatetest.NewSequenceFromSnapSideInfos([]*snap.SideInfo{si1, si2}),
 		Current:  snap.R(2),
@@ -8465,7 +8466,7 @@ func (s *mgrsSuiteCore) TestRemodelUC20DifferentGadgetChannel(c *C) {
 func verifyModelEssentialSnapHasContent(c *C, sd seed.Seed, name string, file, content string) {
 	for _, ms := range sd.EssentialSnaps() {
 		c.Logf("mode snap %q %v", ms.SnapName(), ms.Path)
-		if ms.SnapName() == name {
+		if string(ms.SnapName()) == name {
 			sf, err := snapfile.Open(ms.Path)
 			c.Assert(err, IsNil)
 			d, err := sf.ReadFile(file)
@@ -12302,9 +12303,9 @@ base: core20
 				expectedStatus := state.DoStatus
 				snapsup, err := snapstate.TaskSnapSetup(tsk)
 				c.Assert(err, IsNil)
-				if snapsup.InstanceName() == inWait {
+				if string(snapsup.InstanceName()) == inWait {
 					expectedStatus = state.DoStatus
-				} else if strutil.ListContains(done, snapsup.InstanceName()) {
+				} else if strutil.ListContains(done, string(snapsup.InstanceName())) {
 					expectedStatus = state.DoneStatus
 				}
 				c.Check(tsk.Status(), Equals, expectedStatus,
@@ -13585,7 +13586,7 @@ func snapTaskStatusForChange(chg *state.Change) map[string]state.Status {
 	taskStates := make(map[string]state.Status)
 	for _, t := range chg.Tasks() {
 		if snapsup, err := snapstate.TaskSnapSetup(t); err == nil {
-			taskStates[snapsup.SnapName()+":"+t.Kind()] = t.Status()
+			taskStates[string(snapsup.SnapName())+":"+t.Kind()] = t.Status()
 		}
 	}
 	return taskStates
@@ -14744,8 +14745,8 @@ func makeMockRepoWithConnectedSnaps(c *C, repo *interfaces.Repository, info11, c
 	c.Assert(err, IsNil)
 
 	_, err = repo.Connect(&interfaces.ConnRef{
-		PlugRef: interfaces.PlugRef{Snap: info11.InstanceName(), Name: ifname},
-		SlotRef: interfaces.SlotRef{Snap: core11.InstanceName(), Name: ifname},
+		PlugRef: interfaces.PlugRef{Snap: string(info11.InstanceName()), Name: ifname},
+		SlotRef: interfaces.SlotRef{Snap: string(core11.InstanceName()), Name: ifname},
 	}, nil, nil, nil, nil, nil)
 	c.Assert(err, IsNil)
 	conns, err := repo.Connected(info11.RealName, ifname)
@@ -15068,9 +15069,9 @@ func (s *mgrsSuite) TestDelayedSecurityBackendSideEffectsApplied(c *C) {
 					// past the point of initial Setup() calls, this is
 					// called for each snap that is affected by a connection, producer and consumer
 					switch {
-					case strings.HasPrefix(name, "producer"):
+					case strings.HasPrefix(string(name), "producer"):
 						return nil
-					case strings.HasPrefix(name, "consumer"):
+					case strings.HasPrefix(string(name), "consumer"):
 						c.Check(sctx.Reason, Equals, interfaces.SnapSetupReasonConnectedSlotProviderUpdate)
 						// in do path effects are delayed, but not in undo
 						if sctx.CanDelayEffects {
@@ -15090,7 +15091,7 @@ func (s *mgrsSuite) TestDelayedSecurityBackendSideEffectsApplied(c *C) {
 			},
 		},
 		ApplyDelayedEffectsCallback: func(appSet *interfaces.SnapAppSet, effs []interfaces.DelayedSideEffect) error {
-			effectsAppliedFor = append(effectsAppliedFor, appSet.InstanceName())
+			effectsAppliedFor = append(effectsAppliedFor, string(appSet.InstanceName()))
 			return nil
 		},
 	}
@@ -15250,9 +15251,9 @@ func (s *mgrsSuite) testDelayedSecurityBackendSideEffectsTransactionallyApplied(
 					// past the point of initial Setup() calls, this is
 					// called for each snap that is affected by a connection, producer and consumer
 					switch {
-					case strings.HasPrefix(name, "producer"):
+					case strings.HasPrefix(string(name), "producer"):
 						return nil
-					case strings.HasPrefix(name, "consumer"):
+					case strings.HasPrefix(string(name), "consumer"):
 						c.Check(sctx.Reason, Equals, interfaces.SnapSetupReasonConnectedSlotProviderUpdate)
 						// in do path effects are delayed, but not in undo
 						if sctx.CanDelayEffects {
@@ -15275,7 +15276,7 @@ func (s *mgrsSuite) testDelayedSecurityBackendSideEffectsTransactionallyApplied(
 		},
 		ApplyDelayedEffectsCallback: func(appSet *interfaces.SnapAppSet, effs []interfaces.DelayedSideEffect) error {
 			name := appSet.InstanceName()
-			effectsAppliedFor = append(effectsAppliedFor, name)
+			effectsAppliedFor = append(effectsAppliedFor, string(name))
 			if name == "consumer2" && scenario == failure {
 				return fmt.Errorf("mock error")
 			}

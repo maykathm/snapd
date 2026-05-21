@@ -49,6 +49,7 @@ import (
 	"github.com/snapcore/snapd/osutil/user"
 	"github.com/snapcore/snapd/overlord/snapshotstate/backend"
 	"github.com/snapcore/snapd/snap"
+	"github.com/snapcore/snapd/snap/naming"
 	"github.com/snapcore/snapd/testutil"
 )
 
@@ -1402,7 +1403,7 @@ func createTestExportFile(filename string, flags *createTestExportFlags) error {
 		}
 		sha["archive.tgz"] = fmt.Sprintf("%x", hasher.Sum(nil))
 
-		snapshot := backend.MockSnapshot(5, s, snap.Revision{N: 199}, sz.Size(), sha)
+		snapshot := backend.MockSnapshot(5, naming.SnapName(s), snap.Revision{N: 199}, sz.Size(), sha)
 
 		// create meta.json
 		metaWriter, err := zipW.Create("meta.json")

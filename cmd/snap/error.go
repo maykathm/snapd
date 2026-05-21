@@ -119,7 +119,7 @@ Try 'snapcraft prime' in your project directory, then 'snap try' again.`)
 		if snapName == "" || snapName == "./" {
 			errValStr, ok := err.Value.(string)
 			if ok && errValStr != "" {
-				snapName = errValStr
+				snapName = naming.SnapName(errValStr)
 			}
 		}
 	case client.ErrorKindSnapNotFound:
@@ -127,7 +127,7 @@ Try 'snapcraft prime' in your project directory, then 'snap try' again.`)
 		if snapName == "" {
 			errValStr, ok := err.Value.(string)
 			if ok && errValStr != "" {
-				snapName = errValStr
+				snapName = naming.SnapName(errValStr)
 			}
 		}
 	case client.ErrorKindSnapChannelNotAvailable,
@@ -136,7 +136,7 @@ Try 'snapcraft prime' in your project directory, then 'snap try' again.`)
 		if ok {
 			candName, _ := values["snap-name"].(string)
 			if candName != "" {
-				snapName = candName
+				snapName = naming.SnapName(candName)
 			}
 			action, _ := values["action"].(string)
 			arch, _ := values["architecture"].(string)
@@ -144,7 +144,7 @@ Try 'snapcraft prime' in your project directory, then 'snap try' again.`)
 			releases, _ := values["releases"].([]any)
 			if snapName != "" && action != "" && arch != "" && channel != "" && len(releases) != 0 {
 				usesSnapName = false
-				msg = snapRevisionNotAvailableMessage(err.Kind, snapName, action, arch, channel, releases)
+				msg = snapRevisionNotAvailableMessage(err.Kind, string(snapName), action, arch, channel, releases)
 				break
 			}
 		}
@@ -153,7 +153,7 @@ Try 'snapcraft prime' in your project directory, then 'snap try' again.`)
 		if snapName == "" {
 			errValStr, ok := err.Value.(string)
 			if ok && errValStr != "" {
-				snapName = errValStr
+				snapName = naming.SnapName(errValStr)
 			}
 		}
 

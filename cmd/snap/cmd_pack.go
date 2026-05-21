@@ -32,6 +32,7 @@ import (
 	// for SanitizePlugsSlots
 	"github.com/snapcore/snapd/interfaces/builtin"
 	"github.com/snapcore/snapd/snap"
+	"github.com/snapcore/snapd/snap/naming"
 	"github.com/snapcore/snapd/snap/pack"
 )
 
@@ -110,7 +111,7 @@ func (x *packCmd) Execute([]string) error {
 
 	snapPath, err := pack.Pack(x.Positional.SnapDir, &pack.Options{
 		TargetDir:   x.Positional.TargetDir,
-		SnapName:    x.Filename,
+		SnapName:    naming.SnapName(x.Filename),
 		Compression: x.Compression,
 	})
 	if err != nil {

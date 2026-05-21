@@ -23,6 +23,7 @@ import (
 	. "gopkg.in/check.v1"
 
 	update "github.com/snapcore/snapd/cmd/snap-update-ns"
+	"github.com/snapcore/snapd/snap/naming"
 )
 
 type bootstrapSuite struct{}
@@ -44,7 +45,7 @@ func (s *bootstrapSuite) TestValidateInstanceName(c *C) {
 		"a123456789012345678901234567890123456789_0123456789",
 	}
 	for _, name := range validNames {
-		c.Check(update.ValidateInstanceName(name), Equals, 0, Commentf("name %q should be valid but is not", name))
+		c.Check(update.ValidateInstanceName(naming.InstanceName(name)), Equals, 0, Commentf("name %q should be valid but is not", name))
 	}
 
 	invalidNames := []string{
@@ -68,7 +69,7 @@ func (s *bootstrapSuite) TestValidateInstanceName(c *C) {
 		"a123456789012345678901234567890123456789_0123456789_",
 	}
 	for _, name := range invalidNames {
-		c.Check(update.ValidateInstanceName(name), Equals, -1, Commentf("name %q should be invalid but is valid", name))
+		c.Check(update.ValidateInstanceName(naming.InstanceName(name)), Equals, -1, Commentf("name %q should be invalid but is valid", name))
 	}
 
 }

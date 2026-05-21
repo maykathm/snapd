@@ -134,7 +134,7 @@ func (f installSizeTestStore) SnapAction(ctx context.Context, currentSnaps []*st
 		if sa.Channel != "stable" {
 			panic(fmt.Sprintf("unexpected channel: %s", sa.Channel))
 		}
-		if _, ok := sizes[sa.InstanceName]; !ok {
+		if _, ok := sizes[string(sa.InstanceName)]; !ok {
 			panic(fmt.Sprintf("unexpected snap: %q", sa.InstanceName))
 		}
 	}
@@ -144,7 +144,7 @@ func (f installSizeTestStore) SnapAction(ctx context.Context, currentSnaps []*st
 	}
 
 	for _, sr := range sars {
-		if sz, ok := sizes[sr.Info.InstanceName()]; ok {
+		if sz, ok := sizes[string(sr.Info.InstanceName())]; ok {
 			sr.Info.Size = sz
 		} else {
 			panic(fmt.Sprintf("unexpected snap: %q", sr.Info.InstanceName()))

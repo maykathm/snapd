@@ -25,6 +25,7 @@ import (
 	"github.com/snapcore/snapd/interfaces"
 	"github.com/snapcore/snapd/overlord/state"
 	"github.com/snapcore/snapd/snap"
+	"github.com/snapcore/snapd/snap/naming"
 )
 
 type connStatePatch6_1 struct {
@@ -64,13 +65,13 @@ func processConns(conns map[string]connStatePatch6_1, infos map[string]*snap.Inf
 
 		// read current snap info from disk and keep it around in infos map
 		if plugSnapInfo, ok = infos[connRef.PlugRef.Snap]; !ok {
-			plugSnapInfo, err = snap.ReadCurrentInfo(connRef.PlugRef.Snap)
+			plugSnapInfo, err = snap.ReadCurrentInfo(naming.SnapName(connRef.PlugRef.Snap))
 			if err == nil {
 				infos[connRef.PlugRef.Snap] = plugSnapInfo
 			}
 		}
 		if slotSnapInfo, ok = infos[connRef.SlotRef.Snap]; !ok {
-			slotSnapInfo, err = snap.ReadCurrentInfo(connRef.SlotRef.Snap)
+			slotSnapInfo, err = snap.ReadCurrentInfo(naming.SnapName(connRef.SlotRef.Snap))
 			if err == nil {
 				infos[connRef.SlotRef.Snap] = slotSnapInfo
 			}

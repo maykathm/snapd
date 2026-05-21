@@ -43,10 +43,10 @@ import (
 	"github.com/snapcore/snapd/overlord/snapstate"
 	"github.com/snapcore/snapd/overlord/state"
 	"github.com/snapcore/snapd/snap"
+	"github.com/snapcore/snapd/snap/naming"
 	"github.com/snapcore/snapd/systemd"
 	"github.com/snapcore/snapd/timings"
-
-	"github.com/snapcore/snapd/snap/naming")
+)
 
 func init() {
 	snapstate.HasActiveConnection = hasActiveConnection
@@ -1692,7 +1692,7 @@ func findConnsForHotplugKey(conns map[string]*schema.ConnState, ifaceName string
 	return connsForDevice
 }
 
-func (m *InterfaceManager) discardSecurityProfilesLate(name string, rev snap.Revision, typ snap.Type) error {
+func (m *InterfaceManager) discardSecurityProfilesLate(name naming.SnapName, rev snap.Revision, typ snap.Type) error {
 	for _, backend := range m.repo.Backends() {
 		lateDiscardBackend, ok := backend.(interfaces.SecurityBackendDiscardingLate)
 		if !ok {

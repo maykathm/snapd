@@ -26,6 +26,7 @@ import (
 	"regexp"
 
 	"github.com/snapcore/snapd/overlord/configstate/config"
+	"github.com/snapcore/snapd/snap/naming"
 )
 
 var (
@@ -86,7 +87,7 @@ func (cfg plainCoreConfig) Get(snapName, key string, result any) error {
 
 	val, ok := cfg[key]
 	if !ok {
-		return &config.NoOptionError{SnapName: snapName, Key: key}
+		return &config.NoOptionError{SnapName: naming.SnapName(snapName), Key: key}
 	}
 
 	rv := reflect.ValueOf(result)

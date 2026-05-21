@@ -36,6 +36,7 @@ import (
 	"github.com/snapcore/snapd/overlord/configstate/config"
 	"github.com/snapcore/snapd/overlord/hookstate"
 	"github.com/snapcore/snapd/snap"
+	"github.com/snapcore/snapd/snap/naming"
 )
 
 var confdbstateWriteConfdb = confdbstate.WriteConfdbFromSnap
@@ -164,7 +165,7 @@ func (s *setCommand) setConfigSetting(context *hookstate.Context) error {
 	}
 
 	for _, key := range confKeys {
-		tr.Set(s.context().InstanceName(), key, confValues[key])
+		tr.Set(string(s.context().InstanceName()), key, confValues[key])
 	}
 
 	return nil
@@ -189,7 +190,7 @@ func setInterfaceAttribute(context *hookstate.Context, staticAttrs map[string]an
 		return fmt.Errorf("internal error: unexpected empty subkeys for key %q", key)
 	}
 	var existing any
-	err = getAttribute(context.InstanceName(), subkeys[:1], 0, staticAttrs, &existing)
+	err = getAttribute(naming.SnapName(context.InstanceName()), subkeys[:1], 0, staticAttrs, &existing)
 	if err == nil {
 		return fmt.Errorf(i18n.G("attribute %q cannot be overwritten"), key)
 	}
@@ -198,7 +199,7 @@ func setInterfaceAttribute(context *hookstate.Context, staticAttrs map[string]an
 		return err
 	}
 
-	_, err = config.PatchConfig(context.InstanceName(), subkeys, 0, dynamicAttrs, &raw)
+	_, err = config.PatchConfig(naming.SnapName(context.InstanceName()), subkeys, 0, dynamicAttrs, &raw)
 	return err
 }
 

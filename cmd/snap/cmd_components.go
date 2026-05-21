@@ -99,7 +99,7 @@ func (x *cmdComponents) Execute(args []string) error {
 			// how we'd usually use a naming.ComponentRef. however, presenting
 			// users with a string that they can copy-paste into a "snap
 			// install" command seems useful
-			name := naming.NewComponentRef(snap.Name, comp.Name).String()
+			name := naming.NewComponentRef(naming.SnapName(snap.Name), comp.Name).String()
 			status := "available"
 			if comp.InstallDate != nil {
 				status = "installed"

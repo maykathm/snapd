@@ -30,6 +30,7 @@ import (
 	update "github.com/snapcore/snapd/cmd/snap-update-ns"
 	"github.com/snapcore/snapd/dirs"
 	"github.com/snapcore/snapd/osutil"
+	"github.com/snapcore/snapd/snap/naming"
 	"github.com/snapcore/snapd/testutil"
 )
 
@@ -197,7 +198,7 @@ func (s *userSuite) TestLoadCurrentProfile(c *C) {
 
 	// Write a current user mount profile for snap "foo".
 	text := "/run/user/1234/doc/by-app/snap.foo /run/user/1234/doc none bind,rw 0 0\n"
-	path := update.CurrentUserProfilePath(upCtx.InstanceName(), 1234)
+	path := update.CurrentUserProfilePath(naming.SnapName(upCtx.InstanceName()), 1234)
 	c.Assert(os.MkdirAll(filepath.Dir(path), 0755), IsNil)
 	c.Assert(os.WriteFile(path, []byte(text), 0644), IsNil)
 

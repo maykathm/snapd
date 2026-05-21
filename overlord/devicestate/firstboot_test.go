@@ -934,7 +934,7 @@ snaps:
 		ok, err := snapstate.HasSnapOfType(st, snap.TypeGadget)
 		c.Check(err, IsNil)
 		c.Check(ok, Equals, true)
-		configured = append(configured, ctx.InstanceName())
+		configured = append(configured, string(ctx.InstanceName()))
 		return nil, nil
 	}
 

@@ -28,6 +28,7 @@ import (
 	"github.com/snapcore/snapd/interfaces/udev"
 	"github.com/snapcore/snapd/release"
 	"github.com/snapcore/snapd/snap"
+	"github.com/snapcore/snapd/snap/naming"
 )
 
 const waylandSummary = `allows access to compositors supporting wayland protocol`
@@ -152,12 +153,12 @@ func (iface *waylandInterface) AppArmorConnectedPlug(spec *apparmor.Specificatio
 func (iface *waylandInterface) AppArmorConnectedSlot(spec *apparmor.Specification, plug *interfaces.ConnectedPlug, slot *interfaces.ConnectedSlot) error {
 	old := "###PLUG_SECURITY_TAGS###"
 	new := "snap." + plug.Snap().InstanceName() // forms the snap-instance-specific subdirectory name of /run/user/*/ used for XDG_RUNTIME_DIR
-	snippet := strings.Replace(waylandConnectedSlotAppArmor, old, new, -1)
+	snippet := strings.Replace(waylandConnectedSlotAppArmor, old, string(new), -1)
 	spec.AddSnippet(snippet)
 
 	old = "###PLUG_SECURITY_TAGS###"
-	new = plug.LabelExpression()
-	snippet = strings.Replace(waylandConnectedSlotEglstreamAppArmor, old, new, -1)
+	new = naming.InstanceName(plug.LabelExpression())
+	snippet = strings.Replace(waylandConnectedSlotEglstreamAppArmor, old, string(new), -1)
 	spec.AddSnippet(snippet)
 	return nil
 }

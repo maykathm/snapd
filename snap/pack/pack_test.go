@@ -36,6 +36,7 @@ import (
 	// for SanitizePlugsSlots
 	_ "github.com/snapcore/snapd/interfaces/builtin"
 	"github.com/snapcore/snapd/snap"
+	"github.com/snapcore/snapd/snap/naming"
 	"github.com/snapcore/snapd/snap/pack"
 	"github.com/snapcore/snapd/snap/squashfs"
 	"github.com/snapcore/snapd/testutil"
@@ -421,7 +422,7 @@ version: 1.0.1
 		comm := Commentf("%d", i)
 		resultSnap, err := pack.Pack(sourceDir, &pack.Options{
 			TargetDir: t.outputDir,
-			SnapName:  t.filename,
+			SnapName:  naming.SnapName(t.filename),
 		})
 		c.Assert(err, IsNil, comm)
 
@@ -515,7 +516,7 @@ integration:
 		comm := Commentf("%d", i)
 		resultSnap, err := pack.Pack(sourceDir, &pack.Options{
 			TargetDir: t.outputDir,
-			SnapName:  t.filename,
+			SnapName:  naming.SnapName(t.filename),
 		})
 		c.Assert(err, IsNil, comm)
 
@@ -573,7 +574,7 @@ volumes:
 	// gadget validation fails during layout
 	_, err = pack.Pack(sourceDir, &pack.Options{
 		TargetDir: outputDir,
-		SnapName:  absSnapFile,
+		SnapName:  naming.SnapName(absSnapFile),
 	})
 	c.Assert(err, ErrorMatches, `structure #1 \("bare-struct"\): content "bare.img": stat .*/bare.img: no such file or directory`)
 
@@ -583,7 +584,7 @@ volumes:
 	// gadget validation fails during content presence checks
 	_, err = pack.Pack(sourceDir, &pack.Options{
 		TargetDir: outputDir,
-		SnapName:  absSnapFile,
+		SnapName:  naming.SnapName(absSnapFile),
 	})
 	c.Assert(err, ErrorMatches, `invalid volume "bad": structure #0 \("fs-struct"\), content source:foo/: source path does not exist`)
 
@@ -592,7 +593,7 @@ volumes:
 	// all good now
 	_, err = pack.Pack(sourceDir, &pack.Options{
 		TargetDir: outputDir,
-		SnapName:  absSnapFile,
+		SnapName:  naming.SnapName(absSnapFile),
 	})
 	c.Assert(err, IsNil)
 }

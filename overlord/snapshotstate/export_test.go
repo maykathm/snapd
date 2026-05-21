@@ -31,6 +31,7 @@ import (
 	"github.com/snapcore/snapd/overlord/snapstate"
 	"github.com/snapcore/snapd/overlord/state"
 	"github.com/snapcore/snapd/snap"
+	"github.com/snapcore/snapd/snap/naming"
 )
 
 var (
@@ -187,7 +188,7 @@ func MockBackendNewSnapshotExport(f func(ctx context.Context, setID uint64) (se 
 	}
 }
 
-func MockConfigGetSnapConfig(f func(*state.State, string) (*json.RawMessage, error)) (restore func()) {
+func MockConfigGetSnapConfig(f func(*state.State, naming.SnapName) (*json.RawMessage, error)) (restore func()) {
 	old := configGetSnapConfig
 	configGetSnapConfig = f
 	return func() {
@@ -195,7 +196,7 @@ func MockConfigGetSnapConfig(f func(*state.State, string) (*json.RawMessage, err
 	}
 }
 
-func MockConfigSetSnapConfig(f func(*state.State, string, *json.RawMessage) error) (restore func()) {
+func MockConfigSetSnapConfig(f func(*state.State, naming.SnapName, *json.RawMessage) error) (restore func()) {
 	old := configSetSnapConfig
 	configSetSnapConfig = f
 	return func() {

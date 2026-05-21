@@ -425,11 +425,11 @@ func postInterfacesRequests(c *Command, r *http.Request, user *auth.UserState) R
 	}
 	snapName := securityTag.InstanceName()
 
-	if errorResp := validateSnapHasInterfaceConnection(c.d, snapName, postBody.Interface); errorResp != nil {
+	if errorResp := validateSnapHasInterfaceConnection(c.d, string(snapName), postBody.Interface); errorResp != nil {
 		return errorResp
 	}
 
-	outcome, err := getInterfaceManager(c).InterfacesRequestsManager().Ask(reqUID, postBody.Interface, snapName, postBody.PID, cgroupPath, c.d.tomb.Dying())
+	outcome, err := getInterfaceManager(c).InterfacesRequestsManager().Ask(reqUID, postBody.Interface, string(snapName), postBody.PID, cgroupPath, c.d.tomb.Dying())
 	if err != nil {
 		return promptingError(err)
 	}

@@ -67,7 +67,7 @@ func UpdateBootRevisions(st *state.State) error {
 		if err != nil {
 			return fmt.Errorf(errorPrefix+"%s", err)
 		}
-		info, err := CurrentInfo(st, actual.SnapName())
+		info, err := CurrentInfo(st, string(actual.SnapName()))
 		if err != nil {
 			logger.Noticef("cannot get info for %q: %s", actual.SnapName(), err)
 			continue
@@ -75,7 +75,7 @@ func UpdateBootRevisions(st *state.State) error {
 		if actual.SnapRevision() != info.SideInfo.Revision {
 			// FIXME: check that there is no task
 			//        for this already in progress
-			ts, err := RevertToRevision(st, actual.SnapName(), actual.SnapRevision(), Flags{}, "")
+			ts, err := RevertToRevision(st, string(actual.SnapName()), actual.SnapRevision(), Flags{}, "")
 			if err != nil {
 				return err
 			}
