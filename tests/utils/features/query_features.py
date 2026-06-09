@@ -670,7 +670,7 @@ def clean_dictionary(features: SystemFeatures, remove_snap_types: bool, remove_c
                 elif 'snap_types' in task:
                     task['snap_types'] = filter_snap_types(task['snap_types'])
                 if 'last_status' in task and task['last_status'] != 'Done' and task['last_status'] != 'Undone' and task['last_status'] != 'Error':
-                    del task['last_status']
+                    task['last_status'] = []
         if remove_snap_types and 'changes' in test:
             for change in test['changes']:
                 if 'snap_types' in change:
@@ -716,7 +716,16 @@ def find_tasks_with_isolated_features(system_json: SystemFeatures) -> set[TaskId
     return isolated_tasks
 
 
-def minimal_coverage(retriever: Retriever, timestamp: str, system: str, match_snap_types: bool = False) -> list[TaskIdVariant]:
+def get_install_refresh_features(sorted_tasks: list[dict]):
+    covered_features = {}
+    minimal_tasks = []
+    for task in sorted_tasks:
+        task_features = {key: value for key, value in task.items() if key in KNOWN_FEATURES}
+        i = 0
+
+
+
+def minimal_coverage(retriever: Retriever, timestamp: str, system: str, max_time: int, match_snap_types: bool = False) -> list[TaskIdVariant]:
     '''
     Given a timestamp and system, gets the minimal set of tasks that cover the same features as the entire system.
     '''
@@ -728,7 +737,10 @@ def minimal_coverage(retriever: Retriever, timestamp: str, system: str, match_sn
     for sys_json in sys_jsons:
         clean_dictionary(sys_json, not match_snap_types, remove_cmds=True, remove_interfaces=True)
         tasks = sys_json['tests']
+        tasks = sorted(tasks, key=lambda x: x['runtime'])
         covered_features = {}
+        minimal_tasks = []
+        get_install_refresh_features(tasks)
         minimal_tasks = find_tasks_with_isolated_features(sys_json)
         for task in tasks:
             task_id = TaskIdVariant(suite=task['suite'], task_name=task['task_name'], variant=task['variant'])
@@ -904,6 +916,7 @@ def add_all_features_parser(subparsers: argparse._SubParsersAction) -> tuple[str
     add_data_source_args(cover)
     cover.add_argument('-t', '--timestamp', help='timestamp for feature data', required=True, type=str)
     cover.add_argument('-s', '--system', help='system to search for feature in', default=None, type=str)
+    cover.add_argument('--max-time', help='Maximum amount of runtime minutes allowed in minimal set of tests', required=True, type=int)
     cover.add_argument('--remove-failed', help='remove all tasks that failed', action='store_true')
     cover.add_argument('--match-snap-types', help='match the entire feature, including snap types', action='store_true')
     return cmd, cmd_all, cmd_sys, cmd_find, cmd_cover
@@ -978,7 +991,7 @@ def main():
                 except Exception as e:
                     raise RuntimeError(f'Error parsing feature {args.feat}: {e}')
             elif args.features_cmd == feat_cover_cmd:
-                result = minimal_coverage(retriever, args.timestamp, args.system, args.match_snap_types)
+                result = minimal_coverage(retriever, args.timestamp, args.system, args.max_time, args.match_snap_types)
                 json.dump(result, sys.stdout, default=lambda x: str(x))
             else:
                 raise RuntimeError(f'unrecognized feature command {args.features_cmd}')
