@@ -14,10 +14,10 @@ def _make_results_json(items: list) -> dict:
 
 
 def _make_task_item(backend: str, system: str, name: str, variant: str,
-                    start: str, end: str) -> dict:
+                    start: str, end: str, verb: str = 'executing') -> dict:
     return {
         'level': 'task',
-        'verb': 'executing',
+        'verb': verb,
         'backend': backend,
         'system': system,
         'name': name,
@@ -67,27 +67,36 @@ class TestBuildRuntimeLookup(unittest.TestCase):
             os.makedirs(artifact_dir)
             items = [
                 _make_task_item('google', 'ubuntu-24.04-64', 'tests/smoke/install', '',
-                                '2026-01-01T00:00:00Z', '2026-01-01T00:01:00Z'),
+                                '2026-01-01T00:00:00Z', '2026-01-01T00:00:30Z', 'preparing'),
+                _make_task_item('google', 'ubuntu-24.04-64', 'tests/smoke/install', '',
+                                '2026-01-01T00:00:30Z', '2026-01-01T00:01:00Z', 'executing'),
+                _make_task_item('google', 'ubuntu-24.04-64', 'tests/smoke/install', '',
+                                '2026-01-01T00:01:00Z', '2026-01-01T00:01:10Z', 'restoring'),
                 _make_task_item('google', 'ubuntu-24.04-64', 'tests/smoke/remove', 'v1',
-                                '2026-01-01T00:01:00Z', '2026-01-01T00:01:30Z'),
-                # non-task-executing items should be ignored
-                {'level': 'task', 'verb': 'preparing', 'backend': 'google',
-                 'system': 'ubuntu-24.04-64', 'name': 'tests/smoke/install',
-                 'variant': '', 'start': '2026-01-01T00:00:00Z',
-                 'end': '2026-01-01T00:10:00Z', 'success': True},
+                                '2026-01-01T00:01:10Z', '2026-01-01T00:01:20Z', 'preparing'),
+                _make_task_item('google', 'ubuntu-24.04-64', 'tests/smoke/remove', 'v1',
+                                '2026-01-01T00:01:20Z', '2026-01-01T00:01:30Z', 'executing'),
+                _make_task_item('google', 'ubuntu-24.04-64', 'tests/smoke/remove', 'v1',
+                                '2026-01-01T00:01:30Z', '2026-01-01T00:01:45Z', 'restoring'),
+                # Non-target verbs should be ignored.
+                _make_task_item('google', 'ubuntu-24.04-64', 'tests/smoke/install', '',
+                                '2026-01-01T00:00:00Z', '2026-01-01T00:10:00Z', 'checking'),
             ]
             with open(os.path.join(artifact_dir, 'results.json'), 'w') as f:
                 json.dump(_make_results_json(items), f)
 
             lookup = runtimeadder.build_runtime_lookup(tmpdir)
 
-            self.assertAlmostEqual(60.0, lookup[('google:ubuntu-24.04-64', 'tests/smoke/install', '')])
-            self.assertAlmostEqual(30.0, lookup[('google:ubuntu-24.04-64', 'tests/smoke/remove', 'v1')])
+            self.assertAlmostEqual(70.0, lookup[('google:ubuntu-24.04-64', 'tests/smoke/install', '')])
+            self.assertAlmostEqual(35.0, lookup[('google:ubuntu-24.04-64', 'tests/smoke/remove', 'v1')])
             self.assertEqual(2, len(lookup))
 
     def test_latest_attempt_wins(self):
         with tempfile.TemporaryDirectory() as tmpdir:
-            for attempt, duration_end in [(1, '00:02:00Z'), (2, '00:03:00Z')]:
+            for attempt, phase_end in [
+                (1, ('00:00:30Z', '00:01:30Z', '00:02:00Z')),
+                (2, ('00:01:00Z', '00:02:30Z', '00:03:00Z')),
+            ]:
                 artifact_dir = os.path.join(
                     tmpdir, f'spread-results-12345-{attempt}-focal')
                 os.makedirs(artifact_dir)
@@ -95,13 +104,21 @@ class TestBuildRuntimeLookup(unittest.TestCase):
                     _make_task_item('google', 'ubuntu-24.04-64',
                                     'tests/smoke/install', '',
                                     '2026-01-01T00:00:00Z',
-                                    f'2026-01-01T{duration_end}'),
+                                    f'2026-01-01T{phase_end[0]}', 'preparing'),
+                    _make_task_item('google', 'ubuntu-24.04-64',
+                                    'tests/smoke/install', '',
+                                    f'2026-01-01T{phase_end[0]}',
+                                    f'2026-01-01T{phase_end[1]}', 'executing'),
+                    _make_task_item('google', 'ubuntu-24.04-64',
+                                    'tests/smoke/install', '',
+                                    f'2026-01-01T{phase_end[1]}',
+                                    f'2026-01-01T{phase_end[2]}', 'restoring'),
                 ]
                 with open(os.path.join(artifact_dir, 'results.json'), 'w') as f:
                     json.dump(_make_results_json(items), f)
 
             lookup = runtimeadder.build_runtime_lookup(tmpdir)
-            # attempt 2 has end 00:03:00 -> 180s; attempt 1 has 00:02:00 -> 120s
+            # Attempt 1 total = 120s, attempt 2 total = 180s.
             self.assertAlmostEqual(180.0, lookup[('google:ubuntu-24.04-64', 'tests/smoke/install', '')])
 
     def test_ignores_non_matching_dirs(self):
@@ -121,6 +138,24 @@ class TestBuildRuntimeLookup(unittest.TestCase):
     def test_empty_dir(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             self.assertEqual({}, runtimeadder.build_runtime_lookup(tmpdir))
+
+    def test_partial_phases_are_summed(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            artifact_dir = os.path.join(tmpdir, 'spread-results-12345-1-focal')
+            os.makedirs(artifact_dir)
+            items = [
+                _make_task_item('google', 'ubuntu-24.04-64', 'tests/smoke/install', '',
+                                '2026-01-01T00:00:00Z', '2026-01-01T00:00:20Z', 'preparing'),
+                _make_task_item('google', 'ubuntu-24.04-64', 'tests/smoke/install', '',
+                                '2026-01-01T00:00:20Z', '2026-01-01T00:01:00Z', 'executing'),
+            ]
+            with open(os.path.join(artifact_dir, 'results.json'), 'w') as f:
+                json.dump(_make_results_json(items), f)
+
+            lookup = runtimeadder.build_runtime_lookup(tmpdir)
+
+            self.assertAlmostEqual(60.0, lookup[('google:ubuntu-24.04-64', 'tests/smoke/install', '')])
+            self.assertEqual(1, len(lookup))
 
 
 class TestAddRuntimeToFeatures(unittest.TestCase):

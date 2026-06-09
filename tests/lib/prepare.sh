@@ -747,14 +747,17 @@ EOF
     cat > "${UNPACK_DIR}"/usr/lib/snapd/snapd.spread-tests-install-mode-tweaks.sh <<EOF
 #!/bin/sh
 set -ex
+if ! [ -e /root/first-install-mode-touch ]; then
+    touch /root/first-install-mode-touch
+fi
 # We look at modeenv as that is authoritative if installing from the initramfs.
 if [ -f /var/lib/snapd/modeenv ]; then
     if ! grep -E '^mode=install$' /var/lib/snapd/modeenv; then
-        echo "not in run or recovery mode - script not running"
+        echo "not in install mode - script not running"
         exit 0
     fi
 elif ! grep -E 'snapd_recovery_mode=install' /proc/cmdline; then
-    echo "not in run or recovery mode - script not running"
+    echo "not in install mode - script not running"
     exit 0
 fi
 if [ -e /root/spread-install-setup-done ]; then
@@ -763,6 +766,8 @@ fi
 
 mkdir -p "$GOCOVERDIR"
 chmod 777 "$GOCOVERDIR"
+
+mkdir -p "/etc/systemd/system/snapd.service.d"
 
 cat <<EOF2 >/etc/systemd/system/snapd.service.d/43-generate-coverage.conf
 [Service]

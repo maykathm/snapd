@@ -8,6 +8,7 @@ from contextlib import closing
 import copy
 import datetime
 import json
+import math
 import os
 import pymongo
 import pymongo.collection
@@ -716,18 +717,46 @@ def find_tasks_with_isolated_features(system_json: SystemFeatures) -> set[TaskId
     return isolated_tasks
 
 
-def get_install_refresh_features(sorted_tasks: list[dict]):
+def get_install_refresh_features(sorted_tasks: list[dict], force_matches: list[str]):
+    def contains_install_or_refresh(feature: dict[str, Any]) -> bool:
+        def has_terms(value: Any) -> bool:
+            if isinstance(value, str):
+                return any(term in value for term in force_matches)
+            if isinstance(value, dict):
+                return any(has_terms(v) for v in value.values())
+            if isinstance(value, (list, tuple, set)):
+                return any(has_terms(v) for v in value)
+            return False
+        return has_terms(feature)
+
+    total_time = 0
     covered_features = {}
-    minimal_tasks = []
+    minimal_tasks = set()
+
     for task in sorted_tasks:
         task_features = {key: value for key, value in task.items() if key in KNOWN_FEATURES}
-        i = 0
+        for name, features in task_features.items():
+            matching = [
+                feature for feature in features
+                if feature not in covered_features.get(name, []) and contains_install_or_refresh(feature)
+            ]
+            if matching:
+                covered_features = union(covered_features, task_features)
+                minimal_tasks.add(TaskIdVariant(suite=task['suite'], task_name=task['task_name'], variant=task['variant']))
+                total_time += task['runtime']
+                break
+    return covered_features, minimal_tasks, total_time
 
 
-
-def minimal_coverage(retriever: Retriever, timestamp: str, system: str, max_time: int, match_snap_types: bool = False) -> list[TaskIdVariant]:
+def minimal_coverage(retriever: Retriever, timestamp: str, system: str, max_minutes: int, force_matches: list[str], remove_cmds: bool, remove_interfaces: bool, match_snap_types: bool) -> list[TaskIdVariant]:
     '''
-    Given a timestamp and system, gets the minimal set of tasks that cover the same features as the entire system.
+    Given a timestamp and (optional) system, gets the minimal set of tasks that cover the same features as the entire system.
+    If max_minutes is greater than 0, then the total runtime for each system will be less than max_minutes.
+    If force_matches is provided, then coverage will include all features that include the specified strings. If the set of
+    such coverage has a greater runtime than max_minutes, then it will still be included.
+    remove_cmds will remove all cmd features before calculating coverage.
+    remove_interfaces will remove all interface features before calculating coverage.
+    match_snap_types will include matching snap types in coverage calculation.
     '''
     if system:
         sys_jsons = [retriever.get_single_json(timestamp, system)]
@@ -735,20 +764,27 @@ def minimal_coverage(retriever: Retriever, timestamp: str, system: str, max_time
         sys_jsons = retriever.get_systems(timestamp)
     coverage = {}
     for sys_json in sys_jsons:
-        clean_dictionary(sys_json, not match_snap_types, remove_cmds=True, remove_interfaces=True)
+        time_left = max_minutes if max_minutes > 0 else math.inf
+        clean_dictionary(sys_json, not match_snap_types, remove_cmds, remove_interfaces)
         tasks = sys_json['tests']
         tasks = sorted(tasks, key=lambda x: x['runtime'])
         covered_features = {}
-        minimal_tasks = []
-        get_install_refresh_features(tasks)
-        minimal_tasks = find_tasks_with_isolated_features(sys_json)
+        minimal_tasks = set()
+        if force_matches:
+            covered_features, minimal_tasks, total_seconds = get_install_refresh_features(tasks, force_matches)
+            time_left -= total_seconds / 60
         for task in tasks:
+            if time_left - task['runtime'] / 60 < 0:
+                break
             task_id = TaskIdVariant(suite=task['suite'], task_name=task['task_name'], variant=task['variant'])
+            if task_id in minimal_tasks:
+                continue
             task_features = {key: value for key, value in task.items() if key in KNOWN_FEATURES}
             new_covered = minus(task_features, covered_features)
             if new_covered:
                 minimal_tasks.add(task_id)
                 covered_features = union(covered_features, task_features)
+                time_left -= task['runtime'] / 60
         coverage[sys_json['system']] = list(minimal_tasks)
     return coverage
 
@@ -916,8 +952,10 @@ def add_all_features_parser(subparsers: argparse._SubParsersAction) -> tuple[str
     add_data_source_args(cover)
     cover.add_argument('-t', '--timestamp', help='timestamp for feature data', required=True, type=str)
     cover.add_argument('-s', '--system', help='system to search for feature in', default=None, type=str)
-    cover.add_argument('--max-time', help='Maximum amount of runtime minutes allowed in minimal set of tests', required=True, type=int)
-    cover.add_argument('--remove-failed', help='remove all tasks that failed', action='store_true')
+    cover.add_argument('--max-minutes', help='Maximum amount of runtime minutes allowed in minimal set of tests', default=0, type=int)
+    cover.add_argument('--force-matches', help='Require including all features that contain one of the following strings', nargs='+')
+    cover.add_argument('--remove-cmds', help='remove commands features from coverage consideration', action='store_true')
+    cover.add_argument('--remove-interfaces', help='remove interfaces features from coverage consideration', action='store_true')
     cover.add_argument('--match-snap-types', help='match the entire feature, including snap types', action='store_true')
     return cmd, cmd_all, cmd_sys, cmd_find, cmd_cover
 
@@ -991,7 +1029,8 @@ def main():
                 except Exception as e:
                     raise RuntimeError(f'Error parsing feature {args.feat}: {e}')
             elif args.features_cmd == feat_cover_cmd:
-                result = minimal_coverage(retriever, args.timestamp, args.system, args.max_time, args.match_snap_types)
+                result = minimal_coverage(retriever, args.timestamp, args.system, args.max_minutes, args.force_matches, 
+                                          args.remove_cmds, args.remove_interfaces, args.match_snap_types)
                 json.dump(result, sys.stdout, default=lambda x: str(x))
             else:
                 raise RuntimeError(f'unrecognized feature command {args.features_cmd}')

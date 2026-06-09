@@ -9,7 +9,8 @@ for each executed task.
 
 For each test in the final composed feature files, this script finds the
 runtime from the most recent attempt that ran that test and adds it as a
-"runtime" field (in seconds, or null if not found).
+"runtime" field (in seconds, or null if not found). Runtime is the sum of
+task-level preparing + executing + restoring durations.
 '''
 
 import argparse
@@ -61,6 +62,7 @@ def build_runtime_lookup(results_dir: str) -> dict[tuple, float]:
     '''
     # key -> (attempt, runtime_seconds)
     best: dict[tuple, tuple[int, float]] = {}
+    phases = {'preparing', 'executing', 'restoring'}
 
     for entry in os.scandir(results_dir):
         if not entry.is_dir():
@@ -75,18 +77,22 @@ def build_runtime_lookup(results_dir: str) -> dict[tuple, float]:
         with open(results_file, 'r', encoding='utf-8') as f:
             data = json.load(f)
 
+        per_attempt_totals: dict[tuple, float] = {}
         for item in data.get('items', []):
-            if item.get('level') != 'task' or item.get('verb') != 'executing':
+            if item.get('level') != 'task' or item.get('verb') not in phases:
                 continue
-            system = '{}:{}'.format(item['backend'], item['system'])
-            name = item['name']
-            variant = item.get('variant') or ''
             try:
+                system = '{}:{}'.format(item['backend'], item['system'])
+                name = item['name']
+                variant = item.get('variant') or ''
                 runtime = _parse_runtime_seconds(item['start'], item['end'])
             except (KeyError, ValueError):
                 continue
 
             key = (system, name, variant)
+            per_attempt_totals[key] = per_attempt_totals.get(key, 0.0) + runtime
+
+        for key, runtime in per_attempt_totals.items():
             if key not in best or attempt > best[key][0]:
                 best[key] = (attempt, runtime)
 
