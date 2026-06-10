@@ -722,11 +722,13 @@ EOF
 }
 
 _add_install_mode_tweaks() {
-    if [[ "$GENERATE_COVERAGE" = "false" ]]; then
+    if [[ "$GENERATE_COVERAGE" = "false" ]] || os.query is-core26; then
         return
     fi
     local UNPACK_DIR
     UNPACK_DIR="${1}"
+
+    install_coverdir=/run/mnt/ubuntu-seed/go-cover
 
     # now install a unit that sets up enough so that we can connect
     cat > "${UNPACK_DIR}"/lib/systemd/system/snapd.spread-tests-install-mode-tweaks.service <<'EOF'
@@ -765,7 +767,6 @@ if [ -e /root/spread-install-setup-done ]; then
 fi
 
 # install mode rootfs is ephemeral; back coverage with a persistent mount.
-install_coverdir=/run/mnt/ubuntu-seed/go-cover
 mkdir -p "$install_coverdir"
 if [ -z "$install_coverdir" ]; then
     echo "cannot locate persistent mount for install-mode coverage"
