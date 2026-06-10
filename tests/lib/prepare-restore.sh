@@ -789,11 +789,11 @@ prepare_suite_each() {
     # In case of nested tests the next checks and changes are not needed
     if tests.nested is-nested; then
         if [[ "$GENERATE_COVERAGE" = true ]]; then
-            if ! [ -f "$TESTSTMP/initial-coverage-collected-$SPREAD_SUITE" ]; then
+            if ! [ -f "$TESTSTMP/initial-coverage-collected-${SPREAD_SUITE//\//--}" ]; then
                 mkdir -p "${SPREAD_PATH}/coverage-results/${SPREAD_SUITE}"
                 remote.pull "$GOCOVERDIR"/* "${SPREAD_PATH}/coverage-results/${SPREAD_SUITE}"
                 remote.pull "/run/mnt/ubuntu-seed/go-cover"/* "${SPREAD_PATH}/coverage-results/${SPREAD_SUITE}" || true
-                touch "$TESTSTMP/initial-coverage-collected-$SPREAD_SUITE"
+                touch "$TESTSTMP/initial-coverage-collected-${SPREAD_SUITE//\//--}"
             fi
             remote.exec "sudo rm -f '$GOCOVERDIR'/*" || true
             remote.exec "sudo rm -f /run/mnt/ubuntu-seed/go-cover/*" || true
@@ -835,10 +835,10 @@ prepare_suite_each() {
             systemctl --user stop snapd.session-agent.socket
             restart_user=true
         fi
-        if ! [ -f "$TESTSTMP/initial-coverage-collected-$SPREAD_SUITE" ]; then
+        if ! [ -f "$TESTSTMP/initial-coverage-collected-${SPREAD_SUITE//\//--}" ]; then
             mkdir -p "${SPREAD_PATH}/coverage-results/${SPREAD_SUITE}"
             copy_coverage_files "${SPREAD_PATH}/coverage-results/${SPREAD_SUITE}"
-            touch "$TESTSTMP/initial-coverage-collected-$SPREAD_SUITE"
+            touch "$TESTSTMP/initial-coverage-collected-${SPREAD_SUITE//\//--}"
         fi
         clear_coverage_files
         systemctl start snapd
