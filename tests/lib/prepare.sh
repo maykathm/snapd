@@ -765,13 +765,8 @@ if [ -e /root/spread-install-setup-done ]; then
 fi
 
 # install mode rootfs is ephemeral; back coverage with a persistent mount.
-install_coverdir=
-for d in /run/mnt/ubuntu-seed/test/go-cover/install-snapd /run/mnt/data/system-data/var/lib/snapd/test/go-cover/install-snapd; do
-    if mkdir -p "$d" 2>/dev/null; then
-        install_coverdir="$d"
-        break
-    fi
-done
+install_coverdir=/run/mnt/ubuntu-seed/go-cover
+mkdir -p "$install_coverdir"
 if [ -z "$install_coverdir" ]; then
     echo "cannot locate persistent mount for install-mode coverage"
     exit 1
@@ -782,7 +777,8 @@ echo "spread coverage: install-mode using persistent GOCOVERDIR=$install_coverdi
 
 mkdir -p "/etc/systemd/system/snapd.service.d"
 
-cat <<EOF2 >/etc/systemd/system/snapd.service.d/43-generate-coverage.conf
+# this will be gone after reboot
+cat <<EOF2 >/run/mnt/data/system-data/etc/systemd/system/snapd.service.d/43-generate-coverage.conf
 [Service]
 Environment=GOCOVERDIR=$install_coverdir
 EOF2
@@ -870,6 +866,22 @@ fi
 
 touch /root/spread-setup-done
 EOF
+if [ "$GENERATE_COVERAGE" = "true" ]; then
+    CONF_FILE=99-generate-coverage.conf
+    cat >> "${UNPACK_DIR}"/usr/lib/snapd/snapd.spread-tests-run-mode-tweaks.sh <<EOF
+mkdir -p "$GOCOVERDIR"
+EOF
+    while IFS= read -r line; do
+        dir=$(sed -E 's|^(.*)\.in$|/etc/systemd/system/\1.d|' <<<"$line")
+        cat >> "${UNPACK_DIR}"/usr/lib/snapd/snapd.spread-tests-run-mode-tweaks.sh <<EOF
+mkdir -p "$dir"
+cat <<EOF2 >"$dir/$CONF_FILE"
+[Service]
+Environment=GOCOVERDIR=$GOCOVERDIR
+EOF2
+EOF
+    done < <(find "$SPREAD_PATH"/data/systemd "$SPREAD_PATH"/data/systemd-user -type f -name '*.service.in' -exec basename {} \;)
+fi
     chmod 0755 "${UNPACK_DIR}"/usr/lib/snapd/snapd.spread-tests-run-mode-tweaks.sh
 }
 
@@ -1074,7 +1086,7 @@ if [ -d /run/mnt/data/system-data ]; then
     touch /run/mnt/data/system-data/the-tool-ran
 fi
 if [ -n "${bootstrap_coverdir:-}" ]; then
-    d=/run/mnt/data/system-data/var/lib/snapd/test/go-cover/initramfs
+    d=/run/mnt/ubuntu-seed/go-cover
     if mkdir -p "$d" 2>/dev/null; then
         chmod 0777 "$d" || true
         cp -a "$bootstrap_coverdir"/. "$d"/ 2>/dev/null || true

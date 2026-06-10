@@ -12,10 +12,7 @@ _prepare_artifacts_path() {
 _coverage_dirs() {
     cat <<EOF
 $GOCOVERDIR
-/run/mnt/ubuntu-seed/test/go-cover/install-snapd
-/run/mnt/data/system-data/var/lib/snapd/test/go-cover/install-snapd
-/run/mnt/ubuntu-seed/test/go-cover/initramfs
-/run/mnt/data/system-data/var/lib/snapd/test/go-cover/initramfs
+/run/mnt/ubuntu-seed/go-cover
 EOF
 }
 
