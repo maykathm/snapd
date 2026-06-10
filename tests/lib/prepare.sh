@@ -764,14 +764,27 @@ if [ -e /root/spread-install-setup-done ]; then
     exit 0
 fi
 
-mkdir -p "$GOCOVERDIR"
-chmod 777 "$GOCOVERDIR"
+# install mode rootfs is ephemeral; back coverage with a persistent mount.
+install_coverdir=
+for d in /run/mnt/ubuntu-seed/test/go-cover/install-snapd /run/mnt/data/system-data/var/lib/snapd/test/go-cover/install-snapd; do
+    if mkdir -p "$d" 2>/dev/null; then
+        install_coverdir="$d"
+        break
+    fi
+done
+if [ -z "$install_coverdir" ]; then
+    echo "cannot locate persistent mount for install-mode coverage"
+    exit 1
+fi
+echo "spread coverage: install-mode persistent source=$install_coverdir"
+chmod 777 "$install_coverdir"
+echo "spread coverage: install-mode using persistent GOCOVERDIR=$install_coverdir"
 
 mkdir -p "/etc/systemd/system/snapd.service.d"
 
 cat <<EOF2 >/etc/systemd/system/snapd.service.d/43-generate-coverage.conf
 [Service]
-Environment=GOCOVERDIR=$GOCOVERDIR
+Environment=GOCOVERDIR=$install_coverdir
 EOF2
 
 touch /root/spread-install-setup-done
@@ -1043,10 +1056,31 @@ set -eux
 if [ "$1" != initramfs-mounts ]; then
     exec /usr/lib/snapd/snap-bootstrap.real "$@"
 fi
+EOF
+    if [ "$GENERATE_COVERAGE" = "true" ]; then
+        cat <<'EOF' >>"$SKELETON_PATH"/usr/lib/snapd/snap-bootstrap
+bootstrap_coverdir=
+bootstrap_coverdir=/run/snapd-bootstrap-gocover
+mkdir -p "$bootstrap_coverdir"
+chmod 0777 "$bootstrap_coverdir"
+export GOCOVERDIR="$bootstrap_coverdir"
+echo "spread coverage: initramfs bootstrap GOCOVERDIR=$GOCOVERDIR"
+EOF
+    fi
+    cat <<'EOF' >>"$SKELETON_PATH"/usr/lib/snapd/snap-bootstrap
 beforeDate="$(date --utc '+%s')"
 /usr/lib/snapd/snap-bootstrap.real "$@"
 if [ -d /run/mnt/data/system-data ]; then
     touch /run/mnt/data/system-data/the-tool-ran
+fi
+if [ -n "${bootstrap_coverdir:-}" ]; then
+    d=/run/mnt/data/system-data/var/lib/snapd/test/go-cover/initramfs
+    if mkdir -p "$d" 2>/dev/null; then
+        chmod 0777 "$d" || true
+        cp -a "$bootstrap_coverdir"/. "$d"/ 2>/dev/null || true
+        echo "spread coverage: initramfs copied coverage to $d"
+        break
+    fi
 fi
 # also copy the time for the clock-epoch to system-data, this is
 # used by a specific test but doesn't hurt anything to do this for

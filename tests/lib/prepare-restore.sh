@@ -19,6 +19,35 @@ set -e
 ### Utility functions reused below.
 ###
 
+coverage_dirs() {
+    cat <<EOF
+$GOCOVERDIR
+/run/mnt/ubuntu-seed/test/go-cover/install-snapd
+/run/mnt/data/system-data/var/lib/snapd/test/go-cover/install-snapd
+/run/mnt/ubuntu-seed/test/go-cover/initramfs
+/run/mnt/data/system-data/var/lib/snapd/test/go-cover/initramfs
+EOF
+}
+
+copy_coverage_files() {
+    local target="$1"
+    local dir
+    while IFS= read -r dir; do
+        if [ -d "$dir" ]; then
+            cp "$dir"/* "$target" 2>/dev/null || true
+        fi
+    done < <(coverage_dirs)
+}
+
+clear_coverage_files() {
+    local dir
+    while IFS= read -r dir; do
+        if [ -d "$dir" ]; then
+            rm -f "$dir"/*
+        fi
+    done < <(coverage_dirs)
+}
+
 create_test_user(){
    if ! id test >& /dev/null; then
         quiet groupadd --gid 12345 test
@@ -755,9 +784,17 @@ prepare_suite_each() {
             if ! [ -f "$TESTSTMP"/initial-coverage-collected ]; then
                 mkdir -p "${SPREAD_PATH}/coverage-results/${SPREAD_SUITE}"
                 remote.pull "$GOCOVERDIR"/* "${SPREAD_PATH}/coverage-results/${SPREAD_SUITE}"
+                remote.pull "/run/mnt/ubuntu-seed/test/go-cover/install-snapd"/* "${SPREAD_PATH}/coverage-results/${SPREAD_SUITE}" || true
+                remote.pull "/run/mnt/data/system-data/var/lib/snapd/test/go-cover/install-snapd"/* "${SPREAD_PATH}/coverage-results/${SPREAD_SUITE}" || true
+                remote.pull "/run/mnt/ubuntu-seed/test/go-cover/initramfs"/* "${SPREAD_PATH}/coverage-results/${SPREAD_SUITE}" || true
+                remote.pull "/run/mnt/data/system-data/var/lib/snapd/test/go-cover/initramfs"/* "${SPREAD_PATH}/coverage-results/${SPREAD_SUITE}" || true
                 touch "$TESTSTMP"/initial-coverage-collected
             fi
-            rm -f "$GOCOVERDIR/*"
+            remote.exec "sudo rm -f '$GOCOVERDIR'/*" || true
+            remote.exec "sudo rm -f /run/mnt/ubuntu-seed/test/go-cover/install-snapd/*" || true
+            remote.exec "sudo rm -f /run/mnt/data/system-data/var/lib/snapd/test/go-cover/install-snapd/*" || true
+            remote.exec "sudo rm -f /run/mnt/ubuntu-seed/test/go-cover/initramfs/*" || true
+            remote.exec "sudo rm -f /run/mnt/data/system-data/var/lib/snapd/test/go-cover/initramfs/*" || true
         fi
         return 0
     fi
@@ -798,10 +835,10 @@ prepare_suite_each() {
         fi
         if ! [ -f "$TESTSTMP"/initial-coverage-collected ]; then
             mkdir -p "${SPREAD_PATH}/coverage-results/${SPREAD_SUITE}"
-            cp "$GOCOVERDIR"/* "${SPREAD_PATH}/coverage-results/${SPREAD_SUITE}"
+            copy_coverage_files "${SPREAD_PATH}/coverage-results/${SPREAD_SUITE}"
             touch "$TESTSTMP"/initial-coverage-collected
         fi
-        rm -f "$GOCOVERDIR/*"
+        clear_coverage_files
         systemctl start snapd
         if [[ "$restart_user" = "true" ]]; then
             systemctl --user start snapd.session-agent.socket

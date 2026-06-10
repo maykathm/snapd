@@ -9,6 +9,31 @@ _prepare_artifacts_path() {
     echo "$task_dir"
 }
 
+_coverage_dirs() {
+    cat <<EOF
+$GOCOVERDIR
+/run/mnt/ubuntu-seed/test/go-cover/install-snapd
+/run/mnt/data/system-data/var/lib/snapd/test/go-cover/install-snapd
+/run/mnt/ubuntu-seed/test/go-cover/initramfs
+/run/mnt/data/system-data/var/lib/snapd/test/go-cover/initramfs
+EOF
+}
+
+_has_coverage_files() {
+    local dir="$1"
+    [ -d "$dir" ] && find "$dir" -type f -print -quit | grep -q .
+}
+
+_copy_local_coverage_files() {
+    local target="$1"
+    local dir
+    while IFS= read -r dir; do
+        if _has_coverage_files "$dir"; then
+            cp "$dir"/* "$target" 2>/dev/null || true
+        fi
+    done < <(_coverage_dirs)
+}
+
 features_after_non_nested_task() {
     # Write to the directory specified in the spread.yaml file for artifacts
     local task_dir
@@ -39,21 +64,28 @@ locks(){
 }
 
 coverage_after_non_nested_task() {
-    # Copy the coverage files to the artifacts directory
-    if [ -d "$GOCOVERDIR" ] && [ $(ls "$GOCOVERDIR" | wc -l) -gt 0 ]; then
-        local task_dir
-        task_dir="$(_prepare_artifacts_path coverage-results)"
-        systemctl stop snapd || true
-        pushd "$SPREAD_PATH"
-        "$SPREAD_PATH"/tests/utils/coverage/main.py -results-dir "$GOCOVERDIR" -output functions > "$task_dir"/coverage.json || true
-        popd
-        if ! [ -s "$task_dir"/coverage.json ]; then
-            cp "$GOCOVERDIR"/* "$task_dir" || true
-            chmod 777 "$task_dir"/* || true
-            rm -f "$task_dir"/coverage.json
-        fi
-        systemctl start snapd || true
+    local task_dir merged_cover_dir
+    task_dir="$(_prepare_artifacts_path coverage-results)"
+    merged_cover_dir="$(mktemp -d)"
+
+    _copy_local_coverage_files "$merged_cover_dir"
+    if [ -z "$(ls -A "$merged_cover_dir")" ]; then
+        rm -rf "$merged_cover_dir"
+        rm -r "$task_dir"
+        return
     fi
+
+    systemctl stop snapd || true
+    pushd "$SPREAD_PATH"
+    "$SPREAD_PATH"/tests/utils/coverage/main.py -results-dir "$merged_cover_dir" -output functions > "$task_dir"/coverage.json || true
+    popd
+    if ! [ -s "$task_dir"/coverage.json ]; then
+        cp "$merged_cover_dir"/* "$task_dir" || true
+        chmod 777 "$task_dir"/* || true
+        rm -f "$task_dir"/coverage.json
+    fi
+    systemctl start snapd || true
+    rm -rf "$merged_cover_dir"
 }
 
 coverage_after_nested_task() {
@@ -62,6 +94,10 @@ coverage_after_nested_task() {
     task_dir="$(_prepare_artifacts_path coverage-results)"
     "$TESTSTOOLS"/remote.exec systemctl stop snapd || true
     "$TESTSTOOLS"/remote.pull "$GOCOVERDIR"/* "$task_dir" || true
+    "$TESTSTOOLS"/remote.pull "/run/mnt/ubuntu-seed/test/go-cover/install-snapd"/* "$task_dir" || true
+    "$TESTSTOOLS"/remote.pull "/run/mnt/data/system-data/var/lib/snapd/test/go-cover/install-snapd"/* "$task_dir" || true
+    "$TESTSTOOLS"/remote.pull "/run/mnt/ubuntu-seed/test/go-cover/initramfs"/* "$task_dir" || true
+    "$TESTSTOOLS"/remote.pull "/run/mnt/data/system-data/var/lib/snapd/test/go-cover/initramfs"/* "$task_dir" || true
     if [ $(ls "$task_dir" | wc -l) -eq 0 ]; then
         rm -r "$task_dir"
         return
