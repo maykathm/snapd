@@ -256,6 +256,11 @@ install_dependencies_gce_bucket(){
 ###
 
 prepare_project() {
+    if [[ "$GENERATE_COVERAGE" = "true" ]]; then
+        pushd "$SPREAD_PATH"
+        tests/utils/coverage/patch-builds.sh
+        popd
+    fi
     if [ "$SNAPD_SKIP_EARLY_REFRESH" = true ] && command -v snap >/dev/null 2>&1; then
         "$TESTSTOOLS"/snapd-state cancel-autorefresh
 
