@@ -261,6 +261,9 @@ prepare_project() {
         tests/utils/coverage/patch-builds.sh
         popd
     fi
+    if os.query is-core26; then
+        mount -o remount,size=10G /tmp
+    fi
     if [ "$SNAPD_SKIP_EARLY_REFRESH" = true ] && command -v snap >/dev/null 2>&1; then
         "$TESTSTOOLS"/snapd-state cancel-autorefresh
 
@@ -786,20 +789,14 @@ prepare_suite_each() {
     # In case of nested tests the next checks and changes are not needed
     if tests.nested is-nested; then
         if [[ "$GENERATE_COVERAGE" = true ]]; then
-            if ! [ -f "$TESTSTMP"/initial-coverage-collected ]; then
+            if ! [ -f "$TESTSTMP/initial-coverage-collected-$SPREAD_SUITE" ]; then
                 mkdir -p "${SPREAD_PATH}/coverage-results/${SPREAD_SUITE}"
                 remote.pull "$GOCOVERDIR"/* "${SPREAD_PATH}/coverage-results/${SPREAD_SUITE}"
-                remote.pull "/run/mnt/ubuntu-seed/test/go-cover/install-snapd"/* "${SPREAD_PATH}/coverage-results/${SPREAD_SUITE}" || true
-                remote.pull "/run/mnt/data/system-data/var/lib/snapd/test/go-cover/install-snapd"/* "${SPREAD_PATH}/coverage-results/${SPREAD_SUITE}" || true
-                remote.pull "/run/mnt/ubuntu-seed/test/go-cover/initramfs"/* "${SPREAD_PATH}/coverage-results/${SPREAD_SUITE}" || true
-                remote.pull "/run/mnt/data/system-data/var/lib/snapd/test/go-cover/initramfs"/* "${SPREAD_PATH}/coverage-results/${SPREAD_SUITE}" || true
-                touch "$TESTSTMP"/initial-coverage-collected
+                remote.pull "/run/mnt/ubuntu-seed/go-cover"/* "${SPREAD_PATH}/coverage-results/${SPREAD_SUITE}" || true
+                touch "$TESTSTMP/initial-coverage-collected-$SPREAD_SUITE"
             fi
             remote.exec "sudo rm -f '$GOCOVERDIR'/*" || true
-            remote.exec "sudo rm -f /run/mnt/ubuntu-seed/test/go-cover/install-snapd/*" || true
-            remote.exec "sudo rm -f /run/mnt/data/system-data/var/lib/snapd/test/go-cover/install-snapd/*" || true
-            remote.exec "sudo rm -f /run/mnt/ubuntu-seed/test/go-cover/initramfs/*" || true
-            remote.exec "sudo rm -f /run/mnt/data/system-data/var/lib/snapd/test/go-cover/initramfs/*" || true
+            remote.exec "sudo rm -f /run/mnt/ubuntu-seed/go-cover/*" || true
         fi
         return 0
     fi
@@ -838,10 +835,10 @@ prepare_suite_each() {
             systemctl --user stop snapd.session-agent.socket
             restart_user=true
         fi
-        if ! [ -f "$TESTSTMP"/initial-coverage-collected ]; then
+        if ! [ -f "$TESTSTMP/initial-coverage-collected-$SPREAD_SUITE" ]; then
             mkdir -p "${SPREAD_PATH}/coverage-results/${SPREAD_SUITE}"
             copy_coverage_files "${SPREAD_PATH}/coverage-results/${SPREAD_SUITE}"
-            touch "$TESTSTMP"/initial-coverage-collected
+            touch "$TESTSTMP/initial-coverage-collected-$SPREAD_SUITE"
         fi
         clear_coverage_files
         systemctl start snapd

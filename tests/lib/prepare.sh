@@ -408,6 +408,8 @@ prepare_classic() {
     # Configure the proxy in the system when it is required
     setup_system_proxy
 
+    prepare_generate_coverage
+
     # Skip building snapd when REUSE_SNAPD is set to 1
     if [ "$REUSE_SNAPD" != 1 ]; then
         distro_install_build_snapd
@@ -549,7 +551,6 @@ prepare_classic() {
         prepare_reexec_override
         prepare_state_lock "SNAPD PROJECT"
         prepare_tag_features
-        prepare_generate_coverage
         prepare_memory_limit_override
         disable_refreshes
 
@@ -776,7 +777,7 @@ echo "spread coverage: install-mode persistent source=$install_coverdir"
 chmod 777 "$install_coverdir"
 echo "spread coverage: install-mode using persistent GOCOVERDIR=$install_coverdir"
 
-mkdir -p "/etc/systemd/system/snapd.service.d"
+mkdir -p "/run/mnt/data/system-data/etc/systemd/system/snapd.service.d"
 
 # this will be gone after reboot
 cat <<EOF2 >/run/mnt/data/system-data/etc/systemd/system/snapd.service.d/43-generate-coverage.conf
@@ -1092,7 +1093,6 @@ if [ -n "${bootstrap_coverdir:-}" ]; then
         chmod 0777 "$d" || true
         cp -a "$bootstrap_coverdir"/. "$d"/ 2>/dev/null || true
         echo "spread coverage: initramfs copied coverage to $d"
-        break
     fi
 fi
 # also copy the time for the clock-epoch to system-data, this is
@@ -2021,10 +2021,10 @@ EOF
             fi
         done < <(find "$SPREAD_PATH"/data/systemd "$SPREAD_PATH"/data/systemd-user -type f -name '*.service.in' -exec basename {} \;)
         systemctl daemon-reload
-        systemctl restart snapd
-        if systemctl --user is-active --quiet snapd.session-agent.socket; then
-            systemctl --user restart snapd.session-agent.socket
-        fi
+        # systemctl restart snapd
+        # if systemctl --user is-active --quiet snapd.session-agent.socket; then
+        #     systemctl --user restart snapd.session-agent.socket
+        # fi
     fi
         # Generate the config file when it does not exist and when the threshold has changed different
 #         if ! [ -f "$CONF_FILE" ]; then
@@ -2173,7 +2173,6 @@ prepare_ubuntu_core() {
         prepare_memory_limit_override
         prepare_state_lock "SNAPD PROJECT"
         prepare_tag_features
-        prepare_generate_coverage
         setup_experimental_features
         systemctl stop snapd.service snapd.socket
         save_snapd_state

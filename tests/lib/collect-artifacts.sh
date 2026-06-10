@@ -91,10 +91,7 @@ coverage_after_nested_task() {
     task_dir="$(_prepare_artifacts_path coverage-results)"
     "$TESTSTOOLS"/remote.exec systemctl stop snapd || true
     "$TESTSTOOLS"/remote.pull "$GOCOVERDIR"/* "$task_dir" || true
-    "$TESTSTOOLS"/remote.pull "/run/mnt/ubuntu-seed/test/go-cover/install-snapd"/* "$task_dir" || true
-    "$TESTSTOOLS"/remote.pull "/run/mnt/data/system-data/var/lib/snapd/test/go-cover/install-snapd"/* "$task_dir" || true
-    "$TESTSTOOLS"/remote.pull "/run/mnt/ubuntu-seed/test/go-cover/initramfs"/* "$task_dir" || true
-    "$TESTSTOOLS"/remote.pull "/run/mnt/data/system-data/var/lib/snapd/test/go-cover/initramfs"/* "$task_dir" || true
+    "$TESTSTOOLS"/remote.pull "/run/mnt/ubuntu-seed/go-cover"/* "$task_dir" || true
     if [ $(ls "$task_dir" | wc -l) -eq 0 ]; then
         rm -r "$task_dir"
         return
