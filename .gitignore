@@ -114,3 +114,6 @@ cmd/test-driver
 
 # Directory that is used by the run-spread script
 /built-snap
+
+# pycache
+*.pyc
