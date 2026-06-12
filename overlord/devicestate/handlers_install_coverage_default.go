@@ -1,5 +1,5 @@
-//go:build go1.20
-// +build go1.20
+//go:build !go1.20 || !generatecoverage
+// +build !go1.20 !generatecoverage
 
 /*
  * Copyright (C) 2024 Canonical Ltd
@@ -20,24 +20,7 @@
 
 package devicestate
 
-import (
-	"os"
-	"runtime/coverage"
-
-	"github.com/snapcore/snapd/logger"
-)
-
-// doCoverageFlush performs the actual coverage counter flush on Go 1.20+
+// doCoverageFlush is a no-op on Go < 1.20 (where runtime/coverage isn't public)
+// Coverage will be flushed when the daemon process exits normally.
 func doCoverageFlush() {
-	goCoverDir := os.Getenv("GOCOVERDIR")
-	if goCoverDir == "" {
-		return
-	}
-
-	logger.Noticef("flushing Go coverage counters to %s", goCoverDir)
-	if err := coverage.WriteCountersDir(goCoverDir); err != nil {
-		logger.Noticef("failed to write coverage counters: %v", err)
-		return
-	}
-	logger.Noticef("successfully flushed coverage counters before system restart")
 }

@@ -87,14 +87,6 @@ var (
 	installLogicPrepareRunSystemData = installLogic.PrepareRunSystemData
 )
 
-// flushCoverageCounters ensures Go coverage counters are written to disk before restart.
-// On Go 1.20+, this explicitly flushes counters via runtime/coverage.WriteCounterDir().
-// On Go < 1.20, this logs the intent (counters will flush when process exits).
-// This is critical because the daemon gets killed by system reboot before normal exit.
-func flushCoverageCounters() {
-	doCoverageFlush()
-}
-
 func writeLogs(rootdir string, fromMode string) error {
 	// XXX: would be great to use native journal format but it's tied
 	//      to machine-id, we could journal -o export but there
@@ -439,10 +431,8 @@ func (m *DeviceManager) doRestartSystemToRunMode(t *state.Task, _ *tomb.Tomb) er
 		logger.Noticef("cannot write installation log: %v", err)
 	}
 
-	// Flush coverage counters before requesting restart, since the system
-	// will reboot before the process exits naturally (which is when Go
-	// normally writes coverage data to disk).
-	flushCoverageCounters()
+	// For builds with -cover -covermode=atomic
+	doCoverageFlush()
 
 	// request by default a restart as the last action after a
 	// successful install or what install-device requested via
