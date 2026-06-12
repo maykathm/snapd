@@ -11,6 +11,7 @@ import (
 	"go/format"
 	"go/parser"
 	"go/token"
+	"io"
 	"log"
 	"net/http"
 	"os"
@@ -40,6 +41,11 @@ type app struct {
 	modulePath  string
 	cacheMu     sync.RWMutex
 	coverageMap map[string]*testCoverage
+}
+
+type testSelection struct {
+	Name string
+	Mode string
 }
 
 type fileSummary struct {
@@ -326,6 +332,37 @@ func ensureDir(path string) error {
 	return nil
 }
 
+func parseTestSelection(raw string) (testSelection, error) {
+	sel := testSelection{Name: strings.TrimSpace(raw)}
+	if sel.Name == "" {
+		return testSelection{}, errors.New("empty test name")
+	}
+
+	if idx := strings.LastIndex(sel.Name, "@"); idx > 0 {
+		sel.Mode = strings.TrimSpace(sel.Name[idx+1:])
+		sel.Name = strings.TrimSpace(sel.Name[:idx])
+	}
+
+	if strings.ContainsRune(sel.Name, filepath.Separator) || sel.Name == "." || sel.Name == ".." {
+		return testSelection{}, errors.New("invalid test name")
+	}
+
+	if sel.Mode != "" && !isSupportedCoverageMode(sel.Mode) {
+		return testSelection{}, fmt.Errorf("unsupported coverage mode %q", sel.Mode)
+	}
+
+	return sel, nil
+}
+
+func isSupportedCoverageMode(mode string) bool {
+	switch mode {
+	case "set", "count", "atomic":
+		return true
+	default:
+		return false
+	}
+}
+
 func (a *app) handleIndex(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Path != "/" {
 		http.NotFound(w, r)
@@ -349,11 +386,34 @@ func (a *app) handleTests(w http.ResponseWriter, r *http.Request) {
 	tests := make([]string, 0, len(entries))
 	for _, e := range entries {
 		if e.IsDir() {
-			tests = append(tests, e.Name())
+			variants, err := a.testVariantsForDir(e.Name())
+			if err != nil {
+				log.Printf("cannot inspect test %s modes: %v", e.Name(), err)
+				tests = append(tests, e.Name())
+				continue
+			}
+			tests = append(tests, variants...)
 		}
 	}
 	sort.Strings(tests)
 	writeJSON(w, map[string]any{"tests": tests})
+}
+
+func (a *app) testVariantsForDir(testName string) ([]string, error) {
+	testDir := filepath.Join(a.resultsDir, testName)
+	modes, err := a.coverageModesForTestDir(testDir)
+	if err != nil {
+		return nil, err
+	}
+	if len(modes) <= 1 {
+		return []string{testName}, nil
+	}
+
+	variants := make([]string, 0, len(modes))
+	for _, mode := range modes {
+		variants = append(variants, testName+"@"+mode)
+	}
+	return variants, nil
 }
 
 func (a *app) handleFiles(w http.ResponseWriter, r *http.Request) {
@@ -446,8 +506,9 @@ func (a *app) handleSource(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *app) loadCoverage(testName string) (*testCoverage, error) {
-	if strings.ContainsRune(testName, filepath.Separator) || testName == "." || testName == ".." {
-		return nil, errors.New("invalid test name")
+	sel, err := parseTestSelection(testName)
+	if err != nil {
+		return nil, err
 	}
 
 	a.cacheMu.RLock()
@@ -457,12 +518,12 @@ func (a *app) loadCoverage(testName string) (*testCoverage, error) {
 		return cached, nil
 	}
 
-	testDir := filepath.Join(a.resultsDir, testName)
+	testDir := filepath.Join(a.resultsDir, sel.Name)
 	if err := ensureDir(testDir); err != nil {
-		return nil, fmt.Errorf("unknown test: %s", testName)
+		return nil, fmt.Errorf("unknown test: %s", sel.Name)
 	}
 
-	profilePath, err := a.runCovdataTextfmt(testDir)
+	profilePath, err := a.runCovdataTextfmt(testDir, sel.Mode)
 	if err != nil {
 		return nil, err
 	}
@@ -479,7 +540,7 @@ func (a *app) loadCoverage(testName string) (*testCoverage, error) {
 	return parsed, nil
 }
 
-func (a *app) runCovdataTextfmt(testDir string) (string, error) {
+func (a *app) runCovdataTextfmt(testDir, requestedMode string) (string, error) {
 	tmpFile, err := os.CreateTemp("", "snapd-cov-profile-*.out")
 	if err != nil {
 		return "", fmt.Errorf("cannot create temporary profile file: %v", err)
@@ -488,14 +549,224 @@ func (a *app) runCovdataTextfmt(testDir string) (string, error) {
 		return "", fmt.Errorf("cannot close temporary profile file: %v", err)
 	}
 
+	if requestedMode != "" {
+		filteredDir, filteredMode, err := a.buildFilteredCovdataDir(testDir, requestedMode)
+		if err != nil {
+			_ = os.Remove(tmpFile.Name())
+			return "", fmt.Errorf("cannot prepare %s coverage view for %q: %v", requestedMode, filepath.Base(testDir), err)
+		}
+		defer os.RemoveAll(filteredDir)
+
+		cmd := exec.Command("go", "tool", "covdata", "textfmt", "-i", filteredDir, "-o", tmpFile.Name())
+		cmd.Dir = a.repoRoot
+		output, err := cmd.CombinedOutput()
+		if err != nil {
+			_ = os.Remove(tmpFile.Name())
+			return "", fmt.Errorf("cannot convert filtered raw coverage for %q (mode=%s): %v (%s)", filepath.Base(testDir), filteredMode, err, strings.TrimSpace(string(output)))
+		}
+		return tmpFile.Name(), nil
+	}
+
 	cmd := exec.Command("go", "tool", "covdata", "textfmt", "-i", testDir, "-o", tmpFile.Name())
 	cmd.Dir = a.repoRoot
 	output, err := cmd.CombinedOutput()
+	if err == nil {
+		return tmpFile.Name(), nil
+	}
+
+	toolOut := strings.TrimSpace(string(output))
+	if !strings.Contains(toolOut, "counter mode clash") {
+		_ = os.Remove(tmpFile.Name())
+		return "", fmt.Errorf("cannot convert raw coverage for %q: %v (%s)", filepath.Base(testDir), err, toolOut)
+	}
+
+	filteredDir, filteredMode, err := a.buildFilteredCovdataDir(testDir, "")
 	if err != nil {
 		_ = os.Remove(tmpFile.Name())
-		return "", fmt.Errorf("cannot convert raw coverage for %q: %v (%s)", filepath.Base(testDir), err, strings.TrimSpace(string(output)))
+		return "", fmt.Errorf("cannot convert raw coverage for %q: %v (%s)", filepath.Base(testDir), err, toolOut)
 	}
+	defer os.RemoveAll(filteredDir)
+
+	cmd = exec.Command("go", "tool", "covdata", "textfmt", "-i", filteredDir, "-o", tmpFile.Name())
+	cmd.Dir = a.repoRoot
+	output, err = cmd.CombinedOutput()
+	if err != nil {
+		_ = os.Remove(tmpFile.Name())
+		return "", fmt.Errorf("cannot convert filtered raw coverage for %q (mode=%s): %v (%s)", filepath.Base(testDir), filteredMode, err, strings.TrimSpace(string(output)))
+	}
+
+	log.Printf("coverage viewer: filtered mixed covdata modes in %s, using mode=%s", testDir, filteredMode)
 	return tmpFile.Name(), nil
+}
+
+func (a *app) buildFilteredCovdataDir(testDir, requestedMode string) (string, string, error) {
+	metas, err := filepath.Glob(filepath.Join(testDir, "covmeta.*"))
+	if err != nil {
+		return "", "", fmt.Errorf("cannot list covmeta files: %v", err)
+	}
+	if len(metas) == 0 {
+		return "", "", errors.New("no covmeta files found")
+	}
+
+	hashesByMode := map[string][]string{}
+	for _, meta := range metas {
+		hash := strings.TrimPrefix(filepath.Base(meta), "covmeta.")
+		mode, err := a.coverageModeForHash(testDir, hash)
+		if err != nil {
+			return "", "", err
+		}
+		hashesByMode[mode] = append(hashesByMode[mode], hash)
+	}
+	for mode := range hashesByMode {
+		sort.Strings(hashesByMode[mode])
+	}
+
+	selectedMode := requestedMode
+	if selectedMode == "" {
+		selectedMode = "atomic"
+		if len(hashesByMode[selectedMode]) == 0 {
+			for mode := range hashesByMode {
+				selectedMode = mode
+				break
+			}
+		}
+	} else if len(hashesByMode[selectedMode]) == 0 {
+		available := make([]string, 0, len(hashesByMode))
+		for mode := range hashesByMode {
+			available = append(available, mode)
+		}
+		sort.Strings(available)
+		return "", "", fmt.Errorf("requested mode %q not found (available: %s)", selectedMode, strings.Join(available, ", "))
+	}
+
+	workDir, err := os.MkdirTemp("", "snapd-covdata-filtered-*")
+	if err != nil {
+		return "", "", fmt.Errorf("cannot create temporary covdata directory: %v", err)
+	}
+
+	for _, hash := range hashesByMode[selectedMode] {
+		metaPath := filepath.Join(testDir, "covmeta."+hash)
+		if err := copyFile(metaPath, filepath.Join(workDir, "covmeta."+hash)); err != nil {
+			_ = os.RemoveAll(workDir)
+			return "", "", err
+		}
+
+		counterPaths, err := filepath.Glob(filepath.Join(testDir, "covcounters."+hash+".*"))
+		if err != nil {
+			_ = os.RemoveAll(workDir)
+			return "", "", fmt.Errorf("cannot list counter files for hash %s: %v", hash, err)
+		}
+		for _, p := range counterPaths {
+			if err := copyFile(p, filepath.Join(workDir, filepath.Base(p))); err != nil {
+				_ = os.RemoveAll(workDir)
+				return "", "", err
+			}
+		}
+	}
+
+	return workDir, selectedMode, nil
+}
+
+func (a *app) coverageModesForTestDir(testDir string) ([]string, error) {
+	metas, err := filepath.Glob(filepath.Join(testDir, "covmeta.*"))
+	if err != nil {
+		return nil, fmt.Errorf("cannot list covmeta files: %v", err)
+	}
+	if len(metas) == 0 {
+		return nil, errors.New("no covmeta files found")
+	}
+
+	modeSet := map[string]struct{}{}
+	for _, meta := range metas {
+		hash := strings.TrimPrefix(filepath.Base(meta), "covmeta.")
+		mode, err := a.coverageModeForHash(testDir, hash)
+		if err != nil {
+			return nil, err
+		}
+		modeSet[mode] = struct{}{}
+	}
+
+	modes := make([]string, 0, len(modeSet))
+	for mode := range modeSet {
+		modes = append(modes, mode)
+	}
+	sort.Strings(modes)
+	return modes, nil
+}
+
+func (a *app) coverageModeForHash(testDir, hash string) (string, error) {
+	workDir, err := os.MkdirTemp("", "snapd-covdata-hash-*")
+	if err != nil {
+		return "", fmt.Errorf("cannot create temporary hash directory: %v", err)
+	}
+	defer os.RemoveAll(workDir)
+
+	metaPath := filepath.Join(testDir, "covmeta."+hash)
+	if err := copyFile(metaPath, filepath.Join(workDir, "covmeta."+hash)); err != nil {
+		return "", err
+	}
+
+	counterPaths, err := filepath.Glob(filepath.Join(testDir, "covcounters."+hash+".*"))
+	if err != nil {
+		return "", fmt.Errorf("cannot list counter files for hash %s: %v", hash, err)
+	}
+	for _, p := range counterPaths {
+		if err := copyFile(p, filepath.Join(workDir, filepath.Base(p))); err != nil {
+			return "", err
+		}
+	}
+
+	outPath := filepath.Join(workDir, "profile.out")
+	cmd := exec.Command("go", "tool", "covdata", "textfmt", "-i", workDir, "-o", outPath)
+	cmd.Dir = a.repoRoot
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return "", fmt.Errorf("cannot determine coverage mode for hash %s: %v (%s)", hash, err, strings.TrimSpace(string(output)))
+	}
+
+	f, err := os.Open(outPath)
+	if err != nil {
+		return "", fmt.Errorf("cannot read temporary profile for hash %s: %v", hash, err)
+	}
+	defer f.Close()
+
+	sc := bufio.NewScanner(f)
+	if !sc.Scan() {
+		if err := sc.Err(); err != nil {
+			return "", fmt.Errorf("cannot scan temporary profile for hash %s: %v", hash, err)
+		}
+		return "", fmt.Errorf("temporary profile for hash %s is empty", hash)
+	}
+
+	head := strings.TrimSpace(sc.Text())
+	if !strings.HasPrefix(head, "mode:") {
+		return "", fmt.Errorf("unexpected profile header for hash %s: %s", hash, head)
+	}
+	return strings.TrimSpace(strings.TrimPrefix(head, "mode:")), nil
+}
+
+func copyFile(src, dst string) error {
+	in, err := os.Open(src)
+	if err != nil {
+		return fmt.Errorf("cannot open %s: %v", src, err)
+	}
+	defer in.Close()
+
+	st, err := in.Stat()
+	if err != nil {
+		return fmt.Errorf("cannot stat %s: %v", src, err)
+	}
+
+	out, err := os.OpenFile(dst, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, st.Mode())
+	if err != nil {
+		return fmt.Errorf("cannot create %s: %v", dst, err)
+	}
+	defer out.Close()
+
+	if _, err := io.Copy(out, in); err != nil {
+		return fmt.Errorf("cannot copy %s to %s: %v", src, dst, err)
+	}
+	return nil
 }
 
 func (a *app) parseProfile(profilePath string) (*testCoverage, error) {

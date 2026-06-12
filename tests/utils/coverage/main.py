@@ -1,9 +1,10 @@
-snapd.spread-tests-install-mode-tweaks#!/usr/bin/env python3
+#!/usr/bin/env python3
 
 import argparse
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -45,7 +46,19 @@ def read_module_path() -> str:
     raise RuntimeError("module path not found in go.mod")
 
 
-def run_covdata_textfmt(covdata_dir: Path) -> Path:
+def read_profile_mode(profile_path: Path) -> str:
+    with profile_path.open(encoding="utf-8") as f:
+        for raw_line in f:
+            line = raw_line.strip()
+            if not line:
+                continue
+            if line.startswith("mode:"):
+                return line.removeprefix("mode:").strip()
+            break
+    raise RuntimeError(f"profile {profile_path} has no mode header")
+
+
+def run_covdata_textfmt_single(covdata_dir: Path) -> Path:
     fd, tmp_path = tempfile.mkstemp(prefix="snapd-cov-profile-", suffix=".out")
     os.close(fd)
     out_path = Path(tmp_path)
@@ -55,69 +68,93 @@ def run_covdata_textfmt(covdata_dir: Path) -> Path:
     if proc.returncode == 0:
         return out_path
 
+    try:
+        out_path.unlink()
+    except OSError:
+        pass
+    details = (proc.stdout + "\n" + proc.stderr).strip()
+    raise RuntimeError(f"cannot convert raw coverage: exit code {proc.returncode} ({details})")
+
+
+def coverage_mode_for_hash(covdata_dir: Path, hash_suffix: str) -> str:
+    with tempfile.TemporaryDirectory(prefix="snapd-cov-hash-") as tmp_dir:
+        tmp_path = Path(tmp_dir)
+        meta = covdata_dir / f"covmeta.{hash_suffix}"
+        shutil.copy2(meta, tmp_path / meta.name)
+        for counter in covdata_dir.glob(f"covcounters.{hash_suffix}.*"):
+            shutil.copy2(counter, tmp_path / counter.name)
+
+        profile = run_covdata_textfmt_single(tmp_path)
+        try:
+            return read_profile_mode(profile)
+        finally:
+            try:
+                profile.unlink()
+            except OSError:
+                pass
+
+
+def build_mode_filtered_dirs(covdata_dir: Path) -> dict[str, Path]:
+    metas = sorted(covdata_dir.glob("covmeta.*"))
+    if not metas:
+        raise RuntimeError("no covmeta files found")
+
+    hashes_by_mode: dict[str, list[str]] = {}
+    for meta in metas:
+        hash_suffix = meta.name.removeprefix("covmeta.")
+        mode = coverage_mode_for_hash(covdata_dir, hash_suffix)
+        hashes_by_mode.setdefault(mode, []).append(hash_suffix)
+
+    mode_dirs: dict[str, Path] = {}
+    for mode, hashes in hashes_by_mode.items():
+        mode_dir = Path(tempfile.mkdtemp(prefix=f"snapd-covdata-{mode}-"))
+        mode_dirs[mode] = mode_dir
+        for hash_suffix in hashes:
+            meta = covdata_dir / f"covmeta.{hash_suffix}"
+            shutil.copy2(meta, mode_dir / meta.name)
+            for counter in covdata_dir.glob(f"covcounters.{hash_suffix}.*"):
+                shutil.copy2(counter, mode_dir / counter.name)
+
+    return mode_dirs
+
+
+def run_covdata_textfmt(covdata_dir: Path) -> list[Path]:
+    try:
+        return [run_covdata_textfmt_single(covdata_dir)]
+    except RuntimeError as exc:
+        details = str(exc)
+
+    if "counter mode clash" in details:
+        mode_dirs = build_mode_filtered_dirs(covdata_dir)
+        profile_paths: list[Path] = []
+        try:
+            for mode in sorted(mode_dirs.keys()):
+                profile_paths.append(run_covdata_textfmt_single(mode_dirs[mode]))
+            return profile_paths
+        finally:
+            for mode_dir in mode_dirs.values():
+                shutil.rmtree(mode_dir, ignore_errors=True)
+
     # Fall back to converting each pod separately and merge successful outputs.
     pod_dirs = sorted(path for path in covdata_dir.iterdir() if path.is_dir())
     if not pod_dirs:
-        try:
-            out_path.unlink()
-        except OSError:
-            pass
-        details = (proc.stdout + "\n" + proc.stderr).strip()
-        raise RuntimeError(f"cannot convert raw coverage: exit code {proc.returncode} ({details})")
+        raise RuntimeError(details)
 
-    mode_line = None
-    merged_lines: list[str] = []
+    profile_paths: list[Path] = []
     pod_errors: list[str] = []
 
     for pod_dir in pod_dirs:
-        pod_fd, pod_tmp_path = tempfile.mkstemp(prefix="snapd-cov-profile-pod-", suffix=".out")
-        os.close(pod_fd)
-        pod_out_path = Path(pod_tmp_path)
-
-        pod_cmd = ["go", "tool", "covdata", "textfmt", "-i", str(pod_dir), "-o", str(pod_out_path)]
-        pod_proc = subprocess.run(pod_cmd, check=False, capture_output=True, text=True)
-        if pod_proc.returncode != 0:
-            details = (pod_proc.stdout + "\n" + pod_proc.stderr).strip()
-            pod_errors.append(f"{pod_dir.name}: exit code {pod_proc.returncode} ({details})")
-            try:
-                pod_out_path.unlink()
-            except OSError:
-                pass
-            continue
-
         try:
-            with pod_out_path.open(encoding="utf-8") as f:
-                for raw_line in f:
-                    line = raw_line.rstrip("\n")
-                    if not line:
-                        continue
-                    if line.startswith("mode:"):
-                        if mode_line is None:
-                            mode_line = line
-                        continue
-                    merged_lines.append(line)
-        finally:
-            try:
-                pod_out_path.unlink()
-            except OSError:
-                pass
+            profile_paths.append(run_covdata_textfmt_single(pod_dir))
+        except RuntimeError as pod_exc:
+            pod_errors.append(f"{pod_dir.name}: {pod_exc}")
 
-    if not merged_lines:
-        try:
-            out_path.unlink()
-        except OSError:
-            pass
-
-        details = (proc.stdout + "\n" + proc.stderr).strip()
+    if not profile_paths:
         if pod_errors:
             details = f"{details}; per-pod fallback also failed: {'; '.join(pod_errors)}"
-        raise RuntimeError(f"cannot convert raw coverage: exit code {proc.returncode} ({details})")
+        raise RuntimeError(details)
 
-    with out_path.open("w", encoding="utf-8") as out_file:
-        out_file.write((mode_line or "mode: set") + "\n")
-        out_file.write("\n".join(merged_lines) + "\n")
-
-    return out_path
+    return profile_paths
 
 
 def normalize_profile_path(path: str, module_path: str) -> str:
@@ -170,6 +207,15 @@ def parse_profile(profile_path: Path, module_path: str) -> dict[str, set[int]]:
     return result
 
 
+def parse_profiles(profile_paths: list[Path], module_path: str) -> dict[str, set[int]]:
+    merged: dict[str, set[int]] = {}
+    for profile_path in profile_paths:
+        partial = parse_profile(profile_path, module_path)
+        for path, lines in partial.items():
+            merged.setdefault(path, set()).update(lines)
+    return merged
+
+
 def profile_with_existing_files(profile_path: Path, module_path: str) -> Path:
     fd, tmp_path = tempfile.mkstemp(prefix="snapd-cov-profile-existing-", suffix=".out")
     os.close(fd)
@@ -200,7 +246,7 @@ def profile_with_existing_files(profile_path: Path, module_path: str) -> Path:
     return out_path
 
 
-def covered_functions_by_file(profile_path: Path, module_path: str) -> dict[str, set[str]]:
+def covered_functions_by_file_for_profile(profile_path: Path, module_path: str) -> dict[str, set[str]]:
     filtered_profile = profile_with_existing_files(profile_path, module_path)
 
     try:
@@ -256,6 +302,15 @@ def covered_functions_by_file(profile_path: Path, module_path: str) -> dict[str,
             pass
 
 
+def covered_functions_by_file(profile_paths: list[Path], module_path: str) -> dict[str, set[str]]:
+    merged: dict[str, set[str]] = {}
+    for profile_path in profile_paths:
+        partial = covered_functions_by_file_for_profile(profile_path, module_path)
+        for path, funcs in partial.items():
+            merged.setdefault(path, set()).update(funcs)
+    return merged
+
+
 def print_covered_files(coverage: dict[str, set[int]]) -> None:
     covered_files = sorted(path for path, lines in coverage.items() if lines)
     for path in covered_files:
@@ -285,19 +340,20 @@ def main() -> int:
         results_dir = Path(args.results_dir).resolve()
         ensure_dir(results_dir)
         module_path = read_module_path()
-        profile_path = run_covdata_textfmt(results_dir)
+        profile_paths = run_covdata_textfmt(results_dir)
         try:
-            coverage = parse_profile(profile_path, module_path)
+            coverage = parse_profiles(profile_paths, module_path)
             if args.output == "files":
                 print_covered_files(coverage)
             else:
-                by_file_functions = covered_functions_by_file(profile_path, module_path)
+                by_file_functions = covered_functions_by_file(profile_paths, module_path)
                 print_functions_json(coverage, by_file_functions)
         finally:
-            try:
-                profile_path.unlink()
-            except OSError:
-                pass
+            for profile_path in profile_paths:
+                try:
+                    profile_path.unlink()
+                except OSError:
+                    pass
     except Exception as exc:  # pylint: disable=broad-except
         print(f"cannot continue: {exc}", file=sys.stderr)
         return 1
