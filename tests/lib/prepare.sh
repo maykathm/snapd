@@ -777,13 +777,15 @@ echo "spread coverage: install-mode persistent source=$install_coverdir"
 chmod 777 "$install_coverdir"
 echo "spread coverage: install-mode using persistent GOCOVERDIR=$install_coverdir"
 
-mkdir -p "/run/mnt/data/system-data/etc/systemd/system/snapd.service.d"
+mkdir -p "/etc/systemd/system/snapd.service.d"
 
 # this will be gone after reboot
-cat <<EOF2 >/run/mnt/data/system-data/etc/systemd/system/snapd.service.d/43-generate-coverage.conf
+cat <<EOF2 >/etc/systemd/system/snapd.service.d/45-generate-coverage.conf
 [Service]
 Environment=GOCOVERDIR=$install_coverdir
 EOF2
+
+systemctl daemon-reload
 
 touch /root/spread-install-setup-done
 EOF
@@ -869,6 +871,7 @@ fi
 touch /root/spread-setup-done
 EOF
 if [ "$GENERATE_COVERAGE" = "true" ]; then
+    echo "GOCOVERDIR=$GOCOVERDIR" >> /etc/environment
     CONF_FILE=99-generate-coverage.conf
     cat >> "${UNPACK_DIR}"/usr/lib/snapd/snapd.spread-tests-run-mode-tweaks.sh <<EOF
 mkdir -p "$GOCOVERDIR"
@@ -883,6 +886,7 @@ Environment=GOCOVERDIR=$GOCOVERDIR
 EOF2
 EOF
     done < <(find "$SPREAD_PATH"/data/systemd "$SPREAD_PATH"/data/systemd-user -type f -name '*.service.in' -exec basename {} \;)
+    systemctl daemon-reload
 fi
     chmod 0755 "${UNPACK_DIR}"/usr/lib/snapd/snapd.spread-tests-run-mode-tweaks.sh
 }

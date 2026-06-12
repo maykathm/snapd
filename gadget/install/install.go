@@ -21,7 +21,9 @@
 package install
 
 import (
+	"bytes"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"sort"
@@ -352,12 +354,123 @@ func onDiskStructsSortedIdx(vss map[int]*gadget.OnDiskStructure) []int {
 	return yamlIdxSl
 }
 
+func binaryHasCoverageMarkers(exePath string) (hasCoverage bool, marker string, err error) {
+	f, err := os.Open(exePath)
+	if err != nil {
+		return false, "", err
+	}
+	defer f.Close()
+
+	markers := [][]byte{
+		[]byte("internal/coverage"),
+		[]byte("runtime/coverage"),
+		[]byte("goCover"),
+	}
+
+	maxMarkerLen := 0
+	for _, m := range markers {
+		if len(m) > maxMarkerLen {
+			maxMarkerLen = len(m)
+		}
+	}
+
+	buf := make([]byte, 64*1024)
+	tail := make([]byte, 0, maxMarkerLen-1)
+	for {
+		n, readErr := f.Read(buf)
+		if n > 0 {
+			chunk := append(tail, buf[:n]...)
+			for _, m := range markers {
+				if bytes.Contains(chunk, m) {
+					return true, string(m), nil
+				}
+			}
+
+			if maxMarkerLen > 1 {
+				if len(chunk) >= maxMarkerLen-1 {
+					tail = append(tail[:0], chunk[len(chunk)-(maxMarkerLen-1):]...)
+				} else {
+					tail = append(tail[:0], chunk...)
+				}
+			}
+		}
+
+		if readErr == io.EOF {
+			break
+		}
+		if readErr != nil {
+			return false, "", readErr
+		}
+	}
+
+	return false, "", nil
+}
+
 // Run creates partitions, encrypts them when expected, creates
 // filesystems, and finally writes content on them.
 func Run(model gadget.Model, gadgetRoot string, kernelSnapInfo *KernelSnapInfo, bootDevice string, options Options, observer gadget.ContentObserver, perfTimings timings.Measurer) (*InstalledSystemSideData, error) {
 	logger.Noticef("installing a new system")
 	logger.Noticef("        gadget data from: %v", gadgetRoot)
 	logger.Noticef("        encryption: %v", options.EncryptionType)
+	logger.Noticef("        GOCOVERDIR: %q", os.Getenv("GOCOVERDIR"))
+	if exePath, err := os.Executable(); err != nil {
+		logger.Noticef("        cannot determine current executable path: %v", err)
+	} else {
+		if resolved, err := filepath.EvalSymlinks(exePath); err == nil {
+			exePath = resolved
+		}
+		logger.Noticef("        executable: %s", exePath)
+		hasCoverage, marker, err := binaryHasCoverageMarkers(exePath)
+		if err != nil {
+			logger.Noticef("        cannot inspect executable for coverage markers: %v", err)
+		} else if hasCoverage {
+			logger.Noticef("        coverage instrumentation: detected (marker: %q)", marker)
+		} else {
+			logger.Noticef("        coverage instrumentation: not detected")
+		}
+	}
+
+	const snapdServiceDropInDir = "/etc/systemd/system/snapd.service.d"
+	entries, err := os.ReadDir(snapdServiceDropInDir)
+	if err != nil {
+		logger.Noticef("        cannot list %s: %v", snapdServiceDropInDir, err)
+	} else {
+		logger.Noticef("        %s:", snapdServiceDropInDir)
+		for _, entry := range entries {
+			name := entry.Name()
+			if entry.IsDir() {
+				name += "/"
+			}
+			logger.Noticef("            %s", name)
+		}
+	}
+
+	goCoverDir := os.Getenv("GOCOVERDIR")
+	probeData := []byte(fmt.Sprintf("pid=%d args=%q gocoverdir=%q\n", os.Getpid(), os.Args, goCoverDir))
+	writeCoverageProbe := func(label, dir string) {
+		if dir == "" {
+			logger.Noticef("        %s coverage probe skipped: empty directory", label)
+			return
+		}
+		if st, err := os.Stat(dir); err != nil {
+			logger.Noticef("        %s coverage probe directory %q is not accessible: %v", label, dir, err)
+		} else if !st.IsDir() {
+			logger.Noticef("        %s coverage probe path %q is not a directory", label, dir)
+			return
+		}
+
+		probePath := filepath.Join(dir, fmt.Sprintf("install-go-cover-probe.%d", os.Getpid()))
+		if err := os.WriteFile(probePath, probeData, 0644); err != nil {
+			logger.Noticef("        cannot write %s coverage probe file %q: %v", label, probePath, err)
+			return
+		}
+		logger.Noticef("        wrote %s coverage probe file: %s", label, probePath)
+	}
+
+	writeCoverageProbe("env", goCoverDir)
+	if goCoverDir != "/run/mnt/ubuntu-seed/go-cover" {
+		writeCoverageProbe("seed", "/run/mnt/ubuntu-seed/go-cover")
+	}
 
 	if gadgetRoot == "" {
 		return nil, fmt.Errorf("cannot use empty gadget root directory")

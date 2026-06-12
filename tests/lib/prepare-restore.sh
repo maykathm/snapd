@@ -22,10 +22,7 @@ set -e
 coverage_dirs() {
     cat <<EOF
 $GOCOVERDIR
-/run/mnt/ubuntu-seed/test/go-cover/install-snapd
-/run/mnt/data/system-data/var/lib/snapd/test/go-cover/install-snapd
-/run/mnt/ubuntu-seed/test/go-cover/initramfs
-/run/mnt/data/system-data/var/lib/snapd/test/go-cover/initramfs
+/run/mnt/ubuntu-seed/go-cover
 EOF
 }
 
@@ -840,7 +837,7 @@ prepare_suite_each() {
             copy_coverage_files "${SPREAD_PATH}/coverage-results/${SPREAD_SUITE}"
             touch "$TESTSTMP/initial-coverage-collected-${SPREAD_SUITE//\//--}"
         fi
-        clear_coverage_files
+        # clear_coverage_files
         systemctl start snapd
         if [[ "$restart_user" = "true" ]]; then
             systemctl --user start snapd.session-agent.socket
