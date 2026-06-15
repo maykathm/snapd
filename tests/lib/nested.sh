@@ -683,42 +683,33 @@ nested_ensure_ubuntu_save() {
     fi
 }
 
-_build_snapd_snap_with_firstboot_tweaks_nested() {
-    local SNAP_CACHE
+_add_nested_coverage_tweaks() {
     local TARGET
     TARGET="${1}"
-
-
-    if [[ "$GENERATE_COVERAGE" = "false" ]]; then
-        build_snapd_snap "$TARGET"
+    if [ "$GENERATE_COVERAGE" = "false" ]; then
         return
     fi
 
     SNAP_CACHE="$SNAPD_WORK_DIR/snapd_snap_with_tweaks"
 
     mkdir -p "${SNAP_CACHE}"
-    for snap in "${SNAP_CACHE}"/snapd_*.snap; do
-        if [ -f "${snap}" ]; then
-            cp "${snap}" "${TARGET}/"
-            return
-        fi
+
+    SNAP_PATH=
+    for f in "${TARGET}"/snapd_*.snap; do
+        SNAP_PATH="$f"
+        break
     done
 
-    build_snapd_snap "${SNAP_CACHE}/downloads"
-
-    if [ -f "${SNAP_CACHE}"/downloads/snapd_from_snapcraft.snap ] && ! [ -f "${SNAP_CACHE}"/downloads/snapd_from_ci.snap ]; then
-        mv "${SNAP_CACHE}"/downloads/snapd_from_snapcraft.snap "${SNAP_CACHE}"/downloads/snapd_from_ci.snap
-    fi
-
     mkdir -p "${SNAP_CACHE}/unpack"
-    unsquashfs -no-progress -f -d "${SNAP_CACHE}/unpack" "${SNAP_CACHE}"/downloads/snapd_from_ci.snap
+    unsquashfs -no-progress -f -d "${SNAP_CACHE}/unpack" "${SNAP_PATH}"
 
+    # add tweaks to run mode for spread tests
     . "$TESTSLIB"/prepare.sh
-    _add_install_mode_tweaks "${SNAP_CACHE}/unpack"
+    _add_coverage_tweaks "${SNAP_CACHE}/unpack"
 
     snap pack "${SNAP_CACHE}/unpack" "${SNAP_CACHE}/"
-    rm -rf "${SNAP_CACHE}/unpack"
-    cp "${SNAP_CACHE}"/snapd_*.snap "${TARGET}/"
+    cp "${SNAP_CACHE}"/snapd_*.snap "${SNAP_PATH}"
+    rm -rf "${SNAP_CACHE}"
 }
 
 nested_prepare_snapd() {
@@ -742,7 +733,8 @@ nested_prepare_snapd() {
             if [ ! -f "${NESTED_ASSETS_DIR}/${snap_name}" ]; then
                 # shellcheck source=tests/lib/prepare.sh
                 . "$TESTSLIB"/prepare.sh
-                _build_snapd_snap_with_firstboot_tweaks_nested "$NESTED_ASSETS_DIR"
+                build_snapd_snap "$NESTED_ASSETS_DIR"
+                _add_coverage_tweaks "$NESTED_ASSETS_DIR"
                 for f in "${NESTED_ASSETS_DIR}"/snapd_*.snap; do
                     snap_name="$(basename "${f}")"
                     break
@@ -1919,32 +1911,6 @@ nested_prepare_tools() {
         remote.exec "sudo systemctl stop snapd.socket"
         # start the service (it pulls up the socket)
         remote.exec "sudo systemctl start snapd.service"
-    fi
-
-    if [ -n "$GENERATE_COVERAGE" ] && ! remote.exec "grep -q '^GOCOVERDIR' /etc/environment"; then
-        remote.exec "sudo mkdir -p $GOCOVERDIR"
-        remote.exec "sudo chmod 777 $GOCOVERDIR"
-        remote.exec "echo GOCOVERDIR=$GOCOVERDIR | sudo tee -a /etc/environment"
-        CONF_FILE="99-generate-coverage.conf"
-        while IFS= read -r line; do
-            echo "$line"
-            dir=$(sed -E 's|^(.*)\.in$|/etc/systemd/system/\1.d|' <<<"$line")
-            remote.exec "sudo mkdir -p $dir" </dev/null
-            if ! remote.exec "[ -f $dir/$CONF_FILE ]" </dev/null; then
-                remote.exec "echo '[Service]' | sudo tee $dir/$CONF_FILE" </dev/null
-                remote.exec "echo \"Environment=GOCOVERDIR=$GOCOVERDIR\" | sudo tee -a $dir/$CONF_FILE" </dev/null
-            fi
-        done < <(find "$SPREAD_PATH"/data/systemd "$SPREAD_PATH"/data/systemd-user -type f -name '*.service.in' -exec basename {} \;)
-        # We changed the service configuration so we need to reload and restart
-        # the units to get them applied
-        remote.exec "sudo systemctl daemon-reload"
-        # stop the socket (it pulls down the service)
-        remote.exec "sudo systemctl stop snapd.socket"
-        # start the service (it pulls up the socket)
-        remote.exec "sudo systemctl start snapd.service"
-        if remote.exec "systemctl --user is-active --quiet snapd.session-agent.socket"; then
-            remote.exec "systemctl --user restart snapd.session-agent.socket"
-        fi
     fi
 }
 

@@ -9,28 +9,6 @@ _prepare_artifacts_path() {
     echo "$task_dir"
 }
 
-_coverage_dirs() {
-    cat <<EOF
-$GOCOVERDIR
-/run/mnt/ubuntu-seed/go-cover
-EOF
-}
-
-_has_coverage_files() {
-    local dir="$1"
-    [ -d "$dir" ] && find "$dir" -type f -print -quit | grep -q .
-}
-
-_copy_local_coverage_files() {
-    local target="$1"
-    local dir
-    while IFS= read -r dir; do
-        if _has_coverage_files "$dir"; then
-            cp "$dir"/* "$target" 2>/dev/null || true
-        fi
-    done < <(_coverage_dirs)
-}
-
 features_after_non_nested_task() {
     # Write to the directory specified in the spread.yaml file for artifacts
     local task_dir
@@ -60,29 +38,57 @@ locks(){
     cp -f "$TESTSTMP"/snapd_lock_traces "$task_dir"
 }
 
+coverage_non_nested_suite() {
+    systemctl stop snapd
+    restart_user=false
+    if systemctl --user is-active --quiet snapd.session-agent.socket; then
+        systemctl --user stop snapd.session-agent.socket
+        restart_user=true
+    fi
+    if ! [ -f "$TESTSTMP/initial-coverage-collected-${SPREAD_SUITE//\//--}" ]; then
+        ARTDIR="${SPREAD_PATH}/coverage-results/${SPREAD_SUITE}"
+        mkdir -p "$ARTDIR"
+        if [ -d "/run/mnt/ubuntu-seed/go-cover" ]; then
+            cp "/run/mnt/ubuntu-seed/go-cover/*" "$ARTDIR"
+            rm -r "/run/mnt/ubuntu-seed/go-cover/"
+        fi
+        cp "$GOCOVERDIR/*" "$ARTDIR"
+        touch "$TESTSTMP/initial-coverage-collected-${SPREAD_SUITE//\//--}"
+    fi
+    # clear_coverage_files
+    rm "$GOCOVERDIR/*"
+    systemctl start snapd
+    if [[ "$restart_user" = "true" ]]; then
+        systemctl --user start snapd.session-agent.socket
+    fi
+}
+
 coverage_after_non_nested_task() {
     local task_dir merged_cover_dir
     task_dir="$(_prepare_artifacts_path coverage-results)"
     merged_cover_dir="$(mktemp -d)"
-
-    _copy_local_coverage_files "$merged_cover_dir"
-    if [ -z "$(ls -A "$merged_cover_dir")" ]; then
-        rm -rf "$merged_cover_dir"
-        rm -r "$task_dir"
-        return
+    systemctl stop snapd || true
+    restart_user=false
+    if systemctl --user is-active --quiet snapd.session-agent.socket; then
+        systemctl --user stop snapd.session-agent.socket
+        restart_user=true
     fi
 
-    systemctl stop snapd || true
-    pushd "$SPREAD_PATH"
-    "$SPREAD_PATH"/tests/utils/coverage/main.py -results-dir "$merged_cover_dir" -output functions > "$task_dir"/coverage.json || true
-    popd
-    if ! [ -s "$task_dir"/coverage.json ]; then
-        cp "$merged_cover_dir"/* "$task_dir" || true
-        chmod 777 "$task_dir"/* || true
-        rm -f "$task_dir"/coverage.json
+    if [ -n "$(ls -A "$GOCOVERDIR")" ]; then
+        pushd "$SPREAD_PATH"
+        "$SPREAD_PATH"/tests/utils/coverage/main.py -results-dir "$GOCOVERDIR" -output functions > "$task_dir"/coverage.json || true
+        popd
+        if ! [ -s "$task_dir"/coverage.json ]; then
+            cp "$GOCOVERDIR"/* "$task_dir" || true
+            chmod 777 "$task_dir"/* || true
+            rm -f "$task_dir"/coverage.json
+        fi
     fi
     systemctl start snapd || true
-    rm -rf "$merged_cover_dir"
+    if [[ "$restart_user" = "true" ]]; then
+        systemctl --user start snapd.session-agent.socket
+    fi
+    rm "$GOCOVERDIR"/*
 }
 
 coverage_after_nested_task() {
@@ -152,6 +158,9 @@ case "$artifact" in
                 ;;
             --after-nested-task)
                 coverage_after_nested_task
+                ;;
+            --non-nested-suite)
+                coverage_non_nested_suite
                 ;;
             *)
                 echo "collect-artifacts: unsupported action $1" >&2

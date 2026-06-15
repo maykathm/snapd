@@ -722,15 +722,71 @@ slots:
 EOF
 }
 
-_add_install_mode_tweaks() {
-    if [[ "$GENERATE_COVERAGE" = "false" ]] || os.query is-core26; then
+_add_coverage_tweaks() {
+    if [[ "$GENERATE_COVERAGE" = "false" ]]; then
         return
     fi
     local UNPACK_DIR
     UNPACK_DIR="${1}"
 
-    install_coverdir=/run/mnt/ubuntu-seed/go-cover
+    cat > "${UNPACK_DIR}"/lib/systemd/system/snapd.spread-tests-coverage-tweaks.service <<'EOF'
+[Unit]
+Description=Tweaks to run mode for spread tests
+Before=snapd.service
 
+[Service]
+Type=oneshot
+ExecStart=/usr/lib/snapd/snapd.spread-tests-coverage-tweaks.sh
+RemainAfterExit=true
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+    cat > "${UNPACK_DIR}"/usr/lib/snapd/snapd.spread-tests-coverage-tweaks.sh <<EOF
+#!/bin/sh
+set -ex
+if [ -f /var/lib/snapd/modeenv ]; then
+    if ! grep -E '^mode=(run|recover)$' /var/lib/snapd/modeenv; then
+        echo "not in run or recovery mode - script not running"
+        exit 0
+    fi
+elif ! grep -E 'snapd_recovery_mode=(run|recover)' /proc/cmdline; then
+    echo "not in run or recovery mode - script not running"
+    exit 0
+fi
+if [ -e /root/spread-coverage-setup-done ]; then
+    exit 0
+fi
+
+echo "GOCOVERDIR=$GOCOVERDIR" >> /etc/environment
+mkdir -p "$GOCOVERDIR"
+
+EOF
+    CONF_FILE=99-generate-coverage.conf
+    while IFS= read -r line; do
+        dir=$(sed -E 's|^(.*)\.in$|/etc/systemd/system/\1.d|' <<<"$line")
+        cat >> "${UNPACK_DIR}"/usr/lib/snapd/snapd.spread-tests-run-mode-tweaks.sh <<EOF
+mkdir -p "$dir"
+cat <<EOF2 >"$dir/$CONF_FILE"
+[Service]
+Environment=GOCOVERDIR=$GOCOVERDIR
+EOF2
+EOF
+    done < <(find "$SPREAD_PATH"/data/systemd "$SPREAD_PATH"/data/systemd-user -type f -name '*.service.in' -exec basename {} \;)
+    cat <<EOF >"${UNPACK_DIR}"/usr/lib/snapd/snapd.spread-tests-coverage-tweaks.sh
+    systemctl daemon-reload
+    touch /root/spread-coverage-setup-done
+EOF
+    chmod 0755 "${UNPACK_DIR}"/usr/lib/snapd/snapd.spread-tests-coverage-tweaks.sh
+
+    if os.query is-core26; then
+        return
+    fi
+
+    install_coverdir=/run/mnt/ubuntu-seed/go-cover
+    
+    # Install mode tweaks for cores less than 26
     # now install a unit that sets up enough so that we can connect
     cat > "${UNPACK_DIR}"/lib/systemd/system/snapd.spread-tests-install-mode-tweaks.service <<'EOF'
 [Unit]
@@ -750,9 +806,6 @@ EOF
     cat > "${UNPACK_DIR}"/usr/lib/snapd/snapd.spread-tests-install-mode-tweaks.sh <<EOF
 #!/bin/sh
 set -ex
-if ! [ -e /root/first-install-mode-touch ]; then
-    touch /root/first-install-mode-touch
-fi
 # We look at modeenv as that is authoritative if installing from the initramfs.
 if [ -f /var/lib/snapd/modeenv ]; then
     if ! grep -E '^mode=install$' /var/lib/snapd/modeenv; then
@@ -870,24 +923,6 @@ fi
 
 touch /root/spread-setup-done
 EOF
-if [ "$GENERATE_COVERAGE" = "true" ]; then
-    echo "GOCOVERDIR=$GOCOVERDIR" >> /etc/environment
-    CONF_FILE=99-generate-coverage.conf
-    cat >> "${UNPACK_DIR}"/usr/lib/snapd/snapd.spread-tests-run-mode-tweaks.sh <<EOF
-mkdir -p "$GOCOVERDIR"
-EOF
-    while IFS= read -r line; do
-        dir=$(sed -E 's|^(.*)\.in$|/etc/systemd/system/\1.d|' <<<"$line")
-        cat >> "${UNPACK_DIR}"/usr/lib/snapd/snapd.spread-tests-run-mode-tweaks.sh <<EOF
-mkdir -p "$dir"
-cat <<EOF2 >"$dir/$CONF_FILE"
-[Service]
-Environment=GOCOVERDIR=$GOCOVERDIR
-EOF2
-EOF
-    done < <(find "$SPREAD_PATH"/data/systemd "$SPREAD_PATH"/data/systemd-user -type f -name '*.service.in' -exec basename {} \;)
-    systemctl daemon-reload
-fi
     chmod 0755 "${UNPACK_DIR}"/usr/lib/snapd/snapd.spread-tests-run-mode-tweaks.sh
 }
 
@@ -941,7 +976,7 @@ build_snapd_snap_with_run_mode_firstboot_tweaks() {
 
     # add tweaks to run mode for spread tests
     _add_run_mode_tweaks "${SNAP_CACHE}/unpack"
-    _add_install_mode_tweaks "${SNAP_CACHE}/unpack"
+    _add_coverage_tweaks "${SNAP_CACHE}/unpack"
 
     # add gpio and iio slots required for the tests
     _add_gpio_iio_slots "${SNAP_CACHE}/unpack"
@@ -1082,7 +1117,6 @@ bootstrap_coverdir=/run/snapd-bootstrap-gocover
 mkdir -p "$bootstrap_coverdir"
 chmod 0777 "$bootstrap_coverdir"
 export GOCOVERDIR="$bootstrap_coverdir"
-echo "spread coverage: initramfs bootstrap GOCOVERDIR=$GOCOVERDIR"
 EOF
     fi
     cat <<'EOF' >>"$SKELETON_PATH"/usr/lib/snapd/snap-bootstrap
