@@ -129,6 +129,8 @@ environment:
     # Whether we should use pre-built packages in the ./built-pkgs/ directory
     USE_PREBUILT_PACKAGES: '$(HOST: echo "${SPREAD_USE_PREBUILT_PACKAGES:-false}")'
 
+    GENERATE_COVERAGE: '$(HOST: echo "${SPREAD_GENERATE_COVERAGE:-}")'
+    
     # When SPREAD_TAG_FEATURES is populated with a non-empty value,
     # each spread task will extract relevant information form its
     # journal and copy it and the state.json to the artifacts folder.
@@ -138,11 +140,12 @@ environment:
     # Set the following to SPREAD_TAG_FEATURES by default
     # since the following are required to log snap commands
     # to the journal
-    SNAPD_LOG_SNAP_TO_JOURNAL: '$(HOST: echo "${SPREAD_SNAPD_LOG_SNAP_TO_JOURNAL:-$SPREAD_TAG_FEATURES}")'
-    SNAPD_TRACE: '$(HOST: echo "${SPREAD_SNAPD_TRACE:-$SPREAD_TAG_FEATURES}")'
+    SNAPD_LOG_SNAP_TO_JOURNAL: '$(HOST: echo "${SPREAD_SNAPD_LOG_SNAP_TO_JOURNAL:-$SPREAD_GENERATE_COVERAGE}")'
+    SNAPD_TRACE: '$(HOST: echo "${SPREAD_SNAPD_TRACE:-$SPREAD_GENERATE_COVERAGE}")'
 
     # Whether snapd should skip early refreshes.
     SNAPD_SKIP_EARLY_REFRESH: '$(HOST: echo "${SPREAD_SNAPD_SKIP_EARLY_REFRESH:-}")'
+
 
 backends:
     google:

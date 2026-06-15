@@ -234,6 +234,12 @@ prepare_project() {
         snap set system refresh.hold="2050-01-01T00:00:00Z"
     fi
 
+    if [ "$GENERATE_COVERAGE" = "true" ]; then
+        pushd "$SPREAD_PATH"
+        go run ./tests/utils/coverage/instrument-funcs
+        popd
+    fi
+
     if os.query is-ubuntu && os.query is-classic; then
         apt-get remove --purge -y lxd lxcfs || true
         apt-get autoremove --purge -y
@@ -778,6 +784,7 @@ prepare_suite_each() {
 restore_suite_each() {
     if not tests.nested is-nested; then
         "$TESTSLIB"/collect-artifacts.sh features --after-non-nested-task
+        "$TESTSLIB"/collect-artifacts.sh coverage --after-non-nested-task
         "$TESTSLIB"/collect-artifacts.sh locks
     fi
     local variant="$1"

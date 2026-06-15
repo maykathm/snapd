@@ -73,6 +73,12 @@ case "$artifact" in
         fi
         locks
         ;;
+    coverage)
+        if [ "$GENERATE_COVERAGE" = "false" ]; then
+            exit
+        fi
+        features_after_non_nested_task
+        ;;
     *)
         echo "collect-artifacts: unsupported argument: $1"
         exit 1
