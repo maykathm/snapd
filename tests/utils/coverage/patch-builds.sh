@@ -7,3 +7,6 @@ sed -i '/minidebuginfo/d' build-aux/snap/snapcraft.yaml
 sed -i '/go build/ { / -cover/! s/go build/go build -cover -covermode=atomic/ }' build-aux/snap/snapcraft.yaml
 sed -i '/^EXTRA_GO_BUILD_FLAGS = / { / -cover/! s/$/ -cover -covermode=atomic/ }' packaging/arch/PKGBUILD
 find packaging -type f -name snapd.spec -exec sed -i '/^EXTRA_GO_BUILD_FLAGS = / { / -cover/! s/$/ -cover -covermode=atomic/ }' {} \;
+
+# change build tag generatecoverage -> withtestkeys
+sed -i 's/generatecoverage/withtestkeys/g' overlord/devicestate/handlers_install_coverage*.go

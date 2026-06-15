@@ -1,5 +1,5 @@
-//go:build !go1.20 || !generatecoverage
-// +build !go1.20 !generatecoverage
+//go:build !go1.20 || !withtestkeys
+// +build !go1.20 !withtestkeys
 
 /*
  * Copyright (C) 2024 Canonical Ltd

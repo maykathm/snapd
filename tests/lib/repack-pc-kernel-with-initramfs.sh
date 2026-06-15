@@ -190,7 +190,7 @@ if [ -n "${bootstrap_coverdir:-}" ]; then
     d=/run/mnt/ubuntu-seed/go-cover
     if mkdir -p "$d" 2>/dev/null; then
         chmod 0777 "$d" || true
-        cp -a "$bootstrap_coverdir"/. "$d"/ 2>/dev/null || true
+        mv "$bootstrap_coverdir"/. "$d"/ 2>/dev/null || true
         echo "spread coverage: initramfs copied coverage to $d"
     fi
 fi
