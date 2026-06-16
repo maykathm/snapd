@@ -1,0 +1,149 @@
+name: Nightly spread coverage
+
+on:
+  pull_request:
+    branches: [ "master" ]
+
+jobs:
+  snap-builds:
+    runs-on: ${{ fromJSON(matrix.runs-on) }}
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v6
+      with:
+        fetch-depth: 0
+
+    - name: Patch builds
+      run: |
+        sudo snap install go --classic 
+        go run ./tests/utils/coverage/instrument-funcs
+
+    - name: Commit changes
+      run: |
+        git config user.name "GitHub Actions"
+        git config user.email "bot@githubactions.com"
+        git add .
+        git commit -m "Patch builds for coverage"
+    
+    - name: Build and upload snap
+      uses: ./.github/actions/build-snap-checks
+      with:
+        toolchain: ${{ matrix.toolchain }}
+        variant: test
+        runs-on: ${{ matrix.runs-on }}
+        pr-number: ${{ github.event.pull_request.number || '' }}
+    strategy:
+      matrix:
+        runs-on:
+          - '["ubuntu-22.04"]'
+          - ${{ github.event.repository.private && '["self-hosted", "Linux", "jammy", "ARM64", "large"]' || '["ubuntu-22.04-arm"]' }}
+        toolchain:
+          - default
+          - FIPS
+        exclude:
+          - runs-on: ${{ github.event.repository.private && '["self-hosted", "Linux", "jammy", "ARM64", "large"]' || '["ubuntu-22.04-arm"]' }}
+            toolchain: FIPS
+
+  read-systems:
+    runs-on: ubuntu-latest
+    outputs:
+      systems: ${{ steps.read-systems.outputs.systems }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Read matrix file
+        id: read-systems
+        shell: bash
+        run: |
+          echo "systems=$(jq -cs '{include: (map(.include // []) | add)}' \
+            ./.github/workflows/data-fundamental-systems.json \
+            ./.github/workflows/data-non-fundamental-systems.json \
+            ./.github/workflows/data-nested-systems.json)" >> $GITHUB_OUTPUT
+
+  spread-coverage:
+    uses: ./.github/workflows/spread-tests.yaml
+    name: "spread master ${{ matrix.group }}"
+    needs: [read-systems, snap-builds]
+    secrets: inherit
+    with:
+      runs-on: '${{ matrix.runs-on }}'
+      group: ${{ matrix.group }}
+      backend: ${{ matrix.backend }}
+      alternative-backend: ${{ matrix.alternative-backend }}
+      systems: ${{ matrix.systems }}
+      tasks: ${{ matrix.tasks }}
+      # tasks: tests/main/alias
+      rules: ${{ matrix.rules }}
+      upload-artifacts: true
+      spread-env: "SPREAD_GENERATE_COVERAGE=true"
+      skip-tests: 'ubuntu-14.04-64 tests/lib/ tests/unit/ tests/utils/cross-build ubuntu-fips-2 ubuntu-secboot manual/snapd-refresh-from-old core/persistent-journal'
+      log-to-grafana: false
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.read-systems.outputs.systems) }}
+
+  # process-coverage:
+  #   runs-on: ubuntu-latest
+  #   if: always()
+  #   needs: [spread-coverage]
+  #   steps:
+  #     - name: Checkout code
+  #       uses: actions/checkout@v6
+
+  #     - name: Download coverage artifacts
+  #       uses: actions/download-artifact@v8
+  #       with:
+  #         path: coverage
+  #         pattern: spread-artifacts-*
+  #         merge-multiple: true
+
+  #     - name: Download spread results artifacts
+  #       uses: actions/download-artifact@v8
+  #       with:
+  #         path: spread-results
+  #         pattern: spread-results-*
+
+  #     # - name: Calculate feature-based coverage over last two schedule runs
+  #     #   env: 
+  #     #     MONGO_USER: ${{ secrets.MONGO_USER }}
+  #     #     MONGO_PASSWORD: ${{ secrets.MONGO_PASS }}
+  #     #     MONGO_HOST: ${{ secrets.MONGO_HOST }}
+  #     #     MONGO_PORT: ${{ secrets.MONGO_PORT }}
+  #     #   run: tests/utils/coverage/calculate-core-set.sh > coverage/feature-core-set.json
+
+  #     - name: Calculate coverage
+  #       run: |
+  #         sudo snap install go --classic 
+  #         tests/utils/coverage/write-conclusions.sh --coverage-dir coverage --output-dir results
+
+  #     - name: Create failed lists
+  #       run: |
+  #         while IFS= read -r results_json; do
+  #           group=$(basename $(dirname "$results_json"))
+  #           output_name=
+  #           if [[ ! "$group" =~ ^spread-results-[0-9]+-[0-9]+-(.*)$ ]]; then
+  #             output_name="$group".json
+  #           else
+  #             output_name="${BASH_REMATCH[1]}".json
+  #           fi
+  #           output_name="failed-$output_name"
+  #           jq -r '.items.[] | select(.success == false) | select(.verb != "checking") | select(.level == "task") | select(.skipped == false) | .backend + ":" + .system + ":" + .name' "$results_json" > results/"$output_name"
+  #         done < <(find spread-results -name results.json)
+
+  #     - name: Tar results
+  #       run: tar -czvf coverage-results.tar.gz results/
+
+  #     - name: Upload coverage results
+  #       uses: actions/upload-artifact@v7
+  #       with:
+  #         name: coverage-results
+  #         path: coverage-results.tar.gz
+
+  #     # - name: Upload feature core set
+  #     #   uses: actions/upload-artifact@v7
+  #     #   with:
+  #     #     name: feature-core-set
+  #     #     path: coverage/feature-core-set.json
