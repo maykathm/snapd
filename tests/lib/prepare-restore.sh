@@ -878,6 +878,10 @@ restore_suite() {
             distro_purge_package snap-confine
         fi
     fi
+    if [ "$GENERATE_COVERAGE" = "true" ]; then
+        journalctl --rotate
+        journalctl --vacuum-time=1s
+    fi
 }
 
 restore_project_each() {
