@@ -234,12 +234,6 @@ prepare_project() {
         snap set system refresh.hold="2050-01-01T00:00:00Z"
     fi
 
-    if [ "$GENERATE_COVERAGE" = "true" ]; then
-        pushd "$SPREAD_PATH"
-        go run ./tests/utils/coverage/instrument-funcs
-        popd
-    fi
-
     if os.query is-ubuntu && os.query is-classic; then
         apt-get remove --purge -y lxd lxcfs || true
         apt-get autoremove --purge -y
@@ -574,6 +568,12 @@ prepare_project() {
             fi
             ;;
     esac
+
+    if [ "$GENERATE_COVERAGE" = "true" ]; then
+        pushd "$SPREAD_PATH"
+        go run ./tests/utils/coverage/instrument-funcs
+        popd
+    fi
 
     # Retry go mod vendor to minimize the number of connection errors during the sync
     # It is required in any case because the testing tools like the fakestore are always compiled

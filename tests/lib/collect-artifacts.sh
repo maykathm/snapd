@@ -37,6 +37,19 @@ locks(){
 
     cp -f "$TESTSTMP"/snapd_lock_traces "$task_dir"
 }
+coverage() {
+    # Write to the directory specified in the spread.yaml file for artifacts
+    local task_dir
+    task_dir="$(_prepare_artifacts_path feature-tags)"
+    # On some systems, some log lines get broken into separate entries
+    # So for lines with snapd/snap identifiers, search for lines that begin with `{` 
+    # but don't end with `}` and have "TRACE", remove their new lines to recompose the entry.
+    # Then only grab TRACE-level entries.
+    "$TESTSTOOLS"/journal-state get-log --no-pager | grep -oP 'snapd?\[\d+\]: \K.*' | sed -e ':a' -e '/^{.*\"TRACE\".*[^}]$/ { N; s/\n//; ba }' | grep '"TRACE"' > "$task_dir"/journal.txt
+    journalctl -b -1 --no-pager | grep -oP 'snapd?\[\d+\]: \K.*' | sed -e ':a' -e '/^{.*\"TRACE\".*[^}]$/ { N; s/\n//; ba }' | grep '"TRACE"' > "$task_dir"/journalb1.txt
+    journalctl --no-pager | grep -oP 'snapd?\[\d+\]: \K.*' | sed -e ':a' -e '/^{.*\"TRACE\".*[^}]$/ { N; s/\n//; ba }' | grep '"TRACE"' > "$task_dir"/journalb0.txt
+    find / -name install-mode.log.gz -exec cp {} "$task_dir" \;
+}
 
 if [ "$#" == 0 ]; then
     echo "collect-artifacts: Illegal number of parameters"
@@ -77,7 +90,7 @@ case "$artifact" in
         if [ "$GENERATE_COVERAGE" = "false" ]; then
             exit
         fi
-        features_after_non_nested_task
+        coverage
         ;;
     *)
         echo "collect-artifacts: unsupported argument: $1"

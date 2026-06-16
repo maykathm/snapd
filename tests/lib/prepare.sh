@@ -408,6 +408,8 @@ prepare_classic() {
     # Configure the proxy in the system when it is required
     setup_system_proxy
 
+    prepare_generate_coverage
+
     # Skip building snapd when REUSE_SNAPD is set to 1
     if [ "$REUSE_SNAPD" != 1 ]; then
         distro_install_build_snapd
@@ -720,6 +722,109 @@ slots:
 EOF
 }
 
+_add_coverage_tweaks() {
+    if [[ "$GENERATE_COVERAGE" = "false" ]]; then
+        return
+    fi
+    local UNPACK_DIR
+    UNPACK_DIR="${1}"
+
+    cat > "${UNPACK_DIR}"/lib/systemd/system/snapd.spread-tests-coverage-tweaks.service <<'EOF'
+[Unit]
+Description=Tweaks to run mode for spread tests
+Before=snapd.service
+[Service]
+Type=oneshot
+ExecStart=/usr/lib/snapd/snapd.spread-tests-coverage-tweaks.sh
+RemainAfterExit=true
+[Install]
+WantedBy=multi-user.target
+EOF
+
+    cat > "${UNPACK_DIR}"/usr/lib/snapd/snapd.spread-tests-coverage-tweaks.sh <<EOF
+#!/bin/sh
+set -ex
+if [ -f /var/lib/snapd/modeenv ]; then
+    if ! grep -E '^mode=(run|recover)$' /var/lib/snapd/modeenv; then
+        echo "not in run or recovery mode - script not running"
+        exit 0
+    fi
+elif ! grep -E 'snapd_recovery_mode=(run|recover)' /proc/cmdline; then
+    echo "not in run or recovery mode - script not running"
+    exit 0
+fi
+if [ -e /root/spread-coverage-setup-done ]; then
+    exit 0
+fi
+echo "SNAPD_TRACE=1" >> /etc/environment
+echo "SNAPD_JSON_LOGGING=1" >> /etc/environment
+EOF
+    CONF_FILE=99-generate-coverage.conf
+    while IFS= read -r line; do
+        dir=$(sed -E 's|^(.*)\.in$|/etc/systemd/system/\1.d|' <<<"$line")
+        cat >> "${UNPACK_DIR}"/usr/lib/snapd/snapd.spread-tests-run-mode-tweaks.sh <<EOF
+mkdir -p "$dir"
+cat <<EOF2 >"$dir/$CONF_FILE"
+[Service]
+Environment=SNAPD_TRACE=1
+Environment=SNAPD_JSON_LOGGING=1
+EOF2
+EOF
+    done < <(find "$SPREAD_PATH"/data/systemd "$SPREAD_PATH"/data/systemd-user -type f -name '*.service.in' -exec basename {} \;)
+    cat <<EOF >"${UNPACK_DIR}"/usr/lib/snapd/snapd.spread-tests-coverage-tweaks.sh
+    systemctl daemon-reload
+    touch /root/spread-coverage-setup-done
+EOF
+    chmod 0755 "${UNPACK_DIR}"/usr/lib/snapd/snapd.spread-tests-coverage-tweaks.sh
+
+    if os.query is-core26; then
+        return
+    fi
+
+    # Install mode tweaks for cores less than 26
+    # now install a unit that sets up enough so that we can connect
+    cat > "${UNPACK_DIR}"/lib/systemd/system/snapd.spread-tests-install-mode-tweaks.service <<'EOF'
+[Unit]
+Description=Tweaks to install mode for spread tests
+Before=snapd.service
+Documentation=man:snap(1)
+[Service]
+Type=oneshot
+ExecStart=/usr/lib/snapd/snapd.spread-tests-install-mode-tweaks.sh
+RemainAfterExit=true
+[Install]
+WantedBy=multi-user.target
+EOF
+    # XXX: this duplicates a lot of setup_test_user_by_modify_writable()
+    cat > "${UNPACK_DIR}"/usr/lib/snapd/snapd.spread-tests-install-mode-tweaks.sh <<EOF
+#!/bin/sh
+set -ex
+# We look at modeenv as that is authoritative if installing from the initramfs.
+if [ -f /var/lib/snapd/modeenv ]; then
+    if ! grep -E '^mode=install$' /var/lib/snapd/modeenv; then
+        echo "not in install mode - script not running"
+        exit 0
+    fi
+elif ! grep -E 'snapd_recovery_mode=install' /proc/cmdline; then
+    echo "not in install mode - script not running"
+    exit 0
+fi
+if [ -e /root/spread-install-setup-done ]; then
+    exit 0
+fi
+mkdir -p "/etc/systemd/system/snapd.service.d"
+# this will be gone after reboot
+cat <<EOF2 >/etc/systemd/system/snapd.service.d/45-generate-coverage.conf
+[Service]
+Environment=SNAPD_TRACE=1
+Environment=SNAPD_JSON_LOGGING=1
+EOF2
+systemctl daemon-reload
+touch /root/spread-install-setup-done
+EOF
+    chmod 0755 "${UNPACK_DIR}"/usr/lib/snapd/snapd.spread-tests-install-mode-tweaks.sh
+}
+
 _add_run_mode_tweaks() {
     local UNPACK_DIR
     UNPACK_DIR="${1}"
@@ -851,6 +956,7 @@ build_snapd_snap_with_run_mode_firstboot_tweaks() {
 
     # add tweaks to run mode for spread tests
     _add_run_mode_tweaks "${SNAP_CACHE}/unpack"
+    _add_coverage_tweaks "${SNAP_CACHE}/unpack"
 
     # add gpio and iio slots required for the tests
     _add_gpio_iio_slots "${SNAP_CACHE}/unpack"
@@ -983,6 +1089,14 @@ set -eux
 if [ "$1" != initramfs-mounts ]; then
     exec /usr/lib/snapd/snap-bootstrap.real "$@"
 fi
+EOF
+    if [ "$GENERATE_COVERAGE" = "true" ]; then
+        cat <<'EOF' >>"$SKELETON_PATH"/usr/lib/snapd/snap-bootstrap
+export SNAPD_TRACE=1
+export SNAPD_JSON_LOGGING=1
+EOF
+    fi
+    cat <<'EOF' >>"$SKELETON_PATH"/usr/lib/snapd/snap-bootstrap
 beforeDate="$(date --utc '+%s')"
 /usr/lib/snapd/snap-bootstrap.real "$@"
 if [ -d /run/mnt/data/system-data ]; then
@@ -1554,6 +1668,9 @@ EOF
             BRANCH=24
         elif is_test_target_core 26; then
             BRANCH=26
+            if [ "$GENERATE_COVERAGE" = "true" ]; then
+                mount -o remount,size=2G /tmp
+            fi
         fi
         snap download --basename=pc-kernel --channel="${BRANCH}/${KERNEL_CHANNEL}" pc-kernel
         # make sure we have the snap
@@ -1604,6 +1721,9 @@ EOF
                 echo "$cmd" >> pc-gadget/cmdline.extra
             done
         fi
+
+        # if [ "$GENERATE_COVERAGE" = "true" ]; then
+        # fi
 
         # TODO: this probably means it's time to move this helper out of 
         # nested.sh to somewhere more general
@@ -1895,6 +2015,30 @@ EOF
         # to ensure snapd is reloaded
         systemctl daemon-reload
         systemctl restart snapd
+    fi
+}
+
+prepare_generate_coverage() {
+    if [ -n "$GENERATE_COVERAGE" ]; then
+        CONF_FILE="99-generate-coverage.conf"
+        # dirs=$(find data/systemd data/systemd-user -type f -name '*.service.in' -exec basename {} \; | sed -E 's|^(.*)\.in$|/etc/systemd/system/\1.d|')
+        while IFS= read -r line; do
+            dir=$(sed -E 's|^(.*)\.in$|/etc/systemd/system/\1.d|' <<<"$line")
+            mkdir -p "$dir"
+            if ! [ -f "$dir/$CONF_FILE" ]; then
+                cat <<EOF > "$dir/$CONF_FILE"
+[Service]
+Environment=SNAPPY_TESTING=1
+Environment=SNAPD_TRACE=1
+Environment=SNAPD_JSON_LOGGING=1
+EOF
+            fi
+        done < <(find "$SPREAD_PATH"/data/systemd "$SPREAD_PATH"/data/systemd-user -type f -name '*.service.in' -exec basename {} \;)
+        systemctl daemon-reload
+        # systemctl restart snapd
+        # if systemctl --user is-active --quiet snapd.session-agent.socket; then
+        #     systemctl --user restart snapd.session-agent.socket
+        # fi
     fi
 }
 
