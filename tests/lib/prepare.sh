@@ -1717,7 +1717,7 @@ EOF
         else
             # but for other backends, just add the additional debugging things
             # on top of whatever the gadget currently is configured to use
-            for cmd in "dangerous" "systemd.journald.forward_to_console=1" "rd.systemd.journald.forward_to_console=1"; do
+            for cmd in "console=ttyS0" "dangerous" "systemd.journald.forward_to_console=1" "rd.systemd.journald.forward_to_console=1" "rd.systemd.log_level=debug" "systemd.log_level=debug" "systemd.log_target=console" "rd.systemd.log_target=console"; do
                 echo "$cmd" >> pc-gadget/cmdline.extra
             done
         fi
