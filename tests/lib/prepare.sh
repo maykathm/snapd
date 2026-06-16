@@ -733,10 +733,12 @@ _add_coverage_tweaks() {
 [Unit]
 Description=Tweaks to run mode for spread tests
 Before=snapd.service
+
 [Service]
 Type=oneshot
 ExecStart=/usr/lib/snapd/snapd.spread-tests-coverage-tweaks.sh
 RemainAfterExit=true
+
 [Install]
 WantedBy=multi-user.target
 EOF
@@ -788,10 +790,12 @@ EOF
 Description=Tweaks to install mode for spread tests
 Before=snapd.service
 Documentation=man:snap(1)
+
 [Service]
 Type=oneshot
 ExecStart=/usr/lib/snapd/snapd.spread-tests-install-mode-tweaks.sh
 RemainAfterExit=true
+
 [Install]
 WantedBy=multi-user.target
 EOF
