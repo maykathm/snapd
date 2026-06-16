@@ -764,7 +764,7 @@ EOF
     CONF_FILE=99-generate-coverage.conf
     while IFS= read -r line; do
         dir=$(sed -E 's|^(.*)\.in$|/etc/systemd/system/\1.d|' <<<"$line")
-        cat >> "${UNPACK_DIR}"/usr/lib/snapd/snapd.spread-tests-run-mode-tweaks.sh <<EOF
+        cat >> "${UNPACK_DIR}"/usr/lib/snapd/snapd.spread-tests-coverage-tweaks.sh <<EOF
 mkdir -p "$dir"
 cat <<EOF2 >"$dir/$CONF_FILE"
 [Service]
@@ -773,9 +773,9 @@ Environment=SNAPD_JSON_LOGGING=1
 EOF2
 EOF
     done < <(find "$SPREAD_PATH"/data/systemd "$SPREAD_PATH"/data/systemd-user -type f -name '*.service.in' -exec basename {} \;)
-    cat <<EOF >"${UNPACK_DIR}"/usr/lib/snapd/snapd.spread-tests-coverage-tweaks.sh
-    systemctl daemon-reload
-    touch /root/spread-coverage-setup-done
+    cat >>"${UNPACK_DIR}"/usr/lib/snapd/snapd.spread-tests-coverage-tweaks.sh <<EOF
+systemctl daemon-reload
+touch /root/spread-coverage-setup-done
 EOF
     chmod 0755 "${UNPACK_DIR}"/usr/lib/snapd/snapd.spread-tests-coverage-tweaks.sh
 
