@@ -28,7 +28,7 @@ jobs:
         git commit -m "Patch builds for coverage"
     
     - name: Build and upload snap
-      uses: ./.github/actions/build-snap-checks
+      uses: ./.github/actions/build-snapd-checks
       with:
         toolchain: ${{ matrix.toolchain }}
         variant: test
