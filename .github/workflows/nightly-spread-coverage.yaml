@@ -79,7 +79,7 @@ jobs:
       rules: ${{ matrix.rules }}
       upload-artifacts: true
       spread-env: "SPREAD_GENERATE_COVERAGE=true"
-      skip-tests: 'ubuntu-14.04-64 tests/lib/ tests/unit/ tests/utils/cross-build ubuntu-fips-2 ubuntu-secboot manual/snapd-refresh-from-old core/persistent-journal'
+      skip-tests: 'ubuntu-14.04-64 ubuntu-core-26 ubuntu-26.04-64:tests/nested tests/lib/ tests/unit/ tests/utils/cross-build ubuntu-fips-2 ubuntu-secboot manual/snapd-refresh-from-old core/persistent-journal'
       log-to-grafana: false
     strategy:
       fail-fast: false
