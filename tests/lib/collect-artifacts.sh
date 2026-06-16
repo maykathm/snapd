@@ -70,6 +70,7 @@ coverage_after_suite() {
 
         touch "$TESTSTMP/initial-coverage-collected-${SPREAD_SUITE//\//--}"
     fi
+    systemctl restart snapd
 }
 
 coverage_after_nested_task() {
@@ -94,6 +95,8 @@ coverage_after_nested_task() {
         rm -f "$task_dir"/install-mode.log.gz
     fi
 }
+
+
 
 if [ "$#" == 0 ]; then
     echo "collect-artifacts: Illegal number of parameters"
