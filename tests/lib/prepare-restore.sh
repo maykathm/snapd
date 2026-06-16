@@ -779,12 +779,15 @@ prepare_suite_each() {
         "$TESTSTOOLS"/cleanup-state pre-invariant
     fi
     tests.invariant check
+
+    if [[ "$GENERATE_COVERAGE" = true ]]; then
+        "$TESTSLIB"/collect-artifacts.sh coverage --after-suite
+    fi
 }
 
 restore_suite_each() {
     if not tests.nested is-nested; then
         "$TESTSLIB"/collect-artifacts.sh features --after-non-nested-task
-        "$TESTSLIB"/collect-artifacts.sh coverage --after-non-nested-task
         "$TESTSLIB"/collect-artifacts.sh locks
     fi
     local variant="$1"

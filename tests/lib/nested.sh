@@ -683,6 +683,35 @@ nested_ensure_ubuntu_save() {
     fi
 }
 
+_add_nested_coverage_tweaks() {
+    local TARGET
+    TARGET="${1}"
+    if [ "$GENERATE_COVERAGE" = "false" ]; then
+        return
+    fi
+
+    SNAP_CACHE="$SNAPD_WORK_DIR/snapd_snap_with_tweaks"
+
+    mkdir -p "${SNAP_CACHE}"
+
+    SNAP_PATH=
+    for f in "${TARGET}"/snapd_*.snap; do
+        SNAP_PATH="$f"
+        break
+    done
+
+    mkdir -p "${SNAP_CACHE}/unpack"
+    unsquashfs -no-progress -f -d "${SNAP_CACHE}/unpack" "${SNAP_PATH}"
+
+    # add tweaks to run mode for spread tests
+    . "$TESTSLIB"/prepare.sh
+    _add_coverage_tweaks "${SNAP_CACHE}/unpack"
+
+    snap pack "${SNAP_CACHE}/unpack" "${SNAP_CACHE}/"
+    cp "${SNAP_CACHE}"/snapd_*.snap "${SNAP_PATH}"
+    rm -rf "${SNAP_CACHE}"
+}
+
 nested_prepare_snapd() {
     if [ "$NESTED_BUILD_SNAPD_FROM_CURRENT" = "true" ]; then
         echo "Repacking snapd snap"
@@ -705,6 +734,7 @@ nested_prepare_snapd() {
                 # shellcheck source=tests/lib/prepare.sh
                 . "$TESTSLIB"/prepare.sh
                 build_snapd_snap "$NESTED_ASSETS_DIR"
+                _add_nested_coverage_tweaks "$NESTED_ASSETS_DIR"
                 for f in "${NESTED_ASSETS_DIR}"/snapd_*.snap; do
                     snap_name="$(basename "${f}")"
                     break

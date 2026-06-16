@@ -408,7 +408,9 @@ prepare_classic() {
     # Configure the proxy in the system when it is required
     setup_system_proxy
 
-    prepare_generate_coverage
+    if ! tests.nested is-nested; then
+        prepare_generate_coverage
+    fi
 
     # Skip building snapd when REUSE_SNAPD is set to 1
     if [ "$REUSE_SNAPD" != 1 ]; then
@@ -758,6 +760,7 @@ fi
 if [ -e /root/spread-coverage-setup-done ]; then
     exit 0
 fi
+echo "GENERATE_COVERAGE=true" >> /etc/environment
 echo "SNAPD_TRACE=1" >> /etc/environment
 echo "SNAPD_JSON_LOGGING=1" >> /etc/environment
 EOF
@@ -768,6 +771,7 @@ EOF
 mkdir -p "$dir"
 cat <<EOF2 >"$dir/$CONF_FILE"
 [Service]
+Environment=GENERATE_COVERAGE=true
 Environment=SNAPD_TRACE=1
 Environment=SNAPD_JSON_LOGGING=1
 EOF2
@@ -820,6 +824,7 @@ mkdir -p "/etc/systemd/system/snapd.service.d"
 # this will be gone after reboot
 cat <<EOF2 >/etc/systemd/system/snapd.service.d/45-generate-coverage.conf
 [Service]
+Environment=GENERATE_COVERAGE=true
 Environment=SNAPD_TRACE=1
 Environment=SNAPD_JSON_LOGGING=1
 EOF2
@@ -1096,6 +1101,7 @@ fi
 EOF
     if [ "$GENERATE_COVERAGE" = "true" ]; then
         cat <<'EOF' >>"$SKELETON_PATH"/usr/lib/snapd/snap-bootstrap
+export GENERATE_COVERAGE=true
 export SNAPD_TRACE=1
 export SNAPD_JSON_LOGGING=1
 EOF
@@ -1721,7 +1727,7 @@ EOF
         else
             # but for other backends, just add the additional debugging things
             # on top of whatever the gadget currently is configured to use
-            for cmd in "console=ttyS0" "dangerous" "systemd.journald.forward_to_console=1" "rd.systemd.journald.forward_to_console=1" "rd.systemd.log_level=debug" "systemd.log_level=debug" "systemd.log_target=console" "rd.systemd.log_target=console"; do
+            for cmd in "console=ttyS0" "dangerous" "systemd.journald.forward_to_console=1" "rd.systemd.journald.forward_to_console=1" "systemd.log_target=console" "rd.systemd.log_target=console"; do
                 echo "$cmd" >> pc-gadget/cmdline.extra
             done
         fi
@@ -2025,24 +2031,19 @@ EOF
 prepare_generate_coverage() {
     if [ -n "$GENERATE_COVERAGE" ]; then
         CONF_FILE="99-generate-coverage.conf"
-        # dirs=$(find data/systemd data/systemd-user -type f -name '*.service.in' -exec basename {} \; | sed -E 's|^(.*)\.in$|/etc/systemd/system/\1.d|')
         while IFS= read -r line; do
             dir=$(sed -E 's|^(.*)\.in$|/etc/systemd/system/\1.d|' <<<"$line")
             mkdir -p "$dir"
             if ! [ -f "$dir/$CONF_FILE" ]; then
                 cat <<EOF > "$dir/$CONF_FILE"
 [Service]
-Environment=SNAPPY_TESTING=1
+Environment=GENERATE_COVERAGE=1
 Environment=SNAPD_TRACE=1
 Environment=SNAPD_JSON_LOGGING=1
 EOF
             fi
         done < <(find "$SPREAD_PATH"/data/systemd "$SPREAD_PATH"/data/systemd-user -type f -name '*.service.in' -exec basename {} \;)
         systemctl daemon-reload
-        # systemctl restart snapd
-        # if systemctl --user is-active --quiet snapd.session-agent.socket; then
-        #     systemctl --user restart snapd.session-agent.socket
-        # fi
     fi
 }
 

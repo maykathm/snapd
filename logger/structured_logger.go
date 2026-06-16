@@ -36,13 +36,14 @@ import (
 )
 
 type StructuredLog struct {
-	log      *slog.Logger
-	debug    bool
-	trace    bool
-	quiet    bool
-	flags    int
-	seenMu   sync.RWMutex
-	seenLogs map[string]bool
+	log               *slog.Logger
+	debug             bool
+	trace             bool
+	quiet             bool
+	flags             int
+	noRepeatedLogging bool
+	seenMu            sync.RWMutex
+	seenLogs          map[string]bool
 }
 
 const (
@@ -127,7 +128,7 @@ func (l *StructuredLog) markLogged(msg string, attrs ...any) {
 }
 
 func (l *StructuredLog) Trace(msg string, attrs ...any) {
-	if l.traceEnabled() && !l.alreadyLogged(msg, attrs...) {
+	if l.traceEnabled() && (!l.noRepeatedLogging || !l.alreadyLogged(msg, attrs...)) {
 		var pcs [1]uintptr
 		runtime.Callers(3, pcs[:])
 		r := slog.NewRecord(time.Now(), levelTrace, msg, pcs[0])
@@ -184,12 +185,14 @@ func New(w io.Writer, flag int, opts *LoggerOptions) Logger {
 			return a
 		},
 	}
+	noRepeatedLogging := osutil.GetenvBool("GENERATE_COVERAGE")
 	logger := &StructuredLog{
-		log:      slog.New(slog.NewJSONHandler(w, options)),
-		debug:    opts.ForceDebug || debugEnabledOnKernelCmdline(),
-		flags:    flag,
-		trace:    false,
-		seenLogs: make(map[string]bool),
+		log:               slog.New(slog.NewJSONHandler(w, options)),
+		debug:             opts.ForceDebug || debugEnabledOnKernelCmdline(),
+		flags:             flag,
+		trace:             false,
+		seenLogs:          make(map[string]bool),
+		noRepeatedLogging: noRepeatedLogging,
 	}
 	return logger
 }
