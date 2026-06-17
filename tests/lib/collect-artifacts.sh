@@ -13,7 +13,7 @@ _prepare_suite_artifacts_path() {
     artifact=$1
     local artifacts_dir task_dir
     artifacts_dir="${SPREAD_PATH}/${artifact}"
-    suite_dir="${artifacts_dir}/${SPREAD_SUITE}"
+    suite_dir="${artifacts_dir}/${SPREAD_BACKEND}:${SPREAD_SYSTEM}:${SPREAD_SUITE//\//--}"
     mkdir -p "$suite_dir"
     echo "$suite_dir"
 }
@@ -71,6 +71,7 @@ coverage_after_suite() {
         journalctl --sync || true
         journalctl --flush || true
         journalctl --list-boots -q | awk '{print $1}' | while read boot_id; do journalctl -b "$boot_id" --no-pager | _extract_trace_entries; done >> "$suite_dir"/journal.txt
+        cp /var/lib/snapd/state.json "$suite_dir" || true
 
         touch "$TESTSTMP/initial-coverage-collected-${SPREAD_SUITE//\//--}"
     fi
