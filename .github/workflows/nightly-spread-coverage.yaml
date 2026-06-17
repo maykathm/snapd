@@ -18,7 +18,7 @@ jobs:
     - name: Patch builds
       run: |
         sudo snap install go --classic 
-        go run ./tests/utils/coverage/instrument-funcs
+        go run ./tests/utils/features/instrument-funcs
 
     - name: Commit changes
       run: |
@@ -85,65 +85,70 @@ jobs:
       fail-fast: false
       matrix: ${{ fromJson(needs.read-systems.outputs.systems) }}
 
-  # process-coverage:
-  #   runs-on: ubuntu-latest
-  #   if: always()
-  #   needs: [spread-coverage]
-  #   steps:
-  #     - name: Checkout code
-  #       uses: actions/checkout@v6
+  get-all-features:
+    runs-on: ubuntu-latest
+    needs: snap-builds
+    if: always()
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
 
-  #     - name: Download coverage artifacts
-  #       uses: actions/download-artifact@v8
-  #       with:
-  #         path: coverage
-  #         pattern: spread-artifacts-*
-  #         merge-multiple: true
+      - name: Download snapd snap
+        uses: ./.github/actions/download-snapd-snap
+        with:
+          use-master-push: false
+          is-amd64: true
+          is-arm64: false
+          is-fips: false
 
-  #     - name: Download spread results artifacts
-  #       uses: actions/download-artifact@v8
-  #       with:
-  #         path: spread-results
-  #         pattern: spread-results-*
+      - name: Get all snapd features
+        run: |
+          sudo snap install built-snap/snapd_*.snap.keep --dangerous
+          snap debug features > all-features.json
 
-  #     # - name: Calculate feature-based coverage over last two schedule runs
-  #     #   env: 
-  #     #     MONGO_USER: ${{ secrets.MONGO_USER }}
-  #     #     MONGO_PASSWORD: ${{ secrets.MONGO_PASS }}
-  #     #     MONGO_HOST: ${{ secrets.MONGO_HOST }}
-  #     #     MONGO_PORT: ${{ secrets.MONGO_PORT }}
-  #     #   run: tests/utils/coverage/calculate-core-set.sh > coverage/feature-core-set.json
+      - name: Upload snapd feature data
+        uses: actions/upload-artifact@v7
+        with:
+          name: "all-features"
+          path: "all-features.json"
 
-  #     - name: Calculate coverage
-  #       run: |
-  #         sudo snap install go --classic 
-  #         tests/utils/coverage/write-conclusions.sh --coverage-dir coverage --output-dir results
+  create-reports:
+    needs: [spread-coverage, get-all-features]
+    runs-on: ["self-hosted", "spread-enabled"]
+    if: |
+      always()
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
 
-  #     - name: Create failed lists
-  #       run: |
-  #         while IFS= read -r results_json; do
-  #           group=$(basename $(dirname "$results_json"))
-  #           output_name=
-  #           if [[ ! "$group" =~ ^spread-results-[0-9]+-[0-9]+-(.*)$ ]]; then
-  #             output_name="$group".json
-  #           else
-  #             output_name="${BASH_REMATCH[1]}".json
-  #           fi
-  #           output_name="failed-$output_name"
-  #           jq -r '.items.[] | select(.success == false) | select(.verb != "checking") | select(.level == "task") | select(.skipped == false) | .backend + ":" + .system + ":" + .name' "$results_json" > results/"$output_name"
-  #         done < <(find spread-results -name results.json)
+      - name: Get generated data
+        uses: actions/download-artifact@v8
+        with:
+          path: feature-tags-artifacts
+          pattern: spread-artifacts-*
+          merge-multiple: true
 
-  #     - name: Tar results
-  #       run: tar -czvf coverage-results.tar.gz results/
+      - name: Get all features
+        uses: actions/download-artifact@v8
+        with:
+          name: all-features
 
-  #     - name: Upload coverage results
-  #       uses: actions/upload-artifact@v7
-  #       with:
-  #         name: coverage-results
-  #         path: coverage-results.tar.gz
+      - name: Create feature tags
+        run: |
+          WORK_DIR=. ./tests/utils/features/process-features.sh
 
-  #     # - name: Upload feature core set
-  #     #   uses: actions/upload-artifact@v7
-  #     #   with:
-  #     #     name: feature-core-set
-  #     #     path: coverage/feature-core-set.json
+          tar -czf "final-feature-tags.tar.gz" "final-feature-tags"
+
+      - name: Upload results to mongo
+        env: 
+          MONGO_USER: ${{ secrets.MONGO_USER }}
+          MONGO_PASSWORD: ${{ secrets.MONGO_PASS }}
+          MONGO_HOST: ${{ secrets.MONGO_HOST }}
+          MONGO_PORT: ${{ secrets.MONGO_PORT }}
+        run: ./tests/utils/features/mongo_upload.py --dir "final-feature-tags" --verbose
+      
+      - name: Upload feature data
+        uses: actions/upload-artifact@v7
+        with:
+          name: "feature-tags"
+          path: "final-feature-tags.tar.gz"
