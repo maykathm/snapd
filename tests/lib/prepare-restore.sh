@@ -879,8 +879,8 @@ restore_suite() {
         fi
     fi
     if [ "$GENERATE_COVERAGE" = "true" ]; then
-        journalctl --rotate
-        journalctl --vacuum-time=1s
+        journalctl --rotate || true
+        journalctl --vacuum-time=1s || true
     fi
 }
 

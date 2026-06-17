@@ -32,8 +32,10 @@ features_after_non_nested_task() {
     # So for lines with snapd/snap identifiers, search for lines that begin with `{` 
     # but don't end with `}` and have "TRACE", remove their new lines to recompose the entry.
     # Then only grab TRACE-level entries.
+    systemctl stop snapd || true
     "$TESTSTOOLS"/journal-state get-log --no-pager | _extract_trace_entries > "$task_dir"/journal.txt
     cp /var/lib/snapd/state.json "$task_dir" || true
+    systemctl start snapd || true
 }
 
 features_after_nested_task() {
@@ -41,8 +43,9 @@ features_after_nested_task() {
     task_dir="$(_prepare_task_artifacts_path feature-tags)"
 
     # When a nested test is skipped, its vm will not be available
-    "$TESTSTOOLS"/remote.exec "journalctl --sync"
-    "$TESTSTOOLS"/remote.exec "journalctl --flush"
+    "$TESTSTOOLS"/remote.exec "sudo systemctl stop snapd" || true
+    "$TESTSTOOLS"/remote.exec "journalctl --sync" || true
+    "$TESTSTOOLS"/remote.exec "journalctl --flush" || true
     "$TESTSTOOLS"/remote.exec "sudo journalctl --no-pager | grep -oP 'snapd?\[\d+\]: \K.*' | sed -e ':a' -e '/^{.*\\\"TRACE\\\".*[^}]$/ { N; s/\n//; ba }' | grep '\"TRACE\"'" > "$task_dir"/journal.txt || true
     "$TESTSTOOLS"/remote.exec "sudo chmod 777 /var/lib/snapd/state.json" || true
     "$TESTSTOOLS"/remote.pull "/var/lib/snapd/state.json" "$task_dir" || true
@@ -56,6 +59,7 @@ locks(){
 }
 
 coverage_after_suite() {
+    systemctl stop snapd || true
     # make sure this is only run once per suite
     if ! [ -f "$TESTSTMP/initial-coverage-collected-${SPREAD_SUITE//\//--}" ]; then
         suite_dir="$(_prepare_suite_artifacts_path feature-tags)"
@@ -70,7 +74,7 @@ coverage_after_suite() {
 
         touch "$TESTSTMP/initial-coverage-collected-${SPREAD_SUITE//\//--}"
     fi
-    systemctl restart snapd
+    systemctl start snapd || true
 }
 
 coverage_after_nested_task() {
@@ -82,8 +86,9 @@ coverage_after_nested_task() {
     # but don't end with `}` and have "TRACE", remove their new lines to recompose the entry.
     # Then only grab TRACE-level entries.
 
-    "$TESTSTOOLS"/remote.exec "journalctl --sync || true"
-    "$TESTSTOOLS"/remote.exec "journalctl --flush || true"
+    "$TESTSTOOLS"/remote.exec "sudo systemctl stop snapd" || true
+    "$TESTSTOOLS"/remote.exec "journalctl --sync" || true
+    "$TESTSTOOLS"/remote.exec "journalctl --flush" || true
     # Collect TRACE logs from all boots, appending each boot's logs to journal.txt
     "$TESTSTOOLS"/remote.exec "journalctl --list-boots -q | awk '{print \$1}' | while read boot_id; do sudo journalctl -b \"\$boot_id\" --no-pager | grep -oP 'snapd?\[\d+\]: \K.*' | sed -e ':a' -e '/^{.*\\\"TRACE\\\".*[^}]$/ { N; s/\n//; ba }' | grep '\"TRACE\"'; done" > "$task_dir"/journal.txt || true
 
