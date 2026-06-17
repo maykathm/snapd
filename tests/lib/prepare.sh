@@ -1669,10 +1669,6 @@ EOF
         fi
     fi
 
-    if is_test_target_core_ge 26 && [ "$GENERATE_COVERAGE" = "true" ]; then
-        mount -o remount,size=2G /tmp
-    fi
-
     if is_test_target_core_ge 20; then
         if is_test_target_core 20; then
             BRANCH=20
@@ -1951,8 +1947,6 @@ EOF
         # test user
         setup_core_for_testing_by_modify_writable "$UNPACK_DIR"
     fi
-
-    exit 1
 
     # unmount the partition we just modified and delete the image's loop devices
     umount /mnt
