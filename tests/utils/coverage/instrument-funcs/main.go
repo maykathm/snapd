@@ -34,7 +34,6 @@ func main() {
 			info.Name() == "testutil" || info.Name() == "dbusutil" ||
 			info.Name() == "tests" || info.Name() == "release" ||
 			info.Name() == "blkid" || info.Name() == "snap-seccomp" ||
-			info.Name() == "snap-bootstrap" ||
 			info.Name() == "snap-update-ns" || info.Name() == "dirs") {
 			return filepath.SkipDir
 		}
