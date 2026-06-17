@@ -409,7 +409,7 @@ prepare_classic() {
     setup_system_proxy
 
     if ! tests.nested is-nested; then
-        prepare_generate_coverage
+        prepare_tag_features
     fi
 
     # Skip building snapd when REUSE_SNAPD is set to 1
@@ -725,7 +725,7 @@ EOF
 }
 
 _add_coverage_tweaks() {
-    if [[ "$GENERATE_COVERAGE" = "false" ]]; then
+    if [[ "$TAG_FEATURES" = "false" ]]; then
         return
     fi
     local UNPACK_DIR
@@ -760,7 +760,6 @@ fi
 if [ -e /root/spread-coverage-setup-done ]; then
     exit 0
 fi
-echo "GENERATE_COVERAGE=true" >> /etc/environment
 echo "SNAPD_TRACE=1" >> /etc/environment
 echo "SNAPD_JSON_LOGGING=1" >> /etc/environment
 EOF
@@ -771,7 +770,6 @@ EOF
 mkdir -p "$dir"
 cat <<EOF2 >"$dir/$CONF_FILE"
 [Service]
-Environment=GENERATE_COVERAGE=true
 Environment=SNAPD_TRACE=1
 Environment=SNAPD_JSON_LOGGING=1
 EOF2
@@ -824,7 +822,6 @@ mkdir -p "/etc/systemd/system/snapd.service.d"
 # this will be gone after reboot
 cat <<EOF2 >/etc/systemd/system/snapd.service.d/45-generate-coverage.conf
 [Service]
-Environment=GENERATE_COVERAGE=true
 Environment=SNAPD_TRACE=1
 Environment=SNAPD_JSON_LOGGING=1
 EOF2
@@ -1099,9 +1096,8 @@ if [ "$1" != initramfs-mounts ]; then
     exec /usr/lib/snapd/snap-bootstrap.real "$@"
 fi
 EOF
-    if [ "$GENERATE_COVERAGE" = "true" ]; then
+    if [ "$TAG_FEATURES" = "true" ]; then
         cat <<'EOF' >>"$SKELETON_PATH"/usr/lib/snapd/snap-bootstrap
-export GENERATE_COVERAGE=true
 export SNAPD_TRACE=1
 export SNAPD_JSON_LOGGING=1
 EOF
@@ -1729,9 +1725,6 @@ EOF
             done
         fi
 
-        # if [ "$GENERATE_COVERAGE" = "true" ]; then
-        # fi
-
         # TODO: this probably means it's time to move this helper out of 
         # nested.sh to somewhere more general
         
@@ -1998,43 +1991,14 @@ EOF
 }
 
 prepare_tag_features(){
-    CONF_FILE="/etc/systemd/system/snapd.service.d/99-feature-tags.conf"
-    RESTART=false
-
     if [ -n "$TAG_FEATURES" ]; then
-        # Generate the config file when it does not exist and when the threshold has changed different
-        if ! [ -f "$CONF_FILE" ]; then
-            cat <<EOF > "$CONF_FILE"
-[Service]
-Environment=SNAPPY_TESTING=1
-Environment=SNAPD_TRACE=1
-Environment=SNAPD_JSON_LOGGING=1
-EOF
-            RESTART=true
-        fi
-    elif [ -f "$CONF_FILE" ]; then
-        rm -f "$CONF_FILE"
-        RESTART=true
-    fi
-
-    if [ "$RESTART" = "true" ]; then
-        # the service setting may have changed in the service so we need
-        # to ensure snapd is reloaded
-        systemctl daemon-reload
-        systemctl restart snapd
-    fi
-}
-
-prepare_generate_coverage() {
-    if [ -n "$GENERATE_COVERAGE" ]; then
-        CONF_FILE="99-generate-coverage.conf"
+        CONF_FILE="99-feature-coverage.conf"
         while IFS= read -r line; do
             dir=$(sed -E 's|^(.*)\.in$|/etc/systemd/system/\1.d|' <<<"$line")
             mkdir -p "$dir"
             if ! [ -f "$dir/$CONF_FILE" ]; then
                 cat <<EOF > "$dir/$CONF_FILE"
 [Service]
-Environment=GENERATE_COVERAGE=1
 Environment=SNAPD_TRACE=1
 Environment=SNAPD_JSON_LOGGING=1
 EOF

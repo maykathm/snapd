@@ -569,9 +569,9 @@ prepare_project() {
             ;;
     esac
 
-    if [ "$GENERATE_COVERAGE" = "true" ]; then
+    if [ "$TAG_FEATURES" = "true" ]; then
         pushd "$SPREAD_PATH"
-        go run ./tests/utils/coverage/instrument-funcs
+        go run ./tests/utils/features/instrument-funcs
         popd
     fi
 
@@ -780,8 +780,8 @@ prepare_suite_each() {
     fi
     tests.invariant check
 
-    if [[ "$GENERATE_COVERAGE" = true ]]; then
-        "$TESTSLIB"/collect-artifacts.sh coverage --after-suite
+    if [[ "$TAG_FEATURES" = true ]]; then
+        "$TESTSLIB"/collect-artifacts.sh features --after-suite
     fi
 }
 
@@ -878,7 +878,7 @@ restore_suite() {
             distro_purge_package snap-confine
         fi
     fi
-    if [ "$GENERATE_COVERAGE" = "true" ]; then
+    if [ "$TAG_FEATURES" = "true" ]; then
         journalctl --rotate || true
         journalctl --vacuum-time=1s || true
     fi

@@ -128,20 +128,18 @@ environment:
 
     # Whether we should use pre-built packages in the ./built-pkgs/ directory
     USE_PREBUILT_PACKAGES: '$(HOST: echo "${SPREAD_USE_PREBUILT_PACKAGES:-false}")'
-
-    GENERATE_COVERAGE: '$(HOST: echo "${SPREAD_GENERATE_COVERAGE:-}")'
     
     # When SPREAD_TAG_FEATURES is populated with a non-empty value,
     # each spread task will extract relevant information form its
     # journal and copy it and the state.json to the artifacts folder.
     # NOTE: this should only be used coupled with the -artifact spread
     # tag otherwise the data will not be downloaded from the VMs.
-    TAG_FEATURES: '$(HOST: echo "${SPREAD_TAG_FEATURES:-$SPREAD_GENERATE_COVERAGE}")'
+    TAG_FEATURES: '$(HOST: echo "${SPREAD_TAG_FEATURES:-}")'
     # Set the following to SPREAD_TAG_FEATURES by default
     # since the following are required to log snap commands
     # to the journal
-    SNAPD_LOG_SNAP_TO_JOURNAL: '$(HOST: echo "${SPREAD_SNAPD_LOG_SNAP_TO_JOURNAL:-${SPREAD_TAG_FEATURES:-$SPREAD_GENERATE_COVERAGE}}")'
-    SNAPD_TRACE: '$(HOST: echo "${SPREAD_SNAPD_TRACE:-${SPREAD_TAG_FEATURES:-$SPREAD_GENERATE_COVERAGE}}")'
+    SNAPD_LOG_SNAP_TO_JOURNAL: '$(HOST: echo "${SPREAD_SNAPD_LOG_SNAP_TO_JOURNAL:-$SPREAD_TAG_FEATURES}")'
+    SNAPD_TRACE: '$(HOST: echo "${SPREAD_SNAPD_TRACE:-$SPREAD_TAG_FEATURES}")'
 
     # Whether snapd should skip early refreshes.
     SNAPD_SKIP_EARLY_REFRESH: '$(HOST: echo "${SPREAD_SNAPD_SKIP_EARLY_REFRESH:-}")'
@@ -1803,7 +1801,6 @@ suites:
             fi
         restore-each: |
             "$TESTSLIB"/collect-artifacts.sh features --after-nested-task
-            "$TESTSLIB"/collect-artifacts.sh coverage --after-nested-task
             tests.nested vm remove
             tests.nested restore
             "$TESTSLIB"/prepare-restore.sh --restore-suite-each
@@ -1876,7 +1873,6 @@ suites:
             tests.nested create-vm classic
         restore-each: |
             "$TESTSLIB"/collect-artifacts.sh features --after-nested-task
-            "$TESTSLIB"/collect-artifacts.sh coverage --after-nested-task
             tests.nested vm remove
             "$TESTSLIB"/prepare-restore.sh --restore-suite-each
         restore: |
@@ -1959,7 +1955,6 @@ suites:
             tests.nested create-vm core
         restore-each: |
             "$TESTSLIB"/collect-artifacts.sh features --after-nested-task
-            "$TESTSLIB"/collect-artifacts.sh coverage --after-nested-task
             tests.nested vm remove
             "$TESTSLIB"/prepare-restore.sh --restore-suite-each
         restore: |

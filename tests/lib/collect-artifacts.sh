@@ -46,7 +46,16 @@ features_after_nested_task() {
     "$TESTSTOOLS"/remote.exec "sudo systemctl stop snapd" || true
     "$TESTSTOOLS"/remote.exec "journalctl --sync" || true
     "$TESTSTOOLS"/remote.exec "journalctl --flush" || true
-    "$TESTSTOOLS"/remote.exec "sudo journalctl --no-pager | grep -oP 'snapd?\[\d+\]: \K.*' | sed -e ':a' -e '/^{.*\\\"TRACE\\\".*[^}]$/ { N; s/\n//; ba }' | grep '\"TRACE\"'" > "$task_dir"/journal.txt || true
+    # Collect TRACE logs from all boots, appending each boot's logs to journal.txt
+    "$TESTSTOOLS"/remote.exec "journalctl --list-boots -q | awk '{print \$1}' | while read boot_id; do sudo journalctl -b \"\$boot_id\" --no-pager | grep -oP 'snapd?\[\d+\]: \K.*' | sed -e ':a' -e '/^{.*\\\"TRACE\\\".*[^}]$/ { N; s/\n//; ba }' | grep '\"TRACE\"'; done" > "$task_dir"/journal.txt || true
+
+    # install-mode.log.gz may exist on nested systems; pull it, extract and append TRACE entries
+    "$TESTSTOOLS"/remote.exec "install_mode_log=\$(find / -name install-mode.log.gz 2>/dev/null | head -n 1); if [ -n \"\$install_mode_log\" ]; then sudo cp \"\$install_mode_log\" /tmp/install-mode.log.gz && sudo chmod 644 /tmp/install-mode.log.gz; fi" || true
+    "$TESTSTOOLS"/remote.pull "/tmp/install-mode.log.gz" "$task_dir" || true
+    if [ -f "$task_dir"/install-mode.log.gz ]; then
+        gzip -dc "$task_dir"/install-mode.log.gz | _extract_trace_entries >> "$task_dir"/journal.txt || true
+        rm -f "$task_dir"/install-mode.log.gz
+    fi
     "$TESTSTOOLS"/remote.exec "sudo chmod 777 /var/lib/snapd/state.json" || true
     "$TESTSTOOLS"/remote.pull "/var/lib/snapd/state.json" "$task_dir" || true
 }
@@ -58,7 +67,7 @@ locks(){
     cp -f "$TESTSTMP"/snapd_lock_traces "$task_dir"
 }
 
-coverage_after_suite() {
+features_after_suite() {
     systemctl stop snapd || true
     # make sure this is only run once per suite
     if ! [ -f "$TESTSTMP/initial-coverage-collected-${SPREAD_SUITE//\//--}" ]; then
@@ -76,30 +85,6 @@ coverage_after_suite() {
         touch "$TESTSTMP/initial-coverage-collected-${SPREAD_SUITE//\//--}"
     fi
     systemctl start snapd || true
-}
-
-coverage_after_nested_task() {
-    # Write to the directory specified in the spread.yaml file for artifacts
-    local task_dir
-    task_dir="$(_prepare_task_artifacts_path feature-tags)"
-    # On some systems, some log lines get broken into separate entries
-    # So for lines with snapd/snap identifiers, search for lines that begin with `{` 
-    # but don't end with `}` and have "TRACE", remove their new lines to recompose the entry.
-    # Then only grab TRACE-level entries.
-
-    "$TESTSTOOLS"/remote.exec "sudo systemctl stop snapd" || true
-    "$TESTSTOOLS"/remote.exec "journalctl --sync" || true
-    "$TESTSTOOLS"/remote.exec "journalctl --flush" || true
-    # Collect TRACE logs from all boots, appending each boot's logs to journal.txt
-    "$TESTSTOOLS"/remote.exec "journalctl --list-boots -q | awk '{print \$1}' | while read boot_id; do sudo journalctl -b \"\$boot_id\" --no-pager | grep -oP 'snapd?\[\d+\]: \K.*' | sed -e ':a' -e '/^{.*\\\"TRACE\\\".*[^}]$/ { N; s/\n//; ba }' | grep '\"TRACE\"'; done" > "$task_dir"/journal.txt || true
-
-    # install-mode.log.gz may exist on nested systems; pull it, extract and append TRACE entries
-    "$TESTSTOOLS"/remote.exec "install_mode_log=\$(find / -name install-mode.log.gz 2>/dev/null | head -n 1); if [ -n \"\$install_mode_log\" ]; then sudo cp \"\$install_mode_log\" /tmp/install-mode.log.gz && sudo chmod 644 /tmp/install-mode.log.gz; fi" || true
-    "$TESTSTOOLS"/remote.pull "/tmp/install-mode.log.gz" "$task_dir" || true
-    if [ -f "$task_dir"/install-mode.log.gz ]; then
-        gzip -dc "$task_dir"/install-mode.log.gz | _extract_trace_entries >> "$task_dir"/journal.txt || true
-        rm -f "$task_dir"/install-mode.log.gz
-    fi
 }
 
 
@@ -127,6 +112,9 @@ case "$artifact" in
             --after-nested-task)
                 features_after_nested_task
                 ;;
+            --after-suite)
+                features_after_suite
+                ;;
             *)
                 echo "collect-artifacts: unsupported action $1" >&2
                 exit 1
@@ -138,23 +126,6 @@ case "$artifact" in
             exit
         fi
         locks
-        ;;
-    coverage)
-        if [ "$GENERATE_COVERAGE" = "false" ]; then
-            exit
-        fi
-        case "$1" in
-            --after-nested-task)
-                coverage_after_nested_task
-                ;;
-            --after-suite)
-                coverage_after_suite
-                ;;
-            *)
-                echo "collect-artifacts: unsupported action $1" >&2
-                exit 1
-                ;;
-        esac
         ;;
     *)
         echo "collect-artifacts: unsupported argument: $1"

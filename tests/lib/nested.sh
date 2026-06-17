@@ -686,7 +686,7 @@ nested_ensure_ubuntu_save() {
 _add_nested_coverage_tweaks() {
     local TARGET
     TARGET="${1}"
-    if [ "$GENERATE_COVERAGE" = "false" ]; then
+    if [ "$TAG_FEATURES" = "false" ]; then
         return
     fi
 
