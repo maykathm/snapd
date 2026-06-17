@@ -1678,9 +1678,6 @@ EOF
             BRANCH=24
         elif is_test_target_core 26; then
             BRANCH=26
-            if [ "$GENERATE_COVERAGE" = "true" ]; then
-                mount -o remount,size=2G /tmp
-            fi
         fi
         snap download --basename=pc-kernel --channel="${BRANCH}/${KERNEL_CHANNEL}" pc-kernel
         # make sure we have the snap
