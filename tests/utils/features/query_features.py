@@ -99,7 +99,17 @@ class Retriever(ABC):
             for s in self.cache[timestamp]["systems"]:
                 if s["system"] == system:
                     return s
-        return self._get_single_json(timestamp, system)
+        elif timestamp in self.cache and "sub-systems" in self.cache[timestamp]:
+            for s in self.cache[timestamp]["sub-systems"]:
+                if s["system"] == system:
+                    return s
+        if timestamp not in self.cache:
+            self.cache[timestamp] = {}
+        if "sub-systems" not in self.cache[timestamp]:
+            self.cache[timestamp]["sub-systems"] = []
+        sys_json = self._get_single_json(timestamp, system)
+        self.cache[timestamp]["sub-systems"].append(sys_json)
+        return sys_json
 
     @abstractmethod
     def _get_single_json(self, timestamp: str, system: str) -> SystemFeatures:
@@ -117,15 +127,33 @@ class Retriever(ABC):
             else:
                 return [sys for sys in self.cache[timestamp]["systems"] if sys["system"] in systems]
 
-        if systems:
-            # Do not cache if only a subset of systems is specified
-            # otherwise the cached list won't be complete
-            return self._get_systems(timestamp, systems)
+        if systems and timestamp in self.cache and "sub-systems" in self.cache[timestamp]:
+            sys_list = []
+            retrieve_list = []
+            for system in systems:
+                item = next((subsys for subsys in self.cache[timestamp]["sub-systems"] if subsys["system"] == system), None)
+                if item:
+                    sys_list.append(item)
+                else:
+                    retrieve_list.append(system)
+            if retrieve_list:
+                remaining_systems = self._get_systems(timestamp, retrieve_list)
+                self.cache[timestamp]["sub-systems"].extend(remaining_systems)
+                sys_list.extend(remaining_systems)
+            return sys_list
+        elif systems:
+            if timestamp not in self.cache:
+                self.cache[timestamp] = {}
+            self.cache[timestamp]["sub-systems"] = list(self._get_systems(timestamp, systems))
+            return self.cache[timestamp]["sub-systems"]
         else:
             if timestamp not in self.cache:
                 self.cache[timestamp] = {}
-            self.cache[timestamp]["systems"] = list(self._get_systems(timestamp, systems))
+            self.cache[timestamp]["systems"] = list(self._get_systems(timestamp))
+            if "sub-systems" in self.cache[timestamp]:
+                del self.cache[timestamp]["sub-systems"]
             return self.cache[timestamp]["systems"]
+
 
     @abstractmethod
     def _get_systems(self, timestamp: str, systems: list[str] = None) -> Iterable[SystemFeatures]:
@@ -478,7 +506,7 @@ def diff_group_by_test(
     system2: str,
     remove_failed: bool,
     only_same: bool,
-    match_snap_types: bool = True,
+    match_snap_types: bool,
 ) -> dict:
     differences = diff(retriever, timestamp1, system1, timestamp2, system2, remove_failed, only_same, match_snap_types)
 
@@ -529,7 +557,7 @@ def diff_group_by_test_csv(
     system2: str,
     remove_failed: bool,
     only_same: bool,
-    match_snap_types: bool = True,
+    match_snap_types: bool,
 ) -> str:
     differences = diff(retriever, timestamp1, system1, timestamp2, system2, remove_failed, only_same, match_snap_types)
 
@@ -1204,14 +1232,14 @@ def main():
                 json.dump(result, sys.stdout, cls=DateTimeEncoder)
             elif args.features_cmd == feat_sys_cmd:
                 result = feat_sys(
-                    retriever, args.timestamp, args.system, args.remove_failed, args.suite, args.task, args.variant
+                    retriever, args.timestamp, args.system, args.remove_failed, args.suite, args.task, args.variant,
                 )
                 json.dump(result, sys.stdout, cls=DateTimeEncoder)
             elif args.features_cmd == feat_find_cmd:
                 try:
                     feat = json.loads(args.feat)
                     result = find_feat(
-                        retriever, args.timestamp, feat, args.remove_failed, args.system, args.match_snap_types
+                        retriever, args.timestamp, feat, args.remove_failed, args.system, args.match_snap_types,
                     )
                     json.dump(result, sys.stdout, default=lambda x: str(x))
                 except Exception as e:
