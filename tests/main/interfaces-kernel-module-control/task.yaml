@@ -31,6 +31,7 @@ skip:
         ! [ -f "$MODULE_BASE_PATH" ] && ! [ -f "$MODULE_BASE_PATH.zst" ]
 
 prepare: |
+    snap set system experimental.parallel-instances=true
     set -- --edge
     if os.query is-core18; then
         # Install version 1.0 of test-snapd-kernel-module-consumer snap
@@ -68,6 +69,8 @@ prepare: |
     tests.session prepare -u test
 
 restore: |
+    snap remove --purge test-snapd-kernel-module-consumer_foo || true
+    snap set system experimental.parallel-instances=null
     # Restore after using sessions as the given user
     tests.session restore -u test
 
@@ -163,3 +166,16 @@ execute: |
         exit 1
     fi
     MATCH "Permission denied" < touch.error
+
+    echo "Testing parallel instance"
+    snap install --edge test-snapd-kernel-module-consumer_foo
+    snap connect test-snapd-kernel-module-consumer_foo:kernel-module-control
+    test "$(tests.session -u test exec test-snapd-kernel-module-consumer_foo.lsmod | wc -l)" -gt 2
+
+    echo "When the original snap is removed"
+    snap remove --purge test-snapd-kernel-module-consumer
+
+    echo "Then the parallel instance can still list modules"
+    test "$(tests.session -u test exec test-snapd-kernel-module-consumer_foo.lsmod | wc -l)" -gt 2
+
+    snap remove --purge test-snapd-kernel-module-consumer_foo

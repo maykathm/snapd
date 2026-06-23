@@ -21,9 +21,11 @@ environment:
     PORT: 8081
     SERVICE_NAME: "test-service"
     ARP_ENTRY_ADDR: "30.30.30.30"
+    ARP_ENTRY_ADDR_FOO: "30.30.30.31"
 
 prepare: |
     echo "Given a snap declaring a plug on the network-control interface is installed"
+    snap set system experimental.parallel-instances=true
     "$TESTSTOOLS"/snaps-state install-local network-control-consumer
 
     echo "And a network service is up"
@@ -40,6 +42,8 @@ restore: |
     ip netns delete test-ns || true
     ip link delete veth0 || true
     umount /run/netns || true
+    snap remove --purge network-control-consumer_foo || true
+    snap set system experimental.parallel-instances=null
 
 execute: |
     #shellcheck source=tests/lib/network.sh
@@ -165,3 +169,20 @@ execute: |
             MATCH "Permission denied" < python-af-xdp.output
         fi
     fi
+
+    echo "When a parallel install of the snap is installed"
+    "$TESTSTOOLS"/snaps-state install-local-as network-control-consumer network-control-consumer_foo
+    snap connect network-control-consumer_foo:network-control
+
+    echo "Then the parallel snap command can query network status information"
+    network-control-consumer_foo.cmd ss -lnt | MATCH "LISTEN.*:$PORT"
+
+    echo "And the parallel snap can modify the network configuration"
+    network-control-consumer_foo.cmd ip neigh add "$ARP_ENTRY_ADDR_FOO" lladdr aa:aa:aa:aa:aa:aa dev veth0
+    ip neigh show dev veth0 | MATCH "$ARP_ENTRY_ADDR_FOO"
+
+    echo "When the original snap is removed"
+    snap remove --purge network-control-consumer
+
+    echo "Then the parallel snap still works"
+    network-control-consumer_foo.cmd ss -lnt | MATCH "LISTEN.*:$PORT"

@@ -4,6 +4,7 @@ details: |
     The raw-input interface allows enumerating, monitoring and reading input devices.
 
 prepare: |
+    snap set system experimental.parallel-instances=true
     "$TESTSTOOLS"/snaps-state install-local test-snapd-sh
 
     # Create device files which are going to be used so simulate a real device and input data
@@ -18,6 +19,9 @@ prepare: |
     "$TESTSTOOLS"/fs-state mock-file /dev/input/event67
 
 restore: |
+    snap remove --purge test-snapd-sh_foo || true
+    snap set system experimental.parallel-instances=null
+
     # Delete the created device files and restore backed up files
     "$TESTSTOOLS"/fs-state restore-file /dev/input/js31
     "$TESTSTOOLS"/fs-state restore-file /dev/input/mouse30
@@ -62,3 +66,29 @@ execute: |
         exit 1
     fi
     MATCH "Permission denied" < call.error
+
+    echo "### Parallel instance testing ###"
+
+    echo "Install the parallel instance"
+    "$TESTSTOOLS"/snaps-state install-local-as test-snapd-sh test-snapd-sh_foo
+
+    echo "The raw-input interface is not connected by default for the parallel instance"
+    snap interfaces -i raw-input | MATCH "\\- +test-snapd-sh_foo:raw-input"
+
+    echo "When the interface is connected for the parallel instance"
+    snap connect test-snapd-sh_foo:raw-input
+
+    echo "Then the parallel instance snap is able to access the device input"
+    test-snapd-sh_foo.with-input-plug -c "cat /dev/input/js31"
+    test-snapd-sh_foo.with-input-plug -c "cat /run/udev/data/c13:31"
+
+    echo "When the original snap is removed"
+    snap remove --purge test-snapd-sh
+
+    echo "Then the parallel instance is still able to access the device input"
+    test-snapd-sh_foo.with-input-plug -c "cat /dev/input/js31"
+    test-snapd-sh_foo.with-input-plug -c "cat /run/udev/data/c13:31"
+
+    echo "Disconnecting the parallel instance plug"
+    snap disconnect test-snapd-sh_foo:raw-input
+    snap remove --purge test-snapd-sh_foo

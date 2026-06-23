@@ -26,3 +26,13 @@ install_generic_consumer() {
     rm -rf generic-consumer
 }
 
+install_generic_consumer_as() {
+    local INTERFACE_NAME="$1"
+    local SNAP_NAME="$2"
+
+    cp -ar "$TESTSLIB/snaps/generic-consumer" .
+    sed "s/@INTERFACE@/$INTERFACE_NAME/" generic-consumer/meta/snap.yaml.in > generic-consumer/meta/snap.yaml
+    snap pack generic-consumer generic-consumer
+    snap install --dangerous --name "$SNAP_NAME" generic-consumer/*.snap
+    rm -rf generic-consumer
+}

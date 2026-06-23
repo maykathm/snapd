@@ -33,10 +33,13 @@ systems:
 
 prepare: |
     tests.session -u test prepare
+    snap set system experimental.parallel-instances=true
     snap install --edge test-snapd-eds
 
 restore: |
     snap remove --purge test-snapd-eds
+    snap remove --purge test-snapd-eds_foo || true
+    snap set system experimental.parallel-instances=null
     tests.session -u test restore
 
 execute: |
@@ -76,3 +79,34 @@ execute: |
 
     echo "Finally, remove the calendar we created"
     tests.session -u test exec test-snapd-eds.calendar remove test-calendar
+
+    echo "When a parallel install of the snap is installed"
+    snap install --edge test-snapd-eds_foo
+    snap connect test-snapd-eds_foo:calendar-service
+    tests.session -u test exec test-snapd-eds_foo.calendar load test-calendar << EOF
+    BEGIN:VEVENT
+    UID:19970610T172345Z-AF23B2@example.com
+    DTSTAMP:19970610T172345Z
+    DTSTART:19970714T170000Z
+    DTEND:19970715T040000Z
+    SUMMARY:Bastille Day Party
+    END:VEVENT
+    EOF
+
+    echo "When the original snap is removed"
+    snap remove --purge test-snapd-eds
+
+    echo "Then the parallel snap can still retrieve calendars"
+    tests.session -u test exec test-snapd-eds_foo.calendar list test-calendar | sed -E 's/^(CREATED|LAST-MODIFIED):.*/\1:.../' > /tmp/calendar-foo.ics
+    diff -uw - /tmp/calendar-foo.ics << EOF
+    BEGIN:VEVENT
+    UID:19970610T172345Z-AF23B2@example.com
+    DTSTAMP:19970610T172345Z
+    DTSTART:19970714T170000Z
+    DTEND:19970715T040000Z
+    SUMMARY:Bastille Day Party
+    CREATED:...
+    LAST-MODIFIED:...
+    END:VEVENT
+
+    EOF

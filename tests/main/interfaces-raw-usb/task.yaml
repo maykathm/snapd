@@ -4,7 +4,12 @@ details: |
     The raw-usb interface allows detection and grants access to all connected USB devices.
 
 prepare: |
+    snap set system experimental.parallel-instances=true
     "$TESTSTOOLS"/snaps-state install-local test-snapd-sh
+
+restore: |
+    snap remove --purge test-snapd-sh_foo || true
+    snap set system experimental.parallel-instances=null
 
 execute: |
     echo "The interface is not connected by default"
@@ -45,3 +50,35 @@ execute: |
         exit 1
     fi
     MATCH "Permission denied" < call.error
+
+    echo "### Parallel instance testing ###"
+
+    echo "Install the parallel instance"
+    "$TESTSTOOLS"/snaps-state install-local-as test-snapd-sh test-snapd-sh_foo
+
+    echo "The raw-usb interface is not connected by default for the parallel instance"
+    snap interfaces -i raw-usb | MATCH -- '^- +test-snapd-sh_foo:raw-usb'
+
+    echo "When the interface is connected for the parallel instance"
+    snap connect test-snapd-sh_foo:raw-usb
+
+    echo "Then the parallel instance snap is able to check for USB devices"
+    test-snapd-sh_foo.with-raw-usb-plug -c "ls /sys/bus/usb/devices/usb1"
+
+    echo "And the parallel instance snap has raw access to a connected USB device"
+    test-snapd-sh_foo.with-raw-usb-plug -c "cat /dev/bus/usb/001/001 > /dev/null"
+
+    echo "When the original snap is removed"
+    snap remove --purge test-snapd-sh
+
+    echo "Then the parallel instance is still able to check USB devices"
+
+    echo "Then the parallel instance snap is able to check for USB devices"
+    test-snapd-sh_foo.with-raw-usb-plug -c "ls /sys/bus/usb/devices/usb1"
+
+    echo "And the parallel instance snap has raw access to a connected USB device"
+    test-snapd-sh_foo.with-raw-usb-plug -c "cat /dev/bus/usb/001/001 > /dev/null"
+
+    echo "Disconnecting the parallel instance plug"
+    snap disconnect test-snapd-sh_foo:raw-usb
+    snap remove --purge test-snapd-sh_foo

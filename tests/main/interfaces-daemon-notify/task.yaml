@@ -11,7 +11,11 @@ details: |
 backends: [-autopkgtest]
 
 prepare: |
+    snap set system experimental.parallel-instances=true
     "$TESTSTOOLS"/snaps-state install-local test-snapd-daemon-notify
+
+restore: |
+    snap set system experimental.parallel-instances=null
 
 execute: |
     echo "The interface is not connected by default"
@@ -56,3 +60,40 @@ execute: |
         sleep 1
     done
     test "$denials_before" != "$denials_after"
+
+    echo "--- Parallel instance testing ---"
+    "$TESTSTOOLS"/snaps-state install-local-as test-snapd-daemon-notify test-snapd-daemon-notify_foo
+
+    echo "When the interface is connected for the parallel instance"
+    snap connect test-snapd-daemon-notify_foo:daemon-notify
+
+    echo "And the service is stopped"
+    snap stop test-snapd-daemon-notify_foo.notify
+
+    denials_before="$("$TESTSTOOLS"/journal-state get-log -u snap.test-snapd-daemon-notify_foo.notify.service | grep -c 'Permission denied' || true)"
+    echo "Then after we restart the service there are no denials"
+    snap start test-snapd-daemon-notify_foo.notify
+    for _ in $(seq 10); do
+        denials_after="$("$TESTSTOOLS"/journal-state get-log -u snap.test-snapd-daemon-notify_foo.notify.service | grep -c 'Permission denied' || true)"
+        if [ "$denials_before" -ne "$denials_after" ]; then
+            break
+        fi
+        sleep 1
+    done
+    test "$denials_before" = "$denials_after"
+
+    echo "When the original snap is removed"
+    snap remove --purge test-snapd-daemon-notify
+
+    echo "Then the parallel instance still works without denials"
+    snap stop test-snapd-daemon-notify_foo.notify
+    denials_before="$("$TESTSTOOLS"/journal-state get-log -u snap.test-snapd-daemon-notify_foo.notify.service | grep -c 'Permission denied' || true)"
+    snap start test-snapd-daemon-notify_foo.notify
+    for _ in $(seq 10); do
+        denials_after="$("$TESTSTOOLS"/journal-state get-log -u snap.test-snapd-daemon-notify_foo.notify.service | grep -c 'Permission denied' || true)"
+        if [ "$denials_before" -ne "$denials_after" ]; then
+            break
+        fi
+        sleep 1
+    done
+    test "$denials_before" = "$denials_after"

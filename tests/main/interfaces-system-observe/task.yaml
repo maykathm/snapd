@@ -12,6 +12,7 @@ details: |
 systems: [-ubuntu-*-s390x]
 
 prepare: |
+    snap set system experimental.parallel-instances=true
     echo "Given a snap declaring a plug on the system-observe interface is installed"
     snap install --edge test-snapd-system-observe-consumer
 
@@ -26,6 +27,8 @@ prepare: |
     snap connect testsnap:network-setup-observe
 
 restore: |
+    snap remove --purge test-snapd-system-observe-consumer_foo || true
+    snap set system experimental.parallel-instances=null
     if not os.query is-trusty; then
         systemctl stop systemd-hostnamed
     fi
@@ -124,4 +127,20 @@ execute: |
             org.freedesktop.DBus.Properties GetAll s org.freedesktop.systemd1.Unit 2> log.error
         MATCH 'Access denied' < log.error
     fi
+
+    echo "When the parallel instance is installed"
+    snap install --edge test-snapd-system-observe-consumer_foo
+
+    echo "And the plug is connected"
+    snap connect test-snapd-system-observe-consumer_foo:system-observe
+
+    echo "Then the parallel instance is able to get system information"
+    expected="/dev/tty.*?serial"
+    su -l -c "test-snapd-system-observe-consumer_foo.consumer" test | MATCH "$expected"
+
+    echo "When the original snap is removed"
+    snap remove --purge test-snapd-system-observe-consumer
+
+    echo "Then the parallel instance is still able to get system information"
+    su -l -c "test-snapd-system-observe-consumer_foo.consumer" test | MATCH "$expected"
 

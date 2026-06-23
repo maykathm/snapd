@@ -13,6 +13,7 @@ environment:
     CONFIG: "$HOME/.gnupg/gpg.conf"
 
 prepare: |
+    snap set system experimental.parallel-instances=true
     "$TESTSTOOLS"/snaps-state install-local test-snapd-sh
 
     "$TESTSTOOLS"/fs-state mock-dir "$KEYSDIR"
@@ -21,6 +22,8 @@ prepare: |
     "$TESTSTOOLS"/fs-state mock-file "$CONFIG"
 
 restore: |
+    snap remove --purge test-snapd-sh_foo || true
+    snap set system experimental.parallel-instances=null
     "$TESTSTOOLS"/fs-state restore-dir "$KEYSDIR"
 
 execute: |
@@ -58,3 +61,20 @@ execute: |
         exit 1
     fi
     MATCH "Permission denied" < call.error
+
+    echo "Testing parallel instance"
+    "$TESTSTOOLS"/snaps-state install-local-as test-snapd-sh test-snapd-sh_foo
+    snap connect test-snapd-sh_foo:gpg-public-keys
+    test-snapd-sh_foo.with-gpg-public-keys-plug -c "gpg --list-keys"
+    test-snapd-sh_foo.with-gpg-public-keys-plug -c "cat $TRUSTEDKEYS"
+    test-snapd-sh_foo.with-gpg-public-keys-plug -c "cat $CONFIG"
+    
+    echo "When the original snap is removed"
+    snap remove --purge test-snapd-sh
+
+    echo "Then the parallel instance can still read gpg keys"
+    test-snapd-sh_foo.with-gpg-public-keys-plug -c "gpg --list-keys"
+    test-snapd-sh_foo.with-gpg-public-keys-plug -c "cat $TRUSTEDKEYS"
+    test-snapd-sh_foo.with-gpg-public-keys-plug -c "cat $CONFIG"
+    
+    snap remove --purge test-snapd-sh_foo

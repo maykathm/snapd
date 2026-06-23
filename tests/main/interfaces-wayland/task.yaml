@@ -19,6 +19,7 @@ systems:
     - ubuntu-22.04-64
 
 prepare: |
+    snap set system experimental.parallel-instances=true
     snap install --edge test-snapd-wayland
     tests.session -u test prepare
     tests.session -u test exec systemd-run --user --unit headless-weston.service weston --backend=headless-backend.so
@@ -26,6 +27,8 @@ prepare: |
 
 restore: |
     snap remove test-snapd-wayland
+    snap remove test-snapd-wayland_foo || true
+    snap set system experimental.parallel-instances=null
     tests.session -u test exec systemctl --user stop headless-weston.service
     tests.session -u test restore
 
@@ -51,3 +54,14 @@ execute: |
         echo "Expected error with plug disconnected"
         exit 1
     fi
+
+    echo "When a parallel install of the snap is installed"
+    snap install --edge test-snapd-wayland_foo
+    snap connect test-snapd-wayland_foo:wayland
+    tests.session -u test exec test-snapd-wayland_foo | MATCH wl_compositor
+
+    echo "When the original snap is removed"
+    snap remove test-snapd-wayland
+
+    echo "Then the parallel snap can still connect to the wayland socket"
+    tests.session -u test exec test-snapd-wayland_foo | MATCH wl_compositor

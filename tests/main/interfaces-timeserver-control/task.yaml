@@ -32,6 +32,7 @@ prepare: |
     esac
 
     # Install a snap declaring a plug on timeserver-control.
+    snap set system experimental.parallel-instances=true
     if systemctl is-enabled systemd-timesyncd.service ; then
         # Install the base core20 variant with timedatectl that supports systemd-timesyncd commands.
         "$TESTSTOOLS"/snaps-state install-local-variant test-snapd-timedate-control-consumer-core24 test-snapd-timedate-control-consumer
@@ -40,6 +41,8 @@ prepare: |
         "$TESTSTOOLS"/snaps-state install-local test-snapd-timedate-control-consumer
     fi
     tests.cleanup defer snap remove --purge test-snapd-timedate-control-consumer
+    tests.cleanup defer snap remove --purge test-snapd-timedate-control-consumer_foo
+    tests.cleanup defer snap set system experimental.parallel-instances=null
 
 execute: |
     # If we cannot use network time protocol then the test is meaningless.
@@ -113,3 +116,21 @@ execute: |
         exit 1
     fi
     MATCH "Permission denied" < call.error
+
+    echo "When a parallel install of the snap is installed"
+    "$TESTSTOOLS"/snaps-state install-local-as test-snapd-timedate-control-consumer test-snapd-timedate-control-consumer_foo
+    snap connect test-snapd-timedate-control-consumer_foo:timeserver-control
+
+    echo "Then the parallel snap can get timeserver status"
+    test-snapd-timedate-control-consumer_foo.timedatectl-timeserver
+
+    echo "And the parallel snap can toggle NTP"
+    test-snapd-timedate-control-consumer_foo.timedatectl-timeserver set-ntp true
+    retry --wait 5 sh -c 'test "$(busctl get-property org.freedesktop.timedate1 /org/freedesktop/timedate1 org.freedesktop.timedate1 NTP)" = "b true"'
+
+    echo "When the original snap is removed"
+    snap remove --purge test-snapd-timedate-control-consumer
+
+    echo "Then the parallel snap can still toggle NTP"
+    test-snapd-timedate-control-consumer_foo.timedatectl-timeserver set-ntp false
+    retry --wait 5 sh -c 'test "$(busctl get-property org.freedesktop.timedate1 /org/freedesktop/timedate1 org.freedesktop.timedate1 NTP)" = "b false"'

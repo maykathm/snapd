@@ -10,8 +10,12 @@ environment:
     MOUNT_SRC: /var/tmp/test-snapd-mount-control
     SNAP_COMMON: /var/snap/test-snapd-mount-control/common
     SNAP_NAME: test-snapd-mount-control
+    PARALLEL_SNAP_NAME: test-snapd-mount-control_foo
+    PARALLEL_SNAP_COMMON: /var/snap/test-snapd-mount-control_foo/common
     # what: /var/tmp/** | where: $SNAP_COMMON/target1 | options: [rw, bind] | persistent
     MOUNT_DEST1: $SNAP_COMMON/target1
+    # what: /var/tmp/** | where: $PARALLEL_SNAP_COMMON/target1 | options: [rw, bind] | persistent
+    PARALLEL_MOUNT_DEST1: $PARALLEL_SNAP_COMMON/target1
     # what: none | where: $SNAP_COMMON/target2/* | type: [tmpfs] | options: [rw]
     MOUNT_DEST2: $SNAP_COMMON/target2/path
     # what: /usr/** | where: $SNAP_COMMON/target3/** | options: [rw, bind]
@@ -23,12 +27,15 @@ prepare: |
         . "$TESTSLIB/pkgdb.sh"
         distro_install_package auditd
     fi
+    snap set system experimental.parallel-instances=true
     mkdir -p "$MOUNT_SRC/dir1"
     echo "Something" > "$MOUNT_SRC/file1"
 
 restore: |
     rm -f connect_error.log
     rm -rf "$MOUNT_SRC"
+    snap remove --purge test-snapd-mount-control_foo || true
+    snap set system experimental.parallel-instances=null
 
 execute: |
     if [ "$SPREAD_REBOOT" = 0 ]; then
@@ -151,6 +158,18 @@ execute: |
         echo "Verify that the persistent mount is also immediately available"
         "${SNAP_NAME}".cmd grep "$MOUNT_DEST1" /proc/self/mountinfo
         "${SNAP_NAME}".cmd test -e "$MOUNT_DEST1/file1"
+
+        echo "When a parallel install of the snap is installed"
+        "$TESTSTOOLS"/snaps-state install-local-as "$SNAP_NAME" "$PARALLEL_SNAP_NAME"
+        snap connect "$PARALLEL_SNAP_NAME":mntctl
+        mkdir -p "$PARALLEL_MOUNT_DEST1"
+
+        echo "Then the parallel snap can perform a mount to its own SNAP_COMMON"
+        "$PARALLEL_SNAP_NAME".cmd mount -o bind,rw "$MOUNT_SRC" "$PARALLEL_MOUNT_DEST1"
+
+        echo "Verify the mount"
+        "$PARALLEL_SNAP_NAME".cmd grep "$PARALLEL_MOUNT_DEST1" /proc/self/mountinfo
+        "$PARALLEL_SNAP_NAME".cmd test -e "$PARALLEL_MOUNT_DEST1/file1"
 
         REBOOT
     else

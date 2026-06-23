@@ -26,8 +26,13 @@ systems:
 
 prepare: |
     # Source code is at https://github.com/canonical/test-snapd-posix-mq
+    snap set system experimental.parallel-instances=true
     snap install test-snapd-posix-mq
     snap warnings | MATCH 'No further warnings.|No warnings.'
+
+restore: |
+    snap remove --purge test-snapd-posix-mq_foo || true
+    snap set system experimental.parallel-instances=null
 
 execute: |
     # We cannot create a queue before connecting the can-create slot.
@@ -90,3 +95,37 @@ execute: |
     snap connect test-snapd-posix-mq:posix-mq test-snapd-posix-mq:can-delete
     test-snapd-posix-mq.mqctl unlink /test
     test ! -f /dev/mqueue/test
+
+    echo "When a parallel install of the snap is installed"
+    snap install test-snapd-posix-mq_foo
+    snap connect test-snapd-posix-mq_foo:posix-mq test-snapd-posix-mq_foo:can-create
+    snap connect test-snapd-posix-mq_foo:posix-mq test-snapd-posix-mq_foo:can-read
+    snap connect test-snapd-posix-mq_foo:posix-mq test-snapd-posix-mq_foo:can-write
+    snap connect test-snapd-posix-mq_foo:posix-mq test-snapd-posix-mq_foo:can-delete
+
+    echo "The original snap creates a queue and sends a message"
+    snap connect test-snapd-posix-mq:posix-mq test-snapd-posix-mq:can-create
+    snap connect test-snapd-posix-mq:posix-mq test-snapd-posix-mq:can-write
+    snap connect test-snapd-posix-mq:posix-mq test-snapd-posix-mq:can-read
+    test-snapd-posix-mq.mqctl create /test read-only 600 max-size=16,max-count=10 | MATCH 'mq_open did not fail'
+    test-snapd-posix-mq.mqctl send /test write-only "Original message" 7 | MATCH 'mq_send did not fail'
+
+    echo "The parallel snap creates its own queue with the same name -- it should be isolated"
+    test-snapd-posix-mq_foo.mqctl create /test read-only 600 max-size=16,max-count=10 | MATCH 'mq_open did not fail'
+    test-snapd-posix-mq_foo.mqctl send /test write-only "Parallel message" 3 | MATCH 'mq_send did not fail'
+
+    test-snapd-posix-mq_foo.mqctl recv /test read-only > same-named-queue-read
+
+    echo "When the original snap is removed"
+    snap connect test-snapd-posix-mq:posix-mq test-snapd-posix-mq:can-delete
+    test-snapd-posix-mq.mqctl unlink /test
+    snap remove --purge test-snapd-posix-mq
+
+    echo "Then the parallel snap can still create and use its own queues"
+    test-snapd-posix-mq_foo.mqctl create /test read-only 600 max-size=16,max-count=10 | MATCH 'mq_open did not fail'
+    test-snapd-posix-mq_foo.mqctl send /test write-only "Still works" 1 | MATCH 'mq_send did not fail'
+    test-snapd-posix-mq_foo.mqctl recv /test read-only | MATCH 'Received message with priority 1: Still works'
+    test-snapd-posix-mq_foo.mqctl unlink /test
+    
+    echo "Before when the original snap was also installed, the parallel snap read from the queue -- it should get its own message, not the original's"
+    MATCH 'Received message with priority 3: Parallel message' <same-named-queue-read

@@ -13,6 +13,7 @@ skip:
 
 prepare: |
     snap remove --purge api-client || true
+    snap set system experimental.parallel-instances=true
     tests.session -u test prepare
     tests.session -u test exec systemctl --user \
       set-environment XDG_DATA_DIRS=/usr/share:/var/lib/snapd/desktop
@@ -20,6 +21,10 @@ prepare: |
 restore: |
     tests.session -u test restore
     rm -f ~test/snap/test-app/current/launch-data.txt
+    snap remove --purge api-client_foo || true
+    snap remove --purge test-app_foo || true
+    snap remove --purge test-launcher_foo || true
+    snap set system experimental.parallel-instances=null
 
 execute: |
     "$TESTSTOOLS"/snaps-state install-local api-client
@@ -67,3 +72,28 @@ execute: |
 
     echo "Check that snap can access /v2/snaps"
     api-client --socket /run/snapd-snap.socket "/v2/snaps" | gojq '."status-code"' | MATCH '^200$'
+
+    echo "Install parallel instances"
+    "$TESTSTOOLS"/snaps-state install-local-as api-client api-client_foo
+    "$TESTSTOOLS"/snaps-state install-local-as test-app test-app_foo
+    "$TESTSTOOLS"/snaps-state install-local-as test-launcher test-launcher_foo
+
+    echo "Connect the parallel api-client desktop-launch plug"
+    snap connect api-client_foo:desktop-launch
+
+    echo "The parallel snap can access /v2/snaps/{name}"
+    api-client_foo --socket /run/snapd-snap.socket "/v2/snaps/snapd" | gojq '."status-code"' | MATCH '^200$'
+
+    echo "The parallel snap can access /v2/snaps"
+    api-client_foo --socket /run/snapd-snap.socket "/v2/snaps" | gojq '."status-code"' | MATCH '^200$'
+
+    echo "When the original api-client is removed"
+    snap remove --purge api-client
+
+    echo "Then the parallel snap can still access the API"
+    api-client_foo --socket /run/snapd-snap.socket "/v2/snaps/snapd" | gojq '."status-code"' | MATCH '^200$'
+
+    echo "The parallel launcher snap can launch the parallel application snap"
+    snap connect test-launcher_foo:desktop-launch
+    tests.session -u test exec test-launcher_foo \
+        test-app_foo_test-app.desktop

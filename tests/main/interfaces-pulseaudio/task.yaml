@@ -15,6 +15,7 @@ environment:
     PLAY_FILE: "/snap/test-snapd-pulseaudio/current/usr/share/sounds/alsa/Noise.wav"
 
 prepare: |
+    snap set system experimental.parallel-instances=true
     # Install pulseaudio.
     apt-get update
     apt-get install -y pulseaudio pulseaudio-utils
@@ -37,6 +38,8 @@ prepare: |
     # Install a snap that uses the pulseaudio interface.
     snap install --edge test-snapd-pulseaudio
     tests.cleanup defer snap remove --purge test-snapd-pulseaudio
+    tests.cleanup defer snap remove --purge test-snapd-pulseaudio_foo
+    tests.cleanup defer snap set system experimental.parallel-instances=null
 
     # TODO: move this to the test that is responsible for creating this data.
     # Remove potentially large go build cache that makes the debug section more
@@ -132,3 +135,15 @@ execute: |
         echo "Expected error with plug disconnected"
         exit 1
     fi
+
+    echo "When a parallel install of the snap is installed"
+    snap install --edge test-snapd-pulseaudio_foo
+    snap connect test-snapd-pulseaudio_foo:pulseaudio
+    tests.session -u test exec test-snapd-pulseaudio_foo.play "/snap/test-snapd-pulseaudio_foo/current/usr/share/sounds/alsa/Noise.wav"
+    tests.session -u test exec test-snapd-pulseaudio_foo.recsimple
+
+    echo "When the original snap is removed"
+    snap remove --purge test-snapd-pulseaudio
+
+    echo "Then the parallel snap can still play audio"
+    tests.session -u test exec test-snapd-pulseaudio_foo.play "/snap/test-snapd-pulseaudio_foo/current/usr/share/sounds/alsa/Noise.wav"

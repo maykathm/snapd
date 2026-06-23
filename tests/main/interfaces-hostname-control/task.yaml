@@ -5,7 +5,12 @@ details: |
 
 prepare: |
     echo "Install test hostname-control snap"
+    snap set system experimental.parallel-instances=true
     "$TESTSTOOLS"/snaps-state install-local test-snapd-sh
+
+restore: |
+    snap remove --purge test-snapd-sh_foo || true
+    snap set system experimental.parallel-instances=null
 
 execute: |
     hostname="$(hostname)"
@@ -54,3 +59,21 @@ execute: |
     echo "And the /etc/hostname file and the hostname command are still available even without the connection."
     test-snapd-sh.with-hostname-control-plug -c "test -f /etc/hostname"
     test-snapd-sh.with-hostname-control-plug -c "test -x /bin/hostname"
+
+    echo "When a parallel install of the snap is installed"
+    "$TESTSTOOLS"/snaps-state install-local-as test-snapd-sh test-snapd-sh_foo
+    snap connect test-snapd-sh_foo:hostname-control
+
+    echo "Then the parallel snap can read the hostname"
+    snap_hostname_foo="$(test-snapd-sh_foo.with-hostname-control-plug -c "/bin/hostname")"
+    [ "$hostname" = "$snap_hostname_foo" ]
+
+    echo "And the parallel snap can set the hostname through dbus"
+    test-snapd-sh_foo.with-hostname-control-plug -c "hostnamectl set-hostname $hostname"
+
+    echo "When the original snap is removed"
+    snap remove --purge test-snapd-sh
+
+    echo "Then the parallel snap can still read and set the hostname"
+    test-snapd-sh_foo.with-hostname-control-plug -c "hostnamectl" | MATCH "$hostname"
+    test-snapd-sh_foo.with-hostname-control-plug -c "hostnamectl set-hostname $hostname"

@@ -25,12 +25,15 @@ prepare: |
     echo "Start the stub xdg-desktop-portal NetworkMonitor provider"
     # The network-status interface is defined to operate on a session
     # bus so for most realism, invoke it as the test user.
+    snap set system experimental.parallel-instances=true
     tests.session -u test prepare
     tests.session -u test exec systemd-run --user --unit test-snapd-network-monitor.service "$(pwd)/fake-portal-network-monitor.py"
 
 restore: |
     tests.session -u test exec systemctl --user stop test-snapd-network-monitor.service
     tests.session -u test restore
+    snap remove --purge test-snapd-network-status-client_foo || true
+    snap set system experimental.parallel-instances=null
 
 execute: |
     echo "Install a snap that plugs network-status"
@@ -51,3 +54,15 @@ execute: |
 
     echo "The connectivity status can no longer be accessed"
     not tests.session -u test exec test-snapd-network-status-client.connectivity
+
+    echo "When a parallel install of the snap is installed"
+    "$TESTSTOOLS"/snaps-state install-local-as test-snapd-network-status-client test-snapd-network-status-client_foo
+
+    echo "The parallel snap can access connectivity status"
+    tests.session -u test exec test-snapd-network-status-client_foo.connectivity | MATCH "uint32 4"
+
+    echo "When the original snap is removed"
+    snap remove --purge test-snapd-network-status-client
+
+    echo "Then the parallel snap can still access connectivity status"
+    tests.session -u test exec test-snapd-network-status-client_foo.connectivity | MATCH "uint32 4"

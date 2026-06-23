@@ -13,6 +13,7 @@ prepare: |
     #shellcheck source=tests/lib/core-config.sh
     . "$TESTSLIB"/core-config.sh
 
+    snap set system experimental.parallel-instances=true
     echo "Given a snap declaring a plug on account-control is installed"
     SUFFIX="$(get_test_snap_suffix)"
     "$TESTSTOOLS"/snaps-state install-local "${TSNAP}${SUFFIX}"
@@ -25,11 +26,14 @@ restore: |
     . "$TESTSLIB"/core-config.sh
     SUFFIX="$(get_test_snap_suffix)"
 
-    echo "Ensure alice is gone from the system"
+    echo "Ensure alice and bob are gone from the system"
     for f in /var/lib/extrausers/*; do
         sed -i '/^alice:/d' "$f"
+        sed -i '/^bob:/d' "$f"
     done
-    snap remove --purge "${TSNAP}${SUFFIX}"
+    snap remove --purge "${TSNAP}${SUFFIX}" || true
+    snap remove --purge "${TSNAP}${SUFFIX}_foo" || true
+    snap set system experimental.parallel-instances=null
 
 execute: |
     #shellcheck source=tests/lib/core-config.sh
@@ -43,3 +47,17 @@ execute: |
     echo alice:password | snap run "${TSNAP}${SUFFIX}".chpasswd
 
     snap run "${TSNAP}${SUFFIX}".userdel --extrausers alice
+
+    echo "When a parallel install of the snap is installed"
+    "$TESTSTOOLS"/snaps-state install-local-as "${TSNAP}${SUFFIX}" "${TSNAP}${SUFFIX}_foo"
+    snap connect "${TSNAP}${SUFFIX}_foo":account-control
+
+    echo "Then the parallel snap can manage users"
+    snap run "${TSNAP}${SUFFIX}_foo".useradd --extrausers bob
+    echo bob:password | snap run "${TSNAP}${SUFFIX}_foo".chpasswd
+
+    echo "When the original snap is removed"
+    snap remove --purge "${TSNAP}${SUFFIX}"
+
+    echo "Then the parallel snap can still manage users"
+    snap run "${TSNAP}${SUFFIX}_foo".userdel --extrausers bob

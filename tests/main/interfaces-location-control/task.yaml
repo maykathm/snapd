@@ -20,6 +20,7 @@ systems:
 
 prepare: |
     echo "Given a snap declaring a plug on the location-control interface is installed"
+    snap set system experimental.parallel-instances=true
     snap install test-snapd-location-control-provider
 
     echo "And the provider dbus loop is started"
@@ -37,6 +38,8 @@ restore: |
     # scope, thus it is no longer part of the unit's cgroup
     pkill -f provider.py || true
     tests.session -u test restore
+    snap remove --purge test-snapd-location-control-provider_foo || true
+    snap set system experimental.parallel-instances=null
 
 execute: |
     echo "The interface is not connected by default"
@@ -67,3 +70,11 @@ execute: |
 
     echo "And the plug can be re-connected"
     snap connect test-snapd-location-control-provider:location-control test-snapd-location-control-provider:location-control-test
+
+    echo "When a parallel install of the snap is installed"
+    snap install test-snapd-location-control-provider_foo
+    systemd-run --unit test-snapd-location-control-provider_foo.service test-snapd-location-control-provider_foo.provider
+    snap connect test-snapd-location-control-provider_foo:location-control test-snapd-location-control-provider_foo:location-control-test
+
+    echo "Then the parallel consumer can access its own provider"
+    tests.session -u test exec test-snapd-location-control-provider_foo.consumer Get | MATCH "location-provider-added"

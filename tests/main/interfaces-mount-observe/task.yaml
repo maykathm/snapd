@@ -8,8 +8,13 @@ details: |
     on the host mount namespace.
 
 prepare: |
+    snap set system experimental.parallel-instances=true
     echo "Given a snap declaring a plug on the mount-observe interface is installed"
     "$TESTSTOOLS"/snaps-state install-local mount-observe-consumer
+
+restore: |
+    snap remove --purge mount-observe-consumer_foo || true
+    snap set system experimental.parallel-instances=null
 
 execute: |
     echo "The interface is not connected by default"
@@ -45,3 +50,20 @@ execute: |
         echo "Expected error accessing mount info with disconnected plug"
         exit 1
     fi
+
+    echo "When the parallel instance is installed"
+    "$TESTSTOOLS"/snaps-state install-local-as mount-observe-consumer mount-observe-consumer_foo
+
+    echo "And the plug is connected"
+    snap connect mount-observe-consumer_foo:mount-observe
+
+    echo "Then the parallel instance is able to access mount info"
+    SNAP_MOUNT_DIR="$(os.paths snap-mount-dir)"
+    expected="$SNAP_MOUNT_DIR/mount-observe-consumer_foo"
+    su -l -c "mount-observe-consumer_foo" test | grep -Pq "$expected"
+
+    echo "When the original snap is removed"
+    snap remove --purge mount-observe-consumer
+
+    echo "Then the parallel instance is still able to access mount info"
+    su -l -c "mount-observe-consumer_foo" test | grep -Pq "$expected"

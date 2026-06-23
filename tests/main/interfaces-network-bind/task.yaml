@@ -18,6 +18,7 @@ environment:
 
 prepare: |
     echo "Given a snap declaring the network-bind plug is installed"
+    snap set system experimental.parallel-instances=true
     "$TESTSTOOLS"/snaps-state install-local "$SNAP_NAME"
 
     echo "Given the snap's service is listening"
@@ -36,6 +37,8 @@ restore: |
     # are sent after the journalctl cursor for following test is determined producing errors while
     # preparing the test.
     snap remove --purge network-bind-consumer
+    snap remove --purge network-bind-consumer_foo || true
+    snap set system experimental.parallel-instances=null
 
 execute: |
     echo "The interface is connected by default"
@@ -57,3 +60,15 @@ execute: |
 
     echo "Then the plug can be connected again"
     snap connect "$SNAP_NAME:network-bind"
+
+    echo "When a parallel install of the snap is installed"
+    "$TESTSTOOLS"/snaps-state install-local-as "$SNAP_NAME" "${SNAP_NAME}_foo"
+
+    echo "Then the parallel service is accessible by a client"
+    nc -w 1 localhost "$PORT" < "$REQUEST_FILE" | grep -Pqz 'ok\n'
+
+    echo "When the original snap is removed"
+    snap remove --purge "$SNAP_NAME"
+
+    echo "Then the parallel service is still accessible by a client"
+    nc -w 1 localhost "$PORT" < "$REQUEST_FILE" | grep -Pqz 'ok\n'

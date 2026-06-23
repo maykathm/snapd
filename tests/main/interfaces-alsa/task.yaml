@@ -20,12 +20,18 @@ prepare: |
     echo "Given a snap declaring a plug on the alsa interface is installed"
     #shellcheck source=tests/lib/snaps.sh
     . "$TESTSLIB"/snaps.sh
+    snap set system experimental.parallel-instances=true
     install_generic_consumer alsa
 
 restore: |
+    snap remove --purge generic-consumer_foo || true
+    snap set system experimental.parallel-instances=null
     rm -f /dev/snd/mysnd-dev
 
 execute: |
+    #shellcheck source=tests/lib/snaps.sh
+    . "$TESTSLIB"/snaps.sh
+
     echo "When the plug is connected"
     snap connect generic-consumer:alsa
 
@@ -90,6 +96,24 @@ execute: |
         MATCH "Permission denied" ./udevdata-read.error
         rm /run/udev/data/c116:0
     fi
+
+    echo "When a parallel install of the snap is installed"
+    install_generic_consumer_as alsa generic-consumer_foo
+    snap connect generic-consumer_foo:alsa
+
+    echo "Then the parallel snap is able to access snd devices"
+    mkdir -p /dev/snd
+    generic-consumer_foo.cmd touch /dev/snd/mysnd-dev
+    echo "mysnd-dev-content" | tee /dev/snd/mysnd-dev
+    generic-consumer_foo.cmd cat /dev/snd/mysnd-dev | MATCH mysnd-dev-content
+    generic-consumer_foo.cmd rm /dev/snd/mysnd-dev
+
+    echo "When the original snap is removed"
+    snap remove --purge generic-consumer
+
+    echo "Then the parallel snap can still access snd devices"
+    generic-consumer_foo.cmd touch /dev/snd/mysnd-dev
+    generic-consumer_foo.cmd rm /dev/snd/mysnd-dev
 
     # TODO: extend test to check /var/lib/alsa with plug disconnected when
     # https://bugs.launchpad.net/snapd/+bug/1694281 is fixed

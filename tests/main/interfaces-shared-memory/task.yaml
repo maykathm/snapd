@@ -5,6 +5,7 @@ details: |
     object declared in the slot of the provider snap.
 
 prepare: |
+    snap set system experimental.parallel-instances=true
     "$TESTSTOOLS"/snaps-state install-local shm-slot
     "$TESTSTOOLS"/snaps-state install-local shm-plug
 
@@ -92,3 +93,21 @@ execute: |
     if shm-plug.cmd cat /dev/shm/readable-bar; then
         exit 1
     fi
+
+    echo "When parallel installs are installed"
+    "$TESTSTOOLS"/snaps-state install-local-as shm-slot shm-slot_foo
+    "$TESTSTOOLS"/snaps-state install-local-as shm-plug shm-plug_foo
+    snap connect shm-plug_foo:shmem shm-slot_foo:shmem
+    snap connect shm-plug_foo:shmem-wildcard shm-slot_foo:shmem-wildcard
+
+    echo "Reconnect the originals for the isolation test"
+    snap connect shm-plug:shmem shm-slot:shmem
+
+    echo "The original slot writes data to its shared memory"
+    shm-slot.cmd sh -c 'echo "original data" > /dev/shm/writable-bar'
+
+    echo "The parallel slot writes different data to its shared memory"
+    shm-slot_foo.cmd sh -c 'echo "parallel data" > /dev/shm/writable-bar'
+
+    echo "The original plug should see its own slot's data (not the parallel's)"
+    shm-plug.cmd cat /dev/shm/writable-bar | MATCH "original data"

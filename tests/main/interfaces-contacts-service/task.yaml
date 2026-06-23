@@ -28,9 +28,12 @@ systems:
 
 prepare: |
     tests.session -u test prepare
+    snap set system experimental.parallel-instances=true
 
 restore: |
     snap remove --purge test-snapd-eds
+    snap remove --purge test-snapd-eds_foo || true
+    snap set system experimental.parallel-instances=null
     tests.session -u test restore
 
 execute: |
@@ -69,3 +72,24 @@ execute: |
 
     echo "Finally, remove the address book we created"
     tests.session -u test exec test-snapd-eds.contacts remove test-address-book
+
+    echo "When a parallel install of the snap is installed"
+    snap install --edge test-snapd-eds_foo
+    snap connect test-snapd-eds_foo:contacts-service
+    tests.session -u test exec test-snapd-eds_foo.contacts list test-address-book | sed -E 's/^(UID|REV):.*/\1:.../' > /tmp/contacts-foo.vcf
+    diff -uw - /tmp/contacts-foo.vcf << EOF
+    BEGIN:VCARD
+    VERSION:3.0
+    FN:Fred Smith
+    N:Smith;Fred;;;
+    EMAIL;type=HOME:fred@example.org
+    UID:...
+    REV:...
+    END:VCARD
+    EOF
+
+    echo "When the original snap is removed"
+    snap remove --purge test-snapd-eds
+
+    echo "Then the parallel snap can still retrieve contacts"
+    tests.session -u test exec test-snapd-eds_foo.contacts list test-address-book

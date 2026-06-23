@@ -1,0 +1,42 @@
+summary: Check mount-control creates instance-specific mount units
+
+details: |
+    Snapd allows installing the same snap more than once by combining the snap
+    name with different instance keys.
+
+    The mount-control interface must create mount units using the instance's
+    snap data paths, otherwise parallel installs can collide when they mount to
+    $SNAP_COMMON-based locations.
+
+prepare: |
+    snap set system experimental.parallel-instances=true
+    tests.cleanup defer snap set system experimental.parallel-instances=null
+
+    mkdir -p /var/tmp/test-snapd-mount-control
+    echo "Something" > /var/tmp/test-snapd-mount-control/file1
+    tests.cleanup defer rm -rf /var/tmp/test-snapd-mount-control
+
+    "$TESTSTOOLS"/snaps-state install-local test-snapd-mount-control
+    tests.cleanup defer snap remove --purge test-snapd-mount-control
+
+    "$TESTSTOOLS"/snaps-state install-local-as test-snapd-mount-control test-snapd-mount-control_foo
+    tests.cleanup defer snap remove --purge test-snapd-mount-control_foo
+
+    snap connect test-snapd-mount-control:mntctl
+    snap connect test-snapd-mount-control_foo:mntctl
+
+restore: |
+    snap set system experimental.parallel-instances=null
+
+execute: |
+    base_unit=$(systemd-escape --path /var/snap/test-snapd-mount-control/common/target1).mount
+
+    echo "Create a persistent mount for the regular instance"
+    test-snapd-mount-control.cmd sh -c "snapctl mount --persistent -o bind,rw /var/tmp/test-snapd-mount-control \$SNAP_COMMON/target1"
+    test -f "/etc/systemd/system/$base_unit"
+
+    echo "Create a persistent mount for the parallel instance"
+    test-snapd-mount-control_foo.cmd sh -c "snapctl mount --persistent -o bind,rw /var/tmp/test-snapd-mount-control \$SNAP_COMMON/target1"
+
+    echo "The first instance mount unit must still exist"
+    test -f "/etc/systemd/system/$base_unit"

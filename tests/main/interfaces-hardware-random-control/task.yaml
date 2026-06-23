@@ -17,6 +17,7 @@ systems: [-debian-*, -arch-*, -amazon-*, -centos-*]
 
 prepare: |
     echo "Given a snap declaring a plug on the hardware-random-control interface is installed"
+    snap set system experimental.parallel-instances=true
     "$TESTSTOOLS"/snaps-state install-local test-snapd-hardware-random-control
 
 execute: |
@@ -48,3 +49,18 @@ execute: |
 
     echo "And the snap is able to reconnect"
     snap connect test-snapd-hardware-random-control:hardware-random-control
+
+    echo "When a parallel install of the snap is installed"
+    "$TESTSTOOLS"/snaps-state install-local-as test-snapd-hardware-random-control test-snapd-hardware-random-control_foo
+    snap connect test-snapd-hardware-random-control_foo:hardware-random-control
+
+    echo "Then the parallel snap is able to read hardware random information"
+    test-snapd-hardware-random-control_foo.check /dev/hwrng
+    test-snapd-hardware-random-control_foo.check /sys/class/misc/hw_random/rng_available
+    test-snapd-hardware-random-control_foo.check /sys/class/misc/hw_random/rng_current
+
+    echo "When the original snap is removed"
+    snap remove --purge test-snapd-hardware-random-control
+
+    echo "Then the parallel snap can still read hardware random information"
+    test-snapd-hardware-random-control_foo.check /dev/hwrng

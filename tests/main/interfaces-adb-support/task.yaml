@@ -6,7 +6,11 @@ details: |
     wide-open, write-access rules present.
 
 prepare: |
+    snap set system experimental.parallel-instances=true
     "$TESTSTOOLS"/snaps-state install-local test-snapd-adb-support
+
+restore: |
+    snap set system experimental.parallel-instances=null
 
 execute: |
     echo "Check initially there are not udev rules granting writable-to-all permission to anything"
@@ -23,4 +27,21 @@ execute: |
 
     echo "Once the snap is connected there are adb-support udev rules that grant write-all permissions."
     MATCH "Concatenation of all adb-support udev rules" /etc/udev/rules.d/70-snap.*.rules
+    MATCH 'MODE="0666"' /etc/udev/rules.d/70-snap.*.rules
+
+    echo "--- Parallel instance testing ---"
+    "$TESTSTOOLS"/snaps-state install-local-as test-snapd-adb-support test-snapd-adb-support_foo
+
+    echo "When the interface is connected for the parallel instance"
+    snap connect test-snapd-adb-support_foo:adb-support
+
+    echo "Then the udev rules file exists for the parallel instance"
+    test -f /etc/udev/rules.d/70-snap.test-snapd-adb-support_foo.rules
+    MATCH 'MODE="0666"' /etc/udev/rules.d/70-snap.*.rules
+
+    echo "When the original snap is removed"
+    snap remove --purge test-snapd-adb-support
+
+    echo "Then the parallel instance's udev rules file still exists"
+    test -f /etc/udev/rules.d/70-snap.test-snapd-adb-support_foo.rules
     MATCH 'MODE="0666"' /etc/udev/rules.d/70-snap.*.rules

@@ -10,7 +10,13 @@ details: |
     system:x11 slot, or an application snap's private /tmp if it is a
     regular slot.
 
+prepare: |
+    snap set system experimental.parallel-instances=true
+
 restore: |
+    snap remove --purge x11-client_foo || true
+    snap remove --purge x11-server_foo || true
+    snap set system experimental.parallel-instances=null
     rm -f /tmp/.X11-unix/X0
 
 execute: |
@@ -50,3 +56,23 @@ execute: |
 
     echo "The client cannot remove host system sockets either"
     not x11-client.rm -f /tmp/.X11-unix/X0
+
+    echo "When parallel installs are installed"
+    "$TESTSTOOLS"/snaps-state install-local-as x11-client x11-client_foo
+    "$TESTSTOOLS"/snaps-state install-local-as x11-server x11-server_foo
+    snap connect x11-client_foo:x11 x11-server_foo:x11
+
+    echo "The parallel snaps can communicate via the unix domain socket in /tmp"
+    x11-server_foo &
+    retry -n 4 --wait 0.5 test -e /tmp/snap-private-tmp/snap.x11-server_foo/tmp/.X11-unix/X0
+    x11-client_foo | MATCH "Hello from xserver"
+
+    echo "When the original snaps are removed"
+    snap remove --purge x11-client
+    snap remove --purge x11-server
+
+    echo "Then the parallel client can still communicate via /tmp"
+    # Restart the server (it's a one-shot nc process that exited after the first connection)
+    x11-server_foo &
+    retry -n 4 --wait 0.5 test -e /tmp/snap-private-tmp/snap.x11-server_foo/tmp/.X11-unix/X0
+    x11-client_foo | MATCH "Hello from xserver"

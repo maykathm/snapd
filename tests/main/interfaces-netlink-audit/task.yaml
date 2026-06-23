@@ -9,8 +9,12 @@ details: |
 systems: [-ubuntu-14.04-*, -arch-*]
 
 prepare: |
+    snap set system experimental.parallel-instances=true
     # Install a snap declaring a plug on netlink-audit
     "$TESTSTOOLS"/snaps-state install-local test-snapd-netlink-audit
+
+restore: |
+    snap set system experimental.parallel-instances=null
 
 execute: |
     echo "The interface is disconnected by default"
@@ -34,3 +38,18 @@ execute: |
         echo "Expected permission error creating/binding a netlink socket"
         exit 1
     fi
+
+    echo "--- Parallel instance testing ---"
+    "$TESTSTOOLS"/snaps-state install-local-as test-snapd-netlink-audit test-snapd-netlink-audit_foo
+
+    echo "When the interface is connected for the parallel instance"
+    snap connect test-snapd-netlink-audit_foo:netlink-audit
+
+    echo "Then the parallel instance snap is able to create and bind a netlink socket"
+    test-snapd-netlink-audit_foo.bind
+
+    echo "When the original snap is removed"
+    snap remove --purge test-snapd-netlink-audit
+
+    echo "Then the parallel instance can still create and bind a netlink socket"
+    test-snapd-netlink-audit_foo.bind

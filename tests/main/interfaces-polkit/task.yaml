@@ -24,11 +24,14 @@ skip:
       if: not tests.session has-session-systemd-and-dbus
 
 prepare: |
+    snap set system experimental.parallel-instances=true
     tests.session -u test prepare
 
 restore: |
     rm -f /home/test/sleep.stamp
     tests.session -u test restore
+    snap remove --purge test-snapd-polkit_foo || true
+    snap set system experimental.parallel-instances=null
 
 execute: |
     echo "Install the test snap"
@@ -88,4 +91,42 @@ execute: |
         test -f /etc/polkit-1/rules.d/70-snap.test-snapd-polkit.polkit-rule.bar.rules
         echo "The contents match the file provided by the snap"
         cmp /etc/polkit-1/rules.d/70-snap.test-snapd-polkit.polkit-rule.bar.rules "$snap_mount_dir"/test-snapd-polkit/current/meta/polkit/polkit-rule.bar.rules
+    fi
+
+    echo "When a parallel install of the snap is installed"
+    # NOTE: The polkit slot is provided by the system (implicit slot).
+    # We test plug-side only -- verifying file names are instance-aware.
+    snap install --edge test-snapd-polkit_foo
+
+    if ! os.query is-core; then
+        echo "The parallel snap's polkit-action plug can be connected"
+        snap connect test-snapd-polkit_foo:polkit-action
+
+        echo "The parallel snap's policy file is installed with an instance-specific name"
+        test -f /usr/share/polkit-1/actions/snap.test-snapd-polkit_foo.interface.polkit-action.foo.policy
+
+        echo "The original snap's policy file still exists"
+        test -f /usr/share/polkit-1/actions/snap.test-snapd-polkit.interface.polkit-action.foo.policy
+    fi
+
+    if ! os.query is-ubuntu-le 22.04 && ! os.query is-debian 11; then
+        echo "The parallel snap's polkit-rule plug can be connected"
+        snap connect test-snapd-polkit_foo:polkit-rule
+
+        echo "The parallel snap's rule file is installed with an instance-specific name"
+        test -f /etc/polkit-1/rules.d/70-snap.test-snapd-polkit_foo.polkit-rule.bar.rules
+
+        echo "The original snap's rule file still exists"
+        test -f /etc/polkit-1/rules.d/70-snap.test-snapd-polkit.polkit-rule.bar.rules
+    fi
+
+    echo "When the original snap is removed"
+    snap remove --purge test-snapd-polkit
+
+    if ! os.query is-core; then
+        echo "Then the parallel snap's policy file still exists"
+        test -f /usr/share/polkit-1/actions/snap.test-snapd-polkit_foo.interface.polkit-action.foo.policy
+
+        echo "And the original snap's policy file is gone"
+        test ! -f /usr/share/polkit-1/actions/snap.test-snapd-polkit.interface.polkit-action.foo.policy
     fi

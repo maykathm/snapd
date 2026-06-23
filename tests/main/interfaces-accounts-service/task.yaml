@@ -17,6 +17,7 @@ prepare: |
     # Not all the images have the same packages pre-installed.
     apt-get install -y --no-install-recommends gnome-online-accounts
 
+    snap set system experimental.parallel-instances=true
     snap install --edge test-snapd-accounts-service
     tests.session -u test prepare
 
@@ -37,6 +38,8 @@ prepare: |
 
 restore: |
     tests.session -u test restore
+    snap remove --purge test-snapd-accounts-service_foo || true
+    snap set system experimental.parallel-instances=null
 
     # Ensure the file we are expecting to remove is there. This ought to catch
     # future format changes.
@@ -51,3 +54,16 @@ execute: |
     echo "When the plug is connected we can get the data"
     snap connect test-snapd-accounts-service:accounts-service
     tests.session -u test exec test-snapd-accounts-service.list-accounts | MATCH "Display Name at IMAP and SMTP"
+
+    echo "When a parallel install of the snap is installed"
+    snap install --edge test-snapd-accounts-service_foo
+    snap connect test-snapd-accounts-service_foo:accounts-service
+
+    echo "Then the parallel snap can list the accounts"
+    tests.session -u test exec test-snapd-accounts-service_foo.list-accounts | MATCH "Display Name at IMAP and SMTP"
+
+    echo "When the original snap is removed"
+    snap remove --purge test-snapd-accounts-service
+
+    echo "Then the parallel snap can still list the accounts"
+    tests.session -u test exec test-snapd-accounts-service_foo.list-accounts | MATCH "Display Name at IMAP and SMTP"

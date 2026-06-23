@@ -5,6 +5,7 @@ details: |
     /dev/sda, and optionally to partitions on said devices, e.g. /dev/sda1.
 
 prepare: |
+    snap set system experimental.parallel-instances=true
     # identify which disk /var/snap lives on; we could use %Hd:%Ld, but not all
     # versions of coreutils support that, but it's not always obvious what the
     # device is if the host is using btrfs, or an alias such as /dev/root
@@ -33,6 +34,10 @@ prepare: |
 
     echo "Given a snap declaring block-devices plugs is installed"
     "$TESTSTOOLS"/snaps-state install-local test-snapd-block-devices
+
+restore: |
+    snap remove --purge test-snapd-block-devices_foo || true
+    snap set system experimental.parallel-instances=null
 
 execute: |
     has_apparmor=yes
@@ -92,3 +97,28 @@ execute: |
     echo "And the snap is able to reconnect"
     snap connect test-snapd-block-devices:block-devices
     snap connect test-snapd-block-devices:block-devices-with-partitions
+
+    echo "### Parallel instance testing ###"
+
+    echo "Install the parallel instance"
+    "$TESTSTOOLS"/snaps-state install-local-as test-snapd-block-devices test-snapd-block-devices_foo
+
+    echo "The block-devices interface is not connected by default for the parallel instance"
+    snap connections test-snapd-block-devices_foo | MATCH '^block-devices +test-snapd-block-devices_foo:block-devices +-'
+
+    echo "When the interface is connected for the parallel instance"
+    snap connect test-snapd-block-devices_foo:block-devices
+
+    disk="$(cat disk.dev)"
+    echo "Then the parallel instance snap is able to read the disk"
+    test-snapd-block-devices_foo.sh -c "cat $disk > /dev/null"
+
+    echo "When the original snap is removed"
+    snap remove --purge test-snapd-block-devices
+
+    echo "Then the parallel instance can still read the disk"
+    test-snapd-block-devices_foo.sh -c "cat $disk > /dev/null"
+
+    echo "Disconnecting the parallel instance plug"
+    snap disconnect test-snapd-block-devices_foo:block-devices
+    snap remove --purge test-snapd-block-devices_foo

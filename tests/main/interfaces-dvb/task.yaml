@@ -4,6 +4,7 @@ details: |
     The dvb interface allows access to all DVB (Digital Video Broadcasting) devices and APIs.
 
 prepare: |
+    snap set system experimental.parallel-instances=true
     "$TESTSTOOLS"/snaps-state install-local test-snapd-sh
 
     "$TESTSTOOLS"/fs-state mock-dir /dev/dvb/adapter9
@@ -11,6 +12,9 @@ prepare: |
     "$TESTSTOOLS"/fs-state mock-file /run/udev/data/c212:9
 
 restore: |
+    snap remove --purge test-snapd-sh_foo || true
+    snap set system experimental.parallel-instances=null
+
     # Delete the created device files and restore backed up files
     "$TESTSTOOLS"/fs-state restore-file /run/udev/data/c212:9
     "$TESTSTOOLS"/fs-state restore-file /dev/dvb/adapter9/video9
@@ -40,3 +44,29 @@ execute: |
         exit 1
     fi
     MATCH "Permission denied" < call.error
+
+    echo "### Parallel instance testing ###"
+
+    echo "Install the parallel instance"
+    "$TESTSTOOLS"/snaps-state install-local-as test-snapd-sh test-snapd-sh_foo
+
+    echo "The dvb interface is not connected by default for the parallel instance"
+    snap interfaces -i dvb | MATCH -- '- +test-snapd-sh_foo:dvb'
+
+    echo "When the interface is connected for the parallel instance"
+    snap connect test-snapd-sh_foo:dvb
+
+    echo "Then the parallel instance snap is able to access the device input"
+    test-snapd-sh_foo.with-dvb-plug -c "cat /dev/dvb/adapter9/video9"
+    test-snapd-sh_foo.with-dvb-plug -c "cat /run/udev/data/c212:9"
+
+    echo "When the original snap is removed"
+    snap remove --purge test-snapd-sh
+
+    echo "Then the parallel instance can still access device input"
+    test-snapd-sh_foo.with-dvb-plug -c "cat /dev/dvb/adapter9/video9"
+    test-snapd-sh_foo.with-dvb-plug -c "cat /run/udev/data/c212:9"
+
+    echo "Disconnecting the parallel instance plug"
+    snap disconnect test-snapd-sh_foo:dvb
+    snap remove --purge test-snapd-sh_foo

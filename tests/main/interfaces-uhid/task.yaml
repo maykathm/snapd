@@ -9,8 +9,13 @@ details: |
     interface is not connected by default and it can be connected and disconnected.
 
 prepare: |
+    snap set system experimental.parallel-instances=true
     echo "Given the uhid snap is installed"
     snap install test-snapd-uhid
+
+restore: |
+    snap remove --purge test-snapd-uhid_foo || true
+    snap set system experimental.parallel-instances=null
 
 execute: |
     echo "The plug is not connected by default"
@@ -40,3 +45,27 @@ execute: |
         exit 1
     fi
     MATCH "Permission denied" < call.error
+
+    echo "### Parallel instance testing ###"
+
+    echo "Install the parallel instance"
+    snap install test-snapd-uhid_foo
+
+    echo "The uhid interface is not connected by default for the parallel instance"
+    snap interfaces -i uhid | MATCH -- '^- +test-snapd-uhid_foo:uhid'
+
+    echo "When the interface is connected for the parallel instance"
+    snap connect test-snapd-uhid_foo:uhid
+
+    echo "Then the parallel instance snap is able to create/destroy a device in /dev/uhid"
+    test-snapd-uhid_foo.test-device
+
+    echo "When the original snap is removed"
+    snap remove --purge test-snapd-uhid
+
+    echo "Then the parallel instance snap is able to create/destroy a device in /dev/uhid"
+    test-snapd-uhid_foo.test-device
+
+    echo "Disconnecting the parallel instance plug"
+    snap disconnect test-snapd-uhid_foo:uhid
+    snap remove --purge test-snapd-uhid_foo

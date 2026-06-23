@@ -20,6 +20,7 @@ systems:
 
 prepare: |
     echo "Given a network-manager snap is installed"
+    snap set system experimental.parallel-instances=true
     if os.query is-core16; then
         snap install --channel=latest network-manager
     elif os.query is-core18; then
@@ -33,6 +34,10 @@ prepare: |
     fi
 
     rm -f /etc/netplan/00-default-nm-renderer.yaml
+
+restore: |
+    snap remove --purge network-manager_foo || true
+    snap set system experimental.parallel-instances=null
 
 execute: |
     # using wait_for_service is not enough, systemd considers the service
@@ -67,3 +72,37 @@ execute: |
         exit 1
     fi
     MATCH "Permission denied" < call.error
+
+    echo "Reconnect the plug for the parallel instance test"
+    snap connect network-manager:nmcli network-manager:service
+
+    echo "When a parallel install of the snap is installed"
+    if os.query is-core16; then
+        snap install --channel=latest network-manager_foo
+    elif os.query is-core18; then
+        snap install --channel=1.10 network-manager_foo
+    elif os.query is-core20; then
+        snap install --channel=20 network-manager_foo
+    elif os.query is-core22; then
+        snap install --channel=22 network-manager_foo
+    else
+        snap install --channel=24 network-manager_foo
+    fi
+
+    echo "Wait for the parallel instance service to be ready"
+    for _ in $(seq 300); do
+        if network-manager_foo.nmcli general; then
+            break
+        fi
+        sleep 1
+    done
+
+    echo "Then the parallel snap can add a new connection"
+    network-manager_foo.nmcli con add type ethernet con-name nmtest-foo ifname eth0 | MATCH "successfully added"
+
+    echo "When the original snap is removed"
+    snap remove --purge network-manager
+
+    echo "Then the parallel snap can still manage connections"
+    network-manager_foo.nmcli c | MATCH "^nmtest-foo .+ethernet +"
+    network-manager_foo.nmcli connection delete id nmtest-foo | MATCH "successfully deleted"

@@ -7,6 +7,7 @@ details: |
 
 prepare: |
     echo "Install dbus system test snaps"
+    snap set system experimental.parallel-instances=true
     snap install --edge test-snapd-dbus-provider
     snap install --edge test-snapd-dbus-consumer
     # we can only talk from an unconfied dbus-send to the service on classic,
@@ -19,6 +20,9 @@ prepare: |
 restore: |
     snap remove --purge test-snapd-dbus-consumer || true
     snap remove --purge test-snapd-dbus-provider || true
+    snap remove --purge test-snapd-dbus-consumer_foo || true
+    snap remove --purge test-snapd-dbus-provider_foo || true
+    snap set system experimental.parallel-instances=null
 
 execute: |
     echo "The dbus consumer plug is disconnected by default"
@@ -54,3 +58,20 @@ execute: |
     echo "And the provider is not able to access the provided method (same snap)"
     not test-snapd-dbus-provider.system-consumer 2> call.error
     MATCH "Permission denied" < call.error
+
+    echo "When parallel installs of the snaps are installed"
+    snap install --edge test-snapd-dbus-provider_foo
+    snap install --edge test-snapd-dbus-consumer_foo
+
+    echo "When the parallel plug is connected"
+    snap connect test-snapd-dbus-consumer_foo:dbus-system-test test-snapd-dbus-provider_foo:dbus-system-test
+
+    echo "Then the parallel consumer is able to call the provided method"
+    test-snapd-dbus-consumer_foo.dbus-system-consumer | MATCH "hello world"
+
+    echo "When the original snaps are removed"
+    snap remove --purge test-snapd-dbus-consumer
+    snap remove --purge test-snapd-dbus-provider
+
+    echo "Then the parallel consumer still works"
+    test-snapd-dbus-consumer_foo.dbus-system-consumer | MATCH "hello world"

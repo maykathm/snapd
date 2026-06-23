@@ -15,11 +15,15 @@ environment:
     EXPECTED_KRB5CCNAME: FILE:/var/lib/snapd/hostfs/tmp/krb5cc_test
 
 prepare: |
+    snap set system experimental.parallel-instances=true
     echo "Given a snap declaring a plug on the kerberos-tickets interface is installed"
     "$TESTSTOOLS"/snaps-state install-local kerberos-tickets-consumer
 
     echo "Mock the kerberos ticket at $TICKET"
     echo "$TICKET_CONTENTS" > "$TICKET"
+
+restore: |
+    snap set system experimental.parallel-instances=null
 
 execute: |
     echo "KRB5CCNAME was correctly overwritten in the snap's environment."
@@ -52,4 +56,21 @@ execute: |
         fi
         kerberos-tickets-consumer | MATCH "cannot read ticket"
         kerberos-tickets-consumer | MATCH "cannot write to ticket"
+
+        export KRB5CCNAME=FILE:$TICKET
+
+        echo "--- Parallel instance testing ---"
+        "$TESTSTOOLS"/snaps-state install-local-as kerberos-tickets-consumer kerberos-tickets-consumer_foo
+
+        echo "When the interface is connected for the parallel instance"
+        snap connect kerberos-tickets-consumer_foo:kerberos-tickets
+
+        echo "Then the parallel instance snap can read the Kerberos ticket"
+        kerberos-tickets-consumer_foo | MATCH "$TICKET_CONTENTS"
+
+        echo "When the original snap is removed"
+        snap remove --purge kerberos-tickets-consumer
+
+        echo "Then the parallel instance can still read the Kerberos ticket"
+        kerberos-tickets-consumer_foo | MATCH "$TICKET_CONTENTS"
     fi

@@ -20,6 +20,7 @@ environment:
     SERVICE_NAME: "test-service"
 
 prepare: |
+    snap set system experimental.parallel-instances=true
     echo "Given a snap declaring a plug on the network-observe interface is installed"
     "$TESTSTOOLS"/snaps-state install-local network-observe-consumer
 
@@ -29,6 +30,8 @@ prepare: |
     make_network_service "$SERVICE_NAME" "$PORT"
 
 restore: |
+    snap remove --purge network-observe-consumer_foo || true
+    snap set system experimental.parallel-instances=null
     systemctl stop "$SERVICE_NAME"
 
 execute: |
@@ -53,4 +56,19 @@ execute: |
         echo "Expected error caling command with disconnected plug"
     fi
     MATCH "Permission denied" < net-query.output
+
+    echo "When the parallel instance is installed"
+    "$TESTSTOOLS"/snaps-state install-local-as network-observe-consumer network-observe-consumer_foo
+
+    echo "And the plug is connected"
+    snap connect network-observe-consumer_foo:network-observe
+
+    echo "Then the parallel instance can query network status information"
+    network-observe-consumer_foo | MATCH "LISTEN.*:$PORT"
+
+    echo "When the original snap is removed"
+    snap remove --purge network-observe-consumer
+
+    echo "Then the parallel instance can still query network status information"
+    network-observe-consumer_foo | MATCH "LISTEN.*:$PORT"
 

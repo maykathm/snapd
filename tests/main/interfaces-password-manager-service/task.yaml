@@ -12,12 +12,15 @@ systems:
 
 prepare: |
     echo "Ensure we have a working gnome-keyring"
+    snap set system experimental.parallel-instances=true
     snap install --edge test-snapd-password-manager-consumer
 
     tests.session -u test prepare
 
 restore: |
     tests.session -u test restore
+    snap remove --purge test-snapd-password-manager-consumer_foo || true
+    snap set system experimental.parallel-instances=null
 
 execute: |
     echo "The interface is disconnected by default"
@@ -41,3 +44,14 @@ execute: |
         echo "Expected error with plug disconnected"
         exit 1
     fi
+
+    echo "When a parallel install of the snap is installed"
+    snap install --edge test-snapd-password-manager-consumer_foo
+    snap connect test-snapd-password-manager-consumer_foo:password-manager-service
+    tests.session -u test exec test-snapd-password-manager-consumer_foo.secret-tool clear foo bar
+
+    echo "When the original snap is removed"
+    snap remove --purge test-snapd-password-manager-consumer
+
+    echo "Then the parallel snap can still use the libsecret service"
+    tests.session -u test exec test-snapd-password-manager-consumer_foo.secret-tool clear foo bar

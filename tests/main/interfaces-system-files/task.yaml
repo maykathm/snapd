@@ -8,6 +8,7 @@ environment:
     TESTDIR: /mnt/testdir
 
 prepare: |
+    snap set system experimental.parallel-instances=true
     "$TESTSTOOLS"/snaps-state install-local test-snapd-sh
 
     # Fist layer of dirs and files
@@ -30,6 +31,8 @@ restore: |
     "$TESTSTOOLS"/fs-state restore-dir "$TESTDIR"
     "$TESTSTOOLS"/fs-state restore-dir /root/.testdir1
     "$TESTSTOOLS"/fs-state restore-dir /root/.testfile1
+    snap remove --purge test-snapd-sh_foo || true
+    snap set system experimental.parallel-instances=null
 
 execute: |
     echo "The interface is not connected by default"
@@ -79,3 +82,20 @@ execute: |
         exit 1
     fi
     MATCH "Permission denied" < call.error
+
+    echo "When a parallel install of the snap is installed"
+    "$TESTSTOOLS"/snaps-state install-local-as test-snapd-sh test-snapd-sh_foo
+    snap connect test-snapd-sh_foo:system-files
+
+    echo "Then the parallel snap is able to access the system files"
+    test-snapd-sh_foo.with-system-files-plug -c "cat $TESTDIR/.testfile1" | MATCH "mock file"
+    test-snapd-sh_foo.with-system-files-plug -c "ls $TESTDIR/.testdir1"
+    test-snapd-sh_foo.with-system-files-plug -c "echo test >> $TESTDIR/.testfile1"
+    test-snapd-sh_foo.with-system-files-plug -c "touch $TESTDIR/.testdir1/testfile3"
+
+    echo "When the original snap is removed"
+    snap remove --purge test-snapd-sh
+
+    echo "Then the parallel snap can still access the system files"
+    test-snapd-sh_foo.with-system-files-plug -c "cat $TESTDIR/.testfile1" | MATCH "mock file"
+    test-snapd-sh_foo.with-system-files-plug -c "ls $TESTDIR/.testdir1"

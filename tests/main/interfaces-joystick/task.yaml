@@ -4,6 +4,7 @@ details: |
     The joystick interface allows reading and writing to joystick devices.
 
 prepare: |
+    snap set system experimental.parallel-instances=true
     "$TESTSTOOLS"/snaps-state install-local test-snapd-sh
 
     # Create device files which are going to be used so simulate a real device and input data
@@ -16,6 +17,8 @@ prepare: |
     "$TESTSTOOLS"/fs-state mock-file /dev/input/event67
 
 restore: |
+    snap remove --purge test-snapd-sh_foo || true
+    snap set system experimental.parallel-instances=null
     # Delete the created device files and restore backed up files
     "$TESTSTOOLS"/fs-state restore-file /dev/input/js31
     "$TESTSTOOLS"/fs-state restore-file /run/udev/data/c13:31
@@ -56,3 +59,11 @@ execute: |
         exit 1
     fi
     MATCH "Permission denied" < call.error
+
+    echo "When a parallel install of the snap is installed"
+    "$TESTSTOOLS"/snaps-state install-local-as test-snapd-sh test-snapd-sh_foo
+    snap connect test-snapd-sh_foo:joystick
+
+    echo "Then the parallel snap is able to access the device input for the old interface"
+    test-snapd-sh_foo.with-joystick-plug -c "echo test >> /dev/input/js31"
+    test-snapd-sh_foo.with-joystick-plug -c "cat /run/udev/data/c13:31"

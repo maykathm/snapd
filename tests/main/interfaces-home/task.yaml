@@ -18,6 +18,7 @@ environment:
 
 prepare: |
     echo "Given a snap declaring the home plug is installed"
+    snap set system experimental.parallel-instances=true
     "$TESTSTOOLS"/snaps-state install-local home-consumer
 
     echo "And there is a readable file in HOME"
@@ -30,6 +31,8 @@ prepare: |
     echo ok > "$HIDDEN_READABLE_FILE"
 
 restore: |
+    snap remove --purge home-consumer_foo || true
+    snap set system experimental.parallel-instances=null
     rm -f "$READABLE_FILE" "$WRITABLE_FILE" "$CREATABLE_FILE" "$HIDDEN_READABLE_FILE"
 
 execute: |
@@ -117,3 +120,21 @@ execute: |
     if home-consumer.writer "$HIDDEN_CREATABLE_FILE"; then
         echo "It should be impossible to create hidden home files" && exit 1
     fi
+
+    echo "When a parallel install of the snap is installed"
+    "$TESTSTOOLS"/snaps-state install-local-as home-consumer home-consumer_foo
+
+    echo "The parallel snap can read home files"
+    home-consumer_foo.reader "$READABLE_FILE" | grep -Pqz ok
+
+    echo "The parallel snap can append to home files"
+    home-consumer_foo.writer "$WRITABLE_FILE"
+
+    echo "The parallel snap can create home files"
+    home-consumer_foo.writer "$CREATABLE_FILE"
+
+    echo "When the original snap is removed"
+    snap remove --purge home-consumer
+
+    echo "Then the parallel snap can still read home files"
+    home-consumer_foo.reader "$READABLE_FILE" | grep -Pqz ok

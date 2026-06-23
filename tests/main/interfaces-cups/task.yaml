@@ -19,6 +19,7 @@ systems:
 
 prepare: |
     # install the test snaps
+    snap set system experimental.parallel-instances=true
 
     # source for this snap:
     # https://github.com/anonymouse64/test-snapd-cups-consumer
@@ -45,6 +46,8 @@ restore: |
     if [ -e /run/cups.orig ]; then
         mv /run/cups.orig /run/cups
     fi
+    snap remove --purge test-snapd-cups-consumer_foo || true
+    snap set system experimental.parallel-instances=null
 
 execute: |
     echo "The provider can create the socket and any other files"
@@ -115,3 +118,24 @@ execute: |
     echo "And the environment variable is not set"
     #shellcheck disable=SC2016
     test-snapd-cups-consumer.bin -c 'echo $CUPS_SERVER' | NOMATCH /var/cups/cups.sock
+
+    echo "When a parallel install of the consumer snap is installed"
+    snap install --edge test-snapd-cups-consumer_foo
+
+    echo "Connect the parallel consumer's cups interface to the provider"
+    snap connect test-snapd-cups-consumer_foo:cups test-snapd-cups-provider:cups
+
+    echo "The parallel consumer can write to the cups socket"
+    #shellcheck disable=SC2016
+    echo hello-foo | test-snapd-cups-consumer_foo.cups -c 'nc -q 1 -U $CUPS_SERVER' > cups-foo-response.txt
+
+    echo "And the cups server sends a response"
+    MATCH hello-foo < cups-foo-response.txt
+
+    echo "When the original consumer snap is removed"
+    snap remove --purge test-snapd-cups-consumer
+
+    echo "Then the parallel consumer can still communicate via the cups socket"
+    #shellcheck disable=SC2016
+    echo still-works | test-snapd-cups-consumer_foo.cups -c 'nc -q 1 -U $CUPS_SERVER' > cups-foo-response2.txt
+    MATCH still-works < cups-foo-response2.txt

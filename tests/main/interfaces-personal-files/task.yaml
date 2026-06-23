@@ -13,6 +13,7 @@ environment:
     ROOT_OWNED_DIR: /etc
 
 prepare: |
+    snap set system experimental.parallel-instances=true
     "$TESTSTOOLS"/snaps-state install-local test-snapd-sh
 
     # First layer of dirs and files
@@ -70,6 +71,8 @@ restore: |
     "$TESTSTOOLS"/fs-state restore-dir /var/tmp/root
     rm -rf "$TEST_USER_HOME/.testdir1"
     rm -rf "$TEST_USER_HOME/.missing/testdir1"
+    snap remove --purge test-snapd-sh_foo || true
+    snap set system experimental.parallel-instances=null
 
 execute: |
     echo "The interface is not connected by default"
@@ -187,3 +190,19 @@ execute: |
         exit 1
     fi
     MATCH "Permission denied" < call.error
+
+    echo "When a parallel install of the snap is installed"
+    "$TESTSTOOLS"/snaps-state install-local-as test-snapd-sh test-snapd-sh_foo
+    snap connect test-snapd-sh_foo:personal-files
+
+    echo "Then the parallel snap is able to access personal files"
+    test-snapd-sh_foo.with-personal-files-plug -c "cat /root/.testfile1" | MATCH "mock file"
+    test-snapd-sh_foo.with-personal-files-plug -c "ls /root/.testdir1"
+    test-snapd-sh_foo.with-personal-files-plug -c "echo test >> /root/.testfile1"
+
+    echo "When the original snap is removed"
+    snap remove --purge test-snapd-sh
+
+    echo "Then the parallel snap can still access personal files"
+    test-snapd-sh_foo.with-personal-files-plug -c "cat /root/.testfile1" | MATCH "mock file"
+    test-snapd-sh_foo.with-personal-files-plug -c "ls /root/.testdir1"

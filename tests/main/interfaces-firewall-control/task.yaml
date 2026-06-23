@@ -24,6 +24,7 @@ environment:
 
 prepare: |
     echo "Given a snap declaring a plug on the firewall-control interface is installed"
+    snap set system experimental.parallel-instances=true
     "$TESTSTOOLS"/snaps-state install-local firewall-control-consumer
 
     echo "And a service is listening"
@@ -43,6 +44,8 @@ restore: |
         systemctl stop "$SERVICE_NAME"
     fi
     rm -f "$REQUEST_FILE"
+    snap remove --purge firewall-control-consumer_foo || true
+    snap set system experimental.parallel-instances=null
 
 execute: |
     echo "Then the plug is disconnected by default"
@@ -76,3 +79,25 @@ execute: |
         exit 1
     fi
     MATCH "Permission denied" < firewall-create.error
+
+    echo "When a parallel install of the snap is installed"
+    "$TESTSTOOLS"/snaps-state install-local-as firewall-control-consumer firewall-control-consumer_foo
+    snap connect firewall-control-consumer_foo:firewall-control
+
+    echo "Then the parallel snap can create a firewall rule"
+    firewall-control-consumer_foo.create
+
+    echo "And the service is accessible through the destination IP"
+    nc -w 2 "$DESTINATION_IP" "$PORT" < "$REQUEST_FILE" | MATCH 'ok$'
+
+    echo "And the parallel snap can delete the firewall rule"
+    firewall-control-consumer_foo.delete
+
+    echo "When the original snap is removed"
+    snap remove --purge firewall-control-consumer
+
+    echo "Then the parallel snap can still create and delete firewall rules"
+    firewall-control-consumer_foo.create
+    nc -w 2 "$DESTINATION_IP" "$PORT" < "$REQUEST_FILE" | MATCH 'ok$'
+    firewall-control-consumer_foo.delete
+    not nc -w 2 "$DESTINATION_IP" "$PORT" < "$REQUEST_FILE"

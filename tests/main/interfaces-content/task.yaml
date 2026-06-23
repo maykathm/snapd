@@ -15,6 +15,8 @@ backends: [-autopkgtest]
 systems: [-ubuntu-core-16-*]
 
 execute: |
+    snap set system experimental.parallel-instances=true
+
     echo "When a snap declaring a content sharing plug is installed"
     snap install --edge test-snapd-content-plug
 
@@ -46,3 +48,21 @@ execute: |
 
     echo "Then the fstab files are recreated"
     [ "$(find /var/lib/snapd/mount -type f -name "*.fstab" | wc -l)" -gt 0 ]
+
+    echo "When a parallel install of the plug snap is installed"
+    snap install --edge test-snapd-content-plug_foo
+
+    echo "Then the parallel snap can also use the shared content"
+    test-snapd-content-plug_foo.content-plug | grep "Some shared content"
+
+    echo "When the original plug snap is removed"
+    snap remove --purge test-snapd-content-plug
+
+    echo "Then the parallel snap can still access shared content"
+    test-snapd-content-plug_foo.content-plug | grep "Some shared content"
+
+restore: |
+    snap remove --purge test-snapd-content-plug_foo || true
+    snap remove --purge test-snapd-content-plug || true
+    snap remove --purge test-snapd-content-slot || true
+    snap set system experimental.parallel-instances=null

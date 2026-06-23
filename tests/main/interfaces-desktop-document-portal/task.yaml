@@ -10,6 +10,7 @@ details: |
 systems: [-ubuntu-core-*,-ubuntu-14.04*]
 
 prepare: |
+    snap set system experimental.parallel-instances=true
     "$TESTSTOOLS"/snaps-state install-local test-snapd-desktop
     snap disconnect test-snapd-desktop:desktop
 
@@ -17,7 +18,9 @@ prepare: |
     tests.cleanup defer tests.session -u test restore
 
 restore: |
-    rm -f /tmp/check-doc-portal.sh
+    rm -f /tmp/check-doc-portal.sh /tmp/check-doc-portal-foo.sh
+    snap remove --purge test-snapd-desktop_foo || true
+    snap set system experimental.parallel-instances=null
 
 execute: |
     cat << EOF > /tmp/check-doc-portal.sh
@@ -55,3 +58,29 @@ execute: |
       exit 1
     fi
     MATCH "No such file or directory" < check.error
+
+    echo "When a parallel install of the snap is installed"
+    "$TESTSTOOLS"/snaps-state install-local-as test-snapd-desktop test-snapd-desktop_foo
+    snap disconnect test-snapd-desktop_foo:desktop
+
+    cat << 'EOF' > /tmp/check-doc-portal-foo.sh
+    set -eu
+    mkdir -p /run/user/12345/doc/by-app/snap.test-snapd-desktop_foo
+    touch /run/user/12345/doc/is-unconfined
+    touch /run/user/12345/doc/by-app/snap.test-snapd-desktop_foo/is-confined
+    test-snapd-desktop_foo.check-dirs /run/user/12345/doc
+    EOF
+    chown test:test /tmp/check-doc-portal-foo.sh
+
+    snapd.tool exec snap-discard-ns test-snapd-desktop_foo
+
+    echo "With desktop connected on the parallel instance, we see confined version"
+    snap connect test-snapd-desktop_foo:desktop
+    tests.session -u test exec sh /tmp/check-doc-portal-foo.sh | MATCH is-confined
+
+    echo "When the original snap is removed"
+    snap remove --purge test-snapd-desktop
+
+    echo "Then the parallel snap still sees the confined version"
+    snapd.tool exec snap-discard-ns test-snapd-desktop_foo
+    tests.session -u test exec sh /tmp/check-doc-portal-foo.sh | MATCH is-confined

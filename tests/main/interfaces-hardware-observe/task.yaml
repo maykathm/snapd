@@ -12,6 +12,7 @@ details: |
 
 prepare: |
     echo "Given a snap declaring a plug on the hardware-observe interface is installed"
+    snap set system experimental.parallel-instances=true
     "$TESTSTOOLS"/snaps-state install-local hardware-observe-consumer
 
 execute: |
@@ -37,3 +38,16 @@ execute: |
         exit 1
     fi
     MATCH "Permission denied" < hw.error
+
+    echo "When a parallel install of the snap is installed"
+    "$TESTSTOOLS"/snaps-state install-local-as hardware-observe-consumer hardware-observe-consumer_foo
+    snap connect hardware-observe-consumer_foo:hardware-observe
+
+    echo "Then the parallel snap is able to read hardware information"
+    hardware-observe-consumer_foo.consumer
+
+    echo "When the original snap is removed"
+    snap remove --purge hardware-observe-consumer
+
+    echo "Then the parallel snap is still able to read hardware information"
+    hardware-observe-consumer_foo.consumer

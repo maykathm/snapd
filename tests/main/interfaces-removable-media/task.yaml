@@ -4,6 +4,7 @@ details: |
     The removable-media interface allows to access to removable storage filesystems.
 
 prepare: |
+    snap set system experimental.parallel-instances=true
     "$TESTSTOOLS"/snaps-state install-local test-snapd-sh
 
     if ! [ -d /media ]; then
@@ -26,6 +27,8 @@ prepare: |
     echo canary > /mnt/testing/data
 
 restore: |
+    snap remove --purge test-snapd-sh_foo || true
+    snap set system experimental.parallel-instances=null
     rm -rf /media/testdir
     if [ -f /media/fake ]; then
         #shellcheck disable=SC2114
@@ -82,3 +85,18 @@ execute: |
     if test-snapd-sh.with-removable-media-plug -c 'cat /mnt/testing/data'; then
         echo "/mnt/testing/data should no longer be readable" && exit 1
     fi
+
+    echo "Testing parallel instance"
+    "$TESTSTOOLS"/snaps-state install-local-as test-snapd-sh test-snapd-sh_foo
+    snap connect test-snapd-sh_foo:removable-media
+    test-snapd-sh_foo.with-removable-media-plug -c "cat /media/testdir/testfile"
+    test-snapd-sh_foo.with-removable-media-plug -c "cat /mnt/testing/data"
+
+    echo "When the original snap is removed"
+    snap remove --purge test-snapd-sh
+
+    echo "Then the parallel instance snap is able to access media"
+    test-snapd-sh_foo.with-removable-media-plug -c "cat /media/testdir/testfile"
+    test-snapd-sh_foo.with-removable-media-plug -c "cat /mnt/testing/data"
+    
+    snap remove --purge test-snapd-sh_foo

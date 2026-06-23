@@ -13,8 +13,13 @@ environment:
     PLUG: log-observe
 
 prepare: |
+    snap set system experimental.parallel-instances=true
     echo "Given a snap declaring the $PLUG plug is installed"
     "$TESTSTOOLS"/snaps-state install-local log-observe-consumer
+
+restore: |
+    snap remove --purge log-observe-consumer_foo || true
+    snap set system experimental.parallel-instances=null
 
 execute: |
     echo "The interface is not connected by default"
@@ -44,3 +49,18 @@ execute: |
         echo "System log shouldn't be accessible"
         exit 1
     fi
+
+    echo "When the parallel instance is installed"
+    "$TESTSTOOLS"/snaps-state install-local-as log-observe-consumer log-observe-consumer_foo
+
+    echo "And the plug is connected"
+    snap connect log-observe-consumer_foo:log-observe
+
+    echo "Then the parallel instance is able to access the system logs"
+    log-observe-consumer_foo | MATCH 'ok$'
+
+    echo "When the original snap is removed"
+    snap remove --purge log-observe-consumer
+
+    echo "Then the parallel instance is still able to access the system logs"
+    log-observe-consumer_foo | MATCH 'ok$'

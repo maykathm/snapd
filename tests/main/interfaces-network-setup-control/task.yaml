@@ -7,10 +7,14 @@ details: |
 systems: [-ubuntu-core-*]
 
 prepare: |
+    snap set system experimental.parallel-instances=true
     "$TESTSTOOLS"/snaps-state install-local test-snapd-sh
 
 restore: |
     rm -f /etc/network/test001 /etc/netplan/test001
+    rm -f /etc/network/test-foo /etc/netplan/test-foo
+    snap remove --purge test-snapd-sh_foo || true
+    snap set system experimental.parallel-instances=null
 
 execute: |
     dirs="/etc/netplan /etc/network"
@@ -48,3 +52,24 @@ execute: |
 
     echo "Then the interface can be connected again"
     snap connect test-snapd-sh:network-setup-control
+
+    echo "When a parallel install of the snap is installed"
+    "$TESTSTOOLS"/snaps-state install-local-as test-snapd-sh test-snapd-sh_foo
+    snap connect test-snapd-sh_foo:network-setup-control
+
+    echo "Then the parallel snap can write to netplan and network directories"
+    for dir in $dirs; do
+        if [ -d "$dir" ]; then
+            test-snapd-sh_foo.with-network-setup-control-plug -c "touch $dir/test-foo"
+        fi
+    done
+
+    echo "When the original snap is removed"
+    snap remove --purge test-snapd-sh
+
+    echo "Then the parallel snap can still write to the directories"
+    for dir in $dirs; do
+        if [ -d "$dir" ]; then
+            test-snapd-sh_foo.with-network-setup-control-plug -c "test -f $dir/test-foo"
+        fi
+    done

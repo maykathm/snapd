@@ -37,6 +37,7 @@ environment:
         /run/udev/data/+i2c:test
 
 prepare: |
+    snap set system experimental.parallel-instances=true
     echo "Given a snap declaring a plug on browser-support with allow-sandbox set to $ALLOW_SANDBOX is installed"
     sed "s/@ALLOW_SANDBOX@/$ALLOW_SANDBOX/" browser-support-consumer/meta/snap.yaml.in > browser-support-consumer/meta/snap.yaml
     chmod 644 browser-support-consumer/meta/snap.yaml
@@ -44,6 +45,7 @@ prepare: |
     touch created_dirs
 
 restore: |
+    snap set system experimental.parallel-instances=null
     rm -f /var/tmp/test
     for file in $OWNED_FILES $READABLE_FILES $READABLE_WITH_SANDBOX_FILES; do
         rm -f "$file"
@@ -174,4 +176,19 @@ execute: |
             MATCH "Permission denied" < readable-with-sandbox-read.err
         done
     fi
+
+    echo "--- Parallel instance testing ---"
+    "$TESTSTOOLS"/snaps-state install-local-as browser-support-consumer browser-support-consumer_foo
+
+    echo "When the interface is connected for the parallel instance"
+    snap connect browser-support-consumer_foo:browser-support
+
+    echo "Then the parallel instance snap is able to access tmp"
+    su -l -c "$SNAP_MOUNT_DIR/bin/browser-support-consumer_foo.cmd ls /var/tmp/" test | MATCH test
+
+    echo "When the original snap is removed"
+    snap remove --purge browser-support-consumer
+
+    echo "Then the parallel instance can still access tmp"
+    su -l -c "$SNAP_MOUNT_DIR/bin/browser-support-consumer_foo.cmd ls /var/tmp/" test | MATCH test
 

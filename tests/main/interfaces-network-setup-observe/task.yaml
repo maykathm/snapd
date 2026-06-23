@@ -5,6 +5,7 @@ details: |
     configuration files.
 
 prepare: |
+    snap set system experimental.parallel-instances=true
     "$TESTSTOOLS"/snaps-state install-local test-snapd-sh
 
 execute: |
@@ -43,3 +44,24 @@ execute: |
 
     echo "Then the interface can be connected again"
     snap connect test-snapd-sh:network-setup-observe
+
+    echo "When a parallel install of the snap is installed"
+    "$TESTSTOOLS"/snaps-state install-local-as test-snapd-sh test-snapd-sh_foo
+    snap connect test-snapd-sh_foo:network-setup-observe
+
+    echo "Then the parallel snap is able to read the network and netplan directories"
+    for dir in $dirs; do
+        if [ -d "$dir" ]; then
+            test-snapd-sh_foo.with-network-setup-observe-plug -c "ls $dir"
+        fi
+    done
+
+    echo "When the original snap is removed"
+    snap remove --purge test-snapd-sh
+
+    echo "Then the parallel snap can still read the network and netplan directories"
+    for dir in $dirs; do
+        if [ -d "$dir" ]; then
+            test-snapd-sh_foo.with-network-setup-observe-plug -c "ls $dir"
+        fi
+    done

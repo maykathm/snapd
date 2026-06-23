@@ -11,6 +11,7 @@ prepare: |
     echo "Given a snap with an avahi-observe interface plug is installed"
     #shellcheck source=tests/lib/snaps.sh
     . "$TESTSLIB"/snaps.sh
+    snap set system experimental.parallel-instances=true
     install_generic_consumer avahi-observe,unity7
 
     echo "And avahi-daemon is configured"
@@ -24,8 +25,15 @@ prepare: |
     fi
 
 execute: |
+    #shellcheck source=tests/lib/snaps.sh
+    . "$TESTSLIB"/snaps.sh
+
     avahi_dbus_call() {
         generic-consumer.cmd dbus-send --system --print-reply --dest=org.freedesktop.Avahi / org.freedesktop.Avahi.Server.GetHostName
+    }
+
+    parallel_avahi_dbus_call() {
+        generic-consumer_foo.cmd dbus-send --system --print-reply --dest=org.freedesktop.Avahi / org.freedesktop.Avahi.Server.GetHostName
     }
 
     echo "Then the plug is disconnected by default"
@@ -54,3 +62,16 @@ execute: |
         exit 1
     fi
     MATCH "org.freedesktop.DBus.Error.AccessDenied" < avahi.error
+
+    echo "When a parallel install of the snap is installed"
+    install_generic_consumer_as avahi-observe,unity7 generic-consumer_foo
+    snap connect generic-consumer_foo:avahi-observe
+
+    echo "Then the parallel snap is able to access avahi provided info"
+    parallel_avahi_dbus_call | MATCH "$hostname"
+
+    echo "When the original snap is removed"
+    snap remove --purge generic-consumer
+
+    echo "Then the parallel snap can still access avahi provided info"
+    parallel_avahi_dbus_call | MATCH "$hostname"

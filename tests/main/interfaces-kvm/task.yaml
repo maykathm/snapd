@@ -4,6 +4,7 @@ details: |
     The kvm interface allows read/write access to kvm.
 
 prepare: |
+    snap set system experimental.parallel-instances=true
     "$TESTSTOOLS"/snaps-state install-local test-snapd-kvm
 
     "$TESTSTOOLS"/fs-state mock-file /dev/kvm
@@ -13,6 +14,8 @@ prepare: |
     fi
 
 restore: |
+    snap remove --purge test-snapd-kvm_foo || true
+    snap set system experimental.parallel-instances=null
     "$TESTSTOOLS"/fs-state restore-file /dev/kvm
 
 execute: |
@@ -47,3 +50,16 @@ execute: |
         # make sure there are no selinux denials on fedora
         ausearch -i --checkpoint stamp --start checkpoint -m AVC 2>&1 | MATCH 'no matches'
     fi
+
+    echo "Testing parallel instance"
+    "$TESTSTOOLS"/snaps-state install-local-as test-snapd-kvm test-snapd-kvm_foo
+    snap connect test-snapd-kvm_foo:kvm
+    test-snapd-kvm_foo.with-kvm-plug -c "cat /dev/kvm"
+
+    echo "When the original snap is removed"
+    snap remove --purge test-snapd-kvm
+
+    echo "Then the parallel instance can still read the kvm device"
+    test-snapd-kvm_foo.with-kvm-plug -c "cat /dev/kvm"
+
+    snap remove --purge test-snapd-kvm_foo

@@ -10,6 +10,7 @@ environment:
     CONFDIR: "/etc/ssh/ssh_config.d"
 
 prepare: |
+    snap set system experimental.parallel-instances=true
     "$TESTSTOOLS"/snaps-state install-local test-snapd-sh
 
     "$TESTSTOOLS"/fs-state mock-dir "$KEYSDIR"
@@ -20,6 +21,8 @@ prepare: |
     "$TESTSTOOLS"/fs-state mock-file "$CONFDIR/test.conf"
 
 restore: |
+    snap remove --purge test-snapd-sh_foo || true
+    snap set system experimental.parallel-instances=null
     "$TESTSTOOLS"/fs-state restore-dir "$KEYSDIR"
     "$TESTSTOOLS"/fs-state restore-dir "$CONFDIR"
 
@@ -59,3 +62,16 @@ execute: |
         exit 1
     fi
     MATCH "Permission denied" < call.error
+
+    echo "When a parallel install of the snap is installed"
+    "$TESTSTOOLS"/snaps-state install-local-as test-snapd-sh test-snapd-sh_foo
+    snap connect test-snapd-sh_foo:ssh-keys
+
+    echo "Then the parallel snap is able to check the ssh version"
+    test-snapd-sh_foo.with-ssh-keys-plug -c "ssh -V"
+
+    echo "When the original snap is removed"
+    snap remove --purge test-snapd-sh
+
+    echo "Then the parallel snap is still able to read a ssh private key"
+    test-snapd-sh_foo.with-ssh-keys-plug -c "cat $TESTKEY"
