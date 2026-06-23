@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/snapcore/snapd/dirs"
 	"github.com/snapcore/snapd/i18n"
 	"github.com/snapcore/snapd/interfaces"
 	"github.com/snapcore/snapd/interfaces/utils"
@@ -65,11 +66,12 @@ func matchMountPathAttribute(path string, attribute any, snapInfo *snap.Info) bo
 		return false
 	}
 
-	expandedPattern := snapInfo.ExpandSnapVariables(pattern)
+	expandedPath := snapInfo.ExpandSnapVariablesSetSnapMountDir(path, dirs.CoreSnapMountDir, snap.PerspectiveOther)
+	expandedPattern := snapInfo.ExpandSnapVariablesSetSnapMountDir(pattern, dirs.CoreSnapMountDir, snap.PerspectiveOther)
 
 	const allowCommas = true
 	pp, err := utils.NewPathPattern(expandedPattern, allowCommas)
-	return err == nil && pp.Matches(path)
+	return err == nil && pp.Matches(expandedPath)
 }
 
 func matchMountSourceAttribute(path string, attribute any, fsType string, snapInfo *snap.Info) bool {
@@ -231,18 +233,24 @@ func (m *mountCommand) ensureMount(sysd systemd.Systemd) (string, error) {
 	if m.Persistent {
 		lifetime = systemd.Persistent
 	}
+
+	// Expand snap-specific variables in mount paths to ensure parallel instance
+	// compatibility before passing to systemd.
+	expandedWhat := m.snapInfo.ExpandSnapVariablesSetSnapMountDir(m.Positional.What, dirs.CoreSnapMountDir, snap.PerspectiveOther)
+	expandedWhere := m.snapInfo.ExpandSnapVariablesSetSnapMountDir(m.Positional.Where, dirs.CoreSnapMountDir, snap.PerspectiveOther)
+
 	unitName, err := sysd.EnsureMountUnitFile(&systemd.MountUnitOptions{
 		Lifetime:               lifetime,
 		Description:            fmt.Sprintf("Mount unit for %s, revision %s via mount-control", snapName, revision),
-		What:                   m.Positional.What,
-		Where:                  m.Positional.Where,
+		What:                   expandedWhat,
+		Where:                  expandedWhere,
 		Fstype:                 m.Type,
 		Options:                m.optionsList,
 		Origin:                 "mount-control",
 		EnsureStartIfUnchanged: true,
 	})
 	if err != nil {
-		_ = sysd.RemoveMountUnitFile(m.Positional.Where)
+		_ = sysd.RemoveMountUnitFile(expandedWhere)
 	}
 	return unitName, err
 }
