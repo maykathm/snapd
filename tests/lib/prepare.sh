@@ -737,6 +737,63 @@ slots:
 EOF
 }
 
+_add_core_18_coverage_tweaks() {
+    if [ -z "$TAG_FEATURES" ]; then
+        return
+    fi
+    local UNPACK_DIR
+    UNPACK_DIR="${1}"
+
+    cat > "${UNPACK_DIR}"/lib/systemd/system/snapd.spread-tests-coverage-tweaks.service <<'EOF'
+[Unit]
+Description=Tweaks to run mode for spread tests
+Before=snapd.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/lib/snapd/snapd.spread-tests-coverage-tweaks.sh
+RemainAfterExit=true
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+    cat > "${UNPACK_DIR}"/usr/lib/snapd/snapd.spread-tests-coverage-tweaks.sh <<EOF
+#!/bin/sh
+set -ex
+if [ -e /root/spread-coverage-setup-done ]; then
+    exit 0
+fi
+echo "SNAPD_TRACE=1" >> /etc/environment
+echo "SNAPD_JSON_LOGGING=1" >> /etc/environment
+EOF
+    CONF_FILE=99-generate-coverage.conf
+    while IFS= read -r line; do
+        dir=$(sed -E 's|^(.*)\.in$|/etc/systemd/system/\1.d|' <<<"$line")
+        cat >> "${UNPACK_DIR}"/usr/lib/snapd/snapd.spread-tests-coverage-tweaks.sh <<EOF
+mkdir -p "$dir"
+cat <<EOF2 >"$dir/$CONF_FILE"
+[Service]
+Environment=SNAPD_TRACE=1
+Environment=SNAPD_JSON_LOGGING=1
+EOF2
+EOF
+    done < <(find "$SPREAD_PATH"/data/systemd "$SPREAD_PATH"/data/systemd-user -type f -name '*.service.in' -exec basename {} \;)
+    cat >> "${UNPACK_DIR}"/usr/lib/snapd/snapd.spread-tests-coverage-tweaks.sh <<EOF
+mkdir -p "/etc/systemd/system/snapd-seeding.service.d"
+cat <<EOF2 >"$dir/$CONF_FILE"
+[Service]
+Environment=SNAPD_TRACE=1
+Environment=SNAPD_JSON_LOGGING=1
+EOF2
+EOF
+    cat >>"${UNPACK_DIR}"/usr/lib/snapd/snapd.spread-tests-coverage-tweaks.sh <<EOF
+systemctl daemon-reload
+touch /root/spread-coverage-setup-done
+EOF
+    chmod 0755 "${UNPACK_DIR}"/usr/lib/snapd/snapd.spread-tests-coverage-tweaks.sh
+}
+
 _add_coverage_tweaks() {
     if [ -z "$TAG_FEATURES" ]; then
         return
@@ -947,6 +1004,7 @@ build_snapd_snap_for_core18() {
 
     # add gpio and iio slots required for the tests
     _add_gpio_iio_slots "${SNAP_CACHE}/unpack"
+    _add_core_18_coverage_tweaks "${SNAP_CACHE}/unpack"
 
     snap pack "${SNAP_CACHE}/unpack" "${SNAP_CACHE}/"
     rm -rf "${SNAP_CACHE}/unpack"
@@ -1687,6 +1745,7 @@ EOF
             BRANCH=24
         elif is_test_target_core 26; then
             BRANCH=26
+            mount -o remount,size=2G /tmp
         fi
         snap download --basename=pc-kernel --channel="${BRANCH}/${KERNEL_CHANNEL}" pc-kernel
         # make sure we have the snap
