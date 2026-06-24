@@ -282,6 +282,283 @@ plug side, as proven by passing spread tests.
 
 **Verification:** No verification has yet been done.
 
+### pipewire
+**Status: COMPATIBLE (plug-side only; code analysis -- not yet verified)**
+
+**Code analysis:**
+- The plug accesses PipeWire sockets at `/run/user/[0-9]*/pipewire-[0-9]` for classic/system slots.
+- For app-provided slots, the plug uses instance-aware paths:
+  - `/run/user/[0-9]*/snap.<SLOT_INSTANCE_NAME>/pipewire-[0-9]` (line 50, 93: uses `slot.Snap().InstanceName()`)
+  - `/var/snap/<SLOT_INSTANCE_NAME>/common/pipewire-[0-9]` for system mode (line 52, 96: uses `slot.Snap().InstanceName()`)
+- The slot provider creates sockets at `/run/user/[0-9]*/pipewire-[0-9]` and `/run/user/[0-9]*/pipewire-[0-9]-manager` (lines 68-69).
+- No D-Bus name ownership in this interface.
+- Shared memory via `shmctl` syscall (line 56, 80) is used for audio IPC, same pattern as pulseaudio.
+
+**Reasoning**: The plug-side correctly uses `slot.Snap().InstanceName()` for instance-aware path resolution when connecting to an app-provided slot. Multiple parallel plug instances connecting to the same PipeWire server (system or snap-provided) is the normal multi-client audio pattern. The slot-side would conflict if two parallel instances tried to create sockets at the same runtime path, but that's the expected slot-side singleton pattern.
+
+**Verification:** No verification has yet been done.
+
+### cups (provider/slot-side issue)
+**Status: NOT COMPATIBLE (slot-side); COMPATIBLE (plug-side)**
+
+**Code analysis:**
+- The plug accesses a fixed socket at `/var/cups/cups.sock` (line 77).
+- The slot declares a `cups-socket-directory` attribute that must be under `$SNAP_COMMON` or `$SNAP_DATA` (lines 115-116).
+- **BUG IDENTIFIED** at line 130: `validateCupsSocketDirSlotAttr` calls `snapInfo.ExpandSnapVariables(cupsdSocketSourceDir)` where `snapInfo` is `slot.Snap()`. This uses `ExpandSnapVariables` which, for `$SNAP_COMMON`, expands using `SnapName()` not `InstanceName()` when using `PerspectiveSelf` (the default).
+- This means if a slot snap `cups-provider_foo` declares `cups-socket-directory: $SNAP_COMMON/cups`, it expands to `/var/snap/cups-provider/common/cups` instead of `/var/snap/cups-provider_foo/common/cups`.
+- The mount entry (lines 201-205) uses this incorrectly-expanded path, causing the bind mount to point to the wrong directory for parallel instances.
+- The AppArmor rules at line 170 also use this path, so the plug gets rules for the wrong location.
+
+**Reasoning**: The slot-side path expansion bug means parallel instances of a cups provider snap will all try to use the same socket directory (the base snap name's directory), not their instance-specific directories. The plug-side is fine since it just accesses `/var/cups/cups.sock` which is bind-mounted.
+
+**Verification:** No verification has yet been done. This bug was previously identified in the audit and is awaiting a code fix.
+
+### serial-port
+**Status: COMPATIBLE (device-specific; code analysis -- not yet verified)**
+
+**Code analysis:**
+- Slots are provided by core or gadget snaps only (lines 41-43), not by application snaps.
+- The slot requires a `path` attribute pointing to a specific device node (e.g., `/dev/ttyUSB0`) or a udev symlink with USB vendor/product attributes.
+- AppArmor rules grant access to the specific device path from the slot (line 179: `cleanedPath`), not based on snap instance names.
+- UDev rules tag the specific device by kernel name or USB vendor/product (lines 200-210).
+- No snap-instance-specific paths are involved; the interface is purely device-path-based.
+- No D-Bus, no shared memory, no sockets that could conflict.
+
+**Reasoning**: The serial-port interface grants access to a specific physical device declared in the slot. Parallel instances of a plug snap can all connect to the same serial-port slot and access the same device. Whether this is safe depends on the application: two processes reading/writing the same serial port would interfere at the protocol level, but that's an application concern, not a snapd interface conflict. The interface itself has no instance-naming issues.
+
+**Verification:** No verification has yet been done.
+
+### hidraw
+**Status: COMPATIBLE (device-specific; code analysis -- not yet verified)**
+
+**Code analysis:**
+- Slots are provided by core or gadget snaps only (lines 39-41), not by application snaps.
+- The slot requires a `path` attribute pointing to a specific hidraw device node (e.g., `/dev/hidraw0`) or a udev symlink with USB vendor/product attributes.
+- Device node pattern: `/dev/hidraw[0-9]{1,3}` (line 66).
+- Udev symlink pattern: `/dev/hidraw-[a-z0-9]+` (line 71).
+- AppArmor rules grant access to the specific device path from the slot (line 153: `cleanedPath`), or a broad pattern `/dev/hidraw[0-9]{,[0-9],[0-9][0-9]}` when using USB attributes (line 143).
+- UDev rules tag the specific device by kernel name or USB vendor/product (lines 182-187).
+- No snap-instance-specific paths are involved; the interface is purely device-path-based.
+- No D-Bus, no shared memory, no sockets.
+
+**Reasoning**: Like serial-port, the hidraw interface grants access to a specific physical HID device declared in the slot. The interface is device-path-based with no instance-naming involved. Parallel instances of a plug snap can all connect to the same hidraw slot and access the same device. Two processes accessing the same hidraw device would interfere at the HID protocol level, but that's an application concern, not a snapd interface conflict.
+
+**Verification:** No verification has yet been done.
+
+### i2c
+**Status: COMPATIBLE (device-specific; code analysis -- not yet verified)**
+
+**Code analysis:**
+- Slots are provided by gadget or core snaps only (lines 39-41), not by application snaps.
+- The slot can specify either a `path` attribute (e.g., `/dev/i2c-0`) or a `sysfs-name` attribute, but not both (lines 86-93).
+- Device node pattern: `/dev/i2c-[0-9]+` (line 79).
+- Sysfs name pattern: `[a-zA-Z0-9_-]+` (line 82).
+- AppArmor rules grant access to the specific device path (line 131) or sysfs path (line 120) from the slot.
+- Parametric snippets are used for sysfs paths under `/sys/devices/platform/` (lines 133-135).
+- UDev rules tag the specific device by kernel name (line 144).
+- No snap-instance-specific paths are involved; the interface is purely device-path-based.
+- No D-Bus, no shared memory, no sockets.
+
+**Reasoning**: The i2c interface grants access to a specific I2C bus controller declared in the slot. The interface is device-path-based with no instance-naming involved. Parallel instances of a plug snap can all connect to the same i2c slot and access the same bus. Whether concurrent access is safe depends on the I2C devices on the bus and the application protocol; the kernel's I2C subsystem handles bus arbitration but not higher-level conflicts. The interface itself has no instance-naming issues.
+
+**Verification:** No verification has yet been done.
+
+### media-control
+**Status: COMPATIBLE (code analysis -- not yet verified)**
+
+**Code analysis:**
+- Slot is provided by core only (lines 32-33), with implicit slots on core and classic (lines 55-56).
+- AppArmor rules grant access to `/dev/media[0-9]*` and `/dev/v4l-subdev[0-9]*` (lines 39-43).
+- UDev rules tag media and v4l-subdev devices by subsystem and kernel name (lines 46-49).
+- No snap-instance-specific paths are involved; the interface is purely device-path-based.
+- No D-Bus, no shared memory, no sockets.
+
+**Reasoning**: The media-control interface grants access to kernel media controller devices for configuring media hardware subsystems. These are numbered global hardware resources. Multiple parallel instances accessing the same media devices would share the hardware, similar to the camera interface. The interface has no instance-naming issues.
+
+**Verification:** No verification has yet been done.
+
+### gsettings
+**Status: COMPATIBLE (code analysis -- not yet verified)**
+
+**Code analysis:**
+- Slot is provided by core only (lines 27-28), with implicit slot on classic (line 53).
+- AppArmor rules grant access to the user's dconf database:
+  - `/{,var/}run/user/*/dconf/user` (line 41)
+  - `@{HOME}/.config/dconf/user` (line 42)
+- D-Bus rules allow send/receive to `ca.desrt.dconf.Writer` on the session bus (lines 43-46).
+- The interface uses `#include <abstractions/dconf>` for standard dconf access patterns.
+- No snap-instance-specific paths; all paths are user-session-scoped, not snap-scoped.
+- No D-Bus name ownership (client only).
+
+**Reasoning**: The gsettings interface grants access to the user's global dconf/gsettings database. This is explicitly a shared per-user resource, not per-snap. Multiple parallel instances accessing the same gsettings database is the intended behavior (same as multiple different snaps). The interface has no instance-naming issues since it's designed for shared access to user settings.
+
+**Verification:** No verification has yet been done.
+
+### lxd
+**Status: COMPATIBLE (code analysis -- not yet verified)**
+
+**Code analysis:**
+- Slot installation is denied by default, requires snap-declaration (lines 26-28).
+- AppArmor rules grant access to the LXD socket at `/var/snap/lxd/common/lxd/unix.socket` (line 35).
+- Seccomp rules allow `AF_NETLINK` socket creation (line 42).
+- The socket path is hardcoded to the `lxd` snap's location, not parameterized by instance name.
+- No D-Bus, no shared memory.
+- This is a client interface to the LXD daemon.
+
+**Reasoning**: The lxd interface grants client access to the LXD daemon's Unix socket. Multiple parallel instances of a plugging snap would all connect to the same LXD daemon as concurrent clients, which is normal socket-client behavior. The LXD daemon manages concurrent connections. No instance-naming issues exist since this is purely client access to a fixed socket path.
+
+**Verification:** No verification has yet been done.
+
+### microceph
+**Status: COMPATIBLE (code analysis -- not yet verified)**
+
+**Code analysis:**
+- Slot installation is denied by default, requires snap-declaration (lines 25-28).
+- AppArmor rules grant access to the MicroCeph socket at `/var/snap/microceph/common/state/control.socket` (line 34).
+- Seccomp rules allow `AF_NETLINK` socket creation (line 40).
+- The socket path is hardcoded to the `microceph` snap's location, not parameterized by instance name.
+- No D-Bus, no shared memory.
+- This is a client interface to the MicroCeph daemon.
+
+**Reasoning**: The microceph interface grants client access to the MicroCeph control socket. Multiple parallel instances of a plugging snap would all connect to the same MicroCeph daemon as concurrent clients. The daemon manages concurrent connections. No instance-naming issues since this is client access to a fixed socket path.
+
+**Verification:** No verification has yet been done.
+
+### microovn
+**Status: COMPATIBLE (code analysis -- not yet verified)**
+
+**Code analysis:**
+- Slot installation is denied by default, requires snap-declaration (lines 25-28).
+- AppArmor rules grant access to the MicroOVN socket at `/var/snap/microovn/common/state/control.socket` (line 34).
+- Seccomp rules allow `AF_NETLINK` socket creation (line 40).
+- The socket path is hardcoded to the `microovn` snap's location, not parameterized by instance name.
+- No D-Bus, no shared memory.
+- This is a client interface to the MicroOVN daemon.
+
+**Reasoning**: The microovn interface grants client access to the MicroOVN control socket. Multiple parallel instances of a plugging snap would all connect to the same MicroOVN daemon as concurrent clients. The daemon manages concurrent connections. No instance-naming issues since this is client access to a fixed socket path.
+
+**Verification:** No verification has yet been done.
+
+### desktop-legacy
+**Status: COMPATIBLE (code analysis -- not yet verified)**
+
+**Code analysis:**
+- Slot is provided by core only (lines 33-38), with implicit slot on classic (line 441).
+- This is a plug-only interface for clients to access legacy desktop methods.
+- AppArmor rules grant access to:
+  - Accessibility services via D-Bus (a11y bus) and Unix socket at `/run/user/*/at-spi/bus*` (lines 44-126)
+  - Speech-dispatcher socket at `/run/user/*/speech-dispatcher/speechd.sock` (line 60)
+  - Input method services: ibus, mozc, gcin, fcitx via Unix sockets and D-Bus (lines 128-238)
+  - GTK/gvfs mounts via D-Bus (lines 240-250)
+  - dbusmenu, app-indicators, notifications via D-Bus (lines 271-404)
+- Uses `getDesktopFileRules(plug.Snap())` at line 427 which correctly uses snap identity.
+- All D-Bus interactions are with system services (unconfined) or well-known desktop services.
+- No snap-instance-specific paths; all paths are user-session-scoped.
+- No D-Bus name ownership conflicts (binds `org.kde.StatusNotifierItem-[0-9]*` at line 324, which uses PID-based uniqueness).
+
+**Reasoning**: The desktop-legacy interface grants access to shared desktop services (accessibility, input methods, notifications, etc.). These are per-user-session resources designed for concurrent access by multiple applications. Multiple parallel instances accessing the same desktop services is the intended behavior. The `getDesktopFileRules()` call correctly uses the snap's identity. No instance-naming issues.
+
+**Verification:** No verification has yet been done.
+
+### gconf
+**Status: COMPATIBLE (code analysis -- not yet verified)**
+
+**Code analysis:**
+- Slot is provided by core only (lines 28-33), with implicit slot on classic (line 70).
+- AppArmor rules grant access to the GConf D-Bus service:
+  - Send to `/org/gnome/GConf/Server` to get database (lines 45-49)
+  - Receive notifications from `/org/gnome/GConf/{Client,Server}` (lines 52-56)
+  - All operations on `/org/gnome/GConf/Database/*` (lines 59-63)
+- This is a legacy configuration system (predates dconf/gsettings).
+- GConf is explicitly a shared per-user database with no application isolation (noted in comment at lines 24-27).
+- No snap-instance-specific paths; all paths are user-session-scoped.
+- No D-Bus name ownership (client only).
+
+**Reasoning**: The gconf interface grants access to the user's global GConf database. This is explicitly documented as "a global database for GNOME desktop and application settings" with "no application isolation." Multiple parallel instances accessing the same GConf database is the intended behavior (same as multiple different snaps). No instance-naming issues.
+
+**Verification:** No verification has yet been done.
+
+### login-session-control
+**Status: COMPATIBLE (code analysis -- not yet verified)**
+
+**Code analysis:**
+- Slot is provided by core only (lines 24-29), with implicit slots on core and classic (lines 68-69).
+- AppArmor rules grant D-Bus access to systemd-logind:
+  - Properties on `/org/freedesktop/login1/{seat,session}/**` (lines 37-42)
+  - Full access to `org.freedesktop.login1.Seat` interface (lines 44-48)
+  - Full access to `org.freedesktop.login1.Session` interface (lines 50-54)
+  - Manager methods: ActivateSession, GetSession, GetSeat, KillSession, ListSessions, LockSession, TerminateSession, UnlockSession (lines 56-61)
+- This is a client interface to systemd-logind on the system bus.
+- No snap-instance-specific paths; access is to system-wide login/session state.
+- No D-Bus name ownership (client only).
+
+**Reasoning**: The login-session-control interface grants D-Bus client access to systemd-logind for managing login sessions. Multiple parallel instances would all interact with the same logind service as concurrent D-Bus clients. The logind service manages concurrent access. No instance-naming issues since this is client access to system services.
+
+**Verification:** No verification has yet been done.
+
+### login-session-observe
+**Status: COMPATIBLE (code analysis -- not yet verified)**
+
+**Code analysis:**
+- Slot is provided by core only (lines 24-29), with implicit slots on core and classic (lines 123-124).
+- AppArmor rules grant:
+  - Read access to login tracking files: `/var/log/wtmp`, `/run/utmp`, `/var/log/lastlog`, `/var/log/faillog` (lines 36-43)
+  - Read access to systemd session files at `/run/systemd/sessions/` (lines 46-47)
+  - Execute `who`, `lastlog`, `faillog`, `loginctl` binaries (lines 35, 39, 42, 57)
+  - D-Bus read access to systemd-logind for introspection and property queries (lines 62-112)
+- This is a read-only interface for observing login session state.
+- No snap-instance-specific paths; access is to system-wide login state.
+- No D-Bus name ownership (client only).
+
+**Reasoning**: The login-session-observe interface grants read-only access to system login/session information. Multiple parallel instances would read the same system-wide login state, which is the intended behavior. No instance-naming issues since this is purely observational access to system state.
+
+**Verification:** No verification has yet been done.
+
+### screen-inhibit-control
+**Status: COMPATIBLE (code analysis -- not yet verified)**
+
+**Code analysis:**
+- Slot may be provided by app or core snaps (lines 31-43), with implicit slot on classic (line 213).
+- When slot is from core (implicit system slot), plug rules target `unconfined` (lines 188-191).
+- When slot is from an app snap, plug rules use `slot.LabelExpression()` (line 193).
+- AppArmor rules for plugs grant D-Bus send access to various screen saver APIs:
+  - GNOME Session Manager Inhibit/Uninhibit (lines 51-56)
+  - Unity Screen API (lines 59-70)
+  - freedesktop.org ScreenSaver (lines 74-79)
+  - xfce4-power-manager (lines 83-94)
+  - GNOME/KDE/Cinnamon screensavers (lines 104-110)
+- AppArmor rules for slots grant corresponding receive permissions (lines 113-178).
+- Both plug and slot rules use `###SLOT_SECURITY_TAGS###` / `###PLUG_SECURITY_TAGS###` placeholders.
+- Uses `slot.LabelExpression()` and `plug.LabelExpression()` which are instance-aware.
+- No snap-instance-specific paths; D-Bus communication only.
+
+**Reasoning**: The screen-inhibit-control interface allows snaps to inhibit screen savers. The D-Bus rules use `LabelExpression()` which correctly identifies snap instances. Multiple parallel instances can independently inhibit/uninhibit screen savers through separate D-Bus calls. No instance-naming issues.
+
+**Verification:** No verification has yet been done.
+
+### time-control
+**Status: COMPATIBLE (code analysis -- not yet verified)**
+
+**Code analysis:**
+- Slot is provided by core only (lines 24-29), with implicit slots on core and classic (lines 143-144).
+- AppArmor rules grant:
+  - D-Bus access to `org.freedesktop.timedate1` for setting time (lines 42-69)
+  - Execute `timedatectl` and `hwclock` binaries (lines 75, 110)
+  - Capability `sys_time` for direct time setting (line 87)
+  - Read/write access to `/dev/rtc[0-9]*` RTC devices (line 89)
+  - Read/write access to `/sys/class/rtc/` sysfs nodes (lines 93-97)
+  - Read/write access to `/dev/pps[0-9]*` PPS devices (line 101)
+- Seccomp rules allow time-setting syscalls: settimeofday, adjtimex, clock_adjtime*, clock_settime* (lines 119-125)
+- UDev rules tag RTC and PPS devices (lines 134-137)
+- No snap-instance-specific paths; access is to system time hardware and services.
+- No D-Bus name ownership (client only).
+
+**Reasoning**: The time-control interface grants access to system time control via D-Bus, syscalls, and device nodes. Multiple parallel instances would all have the same capability to modify system time, which is inherently a system-wide singleton resource. The kernel and systemd manage concurrent access. No instance-naming issues since this is access to global system state.
+
+**Verification:** No verification has yet been done.
+
+---
+
 ## Audio Interfaces
 
 ### alsa
