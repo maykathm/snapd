@@ -55,6 +55,233 @@ plug side, as proven by passing spread tests.
 
 ---
 
+## Additional Interface Analyses
+
+### custom-device
+**Status: POTENTIALLY COMPATIBLE (code analysis -- not yet verified)**
+
+**Code analysis:**
+- The slot definition is gadget-driven and intentionally open-ended.
+- `custom-device` defaults the slot attribute to the slot name if unspecified.
+- Connection approval is keyed on the plug attribute matching the slot value.
+- The interface validates paths and udev rules carefully, but it does not inject snap-instance-specific naming.
+
+**Reasoning**: there is no generic snap-instance collision visible in the interface code itself, but the effective behavior is entirely gadget-defined.
+
+**Verification:** No verification has yet been done.
+
+### confdb
+**Status: COMPATIBLE (code analysis -- not yet verified)**
+
+**Code analysis:**
+- Auto-connection is driven by publisher account matching.
+- The plug requires explicit `account` and `view` attributes.
+- Plugs can read/write confdb data and may use the optional `custodian` role.
+- No instance-name or snap-name scoping is used in the interface itself.
+
+**Reasoning**: parallel instances of the same snap will generally behave like two clients using the same confdb view, so this is reasonable for parallel installs.
+
+**Verification:** No verification has yet been done.
+
+### raw-volume
+**Status: POTENTIALLY COMPATIBLE (code analysis -- not yet verified)**
+
+**Code analysis:**
+- The slot must point at a concrete disk partition.
+- The accepted device paths are explicit partition nodes only.
+- AppArmor and udev rules are generated from the slot path, not from instance naming.
+- Auto-connect is allowed only for declarations, but the slot is still tied to the chosen partition.
+
+**Reasoning**: this is not a snap-instance collision problem so much as a device-selection problem. Parallel instances are only safe if they intentionally bind to different partitions.
+
+**Verification:** No verification has yet been done.
+
+### opengl
+**Status: POTENTIALLY COMPATIBLE (code analysis -- not yet verified)**
+
+**Code analysis:**
+- Access is to GPU driver stacks, DRM render nodes, and vendor libraries.
+- The rules are broad and intentionally allow multiple GPUs / render nodes.
+- The interface uses instance-agnostic paths and does not key access on snap instance identity.
+- Some vendor-specific state is shared, but the code treats it as normal multi-client GPU access.
+
+**Reasoning**: the interface reads like a shared-client GPU interface rather than a per-snap singleton.
+
+**Verification:** No verification has yet been done.
+
+### jack1
+**Status: POTENTIALLY COMPATIBLE (code analysis -- not yet verified)**
+
+**Code analysis:**
+- Access is to JACK1 shared memory endpoints under `/dev/shm/jack-*`.
+- The rules are based on JACK's server/client naming convention, not on snap instance names.
+- There is no snap-specific namespace logic in the interface.
+
+**Reasoning**: two instances behave like two JACK clients on the same user session. That is usually fine, but the interface shares the same JACK namespace and therefore is not isolated by snap instance.
+
+**Verification:** No verification has yet been done.
+
+### pcscd
+**Status: POTENTIALLY COMPATIBLE (code analysis -- not yet verified)**
+
+**Code analysis:**
+- Client access is via `/run/pcscd/pcscd.comm`.
+- The interface also grants read access to OpenSC config files.
+- No singleton service ownership or instance-specific pathing is involved.
+
+**Reasoning**: this is a straightforward daemon client interface. Parallel installs should behave like concurrent clients of the same PC/SC daemon.
+
+**Verification:** No verification has yet been done.
+
+### network
+**Status: COMPATIBLE (code analysis -- not yet verified)**
+
+**Code analysis:**
+- Client-side network access only.
+- Uses `systemd-resolved` and `systemd` D-Bus APIs as a client.
+- No snap-instance-specific pathing or service ownership.
+- The seccomp snippet is generic networking support, not a singleton resource.
+
+**Reasoning**: this is the canonical shared-client networking case.
+
+**Verification:** No verification has yet been done.
+
+### network-manager-observe
+**Status: COMPATIBLE (code analysis -- not yet verified)**
+
+**Code analysis:**
+- The interface only observes NetworkManager state and settings.
+- It uses D-Bus as a client and subscribes to signals; it does not own the NetworkManager bus name.
+- The code adjusts the peer label depending on classic vs confined NetworkManager, but not on snap instance identity.
+
+**Reasoning**: multiple instances are just multiple observers of the same NetworkManager service.
+
+**Verification:** No verification has yet been done.
+
+### openvswitch
+**Status: COMPATIBLE (code analysis -- not yet verified)**
+
+**Code analysis:**
+- Access is to Open vSwitch management sockets such as `/run/openvswitch/db.sock` and `*.mgmt`.
+- The interface is client-side and does not define a singleton service.
+- The rules are broad enough to cover per-bridge sockets and runtime control sockets.
+
+**Reasoning**: this is a socket client interface. Parallel instances should be able to talk to the same OVS daemon concurrently.
+
+**Verification:** No verification has yet been done.
+
+### libvirt
+**Status: COMPATIBLE (code analysis -- not yet verified)**
+
+**Code analysis:**
+- Access is to libvirt sockets (`/run/libvirt/libvirt-sock*`) plus a few config paths.
+- The seccomp rules allow socket operations needed by libvirt clients.
+- There is no instance-name scoping or service-name ownership.
+
+**Reasoning**: parallel instances should behave like ordinary libvirt clients, sharing the daemon socket.
+
+**Verification:** No verification has yet been done.
+
+### docker
+**Status: COMPATIBLE (code analysis -- not yet verified)**
+
+**Code analysis:**
+- Access is to the Docker daemon socket (`/run/docker.sock` or `/var/run/docker.sock`).
+- The interface is explicit about privileged socket access, but it is still client-side.
+- No snap-instance-specific naming is involved.
+
+**Reasoning**: multiple instances can act as concurrent Docker clients. The risk is operational privilege, not snap-instance collision.
+
+**Verification:** No verification has yet been done.
+
+### podman
+**Status: COMPATIBLE (code analysis -- not yet verified)**
+
+**Code analysis:**
+- Access is to both the system Podman socket and the rootless user socket.
+- The AppArmor rules are socket-path based and not instance-scoped.
+- The interface is client-side; it does not own a service name.
+
+**Reasoning**: parallel instances should work as concurrent Podman clients.
+
+**Verification:** No verification has yet been done.
+
+### can-bus
+**Status: COMPATIBLE (code analysis -- not yet verified)**
+
+**Code analysis:**
+- The interface grants CAN network access and allows AF_CAN sockets.
+- No instance-specific pathing or ownership is present.
+- The kernel handles CAN bus concurrency; the interface is just a client to that medium.
+
+**Reasoning**: parallel instances can use the CAN bus at the same time, but they share the same underlying hardware bus.
+
+**Verification:** No verification has yet been done.
+
+### kernel-crypto-api
+**Status: COMPATIBLE (code analysis -- not yet verified)**
+
+**Code analysis:**
+- Access is to the Linux kernel crypto API through AF_ALG and NETLINK_CRYPTO.
+- The implementation explicitly notes the API is intended for any process and requires no special privileges.
+- No instance-specific paths or service names are involved.
+
+**Reasoning**: this is a shared kernel service interface. Multiple instances should behave like concurrent clients of the same kernel crypto subsystem.
+
+**Verification:** No verification has yet been done.
+
+### avahi-control
+**Status: COMPATIBLE (plug-side only; code analysis -- not yet verified)**
+
+**Code analysis:**
+- The interface explicitly imports and extends `avahi-observe` behavior.
+- Plug-side rules only send to the Avahi server and manage entry groups; they do not own the Avahi bus name.
+- Slot-side rules are only applied when running as an application snap, and the code handles the system-vs-snap Avahi distinction.
+- D-Bus ownership is only relevant for a snap acting as the Avahi service.
+
+**Reasoning**: a parallel client snap using `avahi-control` should behave like any other client. A parallel provider snap would still be constrained by the singleton Avahi service name.
+
+**Verification:** No verification has yet been done.
+
+### fwupd
+**Status: NOT COMPATIBLE (slot-side singleton; code analysis -- not yet verified)**
+
+**Code analysis:**
+- Permanent slot rules bind `org.freedesktop.fwupd` on the system bus.
+- The slot side carries extensive privileged access to firmware, EFI variables, TPM, MEI, NVMe, USB, and systemd D-Bus control paths.
+- The plug side uses D-Bus as a client to query/stop fwupd and inspect systemd state.
+- The interface is explicitly a service interface with privileged system access.
+
+**Reasoning**: parallel instances cannot both act as the fwupd service. As a client interface, multiple instances should be fine, but the service-provider side is a hard singleton.
+
+**Verification:** No verification has yet been done.
+
+### maliit
+**Status: NOT COMPATIBLE (slot-side singleton; code analysis -- not yet verified)**
+
+**Code analysis:**
+- The slot binds the well-known session-bus name `org.maliit.server`.
+- After address negotiation, communication moves to a private per-client Unix socket under `@/tmp/maliit-server/dbus-*`.
+- The plug and slot both use D-Bus and per-client socket rules, but the address service itself is the singleton.
+- The code is explicitly structured around one server brokering individual client channels.
+
+**Reasoning**: parallel consumers are fine, but parallel providers cannot both own the Maliit server name.
+
+**Verification:** No verification has yet been done.
+
+### mpris
+**Status: POTENTIALLY COMPATIBLE (code analysis -- not yet verified)**
+
+**Code analysis:**
+- The slot binds `org.mpris.MediaPlayer2.<name>` based on a `name` attribute, defaulting to `SNAP_INSTANCE_NAME`.
+- The code explicitly warns that snaps using this interface must adjust themselves for parallel installs.
+- The plug side discovers and talks to the player over the session bus.
+- The implementation is careful about per-snap naming, but the well-known bus name still represents a provider identity.
+
+**Reasoning**: parallel clients are fine, but parallel providers can collide unless the instance-aware naming is handled correctly.
+
+**Verification:** No verification has yet been done.
+
 ## Audio Interfaces
 
 ### alsa
@@ -3353,7 +3580,7 @@ These interfaces require manual connection approval (plug-side `deny-auto-connec
 
 ### Hardware Device Interfaces — 34 interfaces
 
-These interfaces control specific physical hardware via named device paths (e.g., `/dev/accel/accel*`, `/dev/video[0-9]*`). Like `tpm`, parallel instances accessing the same hardware device either do not make sense or would conflict at the kernel level. Each interface uses numbered or singleton device paths that are inherently shared system resources.
+These interfaces are hardware-backed or device-backed interfaces (for example `/dev/accel/accel*` or `/dev/video[0-9]*`). Most are exclusive resources and poor fits for parallel installs; a few are shared-client style interfaces and are called out below.
 
 ---
 
@@ -3421,7 +3648,7 @@ These interfaces control specific physical hardware via named device paths (e.g.
 - CAN bus networking interface
 - Plug-side, implicit on core and classic
 
-**Parallel install assessment:** CAN bus is a shared network medium. Multiple instances can connect to the same CAN bus, but interface-level isolation is not provided beyond what the kernel CAN stack offers.
+**Parallel install assessment:** CAN bus is a shared medium. Multiple instances can connect concurrently as clients; the bus itself is the shared resource.
 
 ---
 
@@ -3565,7 +3792,7 @@ These interfaces control specific physical hardware via named device paths (e.g.
 - Linux kernel crypto API (hardware-accelerated crypto)
 - Plug-side, implicit on core and classic
 
-**Parallel install assessment:** Multiple instances can use the kernel crypto API simultaneously — the kernel manages concurrent access to crypto hardware. Likely compatible as clients, but the interface is a system-level capability.
+**Parallel install assessment:** Multiple instances can use the kernel crypto API simultaneously. This is more of a system capability than an exclusive device.
 
 ---
 
@@ -3587,7 +3814,7 @@ These interfaces control specific physical hardware via named device paths (e.g.
 - OpenGL rendering acceleration
 - Plug-side, implicit on core and classic
 
-**Parallel install assessment:** Multiple processes accessing the same GPU is normal and supported by the Mesa driver stack. Parallel instances can share the GPU, similar to the `alsa` pattern. Likely COMPATIBLE for plug-side usage.
+**Parallel install assessment:** Multiple processes accessing the same GPU is normal and supported by the driver stack. Parallel instances can share the GPU, so this is likely COMPATIBLE for plug-side usage.
 
 ---
 
@@ -3620,7 +3847,7 @@ These interfaces control specific physical hardware via named device paths (e.g.
 - Read-only physical memory inspection
 - Plug-side, implicit on core and classic
 
-**Parallel install assessment:** Read-only, so two instances can coexist reading `/dev/mem`, though this is an extreme privilege. Likely COMPATIBLE (read-only).
+**Parallel install assessment:** Read-only access, so two instances can coexist reading `/dev/mem`, though this is an extreme privilege. Likely COMPATIBLE for parallel installs.
 
 ---
 
@@ -3712,6 +3939,18 @@ These interfaces control specific physical hardware via named device paths (e.g.
 
 ---
 
+#### raw-volume
+
+**Code analysis:**
+- Specific disk partition access using a slot-declared device node
+- Valid partitions are limited to disk partition names such as `sdX1`, `nvme0n1p1`, `mmcblk0p1`, etc.
+- Uses AppArmor and udev rules derived from the slot's path attribute
+- Device-specific and not instance-aware
+
+**Parallel install assessment:** This interface is tied to a specific partition rather than an instance name. Two parallel instances can only be safe if they are deliberately connected to different partitions.
+
+---
+
 ### D-Bus Service Interfaces (Slot-Side Singleton) — 11 interfaces
 
 These interfaces provide D-Bus services with `dbus (bind)` owning well-known bus names. They exhibit the same fundamental incompatibility pattern as `bluez`, `ofono`, `udisks2`, and `modem-manager` documented above: only one process can own a well-known D-Bus name at a time, making parallel slot providers impossible. Plug-side consumers are likely compatible.
@@ -3732,39 +3971,48 @@ These interfaces use D-Bus as a client only (send/receive, no `dbus (bind)`). Th
 
 ---
 
-### Container and Virtualization Socket Interfaces — 9 interfaces
+### Container and Virtualization Socket Interfaces — 7 interfaces
 
 These interfaces provide client access to container/VM management daemons via UNIX sockets. Multiple clients connecting to the same daemon is standard behavior.
 
-**Interfaces:** `docker`, `lxd`, `microceph`, `microovn`, `openvswitch`, `podman`, `libvirt`, `pcscd`, `jack1`
+**Interfaces:** `docker`, `lxd`, `microceph`, `microovn`, `openvswitch`, `podman`, `libvirt`
 
-**Reasoning:** All are client-side socket access. The daemon manages concurrent connections. No D-Bus ownership, no shared memory conflicts. The `jack1` interface uses POSIX shared memory (`/dev/shm/jack-*`) for audio, same pattern as `pulseaudio` which was verified COMPATIBLE.
+**Reasoning:** All are client-side socket access. The daemon manages concurrent connections. No D-Bus ownership, no shared memory conflicts.
 
 ---
 
-### Instance-Safe Interfaces — 5 interfaces
+### Socket Client Interfaces — 2 interfaces
+
+These interfaces are also client-side access patterns, but they are not container/VM managers. Both are ordinary clients of a daemon or shared subsystem, so parallel instances are just concurrent clients.
+
+**Interfaces:** `jack1`, `pcscd`
+
+**Reasoning:** `jack1` uses POSIX shared memory (`/dev/shm/jack-*`) as part of JACK1 client/server communication. `pcscd` is a PC/SC client socket (`/run/pcscd/pcscd.comm`). Neither interface owns a singleton name or a per-instance resource.
+
+---
+
+### Instance-Safe Interfaces — 4 interfaces
 
 These interfaces explicitly use `SNAP_INSTANCE_NAME` in their implementation or use per-snap namespace isolation, making them already aware of parallel installs.
 
-**Interfaces:** `bool-file`, `cifs-mount`, `nfs-mount`, `gpio-chardev`, `raw-volume`
+**Interfaces:** `bool-file`, `cifs-mount`, `nfs-mount`, `gpio-chardev`
 
 **Reasoning:**
 - `bool-file`: Uses `SNAP_INSTANCE_NAME` for path resolution
 - `cifs-mount`/`nfs-mount`: Mount to instance-specific paths under `/var/snap/{INSTANCE_NAME}/`
 - `gpio-chardev`: Uses per-snap virtual device paths at `/dev/snap/gpio-chardev/<snap>/<name>`
-- `raw-volume`: Slot-specified partition reference, not instance-named
 
 These should all be COMPATIBLE based on code analysis.
 
 ---
 
-### Read-Only and Informational Interfaces — 12 interfaces
+### Read-Only and Informational Interfaces — 11 interfaces
 
 These provide read-only access to system information. No writes, no D-Bus ownership, no named resource conflicts.
 
-**Interfaces:** `appstream-metadata`, `kernel-module-observe`, `ros-opt-data`, `system-backup`, `system-packages-doc`, `system-source-code`, `system-trace`, `juju-client-observe`, `netlink-driver`, `qualcomm-ipc-router`, `confdb`, `core-support`
+**Interfaces:** `appstream-metadata`, `kernel-module-observe`, `ros-opt-data`, `system-backup`, `system-packages-doc`, `system-source-code`, `system-trace`, `juju-client-observe`, `netlink-driver`, `qualcomm-ipc-router`, `core-support`
 
-**Reasoning:** All are read-only or use capability-based permissions (syscalls, not named paths). Multiple readers accessing the same system information is the normal case. `core-support` and `confdb` are empty/logistical interfaces with no AppArmor rules.
+**Reasoning:** All are read-only or use capability-based permissions (syscalls, not named paths). Multiple readers accessing the same system information is the normal case. `core-support` is empty/logistical with no AppArmor rules.
 
 ---
 
@@ -3778,10 +4026,13 @@ These grant syscall-level capabilities with no named resources, paths, or D-Bus 
 
 ---
 
-### Other Interfaces — 3 interfaces
+### Other Interfaces — 4 interfaces
 
-**Interfaces:** `custom-device`, `empty`, `network`
+**Interfaces:** `confdb`, `custom-device`, `empty`, `network`
 
+- `confdb`: Accesses a confdb through a view. It is not read-only: plugs can read/write and optionally act as custodian.
 - `custom-device`: User-defined device paths from gadget snap. Depends entirely on gadget definition — needs per-gadget analysis.
 - `empty`: Testing-only interface. No-op, no rules. No compatibility concern.
 - `network` (basic): Client network access (DNS resolution, outbound connections). Same pattern as `network-bind` which was verified COMPATIBLE. Likely COMPATIBLE.
+
+---
