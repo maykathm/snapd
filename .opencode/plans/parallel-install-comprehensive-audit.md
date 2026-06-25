@@ -1621,6 +1621,552 @@ from the system service does not conflict with other instances doing the same.
 
 **Verification:** No verification has yet been done.
 
+### media-hub
+**Status: NOT COMPATIBLE (slot-side singleton; code analysis -- not yet verified)**
+
+**Code analysis:**
+- The permanent slot binds the well-known session-bus name `core.ubuntu.media.Service` (lines 64-68).
+- The slot AppArmor rules also allow request/release-name operations on the session bus and talk to unconfined clients for the service path (lines 49-99).
+- The connected slot and plug rules both key access on the security label of the opposite side, but the actual service name remains a singleton resource (lines 102-152).
+- The interface exposes session management and MPRIS-like APIs over the same well-known bus object paths.
+- No snap-instance-specific filesystem paths are used.
+
+**Reasoning**: Media Hub is a D-Bus service provider interface. Parallel consumers are fine, but parallel providers cannot both own the same well-known service name, so the slot side is a singleton conflict.
+
+**Verification:** No verification has yet been done.
+
+### mir
+**Status: NOT COMPATIBLE (slot-side singleton; code analysis -- not yet verified)**
+
+**Code analysis:**
+- The permanent slot owns the Mir server runtime resources, including `/run/mir_socket`, `/run/user/[0-9]*/mir_socket`, `/dev/tty[0-9]*`, and `/dev/input/*` (lines 42-71).
+- The slot AppArmor also includes `/dev/shm/\#[0-9]*` shared-memory objects and `sys_admin` / `sys_tty_config` capabilities (lines 42-71).
+- The Seccomp profile permits server-side socket/listen/accept and netlink uevent handling (lines 73-85).
+- The connected plug only gets client access to Mir sockets and shared-memory objects (lines 87-100).
+
+**Reasoning**: Mir is a display-server service interface. Parallel clients are fine, but parallel service providers would compete for the same Mir server runtime paths and privileged system resources, making the slot side a singleton.
+
+**Verification:** No verification has yet been done.
+
+### storage-framework-service
+**Status: NOT COMPATIBLE (slot-side singleton; code analysis -- not yet verified)**
+
+**Code analysis:**
+- The permanent slot binds `com.canonical.StorageFramework.Registry` and `com.canonical.StorageFramework.Provider.*` on the session bus (lines 55-73).
+- The slot AppArmor also writes to `/sys/kernel/security/apparmor/.access` and reads `/sys/module/apparmor/parameters/enabled` and `/proc/*/mounts` as part of policy introspection (lines 42-54).
+- Connected slot and plug rules are client-only and use label expressions for peer mediation (lines 75-109).
+- The service name is the actual singleton resource; the path patterns are not instance-scoped.
+
+**Reasoning**: This is a D-Bus service provider interface. Parallel consumers are fine, but parallel providers cannot both own the registry/provider bus names.
+
+**Verification:** No verification has yet been done.
+
+### unity8
+**Status: NOT COMPATIBLE (slot-side singleton; code analysis -- not yet verified)**
+
+**Code analysis:**
+- The connected plug talks to Unity 8 session services over the session bus, including `com.canonical.URLDispatcher` and `com.ubuntu.content.dbus.Service` (lines 45-89).
+- The URL dispatcher peer is a well-known bus name, and the content-hub-style interface is presented as a shared session service.
+- The slot side is intended to represent the desktop service provider; multiple providers would contend for the same session-bus identities.
+- No snap-instance-specific filesystem paths are involved.
+
+**Reasoning**: Unity 8 is a desktop service interface built around well-known D-Bus services. Parallel clients are fine, but parallel service providers would collide on the same bus names.
+
+**Verification:** No verification has yet been done.
+
+### unity8-calendar
+**Status: NOT COMPATIBLE (slot-side singleton; code analysis -- not yet verified)**
+
+**Code analysis:**
+- The permanent slot binds `org.gnome.evolution.dataserver.Calendar7`, `org.gnome.evolution.dataserver.Subprocess.Backend.Calendar*`, and `com.canonical.SyncMonitor` on the session bus (lines 33-47).
+- The slot AppArmor exposes the calendar factory/view/subprocess paths and sync-monitor endpoints to unconfined clients (lines 48-75).
+- The connected plug is client-only to the same calendar service paths (lines 77-109).
+- The service paths are fixed names and object paths, not snap-instance-scoped resources.
+
+**Reasoning**: This is a calendar service provider interface. Parallel clients are fine, but parallel providers would contend for the same well-known calendar and sync-monitor bus names.
+
+**Verification:** No verification has yet been done.
+
+### unity8-contacts
+**Status: NOT COMPATIBLE (slot-side singleton; code analysis -- not yet verified)**
+
+**Code analysis:**
+- The permanent slot binds `org.gnome.evolution.dataserver.AddressBook9`, `org.gnome.evolution.dataserver.Subprocess.Backend.AddressBook*`, `com.canonical.pim`, and `com.meego.msyncd` on the session bus (lines 33-54).
+- The slot AppArmor exposes address book factory/view/subprocess paths and Canonical PIM paths to unconfined clients (lines 55-93).
+- The connected plug is client-only to the same address book service paths (lines 95-183).
+- No snap-instance-specific filesystem paths are used.
+
+**Reasoning**: Unity 8 Contacts is another D-Bus service provider interface. Parallel consumers are fine, but parallel providers would collide on the same well-known bus names.
+
+**Verification:** No verification has yet been done.
+
+### screencast-legacy
+**Status: NOT COMPATIBLE (plug-side only; code analysis -- not yet verified)**
+
+**Code analysis:**
+- The plug talks to gnome-shell screenshot/screencast interfaces on the session bus (lines 32-53).
+- The API allows absolute file names as method arguments, so the caller can direct output to arbitrary paths permitted by the user.
+- The interface does not own a bus name itself, but the permissions are explicitly tied to the desktop session service.
+- No snap-instance-specific pathing is used by snapd.
+
+**Reasoning**: The interface is intentionally powerful and can write arbitrary files via gnome-shell. That is not a snap-instance collision per se, but it is not a safe parallel-install interface to analyze as compatible; it is a privileged client-side desktop capability.
+
+**Verification:** No verification has yet been done.
+
+### ros-opt-data
+**Status: COMPATIBLE (code analysis -- not yet verified)**
+
+**Code analysis:**
+- The plug gets read-only access to `/var/lib/snapd/hostfs/opt/ros/**` and common ROS file extensions under that tree (lines 31-49).
+- The interface is implicit on classic and not on core, which matches a host filesystem read-only pattern.
+- No sockets, mounts, or D-Bus names are involved.
+- No snap-instance-specific names are used.
+
+**Reasoning**: ROS static data is read-only host content. Parallel instances can all read the same files without snapd-level collisions.
+
+**Verification:** No verification has yet been done.
+
+### system-backup
+**Status: COMPATIBLE (code analysis -- not yet verified)**
+
+**Code analysis:**
+- The plug gets read-only access across the host filesystem through `/var/lib/snapd/hostfs/` exclusions and `dac_read_search` (lines 32-47).
+- The policy explicitly excludes `/dev`, `/sys`, and `/proc` from the broad read rule and then re-adds narrow cases as needed.
+- No D-Bus, sockets, or instance-specific mount paths are present.
+
+**Reasoning**: This is a broad read-only backup interface. Parallel instances are just concurrent readers of the same host data, and the policy does not encode snap-instance-specific paths.
+
+**Verification:** No verification has yet been done.
+
+### system-source-code
+**Status: COMPATIBLE (code analysis -- not yet verified)**
+
+**Code analysis:**
+- The plug gets read-only access to `/usr/src/{,**}` (line 38).
+- The interface is implicit on core and classic and otherwise just exposes source trees/headers.
+- No sockets, mounts, or snap-instance-specific names are involved.
+
+**Reasoning**: `/usr/src` is a shared system source tree. Multiple instances can read it concurrently without any instance-name collision.
+
+**Verification:** No verification has yet been done.
+
+### juju-client-observe
+**Status: COMPATIBLE (code analysis -- not yet verified)**
+
+**Code analysis:**
+- The plug gets read access to `~/.local/share/juju/{,**}` using `owner` file rules (lines 32-35).
+- The interface is classic-only and reads the user’s Juju client state; it does not own a bus name.
+- No sockets, mounts, or snap-instance-specific names are used.
+
+**Reasoning**: Juju client state is per-user data. Parallel instances under the same user will read the same Juju config/state, which is normal shared-user behavior and not an instance collision.
+
+**Verification:** No verification has yet been done.
+
+### netlink-driver
+**Status: COMPATIBLE (code analysis -- not yet verified)**
+
+**Code analysis:**
+- The slot is keyed by a numeric `family` attribute and a validated `family-name` (lines 66-100).
+- The plug must present a matching `family-name` (lines 104-107, 127-140).
+- The connected plug seccomp snippet allows `AF_NETLINK` for the declared family and `bind` (lines 109-124).
+- No snap-instance-specific paths are used; the identity is based on the protocol family name, not snap name.
+
+**Reasoning**: Netlink-driver is scoped to a kernel protocol family rather than to snap identity. Parallel instances are safe when they connect to the same declared family or to different families; the interface code does not create a snap-instance collision.
+
+**Verification:** No verification has yet been done.
+
+### core-support
+**Status: COMPATIBLE (code analysis -- not yet verified)**
+
+**Code analysis:**
+- This interface is explicitly hollow and grants no permissions (lines 39-41).
+- It only exists so callers can test for its presence; `commonInterface` is registered with no AppArmor/seccomp/udev policy.
+- No paths, sockets, mounts, or snap-instance-specific logic are present.
+
+**Reasoning**: The interface has no confinement effect at all. Parallel instances cannot collide because there is no policy to collide over.
+
+**Verification:** No verification has yet been done.
+
+### accel
+**Status: NOT COMPATIBLE (exclusive hardware; code analysis -- not yet verified)**
+
+**Code analysis:**
+- The interface grants access to `/dev/accel/accel*` (lines 4560-4566 in the bucket summary).
+- The access is device-node based and tied to global accelerator hardware.
+- No instance-specific pathing or name expansion exists in the interface model.
+
+**Reasoning**: Accelerator device nodes are exclusive physical hardware resources. Two parallel instances would contend for the same accelerator device, so this is not a good parallel-install fit.
+
+**Verification:** No verification has yet been done.
+
+### acrn-support
+**Status: NOT COMPATIBLE (exclusive hardware; code analysis -- not yet verified)**
+
+**Code analysis:**
+- The interface grants access to `/dev/acrn_hsm` (lines 4572-4579 in the bucket summary).
+- ACRN management is a single hypervisor control device node.
+- No snap-instance-specific logic is involved.
+
+**Reasoning**: This is a single global hypervisor-management device. Parallel instances would compete for the same control node.
+
+**Verification:** No verification has yet been done.
+
+### allegro-vcu
+**Status: NOT COMPATIBLE (exclusive hardware; code analysis -- not yet verified)**
+
+**Code analysis:**
+- The interface grants access to `/dev/allegroDecodeIP`, `/dev/allegroIP`, and `/dev/dmaproxy` (lines 4583-4590 in the bucket summary).
+- These are hardware codec device nodes, not per-instance resources.
+
+**Reasoning**: The codec hardware is shared and effectively exclusive. Parallel instances would contend for the same devices.
+
+**Verification:** No verification has yet been done.
+
+### broadcom-asic-control
+**Status: NOT COMPATIBLE (exclusive hardware; code analysis -- not yet verified)**
+
+**Code analysis:**
+- The interface grants access to `/dev/linux-user-bde`, `/dev/linux-kernel-bde`, and `/dev/linux-bcm-knet` (lines 4594-4601 in the bucket summary).
+- These are ASIC kernel module/device interfaces for a specific hardware platform.
+
+**Reasoning**: Broadcom ASIC control is tied to a single hardware resource and is not instance-isolated.
+
+**Verification:** No verification has yet been done.
+
+### camera
+**Status: COMPATIBLE (code analysis -- not yet verified)**
+
+**Code analysis:**
+- Slot is provided by core only (lines 28-33), with implicit slots on core and classic (lines 80-81).
+- AppArmor rules are device-path based and intentionally broad: `/dev/video[0-9]*`, `/dev/vchiq`, and supporting sysfs/udev paths (lines 36-57).
+- UDev rules tag video devices (lines 71-74).
+- No snap-instance-specific paths are used.
+- The interface explicitly notes it allows access to all cameras until better device assignment exists (line 37).
+
+**Reasoning**: Camera devices are shared hardware resources. Parallel instances accessing the same global camera nodes is expected; the interface code is not instance-scoped and does not create a collision surface.
+
+**Verification:** No verification has yet been done.
+
+### can-bus
+**Status: COMPATIBLE (code analysis -- not yet verified)**
+
+**Code analysis:**
+- The interface grants CAN network access and allows AF_CAN sockets (lines 4617-4624 in the bucket summary).
+- No instance-specific pathing or ownership is present.
+- The kernel handles CAN concurrency; the interface is just a client to that medium.
+
+**Reasoning**: Parallel instances can use the CAN bus at the same time, but they share the same underlying hardware bus.
+
+**Verification:** No verification has yet been done.
+
+### cpu-control
+**Status: NOT COMPATIBLE (system-global control; code analysis -- not yet verified)**
+
+**Code analysis:**
+- The interface targets `/sys/devices/system/cpu/**` (lines 4628-4635 in the bucket summary).
+- It controls governor, scaling, and hotplug settings for the whole system.
+- No snap-instance-specific logic is involved.
+
+**Reasoning**: CPU policy is a system-global control surface. Parallel instances changing settings would conflict.
+
+**Verification:** No verification has yet been done.
+
+### dcdbas-control
+**Status: NOT COMPATIBLE (system-global control; code analysis -- not yet verified)**
+
+**Code analysis:**
+- The interface targets `/sys/devices/platform/dcdbas/*` (lines 4639-4646 in the bucket summary).
+- It exposes the Dell Systems Management Base Driver, which is a single system resource.
+
+**Reasoning**: This is a single system-management interface. Parallel instances would contend for the same sysfs knobs.
+
+**Verification:** No verification has yet been done.
+
+### dsp
+**Status: NOT COMPATIBLE (exclusive hardware; code analysis -- not yet verified)**
+
+**Code analysis:**
+- The interface grants access to `/dev/ucode` and `/dev/iav*` (lines 4650-4657 in the bucket summary).
+- These are hardware DSP device nodes.
+
+**Reasoning**: DSP hardware is a single-instance resource. Parallel instances would share/contend for the same device.
+
+**Verification:** No verification has yet been done.
+
+### fpga
+**Status: NOT COMPATIBLE (exclusive hardware; code analysis -- not yet verified)**
+
+**Code analysis:**
+- The interface grants access to `/dev/fpga[0-9]*` (lines 4661-4668 in the bucket summary).
+- These are numbered FPGA device nodes with shared hardware state.
+
+**Reasoning**: FPGA programming/control is hardware-exclusive. Parallel instances programming the same FPGA would conflict.
+
+**Verification:** No verification has yet been done.
+
+### framebuffer
+**Status: NOT COMPATIBLE (exclusive hardware; code analysis -- not yet verified)**
+
+**Code analysis:**
+- The interface grants access to `/dev/fb[0-9]*` (lines 4672-4679 in the bucket summary).
+- Framebuffer devices are global display hardware.
+
+**Reasoning**: Two instances writing the same framebuffer would conflict on the same display device.
+
+**Verification:** No verification has yet been done.
+
+### gpio
+**Status: COMPATIBLE (code analysis -- not yet verified)**
+
+**Code analysis:**
+- Slots are provided by core or gadget snaps only (lines 35-41), not by app snaps.
+- The slot is keyed by a GPIO number attribute and the code resolves the sysfs path via `evalSymlinks()` before emitting rules (lines 83-105).
+- The interface also sets up a per-slot systemd service to export/unexport the GPIO line (lines 108-122).
+- No snap-instance-specific names are used beyond the slot-supplied GPIO number.
+
+**Reasoning**: GPIO access is tied to a physical pin, not a snap instance. Parallel installs can connect to the same pin or different pins as declared by the slot; there is no instance-name collision in the interface code.
+
+**Verification:** No verification has yet been done.
+
+### gpio-memory-control
+**Status: COMPATIBLE (code analysis -- not yet verified)**
+
+**Code analysis:**
+- Slot is provided by core only (lines 25-30), with implicit slots on core and classic (lines 47-48).
+- AppArmor rules grant access to `/dev/gpiomem` (line 38).
+- UDev tags the `gpiomem` device (line 41).
+- No instance-specific names, sockets, or mounts are used.
+
+**Reasoning**: This is a global GPIO memory device and the interface is just device-path based. Multiple instances can share the same access without snap-instance collisions in snapd policy.
+
+**Verification:** No verification has yet been done.
+
+### hugepages-control
+**Status: NOT COMPATIBLE (system-global control; code analysis -- not yet verified)**
+
+**Code analysis:**
+- The interface controls system hugepage sysfs and `/proc/sys/vm/*` plus `/{dev,run}/hugepages/` (lines 4705-4713 in the bucket summary).
+- The runtime directory uses `owner`, but that is user ownership, not snap-instance scoping.
+- A mount rule permits `/dev/hugepages`.
+
+**Reasoning**: Hugepages are a global kernel memory facility. Parallel instances would contend for the same system controls.
+
+**Verification:** No verification has yet been done.
+
+### iio
+**Status: COMPATIBLE (code analysis -- not yet verified)**
+
+**Code analysis:**
+- Slots are provided by core or gadget snaps only (lines 36-42).
+- Slot validation requires a device node path under `/dev/iio:deviceN` (lines 77-95).
+- AppArmor rules are generated from the specific slot path and derived device name (lines 98-133).
+- UDev tags the device by the exact `/dev/iio:deviceN` node (lines 135-141).
+- No snap-instance-specific names are used.
+
+**Reasoning**: The interface targets a specific IIO hardware device, not an instance-scoped resource. Parallel installs can connect to the same device or different devices without snapd-level collision.
+
+**Verification:** No verification has yet been done.
+
+### intel-mei
+**Status: NOT COMPATIBLE (exclusive hardware; code analysis -- not yet verified)**
+
+**Code analysis:**
+- The interface grants access to `/dev/mei[0-9]*` (lines 4727-4734 in the bucket summary).
+- Intel MEI is a system-management bus exposed as hardware device nodes.
+
+**Reasoning**: This is a single hardware-management channel. Parallel instances would contend for the same device resource.
+
+**Verification:** No verification has yet been done.
+
+### intel-qat
+**Status: NOT COMPATIBLE (shared accelerator hardware; code analysis -- not yet verified)**
+
+**Code analysis:**
+- The interface grants access to `/dev/vfio/*` and IOMMU sysfs (lines 4738-4745 in the bucket summary).
+- It targets Intel QuickAssist Technology accelerator hardware.
+
+**Reasoning**: QAT is a shared PCIe accelerator. Parallel instances can’t be treated as isolated consumers in the interface code.
+
+**Verification:** No verification has yet been done.
+
+### io-ports-control
+**Status: NOT COMPATIBLE (system-global control; code analysis -- not yet verified)**
+
+**Code analysis:**
+- The interface grants access to `/dev/port` and the `sys_rawio` capability, plus `ioperm`/`iopl` syscalls (lines 4749-4757 in the bucket summary).
+- This is full I/O port access for the system.
+
+**Reasoning**: I/O port access is a global machine capability and is inherently not instance-isolated.
+
+**Verification:** No verification has yet been done.
+
+### kernel-crypto-api
+**Status: COMPATIBLE (code analysis -- not yet verified)**
+
+**Code analysis:**
+- The interface grants `AF_ALG` access to the kernel crypto API (lines 4761-4768 in the bucket summary).
+- It is a shared kernel subsystem and does not own a singleton name or path.
+
+**Reasoning**: Multiple instances can use the kernel crypto API simultaneously. This is a shared subsystem, not an exclusive snap-scoped resource.
+
+**Verification:** No verification has yet been done.
+
+### mediatek-accel
+**Status: COMPATIBLE (code analysis -- not yet verified)**
+
+**Code analysis:**
+- Slot is provided by core only (lines 33-38), with plug-side `units` selection validated in `BeforePreparePlug()` (lines 94-122).
+- The selected units (`apu`, `vcu`) drive AppArmor and udev snippets (lines 71-88, 124-147).
+- No snap-instance-specific paths are involved; access is keyed by device type and slot attributes.
+
+**Reasoning**: The interface is device-selector based and not instance-name based. Parallel installs can use the same hardware accelerator devices as long as the declared units match.
+
+**Verification:** No verification has yet been done.
+
+### opengl
+**Status: COMPATIBLE (code analysis -- not yet verified)**
+
+**Code analysis:**
+- The interface grants access to GPU device nodes / DRM render nodes (lines 4783-4790 in the bucket summary).
+- It is a shared-client GPU interface and does not encode snap-instance scoping.
+
+**Reasoning**: Multiple processes using the same GPU is normal. Parallel instances can share the GPU, so this is compatible for plug-side usage.
+
+**Verification:** No verification has yet been done.
+
+### optical-drive
+**Status: NOT COMPATIBLE (exclusive hardware; code analysis -- not yet verified)**
+
+**Code analysis:**
+- The interface grants access to `/dev/sr[0-9]*` and `/dev/scd[0-9]*` (lines 4794-4801 in the bucket summary).
+- These are physical optical drives, which are exclusive devices.
+
+**Reasoning**: Optical drives are exclusive-access hardware. Two instances trying to use the same drive are not a parallel-install-safe pattern.
+
+**Verification:** No verification has yet been done.
+
+### physical-memory-control
+**Status: NOT COMPATIBLE (extreme privilege; code analysis -- not yet verified)**
+
+**Code analysis:**
+- The interface grants read/write access to `/dev/mem` (lines 4805-4813 in the bucket summary).
+- This is full physical memory access.
+
+**Reasoning**: This is an extreme system-global privilege and is not a sensible parallel-install target.
+
+**Verification:** No verification has yet been done.
+
+### physical-memory-observe
+**Status: COMPATIBLE (code analysis -- not yet verified)**
+
+**Code analysis:**
+- The interface grants read-only `/dev/mem` access (lines 4816-4823 in the bucket summary).
+- It is read-only physical memory inspection with no snap-instance-specific logic.
+
+**Reasoning**: Read-only access means parallel instances can coexist reading the same data, though this remains an extreme privilege.
+
+**Verification:** No verification has yet been done.
+
+### power-control
+**Status: NOT COMPATIBLE (system-global control; code analysis -- not yet verified)**
+
+**Code analysis:**
+- The interface targets `/sys/devices/**/power/*` (lines 4827-4835 in the bucket summary).
+- It controls power-management settings for the whole system.
+
+**Reasoning**: Power policy is system-global, so parallel instances would contend for the same controls.
+
+**Verification:** No verification has yet been done.
+
+### ptp
+**Status: COMPATIBLE (code analysis -- not yet verified)**
+
+**Code analysis:**
+- The interface grants access to `/dev/ptp[0-9]*` and related sysfs knobs (lines 4838-4845 in the bucket summary).
+- It is a hardware clock device interface.
+
+**Reasoning**: PTP hardware clocks are shared devices. Parallel instances can access the same underlying clock hardware from separate snaps without snapd-level collision.
+
+**Verification:** No verification has yet been done.
+
+### pwm
+**Status: NOT COMPATIBLE (exclusive hardware; code analysis -- not yet verified)**
+
+**Code analysis:**
+- The interface targets `/sys/class/pwm/pwmchipN` and specific channels (lines 4849-4856 in the bucket summary).
+- It is tied to numbered PWM outputs.
+
+**Reasoning**: PWM channels are physical hardware outputs. Two instances claiming the same channel would conflict.
+
+**Verification:** No verification has yet been done.
+
+### spi
+**Status: NOT COMPATIBLE (exclusive hardware; code analysis -- not yet verified)**
+
+**Code analysis:**
+- The interface grants access to `/dev/spidev<N>.<M>` (lines 4860-4867 in the bucket summary).
+- It is tied to a numbered SPI bus and chip select.
+
+**Reasoning**: SPI buses are physical hardware. Two instances accessing the same SPI bus simultaneously would cause bus contention.
+
+**Verification:** No verification has yet been done.
+
+### u2f-devices
+**Status: NOT COMPATIBLE (exclusive hardware; code analysis -- not yet verified)**
+
+**Code analysis:**
+- The interface matches USB vendor/product patterns for U2F/FIDO tokens (lines 4871-4878 in the bucket summary).
+- It is a physical token interface.
+
+**Reasoning**: A specific hardware token is an exclusive interactive resource. Parallel instances using the same token would contend for it.
+
+**Verification:** No verification has yet been done.
+
+### uio
+**Status: COMPATIBLE (code analysis -- not yet verified)**
+
+**Code analysis:**
+- The interface grants access to `/dev/uio[0-9]*` (lines 4882-4889 in the bucket summary).
+- UIO devices are userspace-mapped hardware devices.
+
+**Reasoning**: The interface is device-based. Multiple instances can share the same access path without snapd-level collision, though the hardware itself may still be shared.
+
+**Verification:** No verification has yet been done.
+
+### usb-gadget
+**Status: NOT COMPATIBLE (system-global control; code analysis -- not yet verified)**
+
+**Code analysis:**
+- The interface grants access to USB gadget configfs (lines 4893-4900 in the bucket summary).
+- Configfs is used to configure the system-wide USB peripheral mode gadget.
+
+**Reasoning**: USB gadget configuration is a single system-wide control plane. Parallel instances cannot both safely manage it.
+
+**Verification:** No verification has yet been done.
+
+### vcio
+**Status: COMPATIBLE (code analysis -- not yet verified)**
+
+**Code analysis:**
+- The interface grants access to `/dev/vcio` (lines 4904-4911 in the bucket summary).
+- It is a single hardware mailbox interface for the VideoCore GPU.
+
+**Reasoning**: This is a shared hardware mailbox rather than a snap-scoped resource. Parallel instances can access it as concurrent clients.
+
+**Verification:** No verification has yet been done.
+
+### raw-volume
+**Status: POTENTIALLY COMPATIBLE (code analysis -- not yet verified)**
+
+**Code analysis:**
+- The interface is tied to a specific disk partition via a slot-declared device node (lines 4915-4924 in the bucket summary).
+- AppArmor and udev rules are derived from the slot path attribute.
+- There is no snap-instance-specific naming in the interface logic.
+
+**Reasoning**: This is not instance-scoped; it is device-scoped. Parallel instances are only safe when they are deliberately connected to different partitions.
+
+**Verification:** No verification has yet been done.
+
 ### bluez
 **Status: NOT COMPATIBLE (slot-side system singleton); COMPATIBLE (plug-side)**
 
