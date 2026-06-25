@@ -439,6 +439,205 @@ plug side, as proven by passing spread tests.
 
 **Verification:** No verification has yet been done.
 
+### appstream-metadata
+**Status: COMPATIBLE (code analysis -- not yet verified)**
+
+**Code analysis:**
+- Slot is provided by core only (lines 35-40), with implicit slot on classic (line 126).
+- AppArmor rules grant read access to AppStream metadata under `/usr/share/{metainfo,appdata,app-info,swcatalog}` and apt list metadata (lines 47-61).
+- Mount rules bind host metadata directories into the snap namespace, and those paths are based on host filesystem locations rather than snap names (lines 79-120).
+- No snap-instance-specific names are used.
+
+**Reasoning**: AppStream metadata is host-wide read-only documentation and metadata. Parallel instances just read the same data and the mount logic is based on host paths, not instance-specific paths.
+
+**Verification:** No verification has yet been done.
+
+### bool-file
+**Status: COMPATIBLE (code analysis -- not yet verified)**
+
+**Code analysis:**
+- Slots are provided by core or gadget snaps only (lines 34-40).
+- Slot validation accepts only LED brightness and GPIO value paths (lines 76-92).
+- AppArmor rules are built from the dereferenced slot path, so the connected plug mediates the exact file the slot identifies (lines 106-125).
+- For GPIO slots, the permanent-slot rules expose export/unexport and direction handling (lines 94-103).
+- No snap-instance-specific paths are involved.
+
+**Reasoning**: This is a specific-file interface with path validation. Parallel installs can use the same or different hardware-backed paths based on the slot; the code doesn’t key anything off snap instance names.
+
+**Verification:** No verification has yet been done.
+
+### cifs-mount
+**Status: COMPATIBLE (code analysis -- not yet verified)**
+
+**Code analysis:**
+- Slot is provided by core only (lines 24-29), with implicit slots on core and classic (lines 71-72).
+- AppArmor and seccomp permissions are for mount/umount of CIFS filesystems (lines 32-65).
+- The policy explicitly uses both `SNAP_NAME` and `SNAP_INSTANCE_NAME` for writable mount targets, to cover parallel installs (lines 45-56).
+- No D-Bus or sockets are involved.
+
+**Reasoning**: The interface is already written to handle parallel-instance mount targets explicitly. The mount rules include both base and instance names, so there is no obvious instance collision in the code.
+
+**Verification:** No verification has yet been done.
+
+### cuda-driver-libs
+**Status: COMPATIBLE (code analysis -- not yet verified)**
+
+**Code analysis:**
+- The interface is mostly about publishing CUDA driver libraries and config metadata.
+- `BeforePrepareSlot()` validates the compatibility expression and source directories (lines 61-77).
+- `LdconfigConnectedPlug()` and `ConfigfilesConnectedPlug()` expose the slot's libraries/config through system helper paths (lines 79-103).
+- The implementation is system-oriented and does not introduce snap-instance-specific paths.
+
+**Reasoning**: This is a library exposure interface scoped by compatibility metadata and system paths. Parallel installs don’t create a snap instance naming issue in the code shown.
+
+**Verification:** No verification has yet been done.
+
+### dm-crypt
+**Status: COMPATIBLE (code analysis -- not yet verified)**
+
+**Code analysis:**
+- Slots are provided by core only (lines 24-29), with implicit slots on core and classic (lines 88-89).
+- AppArmor grants access to `/dev/mapper/control`, `/dev/dm-*`, cryptsetup, mount helpers, and mount points under `/run/media` and `/media` (lines 39-62).
+- Seccomp only adds keyring-related syscalls (lines 64-69).
+- KMod and UDev rules are tied to the device-mapper stack (lines 71-82).
+- The mount points are generic system locations, not snap-instance-specific paths.
+
+**Reasoning**: dm-crypt is a global device-mapper interface. The mount path handling is generic and not keyed by snap instance names, so there is no instance collision surface in the policy code.
+
+**Verification:** No verification has yet been done.
+
+### dm-multipath
+**Status: COMPATIBLE (code analysis -- not yet verified)**
+
+**Code analysis:**
+- Slot is provided by core only (lines 40-45), with implicit slots on classic (line 84) and app/slot declarations intended for system use.
+- AppArmor grants access to multipath configuration, device-mapper control, multipath device nodes, and the multipathd abstract socket (lines 48-65).
+- UDev and KMod rules are for the device-mapper/multipath stack (lines 67-78).
+- The socket address is a fixed abstract address, not a snap-instance-specific path.
+
+**Reasoning**: Multipath management is a global storage daemon/device interface. Parallel instances are just concurrent clients of the same system multipath stack; the code does not show an instance naming problem.
+
+**Verification:** No verification has yet been done.
+
+### empty
+**Status: COMPATIBLE (code analysis -- not yet verified)**
+
+**Code analysis:**
+- This interface intentionally contributes no permissions.
+- `BeforeConnectPlug()` and `BeforeConnectSlot()` only mutate plug/slot attributes (lines 65-85).
+- AppArmor connection handlers are no-ops (lines 87-93).
+- `AutoConnect()` always returns true (lines 95-97).
+- No snap-instance-specific paths are used.
+
+**Reasoning**: The interface is a no-op sandbox for testing. It doesn’t introduce any resource conflicts or instance-scoped policy.
+
+**Verification:** No verification has yet been done.
+
+### fuse-support
+**Status: COMPATIBLE (code analysis -- not yet verified)**
+
+**Code analysis:**
+- Slot is provided by core only (lines 28-33), with implicit slots on core and classic except old Ubuntu 14.04 (lines 100-101).
+- AppArmor grants access to `/dev/fuse`, `sys_admin`, and mount targets under snap-specific writable directories (lines 43-92).
+- The mount rules explicitly use `SNAP_INSTANCE_NAME` for per-user home snap directories, and `SNAP_NAME`/`SNAP_INSTANCE_NAME` for system snap directories (lines 67-77).
+- UDev tags the `fuse` device (line 94).
+- No hardcoded snap-instance path conflicts are visible.
+
+**Reasoning**: FUSE support is deliberately instance-aware in the mount rules. The interface is one of the examples that already accounts for parallel instances via `SNAP_INSTANCE_NAME` and `SNAP_NAME`.
+
+**Verification:** No verification has yet been done.
+
+### iscsi-initiator
+**Status: COMPATIBLE (code analysis -- not yet verified)**
+
+**Code analysis:**
+- Slot is provided by core only (lines 39-44), with implicit slots on classic (line 103).
+- AppArmor grants access to iSCSI config/state files, sysfs session/host data, and the iscsiadm abstract socket (lines 47-88).
+- KMod modules are declared for iSCSI transport support (lines 94-97).
+- No snap-instance-specific paths are used.
+
+**Reasoning**: iSCSI initiator behavior is driven by system-wide daemon/config files and an abstract Unix socket. Parallel instances are just concurrent clients and the interface code does not reveal an instance-naming issue.
+
+**Verification:** No verification has yet been done.
+
+### nfs-mount
+**Status: COMPATIBLE (code analysis -- not yet verified)**
+
+**Code analysis:**
+- Slot is provided by core only (lines 24-29), with implicit slots on core and classic (lines 85-86).
+- AppArmor and seccomp permissions are for NFS mount/umount operations (lines 32-79).
+- The policy explicitly uses both `SNAP_NAME` and `SNAP_INSTANCE_NAME` for writable mount targets, covering parallel installs (lines 45-61).
+- No D-Bus or sockets are involved.
+
+**Reasoning**: Like cifs-mount, this interface is already instance-aware in its mount target rules. Parallel instances do not create a mount-path collision in the code.
+
+**Verification:** No verification has yet been done.
+
+### optical-drive
+**Status: COMPATIBLE (code analysis -- not yet verified)**
+
+**Code analysis:**
+- Slot is provided by core only (lines 32-43), with implicit slot on classic only (line 107).
+- AppArmor grants read access to optical drive device nodes and supporting SCSI/udev files; optional write access is gated by a plug attribute (lines 45-54, 85-99).
+- UDev rules tag the relevant SCSI device types (lines 56-63).
+- No snap-instance-specific paths are used.
+
+**Reasoning**: Optical drives are global hardware devices. The interface is attribute/device based, not instance-name based.
+
+**Verification:** No verification has yet been done.
+
+### physical-memory-observe
+**Status: COMPATIBLE (code analysis -- not yet verified)**
+
+**Code analysis:**
+- Slot is provided by core only (lines 24-29), with implicit slots on core and classic (lines 49-50).
+- AppArmor grants read-only `/dev/mem` and `/proc/*/pagemap` access (lines 32-41).
+- UDev tags the `mem` device (line 43).
+- No snap-instance-specific paths are involved.
+
+**Reasoning**: Read-only physical memory observation is global system state, not snap-instance state. The interface code does not introduce any parallel-install collision point.
+
+**Verification:** No verification has yet been done.
+
+### pkcs11
+**Status: COMPATIBLE (code analysis -- not yet verified)**
+
+**Code analysis:**
+- The slot provides a `pkcs11-socket` attribute and must live under `/run/p11-kit` (lines 71-93).
+- `BeforePrepareSlot()` validates the path and disallows AppArmor-regex characters (lines 95-105).
+- AppArmor and Seccomp rules use the socket path as supplied by the slot (lines 107-155).
+- The interface is path-driven by the slot, not by snap instance names.
+
+**Reasoning**: This is a named socket interface whose path is set by the slot, not by the snap instance. Parallel instances talk to the same p11-kit service or different sockets as declared by the slot, so there is no snap-instance collision in the code.
+
+**Verification:** No verification has yet been done.
+
+### system-packages-doc
+**Status: COMPATIBLE (code analysis -- not yet verified)**
+
+**Code analysis:**
+- Slot is provided by core only (lines 31-36), with implicit slot on classic (line 204-205).
+- AppArmor grants read access to documentation directories under `/usr/share`, `/usr/local/share`, and `/var/lib/snapd/hostfs`-backed locations (lines 39-53).
+- Mount rules bind host documentation into the snap namespace (lines 59-196).
+- The code uses host paths and generic doc paths; there are no snap-instance-specific names.
+
+**Reasoning**: Documentation files are shared read-only host resources. Parallel instances can all mount/read them, and the policy is path-based rather than instance-name-based.
+
+**Verification:** No verification has yet been done.
+
+### display-control
+**Status: COMPATIBLE (code analysis -- not yet verified)**
+
+**Code analysis:**
+- Slot is provided by core only (lines 34-39), with implicit slot on classic (line 137).
+- AppArmor rules cover backlight and keyboard backlight sysfs nodes plus UPower and GNOME Settings Daemon D-Bus APIs (lines 46-91).
+- The interface discovers backlight paths dynamically via sysfs symlinks (lines 97-127).
+- No snap-instance-specific paths are involved.
+
+**Reasoning**: Display/backlight control is global device state. Parallel instances can adjust the same display settings, and the policy code does not key anything off snap instance names.
+
+**Verification:** No verification has yet been done.
+
 ### desktop-legacy
 **Status: COMPATIBLE (code analysis -- not yet verified)**
 
@@ -1416,6 +1615,147 @@ from the system service does not conflict with other instances doing the same.
 
 ---
 
+### autopilot-introspection
+**Status: COMPATIBLE (code analysis -- not yet verified)**
+
+**Code analysis:**
+- Slot is provided by core only (lines 24-29), with implicit slots on core and classic (lines 69-70).
+- AppArmor rules are session-bus only and read-oriented:
+  - Introspection of `/com/canonical/Autopilot/**` (lines 38-43)
+  - `GetVersion` and `GetState` on `/com/canonical/Autopilot/Introspection` (lines 44-55)
+- Seccomp allows only message-passing syscalls (`recvmsg`, `sendmsg`, `sendto`) (lines 57-63).
+- No snap-instance-specific paths are involved.
+- No name ownership or bind rules; this is a client-only interface.
+
+**Reasoning**: This interface is for inspecting an application's UI status over D-Bus. Multiple parallel instances are just multiple session-bus clients talking to the same service, and the policy does not depend on snap instance naming. No instance collision points are visible in the code.
+
+**Verification:** No verification has yet been done.
+
+### dbus
+**Status: NOT COMPATIBLE (slot-side singleton); COMPATIBLE (plug-side)**
+
+**Code analysis:**
+- This interface is explicitly built around a well-known D-Bus name provided by the slot snap.
+- Permanent slot policy binds the requested bus name with `dbus (bind)` and grants ownership in the generated D-Bus policy (lines 49-150).
+- `getAttribs()` validates the `bus` and `name` attributes and rejects names ending in `-NUMBER` to avoid overlap with parallel-install instance naming (lines 240-265).
+- `AppArmorConnectedPlug()` and `AppArmorConnectedSlot()` both compare plug/slot attributes and only emit policy when the names match (lines 316-350, 402-429).
+- The generated AppArmor peer labels use `slot.LabelExpression()` and `plug.LabelExpression()`, so the security labels are instance-aware, but the D-Bus well-known name itself is a singleton resource.
+- `DBusPermanentSlot()` only emits bus policy for system services, but a parallel app slot still cannot have two instances both binding the same bus name.
+
+**Reasoning**: The `dbus` interface is the canonical singleton-service case. Parallel instances of a provider snap cannot both own the same well-known D-Bus name, so slot-side is not compatible. Plug-side use is fine because multiple consumers can talk to the same service if the connection is set up correctly.
+
+**Verification:** No verification has yet been done.
+
+### packagekit-control
+**Status: COMPATIBLE (code analysis -- not yet verified)**
+
+**Code analysis:**
+- Slot is provided by core only (lines 30-35), with implicit slot on classic (line 107).
+- AppArmor rules are D-Bus client-only and talk to the PackageKit daemon on the system bus (lines 44-100).
+- The transaction object paths are random, numeric/hex identifiers under `/[0-9]*_[0-9a-f...]` (lines 74-100), not snap-name-derived.
+- No snap-instance-specific paths, sockets, or mount operations are present.
+- No D-Bus ownership is granted; this interface only sends and receives on the PackageKit endpoints.
+
+**Reasoning**: PackageKit is a shared system service and the interface is just a D-Bus client. Parallel instances are ordinary concurrent clients talking to the same daemon, and the transaction object paths are generated by PackageKit itself rather than by snapd. No instance-naming issue is visible.
+
+**Verification:** No verification has yet been done.
+
+### polkit-agent
+**Status: COMPATIBLE (code analysis -- not yet verified)**
+
+**Code analysis:**
+- Slot is provided by core only when the helper exists, and the interface is implicitly on core/classic depending on helper availability (line 142).
+- AppArmor rules allow registering with polkitd on the system bus and talking to accounts-daemon for UI prompts (lines 47-129).
+- The helper subprofile uses `@{SNAP_INSTANCE_NAME}` in the signal peer label (line 114), which is instance-aware.
+- The helper can read `/var/lib/extrausers/shadow` and `/var/lib/extrausers/gshadow`, but those are global system auth databases, not snap-scoped paths.
+- Seccomp only adds audit-related socket/bind permissions (lines 132-136).
+
+**Reasoning**: The interface is about acting as a polkit agent, which is a client role. The only snap-instance-specific element is the helper signal peer label, and that uses `SNAP_INSTANCE_NAME` correctly. The shared auth databases and D-Bus service are system-wide resources, so parallel instances do not create snap-instance collisions in the interface code.
+
+**Verification:** No verification has yet been done.
+
+### snap-refresh-observe
+**Status: COMPATIBLE (code analysis -- not yet verified)**
+
+**Code analysis:**
+- Slot is provided by core only (lines 30-35), with implicit slots on core and classic (lines 42-43).
+- The interface has no AppArmor, seccomp, mount, or udev snippets of its own.
+- It is used as a marker interface in snapd's refresh/inhibit code paths.
+- There are no snap-instance-specific paths or name-ownership rules in the interface definition itself.
+
+**Reasoning**: This interface is essentially a marker/read-access capability used by snapd to gate refresh/inhibit behavior. Because the interface definition itself contributes no filesystem or D-Bus policy, there is no parallel-install collision surface in this code.
+
+**Verification:** No verification has yet been done.
+
+### ubuntu-download-manager
+**Status: NOT COMPATIBLE (slot-side singleton); COMPATIBLE (plug-side)**
+
+**Code analysis:**
+- The permanent slot binds the well-known session-bus name `com.canonical.applications.Downloader` (lines 127-130).
+- The permanent slot also grants D-Bus ownership and listen/accept permissions for that daemon role (lines 131-151).
+- Connected plug rules are client-only and use `slot.LabelExpression()` for the security peer label (lines 215-221).
+- Connected slot rules use `plug.LabelExpression()` and substitute `###PLUG_NAME###` with `plug.Snap().InstanceName()` (lines 228-236), which is instance-aware.
+- The download directories under `~/snap/<plug-instance>/common/Downloads/` are instance-specific because the plug name substitution uses `InstanceName()`.
+
+**Reasoning**: Plug-side consumer access is fine: each parallel instance gets its own download directory and talks to the same download service as a client. Slot-side is a singleton service because the session bus name is globally unique, so two parallel provider instances cannot both own `com.canonical.applications.Downloader`.
+
+**Verification:** No verification has yet been done.
+
+### ubuntu-pro-control
+**Status: NOT COMPATIBLE (slot-side singleton); COMPATIBLE (plug-side)**
+
+**Code analysis:**
+- Slot is provided by core only (lines 30-35), with implicit slot on classic (line 128).
+- AppArmor rules talk to `com.canonical.UbuntuAdvantage` on the system bus and query the object hierarchy with `ObjectManager`, properties, and introspection (lines 38-121).
+- The interface is clearly designed around a single daemon service with a well-known bus name.
+- No snap-instance-specific paths are used; the only filesystem access is `/etc/ubuntu-advantage/uaclient.conf` (line 43).
+- No mount or shared-memory rules are present.
+
+**Reasoning**: Ubuntu Pro control is a daemon-client interface on top of a singleton service. Parallel consumers are fine, but parallel providers would contend for the same well-known D-Bus name, so slot-side is not compatible.
+
+**Verification:** No verification has yet been done.
+
+### xdg-portal-permission-store
+**Status: COMPATIBLE (code analysis -- not yet verified)**
+
+**Code analysis:**
+- Slot is provided by core only (lines 30-35), with implicit slot on core and classic (lines 69-70).
+- AppArmor rules grant session-bus access to the portal PermissionStore object at `/org/freedesktop/impl/portal/PermissionStore` (lines 38-63).
+- The interface is client-only: it sends and receives on the portal object but does not own a bus name.
+- No snap-instance-specific paths, sockets, or mount rules are present.
+
+**Reasoning**: This is a shared portal service on the session bus. Multiple parallel instances can safely access the same PermissionStore as concurrent clients. No instance naming or global-file conflict is visible.
+
+**Verification:** No verification has yet been done.
+
+### system-trace
+**Status: COMPATIBLE (code analysis -- not yet verified)**
+
+**Code analysis:**
+- Slot is provided by core only (lines 24-29), with implicit slots on core and classic (lines 71-72).
+- AppArmor rules grant access to kernel tracing files under `/sys/kernel/debug/{kprobes,tracing}` and `/sys/kernel/tracing` plus `/usr/src` headers (lines 32-56).
+- Seccomp permits `bpf` and `perf_event_open` (lines 58-65).
+- No snap-instance-specific paths are used.
+- No D-Bus, sockets, or mounts are involved.
+
+**Reasoning**: Kernel tracing is a global system facility. Multiple parallel instances would simply be concurrent consumers of the same tracing APIs. The interface code does not introduce any snap-instance scoping that could conflict.
+
+**Verification:** No verification has yet been done.
+
+### shutdown
+**Status: COMPATIBLE (code analysis -- not yet verified)**
+
+**Code analysis:**
+- Slot is provided by core only (lines 30-35), with implicit slots on core and classic (lines 93-94).
+- AppArmor rules only talk to systemd-logind and systemd over the system bus for poweroff/reboot/shutdown operations (lines 43-76).
+- The interface also grants a Unix socket bind rule for `@*/bus/*/system` (line 81), which is pattern-based rather than snap-name-based.
+- Seccomp only adds `bind` (lines 84-87).
+- No snap-instance-specific paths or per-instance file generation are present.
+
+**Reasoning**: Shutdown is a system-wide capability interface. Parallel instances can all request the same system power operations; there is no snap-instance collision in the policy code.
+
+**Verification:** No verification has yet been done.
+
 ### bluez
 **Status: NOT COMPATIBLE (slot-side system singleton); COMPATIBLE (plug-side)**
 
@@ -1498,6 +1838,350 @@ original service slot; after original removed, `_foo` self-connected its own ser
 slot (no D-Bus name conflict with only one instance running).
 
 ---
+
+### camera
+**Status: COMPATIBLE (code analysis -- not yet verified)**
+
+**Code analysis:**
+- Slot is provided by core only (lines 28-33), with implicit slots on core and classic (lines 80-81).
+- AppArmor rules are device-path based and intentionally broad: `/dev/video[0-9]*`, `/dev/vchiq`, and supporting sysfs/udev paths (lines 36-57).
+- UDev rules tag video devices (lines 71-74).
+- No snap-instance-specific paths are used.
+- The interface explicitly notes it allows access to all cameras until better device assignment exists (line 37).
+
+**Reasoning**: Camera devices are shared hardware resources. Parallel instances accessing the same global camera nodes is expected; the interface code is not instance-scoped and does not create a collision surface.
+
+**Verification:** No verification has yet been done.
+
+### bluetooth-control
+**Status: COMPATIBLE (code analysis -- not yet verified)**
+
+**Code analysis:**
+- Slot is provided by core only (lines 24-29), with implicit slots on core and classic (lines 70-71).
+- AppArmor rules grant access to Bluetooth kernel interfaces and device nodes (`/sys/devices/**/bluetooth/**`, `/dev/vhci`, `/dev/stpbt`) (lines 32-56).
+- Seccomp only adds `bind` (lines 58-62).
+- UDev rules match Bluetooth-related subsystems (line 64).
+- No snap-instance-specific paths, D-Bus names, or sockets are involved.
+
+**Reasoning**: This interface controls the system Bluetooth stack, which is a global kernel/service resource. Multiple parallel instances can be granted the same access; the code does not create snap-instance collisions.
+
+**Verification:** No verification has yet been done.
+
+### kernel-firmware-control
+**Status: COMPATIBLE (code analysis -- not yet verified)**
+
+**Code analysis:**
+- Slot is provided by core only (lines 31-36), with implicit slots on core and classic (lines 48-49).
+- AppArmor rules only grant write access to `/sys/module/firmware_class/parameters/path` (line 41).
+- No D-Bus, sockets, mounts, or snap-instance-specific paths are involved.
+
+**Reasoning**: The interface controls a global kernel firmware search path parameter. Multiple instances get the same permission, and the code does not include any snap-instance-dependent logic.
+
+**Verification:** No verification has yet been done.
+
+### gpio
+**Status: COMPATIBLE (code analysis -- not yet verified)**
+
+**Code analysis:**
+- Slots are provided by core or gadget snaps only (lines 35-41), not by app snaps.
+- The slot is keyed by a GPIO number attribute and the code resolves the sysfs path via `evalSymlinks()` before emitting rules (lines 83-105).
+- The interface also sets up a per-slot systemd service to export/unexport the GPIO line (lines 108-122).
+- No snap-instance-specific names are used beyond the slot-supplied GPIO number.
+
+**Reasoning**: GPIO access is tied to a physical pin, not a snap instance. Parallel installs can connect to the same pin or different pins as declared by the slot; there is no instance-name collision in the interface code.
+
+**Verification:** No verification has yet been done.
+
+### gpio-chardev
+**Status: COMPATIBLE (code analysis -- not yet verified)**
+
+**Code analysis:**
+- Slots are provided by gadget snaps (lines 50-55), and the interface uses instance-aware names throughout the setup.
+- `slot.Snap().InstanceName()` and `plug.Snap().InstanceName()` are used to build `/dev/snap/gpio-chardev/<instance>/<name>` paths (lines 136-187).
+- The systemd service for the slot exports the virtual device using the slot instance name and slot name (lines 127-156).
+- UDev tagging uses an instance-aware tag (`snap_<instance>_interface_gpio_chardev_<slot>`) (lines 193-196).
+- A conflict with `gpio` is explicitly declared via `conflictingConnectedInterfaces: []string{"gpio"}` (lines 207-210).
+
+**Reasoning**: The interface is carefully namespaced by snap instance for both slot and plug paths, so parallel installs do not collide. The only conflict is with the legacy `gpio` interface, which is intentional and unrelated to parallel naming.
+
+**Verification:** No verification has yet been done.
+
+### gpio-memory-control
+**Status: COMPATIBLE (code analysis -- not yet verified)**
+
+**Code analysis:**
+- Slot is provided by core only (lines 25-30), with implicit slots on core and classic (lines 47-48).
+- AppArmor rules grant access to `/dev/gpiomem` (line 38).
+- UDev tags the `gpiomem` device (line 41).
+- No instance-specific names, sockets, or mounts are used.
+
+**Reasoning**: This is a global GPIO memory device and the interface is just device-path based. Multiple instances can share the same access without snap-instance collisions in snapd policy.
+
+**Verification:** No verification has yet been done.
+
+### hugepages-control
+**Status: COMPATIBLE (code analysis -- not yet verified)**
+
+**Code analysis:**
+- Slot is provided by core only (lines 29-34), with implicit slots on core and classic (noted in the interface registration).
+- AppArmor rules cover system hugepage sysfs, `/proc/sys/vm/*`, and `/{dev,run}/hugepages/` (lines 37-68).
+- The rules use `owner` for the hugepages runtime directory (line 54), but that is user/file ownership, not snap instance naming.
+- A mount rule permits `/dev/hugepages` (line 67).
+- No snap-instance-specific paths are involved.
+
+**Reasoning**: Hugepages are a global kernel memory facility. Parallel instances can all manipulate the same system hugepage controls; the interface code does not introduce any snap-instance-specific pathing.
+
+**Verification:** No verification has yet been done.
+
+### iio
+**Status: COMPATIBLE (code analysis -- not yet verified)**
+
+**Code analysis:**
+- Slots are provided by core or gadget snaps only (lines 36-42).
+- Slot validation requires a device node path under `/dev/iio:deviceN` (lines 77-95).
+- AppArmor rules are generated from the specific slot path and derived device name (lines 98-133).
+- UDev tags the device by the exact `/dev/iio:deviceN` node (lines 135-141).
+- No snap-instance-specific names are used.
+
+**Reasoning**: The interface targets a specific IIO hardware device, not an instance-scoped resource. Parallel installs can connect to the same device or different devices without snapd-level collision.
+
+**Verification:** No verification has yet been done.
+
+### io-ports-control
+**Status: COMPATIBLE (code analysis -- not yet verified)**
+
+**Code analysis:**
+- Slot is provided by core only (lines 24-29), with implicit slots on core and classic (lines 57-58).
+- AppArmor grants access to `/dev/port` and the `sys_rawio` capability (lines 32-39).
+- Seccomp allows `ioperm` and `iopl` (lines 41-49).
+- UDev tags the `port` device (line 51).
+- No snap-instance-specific paths or D-Bus names are involved.
+
+**Reasoning**: I/O port access is a global hardware capability. The interface is pure capability/device access and does not depend on instance naming.
+
+**Verification:** No verification has yet been done.
+
+### ion-memory-control
+**Status: COMPATIBLE (code analysis -- not yet verified)**
+
+**Code analysis:**
+- Slot is provided by core only (lines 24-30), with an explicit plug-installation restriction (lines 32-36).
+- AppArmor rules grant access to `/dev/ion` (lines 38-44).
+- UDev tags the `ion` device (lines 46-48).
+- No snap-instance-specific names, sockets, or mounts are involved.
+
+**Reasoning**: The Android ION allocator is a global device interface. Multiple parallel instances can access the same device node without any snapd policy collision in the interface code.
+
+**Verification:** No verification has yet been done.
+
+### kernel-module-observe
+**Status: COMPATIBLE (code analysis -- not yet verified)**
+
+**Code analysis:**
+- Slot is provided by core only (lines 24-29), with implicit slots on core and classic (lines 54-55).
+- AppArmor grants read access to `/proc/modules`, `/sys/module/**`, and modprobe config directories (lines 32-48).
+- The interface notes that `kmod` is used only for querying and seccomp/no-SYS_MODULE prevent loading/removal (line 34).
+- No snap-instance-specific paths are used.
+
+**Reasoning**: This is read-only kernel module observation. Parallel instances can all read the same global module state without colliding at the interface level.
+
+**Verification:** No verification has yet been done.
+
+### mediatek-accel
+**Status: COMPATIBLE (code analysis -- not yet verified)**
+
+**Code analysis:**
+- Slot is provided by core only (lines 33-38), with plug-side `units` selection validated in `BeforePreparePlug()` (lines 94-122).
+- The selected units (`apu`, `vcu`) drive AppArmor and udev snippets (lines 71-88, 124-147).
+- No snap-instance-specific paths are involved; access is keyed by device type and slot attributes.
+
+**Reasoning**: The interface is device-selector based and not instance-name based. Parallel installs can use the same hardware accelerator devices as long as the declared units match.
+
+**Verification:** No verification has yet been done.
+
+### nvme-control
+**Status: COMPATIBLE (code analysis -- not yet verified)**
+
+**Code analysis:**
+- Slot is provided by core only (lines 40-45), with explicit plug-installation restriction (lines 34-38).
+- AppArmor grants access to NVMe config files, sysfs, the fabrics character device, and NVMe controller/namespace nodes (lines 48-68).
+- UDev tags NVMe and nvme-fabrics devices (lines 70-73).
+- KMod module loading hints are declared for `nvme` and `nvme-tcp` (lines 79-82).
+- No snap-instance-specific names are used.
+
+**Reasoning**: NVMe is global storage hardware and the interface is device-path based. Parallel installs can access the same controllers/namespaces from separate snaps without snapd policy collision.
+
+**Verification:** No verification has yet been done.
+
+### ppp
+**Status: COMPATIBLE (code analysis -- not yet verified)**
+
+**Code analysis:**
+- Slot is provided by core only (lines 24-29), with implicit slots on core and classic (lines 70-71).
+- AppArmor grants access to `/usr/sbin/pppd`, `/etc/ppp/**`, `/dev/ppp`, tty devices, lock files, and log directories (lines 32-52).
+- KMod and UDev support are declared for `ppp_generic` and the relevant devices (lines 54-64).
+- No snap-instance-specific paths are used.
+
+**Reasoning**: PPP is a global daemon/device interface. Parallel instances behave as ordinary clients of the same system PPP stack; the policy does not encode any instance-specific paths.
+
+**Verification:** No verification has yet been done.
+
+### ptp
+**Status: COMPATIBLE (code analysis -- not yet verified)**
+
+**Code analysis:**
+- Slot is provided by core only (lines 24-29), with implicit slots on core and classic (lines 49-50).
+- AppArmor grants access to `/dev/ptp[0-9]*` and related sysfs knobs under `/sys/class/ptp/` (lines 32-39).
+- UDev tags PTP devices by subsystem and kernel name (lines 41-43).
+- No snap-instance-specific paths are used.
+
+**Reasoning**: PTP hardware clocks are global devices. The interface is purely device-based and does not create any snap-instance collision point.
+
+**Verification:** No verification has yet been done.
+
+### pwm
+**Status: COMPATIBLE (code analysis -- not yet verified)**
+
+**Code analysis:**
+- Slots are provided by core or gadget snaps only (lines 36-42).
+- The interface validates slot attributes `channel` and `chip-number` and resolves `/sys/class/pwm/pwmchipN` with `evalSymlinks()` (lines 52-107).
+- A systemd service exports/unexports the PWM channel using the slot-supplied chip/channel values (lines 110-129).
+- No snap-instance-specific names are used beyond slot attributes.
+
+**Reasoning**: PWM access is tied to a specific hardware chip/channel. Parallel installs do not collide at the interface layer because the slot defines the hardware target.
+
+**Verification:** No verification has yet been done.
+
+### qualcomm-ipc-router
+**Status: COMPATIBLE (code analysis -- not yet verified)**
+
+**Code analysis:**
+- The interface supports both system and app slots, and the app-slot path is fully instance-aware via `slot.LabelExpression()` and `plug.LabelExpression()` (lines 195-241).
+- Slot attributes `qcipc` and `address` are validated, and the socket address is injected directly into AppArmor/Seccomp snippets (lines 174-192, 244-263).
+- The code explicitly avoids instance-unsafe matching by separating system-slot compatibility and app-slot handling.
+- No snap-instance-specific paths are hardcoded; paths are derived from slot attributes.
+
+**Reasoning**: The interface is socket-address based and already uses the snap labels correctly where needed. The code does not show a parallel-install collision surface.
+
+**Verification:** No verification has yet been done.
+
+### remoteproc
+**Status: COMPATIBLE (code analysis -- not yet verified)**
+
+**Code analysis:**
+- Slot is provided by core only (lines 30-35), with implicit slots on core and classic (lines 52-53).
+- AppArmor grants access to remoteproc sysfs state under `/sys/devices/platform/**/remoteproc/remoteproc[0-9]/...` (lines 38-46).
+- No D-Bus, sockets, or snap-instance-specific paths are used.
+
+**Reasoning**: Remoteproc is a global kernel framework. Multiple instances can observe/control the same remoteproc nodes as allowed by the slot, with no snap instance name dependency.
+
+**Verification:** No verification has yet been done.
+
+### sd-control
+**Status: COMPATIBLE (code analysis -- not yet verified)**
+
+**Code analysis:**
+- Slot is provided by core only (lines 30-35), with implicit slots on core and classic (lines 95-96).
+- AppArmor/UDev permissions are conditionally added when the plug’s `flavor` is `dual-sd` (lines 60-86).
+- Access is to `/dev/DualSD` and its corresponding udev tag; there are no snap-instance-specific paths.
+- The interface uses plug attributes to control scope rather than snap naming.
+
+**Reasoning**: The interface is hardware/flavor specific, not instance specific. Parallel installs just reuse the same hardware access if the plug flavor matches.
+
+**Verification:** No verification has yet been done.
+
+### spi
+**Status: COMPATIBLE (code analysis -- not yet verified)**
+
+**Code analysis:**
+- Slots are provided by core or gadget snaps only (lines 36-42).
+- Slot path validation ensures the path is a concrete `/dev/spidevN.M` node (lines 60-79).
+- AppArmor and udev rules are generated from the slot path, and the interface uses `slot.Ref()` / `slot.Snap()` in a way that is instance-aware for slot identity (lines 81-101).
+- No snap-instance-specific mounts or D-Bus rules are present.
+
+**Reasoning**: SPI access is tied to a concrete bus/device node. Parallel instances do not collide at the interface layer because the slot defines the hardware target.
+
+**Verification:** No verification has yet been done.
+
+### tpm
+**Status: COMPATIBLE (code analysis -- not yet verified)**
+
+**Code analysis:**
+- Slot is provided by core only (lines 24-29), with implicit slots on core and classic (lines 49-50).
+- AppArmor grants access to `/dev/tpm[0-9]*` and `/dev/tpmrm[0-9]*` (lines 32-38).
+- UDev tags TPM devices (lines 40-43).
+- No snap-instance-specific names, sockets, or mounts are involved.
+
+**Reasoning**: TPM is a global hardware device. The interface is pure device access and does not encode any snap-instance-specific scoping.
+
+**Verification:** No verification has yet been done.
+
+### uinput
+**Status: COMPATIBLE (code analysis -- not yet verified)**
+
+**Code analysis:**
+- Slot is provided by core only (lines 39-44), with implicit slots on core and classic (lines 74-75).
+- AppArmor grants write access to `/dev/uinput` and `/dev/input/uinput` (lines 47-53).
+- UDev tags the `uinput` device (line 64).
+- The comments explicitly note this is sensitive because it can inject arbitrary input, but no snap-instance-specific paths are present.
+
+**Reasoning**: This is a global input injection device. Multiple parallel instances can share the same device access; the code does not use instance naming or per-snap mount paths.
+
+**Verification:** No verification has yet been done.
+
+### uio
+**Status: COMPATIBLE (code analysis -- not yet verified)**
+
+**Code analysis:**
+- Slots are provided by core or gadget snaps only (lines 39-45).
+- Slot path validation uses `verifySlotPathAttribute()` and requires `/dev/uioN` (lines 65-72).
+- AppArmor rules are derived from the slot path and a shared deduplicated sysfs rule is used for all connections (lines 74-119).
+- UDev tags the exact UIO device (lines 122-129).
+- No snap-instance-specific names are involved.
+
+**Reasoning**: UIO access is tied to the declared hardware node. Parallel instances are just concurrent consumers of the same or different UIO devices, with no snapd instance collision.
+
+**Verification:** No verification has yet been done.
+
+### usb-gadget
+**Status: COMPATIBLE (code analysis -- not yet verified)**
+
+**Code analysis:**
+- This interface is mount-heavy and uses `plug.Snap()` to expand `where` paths for FunctionFS mounts (lines 160-225).
+- `expandMountWhereVariable()` is used to resolve mount targets from the plug snap's identity (line 205), keeping paths instance-aware where needed.
+- The interface validates persistent mount targets so they cannot be under `$SNAP_DATA` or `$SNAP_USER_DATA` (lines 74-81).
+- The code is careful to use the slot/plug attributes rather than hardcoded snap names.
+
+**Reasoning**: USB gadget setup is based on the configured function mounts and device controller, not on snap instance naming. The path expansion and mount generation appear to be driven by snap identity in the intended direction.
+
+**Verification:** No verification has yet been done.
+
+### vcio
+**Status: COMPATIBLE (code analysis -- not yet verified)**
+
+**Code analysis:**
+- Slot is provided by core only (lines 29-34), with implicit slots on core and classic (lines 59-60).
+- AppArmor grants access to `/dev/vcio` and related sysfs/udev data (lines 37-49).
+- UDev tags the `vcio` device (lines 51-53).
+- No snap-instance-specific names or paths are used.
+
+**Reasoning**: VideoCore I/O is a global device interface. Parallel instances can share the same hardware access without instance-scoped conflicts in the policy code.
+
+**Verification:** No verification has yet been done.
+
+### xilinx-dma
+**Status: COMPATIBLE (code analysis -- not yet verified)**
+
+**Code analysis:**
+- Slot is provided by core only (lines 32-37), with implicit slots on core and classic (lines 74-75).
+- AppArmor grants access to Xilinx XDMA/QDMA device nodes and driver sysfs state (lines 42-61).
+- UDev tags the relevant `xdma` and `qdma` subsystems (lines 64-68).
+- The interface note says the xdma subsystem alone should uniquely identify relevant devices (line 63).
+- No snap-instance-specific paths are used.
+
+**Reasoning**: This is hardware-device based and the code is scoped by the device subsystem rather than the snap instance. Parallel instances can access the same PCIe DMA hardware without snapd-level collision.
+
+**Verification:** No verification has yet been done.
 
 ### udisks2
 **Status: NOT COMPATIBLE (slot-side system singleton); COMPATIBLE (plug-side)**
@@ -3852,6 +4536,18 @@ This section catalogs the 137 interfaces registered in snapd that were not cover
 These interfaces require manual connection approval (plug-side `deny-auto-connection: true`). They are set aside and not analyzed further here:
 
 `auditd-support`, `checkbox-support`, `classic-support`, `cuda-driver-libs`, `devlxd`, `dm-crypt`, `dm-multipath`, `docker-support`, `egl-driver-libs`, `firmware-updater-support`, `gbm-driver-libs`, `gpio-control`, `greengrass-support`, `ion-memory-control`, `iscsi-initiator`, `kernel-firmware-control`, `kernel-module-control`, `kernel-module-load`, `kubernetes-support`, `lxd-support`, `microceph-support`, `microstack-support`, `multipass-support`, `nomad-support`, `nvidia-drivers-support`, `nvidia-video-driver-libs`, `nvme-control`, `opengl-driver-libs`, `opengles-driver-libs`, `packagekit-control`, `polkit-agent`, `remoteproc`, `ros-snapd-support`, `scsi-generic`, `sd-control`, `shutdown`, `snap-fde-control`, `snap-interfaces-requests-control`, `snap-refresh-control`, `snap-refresh-observe`, `snap-themes-control`, `snapd-control`, `steam-support`, `tee`, `ubuntu-pro-control`, `uinput`, `userns`, `vulkan-driver-libs`, `xdg-portal-permission-store`, `xilinx-dma`
+
+#### gpio-control
+**Status: SKIPPED (super-privileged; excluded from compatibility analysis)**
+
+**Code analysis:**
+- Not analyzed further for parallel-install compatibility.
+- This interface grants broad control of all GPIO pins and device nodes (`/sys/class/gpio`, `/sys/devices/platform/**/gpio`, `/dev/gpiochip[0-9]*`) (lines 43-57).
+- The comments explicitly describe the interface as privileged and potentially impacting the system and other snaps (lines 25-27, 44-45).
+
+**Reasoning**: This is super-privileged hardware control. Per audit scope, super-privileged interfaces are excluded from compatibility analysis because their privileges are broad enough that instance-name behavior is not the relevant question.
+
+**Verification:** Not analyzed.
 
 ---
 
