@@ -60,7 +60,7 @@ plug side, as proven by passing spread tests.
 ## Additional Interface Analyses
 
 ### custom-device
-**Status: POTENTIALLY COMPATIBLE (code analysis -- not yet verified)**
+**Status: COMPATIBLE (code analysis -- not yet verified)**
 
 **Code analysis:**
 - The slot definition is gadget-driven and intentionally open-ended.
@@ -68,12 +68,12 @@ plug side, as proven by passing spread tests.
 - Connection approval is keyed on the plug attribute matching the slot value.
 - The interface validates paths and udev rules carefully, but it does not inject snap-instance-specific naming.
 
-**Reasoning**: there is no generic snap-instance collision visible in the interface code itself, but the effective behavior is entirely gadget-defined.
+**Reasoning**: there is no snap-instance naming or collision point in the interface code itself. The behavior is gadget-defined, but that does not make the interface incompatible for parallel installs.
 
 **Verification:** No verification has yet been done.
 
 ### confdb
-**Status: COMPATIBLE (code analysis -- not yet verified)**
+**Status: COMPATIBLE EXCEPT FOR SHARED RESOURCE (shared confdb view; code analysis -- not yet verified)**
 
 **Code analysis:**
 - Auto-connection is driven by publisher account matching.
@@ -81,12 +81,12 @@ plug side, as proven by passing spread tests.
 - Plugs can read/write confdb data and may use the optional `custodian` role.
 - No instance-name or snap-name scoping is used in the interface itself.
 
-**Reasoning**: parallel instances of the same snap will generally behave like two clients using the same confdb view, so this is reasonable for parallel installs.
+**Reasoning**: parallel instances of the same snap will generally behave like two clients using the same confdb view, so snapd does not introduce an instance collision. The remaining caveat is that they are still sharing the same confdb data for that view/account.
 
 **Verification:** No verification has yet been done.
 
 ### raw-volume
-**Status: POTENTIALLY COMPATIBLE (code analysis -- not yet verified)**
+**Status: COMPATIBLE EXCEPT FOR SHARED RESOURCE (shared partition; code analysis -- not yet verified)**
 
 **Code analysis:**
 - The slot must point at a concrete disk partition.
@@ -94,12 +94,12 @@ plug side, as proven by passing spread tests.
 - AppArmor and udev rules are generated from the slot path, not from instance naming.
 - Auto-connect is allowed only for declarations, but the slot is still tied to the chosen partition.
 
-**Reasoning**: this is not a snap-instance collision problem so much as a device-selection problem. Parallel instances are only safe if they intentionally bind to different partitions.
+**Reasoning**: this is not a snap-instance naming problem. Parallel instances can both access the same partition if connected to the same slot, but that still means they are sharing raw disk hardware and can interfere at the filesystem/data level.
 
 **Verification:** No verification has yet been done.
 
 ### opengl
-**Status: POTENTIALLY COMPATIBLE (code analysis -- not yet verified)**
+**Status: COMPATIBLE EXCEPT FOR SHARED RESOURCE (shared GPU; code analysis -- not yet verified)**
 
 **Code analysis:**
 - Access is to GPU driver stacks, DRM render nodes, and vendor libraries.
@@ -107,7 +107,7 @@ plug side, as proven by passing spread tests.
 - The interface uses instance-agnostic paths and does not key access on snap instance identity.
 - Some vendor-specific state is shared, but the code treats it as normal multi-client GPU access.
 
-**Reasoning**: the interface reads like a shared-client GPU interface rather than a per-snap singleton.
+**Reasoning**: the interface reads like a shared-client GPU interface rather than a per-snap singleton. Parallel instances are fine at the snapd policy layer, but they still contend for the same GPU resources and performance.
 
 **Verification:** No verification has yet been done.
 
@@ -272,7 +272,7 @@ plug side, as proven by passing spread tests.
 **Verification:** No verification has yet been done.
 
 ### mpris
-**Status: POTENTIALLY COMPATIBLE (code analysis -- not yet verified)**
+**Status: COMPATIBLE (code analysis -- not yet verified)**
 
 **Code analysis:**
 - The slot binds `org.mpris.MediaPlayer2.<name>` based on a `name` attribute, defaulting to `SNAP_INSTANCE_NAME`.
@@ -280,7 +280,7 @@ plug side, as proven by passing spread tests.
 - The plug side discovers and talks to the player over the session bus.
 - The implementation is careful about per-snap naming, but the well-known bus name still represents a provider identity.
 
-**Reasoning**: parallel clients are fine, but parallel providers can collide unless the instance-aware naming is handled correctly.
+**Reasoning**: parallel clients are fine, and parallel providers are handled by default because the well-known name falls back to `SNAP_INSTANCE_NAME`. The interface code already expects snaps to use per-instance naming, so parallel installs do not introduce a snapd-side collision.
 
 **Verification:** No verification has yet been done.
 
@@ -297,6 +297,7 @@ plug side, as proven by passing spread tests.
 - Shared memory via `shmctl` syscall (line 56, 80) is used for audio IPC, same pattern as pulseaudio.
 
 **Reasoning**: The plug-side correctly uses `slot.Snap().InstanceName()` for instance-aware path resolution when connecting to an app-provided slot. Multiple parallel plug instances connecting to the same PipeWire server (system or snap-provided) is the normal multi-client audio pattern. The slot-side would conflict if two parallel instances tried to create sockets at the same runtime path, but that's the expected slot-side singleton pattern.
+The remaining shared SHM/socket state is client-server audio IPC, not a parallel-install collision.
 
 **Verification:** No verification has yet been done.
 
@@ -2154,18 +2155,6 @@ from the system service does not conflict with other instances doing the same.
 - It is a single hardware mailbox interface for the VideoCore GPU.
 
 **Reasoning**: This is a shared hardware mailbox rather than a snap-scoped resource. Parallel instances can access it as concurrent clients.
-
-**Verification:** No verification has yet been done.
-
-### raw-volume
-**Status: POTENTIALLY COMPATIBLE (code analysis -- not yet verified)**
-
-**Code analysis:**
-- The interface is tied to a specific disk partition via a slot-declared device node (lines 4915-4924 in the bucket summary).
-- AppArmor and udev rules are derived from the slot path attribute.
-- There is no snap-instance-specific naming in the interface logic.
-
-**Reasoning**: This is not instance-scoped; it is device-scoped. Parallel instances are only safe when they are deliberately connected to different partitions.
 
 **Verification:** No verification has yet been done.
 
