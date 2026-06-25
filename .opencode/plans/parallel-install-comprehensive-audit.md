@@ -25,6 +25,8 @@ rarely the use case for parallel installs.
 - **COMPATIBLE**: Parallel instances work correctly for plug-side usage. Verified by test.
 - **COMPATIBLE (plug-side only)**: Plug-side works; slot-side has conflicts (e.g., D-Bus
   name ownership). Most snaps only use the plug side.
+- **COMPATIBLE EXCEPT FOR SHARED RESOURCE**: Parallel instances work at the snapd policy
+  layer, but they still contend for a shared hardware/session/user resource.
 - **POTENTIALLY COMPATIBLE**: Should work but has minor caveats or was not fully verified.
 - **NOT COMPATIBLE**: Fundamental issue that prevents parallel instances from working
   correctly even for plug-side usage.
@@ -110,26 +112,26 @@ plug side, as proven by passing spread tests.
 **Verification:** No verification has yet been done.
 
 ### jack1
-**Status: POTENTIALLY COMPATIBLE (code analysis -- not yet verified)**
+**Status: COMPATIBLE EXCEPT FOR SHARED RESOURCE (shared session memory; code analysis -- not yet verified)**
 
 **Code analysis:**
 - Access is to JACK1 shared memory endpoints under `/dev/shm/jack-*`.
 - The rules are based on JACK's server/client naming convention, not on snap instance names.
 - There is no snap-specific namespace logic in the interface.
 
-**Reasoning**: two instances behave like two JACK clients on the same user session. That is usually fine, but the interface shares the same JACK namespace and therefore is not isolated by snap instance.
+**Reasoning**: The JACK client/server model is fine for parallel installs at the snapd policy layer, but the same JACK session namespace and shared memory are still in play. Two instances can coexist as clients, yet they can interfere through the shared JACK server/session resources.
 
 **Verification:** No verification has yet been done.
 
 ### pcscd
-**Status: POTENTIALLY COMPATIBLE (code analysis -- not yet verified)**
+**Status: COMPATIBLE EXCEPT FOR SHARED RESOURCE (shared daemon resource; code analysis -- not yet verified)**
 
 **Code analysis:**
 - Client access is via `/run/pcscd/pcscd.comm`.
 - The interface also grants read access to OpenSC config files.
 - No singleton service ownership or instance-specific pathing is involved.
 
-**Reasoning**: this is a straightforward daemon client interface. Parallel installs should behave like concurrent clients of the same PC/SC daemon.
+**Reasoning**: The interface is policy-safe, but the PC/SC daemon and the smart cards/readers behind it are shared resources. Parallel instances can coexist as clients, yet they can still contend for the same smart card or reader session.
 
 **Verification:** No verification has yet been done.
 
@@ -364,7 +366,7 @@ plug side, as proven by passing spread tests.
 **Verification:** No verification has yet been done.
 
 ### media-control
-**Status: COMPATIBLE (code analysis -- not yet verified)**
+**Status: COMPATIBLE EXCEPT FOR SHARED RESOURCE (shared hardware; code analysis -- not yet verified)**
 
 **Code analysis:**
 - Slot is provided by core only (lines 32-33), with implicit slots on core and classic (lines 55-56).
@@ -373,12 +375,12 @@ plug side, as proven by passing spread tests.
 - No snap-instance-specific paths are involved; the interface is purely device-path-based.
 - No D-Bus, no shared memory, no sockets.
 
-**Reasoning**: The media-control interface grants access to kernel media controller devices for configuring media hardware subsystems. These are numbered global hardware resources. Multiple parallel instances accessing the same media devices would share the hardware, similar to the camera interface. The interface has no instance-naming issues.
+**Reasoning**: The interface is policy-safe for parallel installs, but the underlying media controller device is shared hardware. Parallel instances can coexist, yet they can still interfere with one another if they try to control the same media pipeline or device.
 
 **Verification:** No verification has yet been done.
 
 ### gsettings
-**Status: COMPATIBLE (code analysis -- not yet verified)**
+**Status: COMPATIBLE EXCEPT FOR SHARED RESOURCE (shared per-user state; code analysis -- not yet verified)**
 
 **Code analysis:**
 - Slot is provided by core only (lines 27-28), with implicit slot on classic (line 53).
@@ -390,7 +392,7 @@ plug side, as proven by passing spread tests.
 - No snap-instance-specific paths; all paths are user-session-scoped, not snap-scoped.
 - No D-Bus name ownership (client only).
 
-**Reasoning**: The gsettings interface grants access to the user's global dconf/gsettings database. This is explicitly a shared per-user resource, not per-snap. Multiple parallel instances accessing the same gsettings database is the intended behavior (same as multiple different snaps). The interface has no instance-naming issues since it's designed for shared access to user settings.
+**Reasoning**: The interface is policy-safe, but the dconf/gsettings database is a shared per-user state store. Parallel instances can coexist, yet they can overwrite or react to each other's settings changes because they are using the same user database.
 
 **Verification:** No verification has yet been done.
 
@@ -586,7 +588,7 @@ plug side, as proven by passing spread tests.
 **Verification:** No verification has yet been done.
 
 ### desktop-legacy
-**Status: COMPATIBLE (code analysis -- not yet verified)**
+**Status: COMPATIBLE EXCEPT FOR SHARED RESOURCE (shared desktop/session services; code analysis -- not yet verified)**
 
 **Code analysis:**
 - Slot is provided by core only (lines 33-38), with implicit slot on classic (line 441).
@@ -602,12 +604,12 @@ plug side, as proven by passing spread tests.
 - No snap-instance-specific paths; all paths are user-session-scoped.
 - No D-Bus name ownership conflicts (binds `org.kde.StatusNotifierItem-[0-9]*` at line 324, which uses PID-based uniqueness).
 
-**Reasoning**: The desktop-legacy interface grants access to shared desktop services (accessibility, input methods, notifications, etc.). These are per-user-session resources designed for concurrent access by multiple applications. Multiple parallel instances accessing the same desktop services is the intended behavior. The `getDesktopFileRules()` call correctly uses the snap's identity. No instance-naming issues.
+**Reasoning**: The interface is policy-safe, but it depends on shared desktop/session services (accessibility, input methods, notifications, etc.). Parallel instances can coexist, yet they can still interfere through the same user-session services and shared desktop state.
 
 **Verification:** No verification has yet been done.
 
 ### gconf
-**Status: COMPATIBLE (code analysis -- not yet verified)**
+**Status: COMPATIBLE EXCEPT FOR SHARED RESOURCE (shared per-user state; code analysis -- not yet verified)**
 
 **Code analysis:**
 - Slot is provided by core only (lines 28-33), with implicit slot on classic (line 70).
@@ -620,7 +622,7 @@ plug side, as proven by passing spread tests.
 - No snap-instance-specific paths; all paths are user-session-scoped.
 - No D-Bus name ownership (client only).
 
-**Reasoning**: The gconf interface grants access to the user's global GConf database. This is explicitly documented as "a global database for GNOME desktop and application settings" with "no application isolation." Multiple parallel instances accessing the same GConf database is the intended behavior (same as multiple different snaps). No instance-naming issues.
+**Reasoning**: The interface is policy-safe, but the GConf database is shared per-user state. Parallel instances can coexist, yet they can affect each other by writing to the same settings database.
 
 **Verification:** No verification has yet been done.
 
@@ -1834,7 +1836,7 @@ from the system service does not conflict with other instances doing the same.
 **Verification:** No verification has yet been done.
 
 ### camera
-**Status: COMPATIBLE (code analysis -- not yet verified)**
+**Status: COMPATIBLE EXCEPT FOR SHARED RESOURCE (shared hardware; code analysis -- not yet verified)**
 
 **Code analysis:**
 - Slot is provided by core only (lines 28-33), with implicit slots on core and classic (lines 80-81).
@@ -1843,19 +1845,19 @@ from the system service does not conflict with other instances doing the same.
 - No snap-instance-specific paths are used.
 - The interface explicitly notes it allows access to all cameras until better device assignment exists (line 37).
 
-**Reasoning**: Camera devices are shared hardware resources. Parallel instances accessing the same global camera nodes is expected; the interface code is not instance-scoped and does not create a collision surface.
+**Reasoning**: The interface is policy-safe for parallel installs, but the camera hardware is shared. Parallel instances can coexist, yet they can still fight over the same camera device or stream.
 
 **Verification:** No verification has yet been done.
 
 ### can-bus
-**Status: COMPATIBLE (code analysis -- not yet verified)**
+**Status: COMPATIBLE EXCEPT FOR SHARED RESOURCE (shared medium; code analysis -- not yet verified)**
 
 **Code analysis:**
 - The interface grants CAN network access and allows AF_CAN sockets (lines 4617-4624 in the bucket summary).
 - No instance-specific pathing or ownership is present.
 - The kernel handles CAN concurrency; the interface is just a client to that medium.
 
-**Reasoning**: Parallel instances can use the CAN bus at the same time, but they share the same underlying hardware bus.
+**Reasoning**: Parallel instances can coexist as snapd clients, but they share the same CAN medium and can interfere at the protocol/application level if they use the same bus or identifiers.
 
 **Verification:** No verification has yet been done.
 
@@ -2024,13 +2026,13 @@ from the system service does not conflict with other instances doing the same.
 **Verification:** No verification has yet been done.
 
 ### opengl
-**Status: COMPATIBLE (code analysis -- not yet verified)**
+**Status: COMPATIBLE EXCEPT FOR SHARED RESOURCE (shared GPU; code analysis -- not yet verified)**
 
 **Code analysis:**
 - The interface grants access to GPU device nodes / DRM render nodes (lines 4783-4790 in the bucket summary).
 - It is a shared-client GPU interface and does not encode snap-instance scoping.
 
-**Reasoning**: Multiple processes using the same GPU is normal. Parallel instances can share the GPU, so this is compatible for plug-side usage.
+**Reasoning**: Parallel instances are fine from snapd’s point of view, but they still share the same GPU and can contend for graphics resources or performance.
 
 **Verification:** No verification has yet been done.
 
@@ -2112,13 +2114,13 @@ from the system service does not conflict with other instances doing the same.
 **Verification:** No verification has yet been done.
 
 ### u2f-devices
-**Status: NOT COMPATIBLE (exclusive hardware; code analysis -- not yet verified)**
+**Status: COMPATIBLE EXCEPT FOR SHARED RESOURCE (shared token; code analysis -- not yet verified)**
 
 **Code analysis:**
 - The interface matches USB vendor/product patterns for U2F/FIDO tokens (lines 4871-4878 in the bucket summary).
 - It is a physical token interface.
 
-**Reasoning**: A specific hardware token is an exclusive interactive resource. Parallel instances using the same token would contend for it.
+**Reasoning**: The interface is policy-safe, but the underlying token is a shared physical device. Parallel instances can contend for the same security key at the application level.
 
 **Verification:** No verification has yet been done.
 
@@ -2164,6 +2166,174 @@ from the system service does not conflict with other instances doing the same.
 - There is no snap-instance-specific naming in the interface logic.
 
 **Reasoning**: This is not instance-scoped; it is device-scoped. Parallel instances are only safe when they are deliberately connected to different partitions.
+
+**Verification:** No verification has yet been done.
+
+### raw-input
+**Status: COMPATIBLE (code analysis + verified on noble)**
+
+**Code analysis:**
+- The interface grants access to `/dev/input/*` and input-device sysfs/udev metadata (lines 44-57 in the implementation).
+- UDev tagging is based on input device subsystems, not snap names.
+- No snap-instance-specific paths are used.
+
+**Reasoning**: Raw input devices are shared hardware resources. Parallel instances can be granted the same access; the interface does not encode any snap-instance collision point.
+
+**Verification:** Passed on noble. Test at `tests/main/interfaces-raw-input`.
+
+### dvb
+**Status: COMPATIBLE (code analysis + verified on noble)**
+
+**Code analysis:**
+- The interface grants access to `/dev/dvb/adapter[0-9]*/*` and DVB udev metadata (lines 32-39 in the implementation).
+- The interface is device-path based and uses subsystem tagging, not snap naming.
+
+**Reasoning**: DVB adapters are shared hardware devices. Parallel instances can access the same device nodes without snapd-level collision.
+
+**Verification:** Passed on noble. Test at `tests/main/interfaces-dvb`.
+
+### device-buttons
+**Status: COMPATIBLE (code analysis + verified on noble)**
+
+**Code analysis:**
+- The interface grants access to `/dev/input/event[0-9]*` and supporting input capability files (lines 37-59 in the implementation).
+- The interface is backed by udev filtering for GPIO-key events, not by snap-instance-specific paths.
+
+**Reasoning**: Device buttons are input-event hardware. Multiple parallel instances can share the same access; the policy does not key off snap instance names.
+
+**Verification:** Passed on noble. Test at `tests/main/interfaces-device-buttons`.
+
+### uhid
+**Status: COMPATIBLE (code analysis + verified on noble)**
+
+**Code analysis:**
+- The interface grants write access to `/dev/uhid` (lines 32-38 in the implementation).
+- There is no udev tagging because UHID is not represented in sysfs.
+- No snap-instance-specific logic is involved.
+
+**Reasoning**: UHID is a shared kernel interface for creating HID devices from userspace. Parallel instances can access the same kernel interface without snapd path collisions.
+
+**Verification:** Passed on noble. Test at `tests/main/interfaces-uhid`.
+
+### block-devices
+**Status: COMPATIBLE EXCEPT FOR SHARED RESOURCE (code analysis + verified on noble)**
+
+**Code analysis:**
+- The interface grants broad access to raw disk block devices, controller character devices, and block-related sysfs/udev metadata (lines 58-132 in the implementation).
+- It explicitly avoids partitions in the default policy and only adds partitions when requested.
+- No snap-instance-specific names are used.
+- The verified test installs a `_foo` instance, connects it independently, verifies it can read the same disk, and confirms it still works after the original snap is removed.
+
+**Reasoning**: Raw block devices are accessible independently to parallel instances at the snapd policy level, which is what the verified test demonstrates. However, the underlying device is still shared hardware, so two snaps can absolutely interfere with each other if they read/write, repartition, mount, format, or otherwise manipulate the same disk at the application level.
+
+**Verification:** Passed on noble. Test at `tests/main/interfaces-block-devices`.
+
+### daemon-notify
+**Status: COMPATIBLE (code analysis + verified on noble)**
+
+**Code analysis:**
+- The interface resolves `NOTIFY_SOCKET` from the environment or defaults to `/run/systemd/notify` (lines 56-88 in the implementation).
+- It validates the socket path and emits an AppArmor rule for the resolved socket.
+- No snap-instance-specific paths are introduced by snapd.
+
+**Reasoning**: This is a client-side notify socket interface. Parallel instances are just concurrent clients talking to systemd’s notify socket; the code does not encode a snap-instance collision.
+
+**Verification:** Passed on noble. Test at `tests/main/interfaces-daemon-notify`.
+
+### browser-support
+**Status: COMPATIBLE (code analysis + verified on noble)**
+
+**Code analysis:**
+- The interface explicitly uses `@{SNAP_INSTANCE_NAME}` for snap-local runtime socket paths in the sandboxed rules (lines 62-76 in the implementation).
+- It also uses owner rules for per-user shared-memory and browser-specific state, and a session D-Bus access to RealtimeKit.
+- The policy is intentionally instance-aware for the socket path bits that need it.
+
+**Reasoning**: Browser support already accounts for parallel-install runtime paths with `SNAP_INSTANCE_NAME`. The remaining shared resources are user/session scoped, not snap-scoped.
+
+**Verification:** Passed on noble. Test at `tests/main/interfaces-browser-support`.
+
+### kerberos-tickets
+**Status: COMPATIBLE EXCEPT FOR SHARED RESOURCE (shared per-user state; code analysis + verified on noble)**
+
+**Code analysis:**
+- The interface grants owner access to `/var/lib/snapd/hostfs/tmp/krb5cc*` (line 33 in the implementation).
+- It is a file-access interface for Kerberos ticket caches.
+- No sockets, mounts, or snap-instance-specific names are used.
+
+**Reasoning**: Kerberos ticket caches are per-user runtime files, so the snapd policy is fine, but parallel instances can still overwrite or invalidate each other's tickets because they share the same cache namespace.
+The cache filename is typically session-specific and may look random (for example `krb5cc_*`), so this is not a snap-instance naming collision. The concern here is shared per-user/session state rather than two instances deterministically targeting the same queue or socket name.
+`snap run` rewrites `KRB5CCNAME` from the caller's environment into `/var/lib/snapd/hostfs/tmp/krb5cc*`, so different users can naturally end up pointing at different Kerberos caches. That is user/session scoping, not parallel-instance scoping: two instances run by the same user generally share the same cache, while different users can have different caches regardless of snap instance name.
+
+**Verification:** Passed on noble. Test at `tests/main/interfaces-kerberos-tickets`.
+
+### audio-playback-record
+**Status: COMPATIBLE EXCEPT FOR SHARED RESOURCE (shared audio stack; plug-side only; code analysis + verified on noble)**
+
+**Code analysis:**
+- The plug side uses PulseAudio/PipeWire shared-memory and socket paths, with an instance-aware path substitution for system mode (`###SLOT_INSTANCE_NAME###`) in the connected plug rules (lines 55-175 in the implementation).
+- The slot side exposes standard audio daemon resources and shared memory.
+- The interface is designed around shared-client audio IPC, not per-snap exclusive ownership.
+
+**Reasoning**: The plug side is policy-safe and verified, but the audio stack is still shared. Parallel consumer snaps can coexist, yet they can still contend for the same audio server, latency, or device routing.
+
+**Verification:** Passed on noble. Test at `tests/main/interfaces-audio-playback-record`.
+
+### adb-support
+**Status: COMPATIBLE (code analysis + verified on noble)**
+
+**Code analysis:**
+- The interface tags USB devices by vendor ID and emits udev rules for matching devices (lines 129-190 in the implementation).
+- The generated udev rules are keyed by the snap security tag, which is instance-aware.
+- AppArmor grants access to `/dev/bus/usb/...`, udev metadata, and USB serial number sysfs files.
+- No snap-instance-specific paths are involved.
+
+**Reasoning**: ADB support is device- and vendor-based, and the udev mediation uses the snap security tag so parallel instances stay separated at the policy layer. Parallel instances can share the same USB debugging access without snapd-level collision.
+
+**Verification:** Passed on noble. Test at `tests/main/interfaces-adb-support`.
+
+### netlink-audit
+**Status: COMPATIBLE (code analysis + verified on noble)**
+
+**Code analysis:**
+- The interface grants `AF_NETLINK - NETLINK_AUDIT` access and netlink-related capabilities (lines 40-60 in the implementation).
+- `BeforeConnectPlug()` checks host AppArmor parser support for `cap-audit-read`.
+- No snap-instance-specific paths are used.
+
+**Reasoning**: Netlink audit is a shared kernel subsystem. Multiple instances can use it concurrently as clients of the kernel audit facility.
+
+**Verification:** Passed on noble. Test at `tests/main/interfaces-netlink-audit`.
+
+### netlink-connector
+**Status: COMPATIBLE (code analysis + verified on noble)**
+
+**Code analysis:**
+- The interface grants `AF_NETLINK - NETLINK_CONNECTOR` access and `CAP_NET_ADMIN` (lines 32-49 in the implementation).
+- The policy intentionally allows communications via all netlink connectors.
+- No snap-instance-specific paths are used.
+
+**Reasoning**: The connector is a shared kernel messaging facility. Parallel instances can use it concurrently; no snap-instance naming issue exists.
+
+**Verification:** Passed on noble. Test at `tests/main/interfaces-netlink-connector`.
+
+### power-control
+**Status: NOT COMPATIBLE (system-global control; code analysis -- not yet verified)**
+
+**Code analysis:**
+- The interface targets `/sys/devices/**/power/*` and power-supply knobs (lines 1-61 in the implementation).
+- It controls wakeup, runtime power management, and battery threshold settings for the system.
+
+**Reasoning**: Power settings are system-global. Parallel instances changing them would conflict.
+
+**Verification:** No verification has yet been done.
+
+### u2f-devices
+**Status: COMPATIBLE (code analysis -- not yet verified)**
+
+**Code analysis:**
+- The interface grants access to `/dev/hidraw*` and matching udev metadata for known U2F/FIDO devices (lines 227-243 and 249-265 in the implementation).
+- It relies on device matching rather than snap-instance naming.
+
+**Reasoning**: U2F devices are physical tokens, but the interface is device-based and does not create any snap-instance collision surface.
 
 **Verification:** No verification has yet been done.
 
@@ -4676,94 +4846,6 @@ Device access to `/dev/kvm`. No D-Bus, no snap-name paths.
 Device access to `/dev/bus/usb/`, `/sys/bus/usb/`. No D-Bus, no snap-name paths.
 
 **Verification**: Passed on noble. Test at `tests/main/interfaces-raw-usb`.
-
-### raw-input
-**Status: COMPATIBLE (code analysis -- not yet verified by test)**
-
-Device access to `/dev/input/*`. No D-Bus, no snap-name paths.
-
-**Verification**: Passed on noble. Test at `tests/main/interfaces-raw-input`.
-
-### dvb
-**Status: COMPATIBLE (code analysis -- not yet verified by test)**
-
-Device access to `/dev/dvb/adapter*`. No D-Bus, no snap-name paths.
-
-**Verification**: Passed on noble. Test at `tests/main/interfaces-dvb`.
-
-### device-buttons
-**Status: COMPATIBLE (code analysis -- not yet verified by test)**
-
-Device access to gpio-keys input event devices. No D-Bus, no snap-name paths.
-
-**Verification**: Passed on noble. Test at `tests/main/interfaces-device-buttons`.
-
-### uhid
-**Status: COMPATIBLE (code analysis -- not yet verified by test)**
-
-Device access to `/dev/uhid` for creating/destroying HID devices. No D-Bus, no
-snap-name paths.
-
-**Verification**: Passed on noble. Test at `tests/main/interfaces-uhid`.
-
-### block-devices
-**Status: COMPATIBLE (code analysis -- not yet verified by test)**
-
-Device access to block devices (`/dev/sd*`, `/dev/nvme*`). No D-Bus, no snap-name paths.
-
-**Verification**: Passed on noble. Test at `tests/main/interfaces-block-devices`.
-
-### daemon-notify
-**Status: COMPATIBLE (code analysis -- not yet verified by test)**
-
-Write access to `/run/systemd/notify` socket. No D-Bus ownership, no snap-name paths.
-
-**Verification**: Passed on noble. Test at `tests/main/interfaces-daemon-notify`.
-
-### browser-support
-**Status: COMPATIBLE (code analysis -- not yet verified by test)**
-
-Path/capability access for browser sandbox. Uses `@{SNAP_INSTANCE_NAME}` correctly
-for parallel-install-aware paths.
-
-**Verification**: Passed on noble. Test at `tests/main/interfaces-browser-support`.
-
-### kerberos-tickets
-**Status: COMPATIBLE (code analysis -- not yet verified by test)**
-
-Read/write access to Kerberos ticket caches. No D-Bus, no snap-name paths.
-
-**Verification**: Passed on noble. Test at `tests/main/interfaces-kerberos-tickets`.
-
-### audio-playback-record
-**Status: COMPATIBLE (code analysis -- not yet verified by test)**
-
-PulseAudio playback/record mediation. Same architecture as pulseaudio interface
-(plug-side client, shared memory is intentional). No D-Bus ownership.
-
-**Verification**: Passed on noble. Test at `tests/main/interfaces-audio-playback-record`.
-
-### adb-support
-**Status: COMPATIBLE (code analysis -- not yet verified by test)**
-
-UDev rules for Android USB debugging. Rules files use security tag (instance-aware).
-No D-Bus, no snap-name path conflicts.
-
-**Verification**: Passed on noble. Test at `tests/main/interfaces-adb-support`.
-
-### netlink-audit
-**Status: COMPATIBLE (code analysis -- not yet verified by test)**
-
-Netlink audit socket creation/binding. Pure capability, no paths or D-Bus.
-
-**Verification**: Passed on noble. Test at `tests/main/interfaces-netlink-audit`.
-
-### netlink-connector
-**Status: COMPATIBLE (code analysis -- not yet verified by test)**
-
-Netlink connector socket creation/binding. Pure capability, no paths or D-Bus.
-
-**Verification**: Passed on noble. Test at `tests/main/interfaces-netlink-connector`.
 
 ---
 
