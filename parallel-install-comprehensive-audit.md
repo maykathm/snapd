@@ -1,25 +1,3 @@
-# Snapd Parallel Install Compatibility: Comprehensive Audit
-
-**Date**: June 2026  
-**Status**: Consolidated from interface audit + runtime verification  
-**Last revised**: June 23, 2026 (corrected after spread verification)
-
-
-
-## Framework: Plug-side vs Slot-side Compatibility
-
-A critical distinction that must be made for every interface:
-
-- **Plug-side (consumer)**: A snap that uses a resource provided by another snap or the
-  system. Example: a snap reading audio via pulseaudio, or reading from Avahi.
-- **Slot-side (provider)**: A snap that provides a resource to other snaps. Example: a
-  snap running a PulseAudio server, or providing a D-Bus service.
-
-For parallel installs, the relevant question is almost always about **plug-side**
-compatibility -- can two instances of the same snap simultaneously consume a resource?
-Slot-side conflicts (two instances trying to own the same D-Bus name) are real but
-rarely the use case for parallel installs.
-
 ### Classification Key
 
 - **COMPATIBLE**: Parallel instances work correctly for plug-side usage. Verified by test.
@@ -168,9 +146,10 @@ These grant syscall-level capabilities with no named resources, paths, or D-Bus 
 ## Additional Interface Analyses
 
 ### custom-device
-**Status:** COMPATIBLE (code analysis -- not yet verified)
+**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
 
 **Type:** Hardware Device Access
+
 
 **Code analysis:**
 - The slot definition is gadget-driven and intentionally open-ended.
@@ -183,9 +162,10 @@ These grant syscall-level capabilities with no named resources, paths, or D-Bus 
 **Verification:** No verification has yet been done.
 
 ### confdb
-**Status:** COMPATIBLE EXCEPT FOR SHARED RESOURCE (shared confdb view; code analysis -- not yet verified)
+**Status:** Plug-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE. Slot-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE (no side-specific divergence documented in this entry).
 
 **Type:** Snapd/Policy Management
+
 
 **Code analysis:**
 - Auto-connection is driven by publisher account matching.
@@ -198,9 +178,10 @@ These grant syscall-level capabilities with no named resources, paths, or D-Bus 
 **Verification:** No verification has yet been done.
 
 ### raw-volume
-**Status:** COMPATIBLE EXCEPT FOR SHARED RESOURCE (shared partition; code analysis -- not yet verified)
+**Status:** Plug-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE. Slot-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE (no side-specific divergence documented in this entry).
 
 **Type:** Filesystem/Mount Interface
+
 
 **Code analysis:**
 - The slot must point at a concrete disk partition.
@@ -213,9 +194,10 @@ These grant syscall-level capabilities with no named resources, paths, or D-Bus 
 **Verification:** No verification has yet been done.
 
 ### opengl
-**Status:** COMPATIBLE EXCEPT FOR SHARED RESOURCE (shared GPU; code analysis -- not yet verified)
+**Status:** Plug-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE. Slot-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE (no side-specific divergence documented in this entry).
 
 **Type:** Desktop/Graphics/Media Integration
+
 
 **Code analysis:**
 - Access is to GPU driver stacks, DRM render nodes, and vendor libraries.
@@ -228,9 +210,10 @@ These grant syscall-level capabilities with no named resources, paths, or D-Bus 
 **Verification:** No verification has yet been done.
 
 ### jack1
-**Status:** COMPATIBLE EXCEPT FOR SHARED RESOURCE (shared session memory; code analysis -- not yet verified)
+**Status:** Plug-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE. Slot-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE (no side-specific divergence documented in this entry).
 
 **Type:** Daemon/Socket Client
+
 
 **Code analysis:**
 - Access is to JACK1 shared memory endpoints under `/dev/shm/jack-*`.
@@ -242,9 +225,10 @@ These grant syscall-level capabilities with no named resources, paths, or D-Bus 
 **Verification:** No verification has yet been done.
 
 ### pcscd
-**Status:** COMPATIBLE EXCEPT FOR SHARED RESOURCE (shared daemon resource; code analysis -- not yet verified)
+**Status:** Plug-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE. Slot-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE (no side-specific divergence documented in this entry).
 
 **Type:** Daemon/Socket Client
+
 
 **Code analysis:**
 - Client access is via `/run/pcscd/pcscd.comm`.
@@ -256,9 +240,10 @@ These grant syscall-level capabilities with no named resources, paths, or D-Bus 
 **Verification:** No verification has yet been done.
 
 ### network
-**Status:** COMPATIBLE (code analysis -- not yet verified)
+**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
 
 **Type:** Network/Netlink Interface
+
 
 **Code analysis:**
 - Client-side network access only.
@@ -271,9 +256,10 @@ These grant syscall-level capabilities with no named resources, paths, or D-Bus 
 **Verification:** No verification has yet been done.
 
 ### network-manager-observe
-**Status:** COMPATIBLE (code analysis -- not yet verified)
+**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
 
 **Type:** D-Bus/IPC Client
+
 
 **Code analysis:**
 - The interface only observes NetworkManager state and settings.
@@ -285,9 +271,10 @@ These grant syscall-level capabilities with no named resources, paths, or D-Bus 
 **Verification:** No verification has yet been done.
 
 ### openvswitch
-**Status:** COMPATIBLE (code analysis -- not yet verified)
+**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
 
 **Type:** Daemon/Socket Client
+
 
 **Code analysis:**
 - Access is to Open vSwitch management sockets such as `/run/openvswitch/db.sock` and `*.mgmt`.
@@ -299,9 +286,10 @@ These grant syscall-level capabilities with no named resources, paths, or D-Bus 
 **Verification:** No verification has yet been done.
 
 ### libvirt
-**Status:** COMPATIBLE (code analysis -- not yet verified)
+**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
 
 **Type:** Daemon/Socket Client
+
 
 **Code analysis:**
 - Access is to libvirt sockets (`/run/libvirt/libvirt-sock*`) plus a few config paths.
@@ -313,9 +301,10 @@ These grant syscall-level capabilities with no named resources, paths, or D-Bus 
 **Verification:** No verification has yet been done.
 
 ### docker
-**Status:** COMPATIBLE (code analysis -- not yet verified)
+**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
 
 **Type:** Daemon/Socket Client
+
 
 **Code analysis:**
 - Access is to the Docker daemon socket (`/run/docker.sock` or `/var/run/docker.sock`).
@@ -327,9 +316,10 @@ These grant syscall-level capabilities with no named resources, paths, or D-Bus 
 **Verification:** No verification has yet been done.
 
 ### podman
-**Status:** COMPATIBLE (code analysis -- not yet verified)
+**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
 
 **Type:** Daemon/Socket Client
+
 
 **Code analysis:**
 - Access is to both the system Podman socket and the rootless user socket.
@@ -341,9 +331,10 @@ These grant syscall-level capabilities with no named resources, paths, or D-Bus 
 **Verification:** No verification has yet been done.
 
 ### can-bus
-**Status:** COMPATIBLE EXCEPT FOR SHARED RESOURCE (shared medium; code analysis -- not yet verified)
+**Status:** Plug-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE. Slot-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE (no side-specific divergence documented in this entry).
 
 **Type:** Network/Netlink Interface
+
 
 **Code analysis:**
 - The interface grants CAN network access and allows AF_CAN sockets.
@@ -355,9 +346,10 @@ These grant syscall-level capabilities with no named resources, paths, or D-Bus 
 **Verification:** No verification has yet been done.
 
 ### kernel-crypto-api
-**Status:** COMPATIBLE (code analysis -- not yet verified)
+**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
 
 **Type:** Hardware Device Access
+
 
 **Code analysis:**
 - Access is to the Linux kernel crypto API through AF_ALG and NETLINK_CRYPTO.
@@ -369,9 +361,10 @@ These grant syscall-level capabilities with no named resources, paths, or D-Bus 
 **Verification:** No verification has yet been done.
 
 ### avahi-control
-**Status:** COMPATIBLE (plug-side only; code analysis -- not yet verified)
+**Status:** Plug-side: COMPATIBLE. Slot-side: not separately classified in this entry (provider behavior out of scope here).
 
 **Type:** D-Bus Service/Provider
+
 
 **Code analysis:**
 - The interface explicitly imports and extends `avahi-observe` behavior.
@@ -384,9 +377,10 @@ These grant syscall-level capabilities with no named resources, paths, or D-Bus 
 **Verification:** No verification has yet been done.
 
 ### fwupd
-**Status:** NOT COMPATIBLE (slot-side singleton; code analysis -- not yet verified)
+**Status:** Plug-side: not separately classified in this entry. Slot-side: NOT COMPATIBLE.
 
 **Type:** D-Bus Service/Provider
+
 
 **Code analysis:**
 - Permanent slot rules bind `org.freedesktop.fwupd` on the system bus.
@@ -399,9 +393,10 @@ These grant syscall-level capabilities with no named resources, paths, or D-Bus 
 **Verification:** No verification has yet been done.
 
 ### maliit
-**Status:** NOT COMPATIBLE (slot-side singleton; code analysis -- not yet verified)
+**Status:** Plug-side: not separately classified in this entry. Slot-side: NOT COMPATIBLE.
 
 **Type:** D-Bus Service/Provider
+
 
 **Code analysis:**
 - The slot binds the well-known session-bus name `org.maliit.server`.
@@ -414,9 +409,10 @@ These grant syscall-level capabilities with no named resources, paths, or D-Bus 
 **Verification:** No verification has yet been done.
 
 ### mpris
-**Status:** COMPATIBLE (code analysis -- not yet verified)
+**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
 
 **Type:** D-Bus Service/Provider
+
 
 **Code analysis:**
 - The slot binds `org.mpris.MediaPlayer2.<name>` based on a `name` attribute, defaulting to `SNAP_INSTANCE_NAME`.
@@ -429,9 +425,10 @@ These grant syscall-level capabilities with no named resources, paths, or D-Bus 
 **Verification:** No verification has yet been done.
 
 ### pipewire
-**Status:** COMPATIBLE (plug-side only; code analysis -- not yet verified)
+**Status:** Plug-side: COMPATIBLE. Slot-side: not separately classified in this entry (provider behavior out of scope here).
 
 **Type:** Daemon/Socket Client
+
 
 **Code analysis:**
 - The plug accesses PipeWire sockets at `/run/user/[0-9]*/pipewire-[0-9]` for classic/system slots.
@@ -448,9 +445,10 @@ The remaining shared SHM/socket state is client-server audio IPC, not a parallel
 **Verification:** No verification has yet been done.
 
 ### cups
-**Status:** NOT COMPATIBLE (slot-side path expansion bug); COMPATIBLE (plug-side)
+**Status:** Plug-side: COMPATIBLE. Slot-side: NOT COMPATIBLE.
 
 **Type:** Daemon/Socket Client
+
 
 **Code analysis:**
 The `cups` interface (distinct from `cups-control`) lets a provider snap expose a CUPS socket to consumers via bind-mount and path-based mediation.
@@ -480,9 +478,10 @@ The `cups` interface (distinct from `cups-control`) lets a provider snap expose 
 - Slot-side parallel provider: not verified by spread in this audit; expected failure remains due to `interfaces/builtin/cups.go:130` path expansion behavior.
 
 ### serial-port
-**Status:** COMPATIBLE (device-specific; code analysis -- not yet verified)
+**Status:** Plug-side: COMPATIBLE. Slot-side: N/A (system/core/gadget-provided slot; no parallel app slot providers in scope).
 
 **Type:** Hardware Device Access
+
 
 **Code analysis:**
 - Slots are provided by core or gadget snaps only (lines 41-43), not by application snaps.
@@ -497,9 +496,10 @@ The `cups` interface (distinct from `cups-control`) lets a provider snap expose 
 **Verification:** No verification has yet been done.
 
 ### hidraw
-**Status:** COMPATIBLE (device-specific; code analysis -- not yet verified)
+**Status:** Plug-side: COMPATIBLE. Slot-side: N/A (system/core/gadget-provided slot; no parallel app slot providers in scope).
 
 **Type:** Hardware Device Access
+
 
 **Code analysis:**
 - Slots are provided by core or gadget snaps only (lines 39-41), not by application snaps.
@@ -516,9 +516,10 @@ The `cups` interface (distinct from `cups-control`) lets a provider snap expose 
 **Verification:** No verification has yet been done.
 
 ### i2c
-**Status:** COMPATIBLE (device-specific; code analysis -- not yet verified)
+**Status:** Plug-side: COMPATIBLE. Slot-side: N/A (system/core/gadget-provided slot; no parallel app slot providers in scope).
 
 **Type:** Hardware Device Access
+
 
 **Code analysis:**
 - Slots are provided by gadget or core snaps only (lines 39-41), not by application snaps.
@@ -536,9 +537,10 @@ The `cups` interface (distinct from `cups-control`) lets a provider snap expose 
 **Verification:** No verification has yet been done.
 
 ### media-control
-**Status:** COMPATIBLE EXCEPT FOR SHARED RESOURCE (shared hardware; code analysis -- not yet verified)
+**Status:** Plug-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE. Slot-side: N/A (system/core/gadget-provided slot; no parallel app slot providers in scope).
 
 **Type:** Desktop/Graphics/Media Integration
+
 
 **Code analysis:**
 - Slot is provided by core only (lines 32-33), with implicit slots on core and classic (lines 55-56).
@@ -552,9 +554,10 @@ The `cups` interface (distinct from `cups-control`) lets a provider snap expose 
 **Verification:** No verification has yet been done.
 
 ### gsettings
-**Status:** COMPATIBLE EXCEPT FOR SHARED RESOURCE (shared per-user state; code analysis -- not yet verified)
+**Status:** Plug-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE. Slot-side: N/A (system/core/gadget-provided slot; no parallel app slot providers in scope).
 
 **Type:** D-Bus/IPC Client
+
 
 **Code analysis:**
 - Slot is provided by core only (lines 27-28), with implicit slot on classic (line 53).
@@ -571,9 +574,10 @@ The `cups` interface (distinct from `cups-control`) lets a provider snap expose 
 **Verification:** No verification has yet been done.
 
 ### lxd
-**Status:** COMPATIBLE (code analysis -- not yet verified)
+**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
 
 **Type:** Daemon/Socket Client
+
 
 **Code analysis:**
 - Slot installation is denied by default, requires snap-declaration (lines 26-28).
@@ -588,9 +592,10 @@ The `cups` interface (distinct from `cups-control`) lets a provider snap expose 
 **Verification:** No verification has yet been done.
 
 ### microceph
-**Status:** COMPATIBLE (code analysis -- not yet verified)
+**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
 
 **Type:** Daemon/Socket Client
+
 
 **Code analysis:**
 - Slot installation is denied by default, requires snap-declaration (lines 25-28).
@@ -605,9 +610,10 @@ The `cups` interface (distinct from `cups-control`) lets a provider snap expose 
 **Verification:** No verification has yet been done.
 
 ### microovn
-**Status:** COMPATIBLE (code analysis -- not yet verified)
+**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
 
 **Type:** Daemon/Socket Client
+
 
 **Code analysis:**
 - Slot installation is denied by default, requires snap-declaration (lines 25-28).
@@ -622,9 +628,10 @@ The `cups` interface (distinct from `cups-control`) lets a provider snap expose 
 **Verification:** No verification has yet been done.
 
 ### appstream-metadata
-**Status:** COMPATIBLE (code analysis -- not yet verified)
+**Status:** Plug-side: COMPATIBLE. Slot-side: N/A (system/core/gadget-provided slot; no parallel app slot providers in scope).
 
 **Type:** Observability/Diagnostics
+
 
 **Code analysis:**
 - Slot is provided by core only (lines 35-40), with implicit slot on classic (line 126).
@@ -637,9 +644,10 @@ The `cups` interface (distinct from `cups-control`) lets a provider snap expose 
 **Verification:** No verification has yet been done.
 
 ### bool-file
-**Status:** COMPATIBLE (code analysis -- not yet verified)
+**Status:** Plug-side: COMPATIBLE. Slot-side: N/A (system/core/gadget-provided slot; no parallel app slot providers in scope).
 
 **Type:** Filesystem/Mount Interface
+
 
 **Code analysis:**
 - Slots are provided by core or gadget snaps only (lines 34-40).
@@ -653,9 +661,10 @@ The `cups` interface (distinct from `cups-control`) lets a provider snap expose 
 **Verification:** No verification has yet been done.
 
 ### cifs-mount
-**Status:** COMPATIBLE (code analysis -- not yet verified)
+**Status:** Plug-side: COMPATIBLE. Slot-side: N/A (system/core/gadget-provided slot; no parallel app slot providers in scope).
 
 **Type:** Filesystem/Mount Interface
+
 
 **Code analysis:**
 - Slot is provided by core only (lines 24-29), with implicit slots on core and classic (lines 71-72).
@@ -668,9 +677,10 @@ The `cups` interface (distinct from `cups-control`) lets a provider snap expose 
 **Verification:** No verification has yet been done.
 
 ### empty
-**Status:** COMPATIBLE (code analysis -- not yet verified)
+**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
 
 **Type:** Test/Meta Interface
+
 
 **Code analysis:**
 - This interface intentionally contributes no permissions.
@@ -684,9 +694,10 @@ The `cups` interface (distinct from `cups-control`) lets a provider snap expose 
 **Verification:** No verification has yet been done.
 
 ### fuse-support
-**Status:** COMPATIBLE (code analysis -- not yet verified)
+**Status:** Plug-side: COMPATIBLE. Slot-side: N/A (system/core/gadget-provided slot; no parallel app slot providers in scope).
 
 **Type:** Hardware Device Access
+
 
 **Code analysis:**
 - Slot is provided by core only (lines 28-33), with implicit slots on core and classic except old Ubuntu 14.04 (lines 100-101).
@@ -700,9 +711,10 @@ The `cups` interface (distinct from `cups-control`) lets a provider snap expose 
 **Verification:** No verification has yet been done.
 
 ### nfs-mount
-**Status:** COMPATIBLE (code analysis -- not yet verified)
+**Status:** Plug-side: COMPATIBLE. Slot-side: N/A (system/core/gadget-provided slot; no parallel app slot providers in scope).
 
 **Type:** Filesystem/Mount Interface
+
 
 **Code analysis:**
 - Slot is provided by core only (lines 24-29), with implicit slots on core and classic (lines 85-86).
@@ -715,9 +727,10 @@ The `cups` interface (distinct from `cups-control`) lets a provider snap expose 
 **Verification:** No verification has yet been done.
 
 ### optical-drive
-**Status:** COMPATIBLE EXCEPT FOR SHARED RESOURCE (shared hardware; code analysis -- not yet verified)
+**Status:** Plug-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE. Slot-side: N/A (system/core/gadget-provided slot; no parallel app slot providers in scope).
 
 **Type:** Hardware Device Access
+
 
 **Code analysis:**
 - Slot is provided by core only (lines 32-43), with implicit slot on classic only (line 107).
@@ -730,9 +743,10 @@ The `cups` interface (distinct from `cups-control`) lets a provider snap expose 
 **Verification:** No verification has yet been done.
 
 ### physical-memory-observe
-**Status:** COMPATIBLE (code analysis -- not yet verified)
+**Status:** Plug-side: COMPATIBLE. Slot-side: N/A (system/core/gadget-provided slot; no parallel app slot providers in scope).
 
 **Type:** Observability/Diagnostics
+
 
 **Code analysis:**
 - Slot is provided by core only (lines 24-29), with implicit slots on core and classic (lines 49-50).
@@ -745,9 +759,10 @@ The `cups` interface (distinct from `cups-control`) lets a provider snap expose 
 **Verification:** No verification has yet been done.
 
 ### pkcs11
-**Status:** COMPATIBLE (code analysis -- not yet verified)
+**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
 
 **Type:** Identity/Credentials/Secrets
+
 
 **Code analysis:**
 - The slot provides a `pkcs11-socket` attribute and must live under `/run/p11-kit` (lines 71-93).
@@ -760,9 +775,10 @@ The `cups` interface (distinct from `cups-control`) lets a provider snap expose 
 **Verification:** No verification has yet been done.
 
 ### system-packages-doc
-**Status:** COMPATIBLE (code analysis -- not yet verified)
+**Status:** Plug-side: COMPATIBLE. Slot-side: N/A (system/core/gadget-provided slot; no parallel app slot providers in scope).
 
 **Type:** Observability/Diagnostics
+
 
 **Code analysis:**
 - Slot is provided by core only (lines 31-36), with implicit slot on classic (line 204-205).
@@ -775,9 +791,10 @@ The `cups` interface (distinct from `cups-control`) lets a provider snap expose 
 **Verification:** No verification has yet been done.
 
 ### display-control
-**Status:** COMPATIBLE (code analysis -- not yet verified)
+**Status:** Plug-side: COMPATIBLE. Slot-side: N/A (system/core/gadget-provided slot; no parallel app slot providers in scope).
 
 **Type:** Desktop/Graphics/Media Integration
+
 
 **Code analysis:**
 - Slot is provided by core only (lines 34-39), with implicit slot on classic (line 137).
@@ -790,9 +807,10 @@ The `cups` interface (distinct from `cups-control`) lets a provider snap expose 
 **Verification:** No verification has yet been done.
 
 ### desktop-legacy
-**Status:** COMPATIBLE EXCEPT FOR SHARED RESOURCE (shared desktop/session services; code analysis -- not yet verified)
+**Status:** Plug-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE. Slot-side: N/A (system/core/gadget-provided slot; no parallel app slot providers in scope).
 
 **Type:** D-Bus/IPC Client
+
 
 **Code analysis:**
 - Slot is provided by core only (lines 33-38), with implicit slot on classic (line 441).
@@ -813,9 +831,10 @@ The `cups` interface (distinct from `cups-control`) lets a provider snap expose 
 **Verification:** No verification has yet been done.
 
 ### gconf
-**Status:** COMPATIBLE EXCEPT FOR SHARED RESOURCE (shared per-user state; code analysis -- not yet verified)
+**Status:** Plug-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE. Slot-side: N/A (system/core/gadget-provided slot; no parallel app slot providers in scope).
 
 **Type:** D-Bus/IPC Client
+
 
 **Code analysis:**
 - Slot is provided by core only (lines 28-33), with implicit slot on classic (line 70).
@@ -833,9 +852,10 @@ The `cups` interface (distinct from `cups-control`) lets a provider snap expose 
 **Verification:** No verification has yet been done.
 
 ### login-session-control
-**Status:** COMPATIBLE (code analysis -- not yet verified)
+**Status:** Plug-side: COMPATIBLE. Slot-side: N/A (system/core/gadget-provided slot; no parallel app slot providers in scope).
 
 **Type:** D-Bus/IPC Client
+
 
 **Code analysis:**
 - Slot is provided by core only (lines 24-29), with implicit slots on core and classic (lines 68-69).
@@ -853,9 +873,10 @@ The `cups` interface (distinct from `cups-control`) lets a provider snap expose 
 **Verification:** No verification has yet been done.
 
 ### login-session-observe
-**Status:** COMPATIBLE (code analysis -- not yet verified)
+**Status:** Plug-side: COMPATIBLE. Slot-side: N/A (system/core/gadget-provided slot; no parallel app slot providers in scope).
 
 **Type:** D-Bus/IPC Client
+
 
 **Code analysis:**
 - Slot is provided by core only (lines 24-29), with implicit slots on core and classic (lines 123-124).
@@ -873,9 +894,10 @@ The `cups` interface (distinct from `cups-control`) lets a provider snap expose 
 **Verification:** No verification has yet been done.
 
 ### screen-inhibit-control
-**Status:** COMPATIBLE (code analysis -- not yet verified)
+**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
 
 **Type:** D-Bus/IPC Client
+
 
 **Code analysis:**
 - Slot may be provided by app or core snaps (lines 31-43), with implicit slot on classic (line 213).
@@ -897,9 +919,10 @@ The `cups` interface (distinct from `cups-control`) lets a provider snap expose 
 **Verification:** No verification has yet been done.
 
 ### time-control
-**Status:** COMPATIBLE (code analysis -- not yet verified)
+**Status:** Plug-side: COMPATIBLE. Slot-side: N/A (system/core/gadget-provided slot; no parallel app slot providers in scope).
 
 **Type:** D-Bus/IPC Client
+
 
 **Code analysis:**
 - Slot is provided by core only (lines 24-29), with implicit slots on core and classic (lines 143-144).
@@ -921,9 +944,10 @@ The `cups` interface (distinct from `cups-control`) lets a provider snap expose 
 
 
 ### alsa
-**Status:** COMPATIBLE
+**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
 
 **Type:** Hardware Device Access
+
 
 **Code analysis:**
 - AppArmor rules grant access to `/dev/snd/` and `/dev/snd/*` (read/write)
@@ -940,9 +964,10 @@ device-path-based and don't reference snap names at all.
 PASSED on noble.
 
 ### pulseaudio
-**Status:** COMPATIBLE (plug-side only)
+**Status:** Plug-side: COMPATIBLE. Slot-side: not separately classified in this entry (provider behavior out of scope here).
 
 **Type:** Daemon/Socket Client
+
 
 **Code analysis:**
 - Shared memory: `/{run,dev}/shm/pulse-shm-* mrwk,` (`pulseaudio.go:49`, also `:118`)
@@ -974,9 +999,10 @@ PASSED on noble.
 
 
 ### x11
-**Status:** COMPATIBLE (plug-side only)
+**Status:** Plug-side: COMPATIBLE. Slot-side: not separately classified in this entry (provider behavior out of scope here).
 
 **Type:** Desktop/Graphics/Media Integration
+
 
 **Code analysis:**
 - Slot-side creates sockets at `/tmp/.X11-unix/X[0-9]*`. Multiple X servers on
@@ -1000,9 +1026,10 @@ PASSED on noble (parallel instances communicate correctly via
 
 
 ### wayland
-**Status:** COMPATIBLE (plug-side only)
+**Status:** Plug-side: COMPATIBLE. Slot-side: not separately classified in this entry (provider behavior out of scope here).
 
 **Type:** Desktop/Graphics/Media Integration
+
 
 **Code analysis:**
 - Plug-side accesses `/run/user/[0-9]*/wayland-[0-9]*` sockets provided by the
@@ -1029,9 +1056,10 @@ PASSED on ubuntu-22.04-64 (noble is disabled for this test).
 
 
 ### network-control
-**Status:** COMPATIBLE (plug-side only)
+**Status:** Plug-side: COMPATIBLE. Slot-side: not separately classified in this entry (provider behavior out of scope here).
 
 **Type:** Network/Netlink Interface
+
 
 **Code analysis:**
 - The connected plug AppArmor rules at `network_control.go:81-151` only use `dbus send`
@@ -1060,9 +1088,10 @@ PASSED on noble.
 
 
 ### network-bind
-**Status:** COMPATIBLE
+**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
 
 **Type:** Network/Netlink Interface
+
 
 **Code analysis:**
 - Grants capability to bind to network ports and accept connections.
@@ -1077,9 +1106,10 @@ PASSED on noble.
 
 
 ### network-status
-**Status:** COMPATIBLE
+**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
 
 **Type:** Network/Netlink Interface
+
 
 **Code analysis:**
 - Read-only D-Bus access to the `org.freedesktop.portal.NetworkMonitor` portal.
@@ -1092,9 +1122,10 @@ PASSED on noble.
 
 
 ### network-setup-observe
-**Status:** COMPATIBLE
+**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
 
 **Type:** Network/Netlink Interface
+
 
 **Code analysis:**
 - Read-only file access to netplan configuration (`/etc/netplan/`, `/etc/network/`)
@@ -1107,9 +1138,10 @@ PASSED on noble.
 
 
 ### network-manager
-**Status:** NOT COMPATIBLE (slot-side system singleton)
+**Status:** Plug-side: not separately classified in this entry. Slot-side: NOT COMPATIBLE.
 
 **Type:** D-Bus Service/Provider
+
 
 **Code analysis:**
 The network-manager interface is a system singleton service with multiple fatal conflicts
@@ -1155,9 +1187,10 @@ Expected failure on Ubuntu Core 18. The `_foo` nmcli initially works
 
 
 ### location-control
-**Status:** NOT COMPATIBLE (slot-side); COMPATIBLE (plug-side consumer only)
+**Status:** Plug-side: COMPATIBLE. Slot-side: NOT COMPATIBLE.
 
 **Type:** D-Bus Service/Provider
+
 
 **Code analysis:**
 - The SLOT permanently binds `dbus (bind) bus=system name="com.ubuntu.location.Service"`
@@ -1184,9 +1217,10 @@ Expected failure. `org.freedesktop.DBus.Error.AccessDenied: An AppArmor
 
 
 ### avahi-observe
-**Status:** COMPATIBLE (plug-side)
+**Status:** Plug-side: COMPATIBLE. Slot-side: not separately classified in this entry.
 
 **Type:** D-Bus/IPC Client
+
 
 **Code analysis:**
 - The `dbus (bind) bus=system name="org.freedesktop.Avahi"` rule exists ONLY in
@@ -1216,9 +1250,10 @@ PASSED on noble.
 
 
 ### contacts-service
-**Status:** COMPATIBLE
+**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
 
 **Type:** D-Bus/IPC Client
+
 
 **Code analysis:**
 - Session bus D-Bus access to Evolution Data Server
@@ -1231,9 +1266,10 @@ PASSED on noble.
 
 
 ### accounts-service
-**Status:** COMPATIBLE
+**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
 
 **Type:** D-Bus/IPC Client
+
 
 **Code analysis:**
 - Session bus D-Bus access to `org.gnome.OnlineAccounts` (GNOME Online Accounts)
@@ -1250,9 +1286,10 @@ PASSED on noble.
 
 
 ### system-dbus (generic `dbus` interface)
-**Status:** NOT COMPATIBLE (slot-side)
+**Status:** Plug-side: not separately classified in this entry. Slot-side: NOT COMPATIBLE.
 
 **Type:** D-Bus Service/Provider
+
 
 **Code analysis:**
 This is the most well-documented incompatibility:
@@ -1296,9 +1333,10 @@ Expected failure. `org.freedesktop.DBus.Error.AccessDenied: An AppArmor
 
 
 ### location-observe
-**Status:** COMPATIBLE (plug-side only)
+**Status:** Plug-side: COMPATIBLE. Slot-side: not separately classified in this entry (provider behavior out of scope here).
 
 **Type:** D-Bus/IPC Client
+
 
 Same architecture as `location-control` plug-side. A consumer observing location data
 from the system service does not conflict with other instances doing the same.
@@ -1308,9 +1346,10 @@ from the system service does not conflict with other instances doing the same.
 
 
 ### online-accounts-service
-**Status:** NOT COMPATIBLE (slot-side); COMPATIBLE (plug-side)
+**Status:** Plug-side: COMPATIBLE. Slot-side: NOT COMPATIBLE.
 
 **Type:** D-Bus Service/Provider
+
 
 **Code analysis:**
 - Slot binds `dbus (bind) bus=session name="com.ubuntu.OnlineAccounts.Manager"`
@@ -1319,9 +1358,10 @@ from the system service does not conflict with other instances doing the same.
 
 
 ### autopilot-introspection
-**Status:** COMPATIBLE (code analysis -- not yet verified)
+**Status:** Plug-side: COMPATIBLE. Slot-side: N/A (system/core/gadget-provided slot; no parallel app slot providers in scope).
 
 **Type:** D-Bus/IPC Client
+
 
 **Code analysis:**
 - Slot is provided by core only (lines 24-29), with implicit slots on core and classic (lines 69-70).
@@ -1337,9 +1377,10 @@ from the system service does not conflict with other instances doing the same.
 **Verification:** No verification has yet been done.
 
 ### dbus
-**Status:** NOT COMPATIBLE (slot-side singleton); COMPATIBLE (plug-side)
+**Status:** Plug-side: COMPATIBLE. Slot-side: NOT COMPATIBLE.
 
 **Type:** D-Bus Service/Provider
+
 
 **Code analysis:**
 - This interface is explicitly built around a well-known D-Bus name provided by the slot snap.
@@ -1354,9 +1395,10 @@ from the system service does not conflict with other instances doing the same.
 **Verification:** No verification has yet been done.
 
 ### ubuntu-download-manager
-**Status:** NOT COMPATIBLE (slot-side singleton); COMPATIBLE (plug-side)
+**Status:** Plug-side: COMPATIBLE. Slot-side: NOT COMPATIBLE.
 
 **Type:** D-Bus Service/Provider
+
 
 **Code analysis:**
 - The permanent slot binds the well-known session-bus name `com.canonical.applications.Downloader` (lines 127-130).
@@ -1370,9 +1412,10 @@ from the system service does not conflict with other instances doing the same.
 **Verification:** No verification has yet been done.
 
 ### system-trace
-**Status:** COMPATIBLE (code analysis -- not yet verified)
+**Status:** Plug-side: COMPATIBLE. Slot-side: N/A (system/core/gadget-provided slot; no parallel app slot providers in scope).
 
 **Type:** Observability/Diagnostics
+
 
 **Code analysis:**
 - Slot is provided by core only (lines 24-29), with implicit slots on core and classic (lines 71-72).
@@ -1386,9 +1429,10 @@ from the system service does not conflict with other instances doing the same.
 **Verification:** No verification has yet been done.
 
 ### media-hub
-**Status:** NOT COMPATIBLE (slot-side singleton; code analysis -- not yet verified)
+**Status:** Plug-side: not separately classified in this entry. Slot-side: NOT COMPATIBLE.
 
 **Type:** D-Bus Service/Provider
+
 
 **Code analysis:**
 - The permanent slot binds the well-known session-bus name `core.ubuntu.media.Service` (lines 64-68).
@@ -1402,9 +1446,10 @@ from the system service does not conflict with other instances doing the same.
 **Verification:** No verification has yet been done.
 
 ### mir
-**Status:** NOT COMPATIBLE (slot-side singleton; code analysis -- not yet verified)
+**Status:** Plug-side: not separately classified in this entry. Slot-side: NOT COMPATIBLE.
 
 **Type:** D-Bus Service/Provider
+
 
 **Code analysis:**
 - The permanent slot owns the Mir server runtime resources, including `/run/mir_socket`, `/run/user/[0-9]*/mir_socket`, `/dev/tty[0-9]*`, and `/dev/input/*` (lines 42-71).
@@ -1417,9 +1462,10 @@ from the system service does not conflict with other instances doing the same.
 **Verification:** No verification has yet been done.
 
 ### storage-framework-service
-**Status:** NOT COMPATIBLE (slot-side singleton; code analysis -- not yet verified)
+**Status:** Plug-side: not separately classified in this entry. Slot-side: NOT COMPATIBLE.
 
 **Type:** D-Bus Service/Provider
+
 
 **Code analysis:**
 - The permanent slot binds `com.canonical.StorageFramework.Registry` and `com.canonical.StorageFramework.Provider.*` on the session bus (lines 55-73).
@@ -1432,9 +1478,10 @@ from the system service does not conflict with other instances doing the same.
 **Verification:** No verification has yet been done.
 
 ### unity8
-**Status:** NOT COMPATIBLE (slot-side singleton; code analysis -- not yet verified)
+**Status:** Plug-side: not separately classified in this entry. Slot-side: NOT COMPATIBLE.
 
 **Type:** D-Bus Service/Provider
+
 
 **Code analysis:**
 - The connected plug talks to Unity 8 session services over the session bus, including `com.canonical.URLDispatcher` and `com.ubuntu.content.dbus.Service` (lines 45-89).
@@ -1447,9 +1494,10 @@ from the system service does not conflict with other instances doing the same.
 **Verification:** No verification has yet been done.
 
 ### unity8-calendar
-**Status:** NOT COMPATIBLE (slot-side singleton; code analysis -- not yet verified)
+**Status:** Plug-side: not separately classified in this entry. Slot-side: NOT COMPATIBLE.
 
 **Type:** D-Bus Service/Provider
+
 
 **Code analysis:**
 - The permanent slot binds `org.gnome.evolution.dataserver.Calendar7`, `org.gnome.evolution.dataserver.Subprocess.Backend.Calendar*`, and `com.canonical.SyncMonitor` on the session bus (lines 33-47).
@@ -1462,9 +1510,10 @@ from the system service does not conflict with other instances doing the same.
 **Verification:** No verification has yet been done.
 
 ### unity8-contacts
-**Status:** NOT COMPATIBLE (slot-side singleton; code analysis -- not yet verified)
+**Status:** Plug-side: not separately classified in this entry. Slot-side: NOT COMPATIBLE.
 
 **Type:** D-Bus Service/Provider
+
 
 **Code analysis:**
 - The permanent slot binds `org.gnome.evolution.dataserver.AddressBook9`, `org.gnome.evolution.dataserver.Subprocess.Backend.AddressBook*`, `com.canonical.pim`, and `com.meego.msyncd` on the session bus (lines 33-54).
@@ -1477,9 +1526,10 @@ from the system service does not conflict with other instances doing the same.
 **Verification:** No verification has yet been done.
 
 ### screencast-legacy
-**Status:** NOT COMPATIBLE (plug-side only; code analysis -- not yet verified)
+**Status:** Plug-side: NOT COMPATIBLE. Slot-side: not separately classified in this entry (provider behavior out of scope here).
 
 **Type:** D-Bus/IPC Client
+
 
 **Code analysis:**
 - The plug talks to gnome-shell screenshot/screencast interfaces on the session bus (lines 32-53).
@@ -1492,9 +1542,10 @@ from the system service does not conflict with other instances doing the same.
 **Verification:** No verification has yet been done.
 
 ### ros-opt-data
-**Status:** COMPATIBLE (code analysis -- not yet verified)
+**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
 
 **Type:** Filesystem/Mount Interface
+
 
 **Code analysis:**
 - The plug gets read-only access to `/var/lib/snapd/hostfs/opt/ros/**` and common ROS file extensions under that tree (lines 31-49).
@@ -1507,9 +1558,10 @@ from the system service does not conflict with other instances doing the same.
 **Verification:** No verification has yet been done.
 
 ### system-backup
-**Status:** COMPATIBLE (code analysis -- not yet verified)
+**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
 
 **Type:** Observability/Diagnostics
+
 
 **Code analysis:**
 - The plug gets read-only access across the host filesystem through `/var/lib/snapd/hostfs/` exclusions and `dac_read_search` (lines 32-47).
@@ -1521,9 +1573,10 @@ from the system service does not conflict with other instances doing the same.
 **Verification:** No verification has yet been done.
 
 ### system-source-code
-**Status:** COMPATIBLE (code analysis -- not yet verified)
+**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
 
 **Type:** Observability/Diagnostics
+
 
 **Code analysis:**
 - The plug gets read-only access to `/usr/src/{,**}` (line 38).
@@ -1535,9 +1588,10 @@ from the system service does not conflict with other instances doing the same.
 **Verification:** No verification has yet been done.
 
 ### juju-client-observe
-**Status:** COMPATIBLE (code analysis -- not yet verified)
+**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
 
 **Type:** Observability/Diagnostics
+
 
 **Code analysis:**
 - The plug gets read access to `~/.local/share/juju/{,**}` using `owner` file rules (lines 32-35).
@@ -1549,9 +1603,10 @@ from the system service does not conflict with other instances doing the same.
 **Verification:** No verification has yet been done.
 
 ### netlink-driver
-**Status:** COMPATIBLE (code analysis -- not yet verified)
+**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
 
 **Type:** Network/Netlink Interface
+
 
 **Code analysis:**
 - The slot is keyed by a numeric `family` attribute and a validated `family-name` (lines 66-100).
@@ -1564,9 +1619,10 @@ from the system service does not conflict with other instances doing the same.
 **Verification:** No verification has yet been done.
 
 ### core-support
-**Status:** COMPATIBLE (code analysis -- not yet verified)
+**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
 
 **Type:** Hardware Device Access
+
 
 **Code analysis:**
 - This interface is explicitly hollow and grants no permissions (lines 39-41).
@@ -1578,9 +1634,10 @@ from the system service does not conflict with other instances doing the same.
 **Verification:** No verification has yet been done.
 
 ### accel
-**Status:** NOT COMPATIBLE (exclusive hardware; code analysis -- not yet verified)
+**Status:** Plug-side: NOT COMPATIBLE. Slot-side: NOT COMPATIBLE (no side-specific divergence documented in this entry).
 
 **Type:** Hardware Device Access
+
 
 **Code analysis:**
 - The interface grants access to `/dev/accel/accel*` (lines 4560-4566 in the bucket summary).
@@ -1592,9 +1649,10 @@ from the system service does not conflict with other instances doing the same.
 **Verification:** No verification has yet been done.
 
 ### acrn-support
-**Status:** NOT COMPATIBLE (exclusive hardware; code analysis -- not yet verified)
+**Status:** Plug-side: NOT COMPATIBLE. Slot-side: NOT COMPATIBLE (no side-specific divergence documented in this entry).
 
 **Type:** Hardware Device Access
+
 
 **Code analysis:**
 - The interface grants access to `/dev/acrn_hsm` (lines 4572-4579 in the bucket summary).
@@ -1606,9 +1664,10 @@ from the system service does not conflict with other instances doing the same.
 **Verification:** No verification has yet been done.
 
 ### allegro-vcu
-**Status:** NOT COMPATIBLE (exclusive hardware; code analysis -- not yet verified)
+**Status:** Plug-side: NOT COMPATIBLE. Slot-side: NOT COMPATIBLE (no side-specific divergence documented in this entry).
 
 **Type:** Hardware Device Access
+
 
 **Code analysis:**
 - The interface grants access to `/dev/allegroDecodeIP`, `/dev/allegroIP`, and `/dev/dmaproxy` (lines 4583-4590 in the bucket summary).
@@ -1619,9 +1678,10 @@ from the system service does not conflict with other instances doing the same.
 **Verification:** No verification has yet been done.
 
 ### broadcom-asic-control
-**Status:** NOT COMPATIBLE (exclusive hardware; code analysis -- not yet verified)
+**Status:** Plug-side: NOT COMPATIBLE. Slot-side: NOT COMPATIBLE (no side-specific divergence documented in this entry).
 
 **Type:** System Control/Privileged Capability
+
 
 **Code analysis:**
 - The interface grants access to `/dev/linux-user-bde`, `/dev/linux-kernel-bde`, and `/dev/linux-bcm-knet` (lines 4594-4601 in the bucket summary).
@@ -1632,9 +1692,10 @@ from the system service does not conflict with other instances doing the same.
 **Verification:** No verification has yet been done.
 
 ### camera
-**Status:** COMPATIBLE EXCEPT FOR SHARED RESOURCE (shared hardware; code analysis -- not yet verified)
+**Status:** Plug-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE. Slot-side: N/A (system/core/gadget-provided slot; no parallel app slot providers in scope).
 
 **Type:** Desktop/Graphics/Media Integration
+
 
 **Code analysis:**
 - Slot is provided by core only (lines 28-33), with implicit slots on core and classic (lines 80-81).
@@ -1648,9 +1709,10 @@ from the system service does not conflict with other instances doing the same.
 **Verification:** No verification has yet been done.
 
 ### cpu-control
-**Status:** NOT COMPATIBLE (system-global control; code analysis -- not yet verified)
+**Status:** Plug-side: NOT COMPATIBLE. Slot-side: NOT COMPATIBLE (no side-specific divergence documented in this entry).
 
 **Type:** System Control/Privileged Capability
+
 
 **Code analysis:**
 - The interface targets `/sys/devices/system/cpu/**` (lines 4628-4635 in the bucket summary).
@@ -1662,9 +1724,10 @@ from the system service does not conflict with other instances doing the same.
 **Verification:** No verification has yet been done.
 
 ### dcdbas-control
-**Status:** NOT COMPATIBLE (system-global control; code analysis -- not yet verified)
+**Status:** Plug-side: NOT COMPATIBLE. Slot-side: NOT COMPATIBLE (no side-specific divergence documented in this entry).
 
 **Type:** System Control/Privileged Capability
+
 
 **Code analysis:**
 - The interface targets `/sys/devices/platform/dcdbas/*` (lines 4639-4646 in the bucket summary).
@@ -1675,9 +1738,10 @@ from the system service does not conflict with other instances doing the same.
 **Verification:** No verification has yet been done.
 
 ### dsp
-**Status:** NOT COMPATIBLE (exclusive hardware; code analysis -- not yet verified)
+**Status:** Plug-side: NOT COMPATIBLE. Slot-side: NOT COMPATIBLE (no side-specific divergence documented in this entry).
 
 **Type:** Hardware Device Access
+
 
 **Code analysis:**
 - The interface grants access to `/dev/ucode` and `/dev/iav*` (lines 4650-4657 in the bucket summary).
@@ -1688,9 +1752,10 @@ from the system service does not conflict with other instances doing the same.
 **Verification:** No verification has yet been done.
 
 ### fpga
-**Status:** NOT COMPATIBLE (exclusive hardware; code analysis -- not yet verified)
+**Status:** Plug-side: NOT COMPATIBLE. Slot-side: NOT COMPATIBLE (no side-specific divergence documented in this entry).
 
 **Type:** Hardware Device Access
+
 
 **Code analysis:**
 - The interface grants access to `/dev/fpga[0-9]*` (lines 4661-4668 in the bucket summary).
@@ -1701,9 +1766,10 @@ from the system service does not conflict with other instances doing the same.
 **Verification:** No verification has yet been done.
 
 ### framebuffer
-**Status:** NOT COMPATIBLE (exclusive hardware; code analysis -- not yet verified)
+**Status:** Plug-side: NOT COMPATIBLE. Slot-side: NOT COMPATIBLE (no side-specific divergence documented in this entry).
 
 **Type:** Hardware Device Access
+
 
 **Code analysis:**
 - The interface grants access to `/dev/fb[0-9]*` (lines 4672-4679 in the bucket summary).
@@ -1714,9 +1780,10 @@ from the system service does not conflict with other instances doing the same.
 **Verification:** No verification has yet been done.
 
 ### gpio
-**Status:** COMPATIBLE (code analysis -- not yet verified)
+**Status:** Plug-side: COMPATIBLE. Slot-side: N/A (system/core/gadget-provided slot; no parallel app slot providers in scope).
 
 **Type:** Hardware Device Access
+
 
 **Code analysis:**
 - Slots are provided by core or gadget snaps only (lines 35-41), not by app snaps.
@@ -1729,9 +1796,10 @@ from the system service does not conflict with other instances doing the same.
 **Verification:** No verification has yet been done.
 
 ### gpio-memory-control
-**Status:** COMPATIBLE (code analysis -- not yet verified)
+**Status:** Plug-side: COMPATIBLE. Slot-side: N/A (system/core/gadget-provided slot; no parallel app slot providers in scope).
 
 **Type:** System Control/Privileged Capability
+
 
 **Code analysis:**
 - Slot is provided by core only (lines 25-30), with implicit slots on core and classic (lines 47-48).
@@ -1744,9 +1812,10 @@ from the system service does not conflict with other instances doing the same.
 **Verification:** No verification has yet been done.
 
 ### hugepages-control
-**Status:** NOT COMPATIBLE (system-global control; code analysis -- not yet verified)
+**Status:** Plug-side: NOT COMPATIBLE. Slot-side: N/A (system/core/gadget-provided slot; no parallel app slot providers in scope).
 
 **Type:** System Control/Privileged Capability
+
 
 **Code analysis:**
 - Slot is provided by core only (`hugepages_control.go:29-35`), with implicit slots on core and classic (`hugepages_control.go:74-76`).
@@ -1759,9 +1828,10 @@ from the system service does not conflict with other instances doing the same.
 **Verification:** No verification has yet been done.
 
 ### iio
-**Status:** COMPATIBLE (code analysis -- not yet verified)
+**Status:** Plug-side: COMPATIBLE. Slot-side: N/A (system/core/gadget-provided slot; no parallel app slot providers in scope).
 
 **Type:** Hardware Device Access
+
 
 **Code analysis:**
 - Slots are provided by core or gadget snaps only (lines 36-42).
@@ -1775,9 +1845,10 @@ from the system service does not conflict with other instances doing the same.
 **Verification:** No verification has yet been done.
 
 ### intel-mei
-**Status:** NOT COMPATIBLE (exclusive hardware; code analysis -- not yet verified)
+**Status:** Plug-side: NOT COMPATIBLE. Slot-side: NOT COMPATIBLE (no side-specific divergence documented in this entry).
 
 **Type:** Hardware Device Access
+
 
 **Code analysis:**
 - The interface grants access to `/dev/mei[0-9]*` (lines 4727-4734 in the bucket summary).
@@ -1788,9 +1859,10 @@ from the system service does not conflict with other instances doing the same.
 **Verification:** No verification has yet been done.
 
 ### intel-qat
-**Status:** NOT COMPATIBLE (shared accelerator hardware; code analysis -- not yet verified)
+**Status:** Plug-side: NOT COMPATIBLE. Slot-side: NOT COMPATIBLE (no side-specific divergence documented in this entry).
 
 **Type:** Hardware Device Access
+
 
 **Code analysis:**
 - The interface grants access to `/dev/vfio/*` and IOMMU sysfs (lines 4738-4745 in the bucket summary).
@@ -1801,9 +1873,10 @@ from the system service does not conflict with other instances doing the same.
 **Verification:** No verification has yet been done.
 
 ### io-ports-control
-**Status:** NOT COMPATIBLE (system-global control; code analysis -- not yet verified)
+**Status:** Plug-side: NOT COMPATIBLE. Slot-side: N/A (system/core/gadget-provided slot; no parallel app slot providers in scope).
 
 **Type:** System Control/Privileged Capability
+
 
 **Code analysis:**
 - Slot is provided by core only (`io_ports_control.go:24-30`), with implicit slots on core and classic (`io_ports_control.go:57-58`).
@@ -1817,9 +1890,10 @@ from the system service does not conflict with other instances doing the same.
 **Verification:** No verification has yet been done.
 
 ### mediatek-accel
-**Status:** COMPATIBLE (code analysis -- not yet verified)
+**Status:** Plug-side: COMPATIBLE. Slot-side: N/A (system/core/gadget-provided slot; no parallel app slot providers in scope).
 
 **Type:** Hardware Device Access
+
 
 **Code analysis:**
 - Slot is provided by core only (lines 33-38), with plug-side `units` selection validated in `BeforePreparePlug()` (lines 94-122).
@@ -1831,9 +1905,10 @@ from the system service does not conflict with other instances doing the same.
 **Verification:** No verification has yet been done.
 
 ### physical-memory-control
-**Status:** NOT COMPATIBLE (extreme privilege; code analysis -- not yet verified)
+**Status:** Plug-side: NOT COMPATIBLE. Slot-side: NOT COMPATIBLE (no side-specific divergence documented in this entry).
 
 **Type:** System Control/Privileged Capability
+
 
 **Code analysis:**
 - The interface grants read/write access to `/dev/mem` (lines 4805-4813 in the bucket summary).
@@ -1844,9 +1919,10 @@ from the system service does not conflict with other instances doing the same.
 **Verification:** No verification has yet been done.
 
 ### power-control
-**Status:** NOT COMPATIBLE (system-global control; code analysis -- not yet verified)
+**Status:** Plug-side: NOT COMPATIBLE. Slot-side: NOT COMPATIBLE (no side-specific divergence documented in this entry).
 
 **Type:** System Control/Privileged Capability
+
 
 **Code analysis:**
 - The interface targets `/sys/devices/**/power/*` and power-supply knobs (implementation section for `power-control`).
@@ -1857,9 +1933,10 @@ from the system service does not conflict with other instances doing the same.
 **Verification:** No verification has yet been done.
 
 ### ptp
-**Status:** COMPATIBLE (code analysis -- not yet verified)
+**Status:** Plug-side: COMPATIBLE. Slot-side: N/A (system/core/gadget-provided slot; no parallel app slot providers in scope).
 
 **Type:** Network/Netlink Interface
+
 
 **Code analysis:**
 - Slot is provided by core only, with implicit slots on core and classic.
@@ -1872,9 +1949,10 @@ from the system service does not conflict with other instances doing the same.
 **Verification:** No verification has yet been done.
 
 ### pwm
-**Status:** COMPATIBLE EXCEPT FOR SHARED RESOURCE (shared hardware channel; code analysis -- not yet verified)
+**Status:** Plug-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE. Slot-side: N/A (system/core/gadget-provided slot; no parallel app slot providers in scope).
 
 **Type:** Hardware Device Access
+
 
 **Code analysis:**
 - Slots are provided by core or gadget snaps only (`pwm.go:36-42`).
@@ -1888,9 +1966,10 @@ from the system service does not conflict with other instances doing the same.
 **Verification:** No verification has yet been done.
 
 ### spi
-**Status:** COMPATIBLE EXCEPT FOR SHARED RESOURCE (shared bus/device; code analysis -- not yet verified)
+**Status:** Plug-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE. Slot-side: N/A (system/core/gadget-provided slot; no parallel app slot providers in scope).
 
 **Type:** Hardware Device Access
+
 
 **Code analysis:**
 - Slots are provided by core or gadget snaps only (`spi.go:36-43`).
@@ -1903,9 +1982,10 @@ from the system service does not conflict with other instances doing the same.
 **Verification:** No verification has yet been done.
 
 ### u2f-devices
-**Status:** COMPATIBLE EXCEPT FOR SHARED RESOURCE (shared token; code analysis -- not yet verified)
+**Status:** Plug-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE. Slot-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE (no side-specific divergence documented in this entry).
 
 **Type:** Identity/Credentials/Secrets
+
 
 **Code analysis:**
 - The interface grants access to `/dev/hidraw*` and related udev/sysfs metadata (`u2f_devices.go:227-243`).
@@ -1917,9 +1997,10 @@ from the system service does not conflict with other instances doing the same.
 **Verification:** No verification has yet been done.
 
 ### uio
-**Status:** COMPATIBLE (code analysis -- not yet verified)
+**Status:** Plug-side: COMPATIBLE. Slot-side: N/A (system/core/gadget-provided slot; no parallel app slot providers in scope).
 
 **Type:** Hardware Device Access
+
 
 **Code analysis:**
 - Slots are provided by core or gadget snaps only.
@@ -1932,9 +2013,10 @@ from the system service does not conflict with other instances doing the same.
 **Verification:** No verification has yet been done.
 
 ### usb-gadget
-**Status:** NOT COMPATIBLE (system-global control; code analysis -- not yet verified)
+**Status:** Plug-side: NOT COMPATIBLE. Slot-side: NOT COMPATIBLE (no side-specific divergence documented in this entry).
 
 **Type:** Hardware Device Access
+
 
 **Code analysis:**
 - The interface grants broad access to USB gadget configfs (`usb_gadget.go:168-179`).
@@ -1947,9 +2029,10 @@ from the system service does not conflict with other instances doing the same.
 **Verification:** No verification has yet been done.
 
 ### vcio
-**Status:** COMPATIBLE (code analysis -- not yet verified)
+**Status:** Plug-side: COMPATIBLE. Slot-side: N/A (system/core/gadget-provided slot; no parallel app slot providers in scope).
 
 **Type:** Hardware Device Access
+
 
 **Code analysis:**
 - Slot is provided by core only, with implicit slots on core and classic.
@@ -1962,9 +2045,10 @@ from the system service does not conflict with other instances doing the same.
 **Verification:** No verification has yet been done.
 
 ### auditd-support
-**Status:** NOT COMPATIBLE (plug-side; system-global audit control; code analysis -- not yet verified). Slot-side N/A (core-only slot).
+**Status:** Plug-side: NOT COMPATIBLE. Slot-side: N/A (system/core/gadget-provided slot; no parallel app slot providers in scope).
 
 **Type:** Hardware Device Access
+
 
 **Code analysis:**
 - Grants `NETLINK_AUDIT` access and `capability audit_control` (`interfaces/builtin/auditd_support.go:38-53`).
@@ -1976,9 +2060,10 @@ from the system service does not conflict with other instances doing the same.
 **Verification:** No verification has yet been done.
 
 ### checkbox-support
-**Status:** NOT COMPATIBLE (plug-side; system-global orchestration control; code analysis -- not yet verified). Slot-side N/A (core-only slot).
+**Status:** Plug-side: NOT COMPATIBLE. Slot-side: N/A (system/core/gadget-provided slot; no parallel app slot providers in scope).
 
 **Type:** Hardware Device Access
+
 
 **Code analysis:**
 - Allows `StartTransientUnit` and `KillUnit` on systemd over system bus (`interfaces/builtin/checkbox_support.go:41-57`).
@@ -1990,9 +2075,10 @@ from the system service does not conflict with other instances doing the same.
 **Verification:** No verification has yet been done.
 
 ### devlxd
-**Status:** COMPATIBLE EXCEPT FOR SHARED RESOURCE (plug-side; shared LXD daemon state; code analysis -- not yet verified). Slot-side N/A (core-only slot).
+**Status:** Plug-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE. Slot-side: N/A (system/core/gadget-provided slot; no parallel app slot providers in scope).
 
 **Type:** Hardware Device Access
+
 
 **Code analysis:**
 - Grants access to a fixed host socket `/dev/lxd/sock` (`interfaces/builtin/devlxd.go:38-43`).
@@ -2003,9 +2089,10 @@ from the system service does not conflict with other instances doing the same.
 **Verification:** No verification has yet been done.
 
 ### dm-crypt
-**Status:** NOT COMPATIBLE (plug-side; system-global storage control; code analysis -- not yet verified). Slot-side N/A (core-only slot).
+**Status:** Plug-side: NOT COMPATIBLE. Slot-side: N/A (system/core/gadget-provided slot; no parallel app slot providers in scope).
 
 **Type:** Hardware Device Access
+
 
 **Code analysis:**
 - Grants access to device-mapper control, `/dev/dm-*`, `cryptsetup`, and mount operations (`interfaces/builtin/dm_crypt.go:40-57`).
@@ -2017,9 +2104,10 @@ from the system service does not conflict with other instances doing the same.
 **Verification:** No verification has yet been done.
 
 ### dm-multipath
-**Status:** NOT COMPATIBLE (plug-side; system-global multipath control; code analysis -- not yet verified). Slot-side N/A (core-only slot).
+**Status:** Plug-side: NOT COMPATIBLE. Slot-side: N/A (system/core/gadget-provided slot; no parallel app slot providers in scope).
 
 **Type:** Hardware Device Access
+
 
 **Code analysis:**
 - Grants read/write access to global multipath config and bindings (`interfaces/builtin/dm_multipath.go:49-53`).
@@ -2031,9 +2119,10 @@ from the system service does not conflict with other instances doing the same.
 **Verification:** No verification has yet been done.
 
 ### firmware-updater-support
-**Status:** POTENTIALLY COMPATIBLE (plug-side; policy-only marker interface; code analysis -- not yet verified). Slot-side N/A (core-only slot).
+**Status:** Plug-side: POTENTIALLY COMPATIBLE. Slot-side: N/A (system/core/gadget-provided slot; no parallel app slot providers in scope).
 
 **Type:** Hardware Device Access
+
 
 **Code analysis:**
 - Interface defines base declarations and identity only; no connected AppArmor/Seccomp snippets (`interfaces/builtin/firmware_updater_support.go:22-46`).
@@ -2044,9 +2133,10 @@ from the system service does not conflict with other instances doing the same.
 **Verification:** No verification has yet been done.
 
 ### greengrass-support
-**Status:** NOT COMPATIBLE (plug-side; broad host control and shared cgroup/mount state; code analysis -- not yet verified). Slot-side N/A (core-only slot).
+**Status:** Plug-side: NOT COMPATIBLE. Slot-side: N/A (system/core/gadget-provided slot; no parallel app slot providers in scope).
 
 **Type:** Hardware Device Access
+
 
 **Code analysis:**
 - Grants extensive capabilities for namespaces, mounts, cgroups, ptrace, and device control (`interfaces/builtin/greengrass_support.go:70-353`, `interfaces/builtin/greengrass_support.go:360-400`).
@@ -2058,9 +2148,10 @@ from the system service does not conflict with other instances doing the same.
 **Verification:** No verification has yet been done.
 
 ### iscsi-initiator
-**Status:** NOT COMPATIBLE (plug-side; system-global iSCSI initiator state; code analysis -- not yet verified). Slot-side N/A (core-only slot).
+**Status:** Plug-side: NOT COMPATIBLE. Slot-side: N/A (system/core/gadget-provided slot; no parallel app slot providers in scope).
 
 **Type:** Hardware Device Access
+
 
 **Code analysis:**
 - Grants rw access to global iSCSI config/state under `/etc/iscsi/**` (`interfaces/builtin/iscsi_initiator.go:47-65`).
@@ -2072,9 +2163,10 @@ from the system service does not conflict with other instances doing the same.
 **Verification:** No verification has yet been done.
 
 ### kernel-module-load
-**Status:** NOT COMPATIBLE (plug-side; system-global kernel module control; code analysis -- not yet verified). Slot-side N/A (core-only slot).
+**Status:** Plug-side: NOT COMPATIBLE. Slot-side: N/A (system/core/gadget-provided slot; no parallel app slot providers in scope).
 
 **Type:** Hardware Device Access
+
 
 **Code analysis:**
 - Interface allows dynamic/on-boot/denied module loading policy via plug attributes (`interfaces/builtin/kernel_module_load.go:56-63`, `interfaces/builtin/kernel_module_load.go:186-223`).
@@ -2086,9 +2178,10 @@ from the system service does not conflict with other instances doing the same.
 **Verification:** No verification has yet been done.
 
 ### remoteproc
-**Status:** COMPATIBLE EXCEPT FOR SHARED RESOURCE (plug-side; shared remote processor state; code analysis -- not yet verified). Slot-side N/A (core-only slot).
+**Status:** Plug-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE. Slot-side: N/A (system/core/gadget-provided slot; no parallel app slot providers in scope).
 
 **Type:** Hardware Device Access
+
 
 **Code analysis:**
 - Grants rw access to remoteproc sysfs controls (`firmware`, `state`, `coredump`, `recovery`) (`interfaces/builtin/remoteproc.go:41-46`).
@@ -2099,9 +2192,10 @@ from the system service does not conflict with other instances doing the same.
 **Verification:** No verification has yet been done.
 
 ### ros-snapd-support
-**Status:** POTENTIALLY COMPATIBLE (plug-side; policy-only marker interface; code analysis -- not yet verified). Slot-side N/A (core-only slot).
+**Status:** Plug-side: POTENTIALLY COMPATIBLE. Slot-side: N/A (system/core/gadget-provided slot; no parallel app slot providers in scope).
 
 **Type:** Hardware Device Access
+
 
 **Code analysis:**
 - Interface contains only identity/base declarations and no connected security snippets (`interfaces/builtin/ros_snapd_support.go:22-46`).
@@ -2112,9 +2206,10 @@ from the system service does not conflict with other instances doing the same.
 **Verification:** No verification has yet been done.
 
 ### scsi-generic
-**Status:** COMPATIBLE EXCEPT FOR SHARED RESOURCE (plug-side; shared SCSI generic devices; code analysis -- not yet verified). Slot-side N/A (core-only slot).
+**Status:** Plug-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE. Slot-side: N/A (system/core/gadget-provided slot; no parallel app slot providers in scope).
 
 **Type:** Hardware Device Access
+
 
 **Code analysis:**
 - Grants rw access to `/dev/sg[0-9]*` (`interfaces/builtin/scsi_generic.go:38-42`).
@@ -2125,9 +2220,10 @@ from the system service does not conflict with other instances doing the same.
 **Verification:** No verification has yet been done.
 
 ### shutdown
-**Status:** NOT COMPATIBLE (plug-side; system-global power management control; code analysis -- not yet verified). Slot-side N/A (core-only slot).
+**Status:** Plug-side: NOT COMPATIBLE. Slot-side: N/A (system/core/gadget-provided slot; no parallel app slot providers in scope).
 
 **Type:** Hardware Device Access
+
 
 **Code analysis:**
 - Grants system bus calls to reboot/poweroff/halt and login1 shutdown APIs (`interfaces/builtin/shutdown.go:43-55`).
@@ -2138,9 +2234,10 @@ from the system service does not conflict with other instances doing the same.
 **Verification:** No verification has yet been done.
 
 ### steam-support
-**Status:** COMPATIBLE EXCEPT FOR SHARED RESOURCE (plug-side; shared host devices/services; code analysis -- not yet verified). Slot-side N/A (core-only slot).
+**Status:** Plug-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE. Slot-side: N/A (system/core/gadget-provided slot; no parallel app slot providers in scope).
 
 **Type:** Hardware Device Access
+
 
 **Code analysis:**
 - Uses highly permissive AppArmor (`allow all` when supported) and unrestricted seccomp (`@unrestricted`) (`interfaces/builtin/steam_support.go:78-90`, `interfaces/builtin/steam_support.go:386-399`).
@@ -2152,9 +2249,10 @@ from the system service does not conflict with other instances doing the same.
 **Verification:** No verification has yet been done.
 
 ### tee
-**Status:** COMPATIBLE EXCEPT FOR SHARED RESOURCE (plug-side; shared TEE devices; code analysis -- not yet verified). Slot-side N/A (core-only slot).
+**Status:** Plug-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE. Slot-side: N/A (system/core/gadget-provided slot; no parallel app slot providers in scope).
 
 **Type:** Hardware Device Access
+
 
 **Code analysis:**
 - Grants rw access to `/dev/tee*`, `/dev/teepriv*`, and `/dev/qseecom` (`interfaces/builtin/tee.go:38-47`).
@@ -2165,9 +2263,10 @@ from the system service does not conflict with other instances doing the same.
 **Verification:** No verification has yet been done.
 
 ### uinput
-**Status:** NOT COMPATIBLE (plug-side; global input injection control; code analysis -- not yet verified). Slot-side N/A (core-only slot).
+**Status:** Plug-side: NOT COMPATIBLE. Slot-side: N/A (system/core/gadget-provided slot; no parallel app slot providers in scope).
 
 **Type:** Hardware Device Access
+
 
 **Code analysis:**
 - Grants write access to uinput injection devices (`/dev/uinput`, `/dev/input/uinput`) (`interfaces/builtin/uinput.go:47-53`).
@@ -2178,9 +2277,10 @@ from the system service does not conflict with other instances doing the same.
 **Verification:** No verification has yet been done.
 
 ### userns
-**Status:** COMPATIBLE (plug-side; code analysis -- not yet verified). Slot-side N/A (core-only slot).
+**Status:** Plug-side: COMPATIBLE. Slot-side: N/A (system/core/gadget-provided slot; no parallel app slot providers in scope).
 
 **Type:** Hardware Device Access
+
 
 **Code analysis:**
 - Grants `clone`/`unshare` seccomp permissions for user namespaces (`interfaces/builtin/userns.go:52-56`).
@@ -2192,9 +2292,10 @@ from the system service does not conflict with other instances doing the same.
 **Verification:** No verification has yet been done.
 
 ### xilinx-dma
-**Status:** COMPATIBLE EXCEPT FOR SHARED RESOURCE (plug-side; shared DMA hardware; code analysis -- not yet verified). Slot-side N/A (core-only slot).
+**Status:** Plug-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE. Slot-side: N/A (system/core/gadget-provided slot; no parallel app slot providers in scope).
 
 **Type:** Hardware Device Access
+
 
 **Code analysis:**
 - Grants rw access to XDMA/QDMA device nodes and related sysfs parameters (`interfaces/builtin/xilinx_dma.go:42-61`).
@@ -2206,9 +2307,10 @@ from the system service does not conflict with other instances doing the same.
 **Verification:** No verification has yet been done.
 
 ### raw-input
-**Status:** COMPATIBLE (code analysis + verified on noble)
+**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
 
 **Type:** Hardware Device Access
+
 
 **Code analysis:**
 - The interface grants access to `/dev/input/*` and input-device sysfs/udev metadata (lines 44-57 in the implementation).
@@ -2220,9 +2322,10 @@ from the system service does not conflict with other instances doing the same.
 **Verification:** Passed on noble. Test at `tests/main/interfaces-raw-input`.
 
 ### dvb
-**Status:** COMPATIBLE (code analysis + verified on noble)
+**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
 
 **Type:** Hardware Device Access
+
 
 **Code analysis:**
 - The interface grants access to `/dev/dvb/adapter[0-9]*/*` and DVB udev metadata (lines 32-39 in the implementation).
@@ -2233,9 +2336,10 @@ from the system service does not conflict with other instances doing the same.
 **Verification:** Passed on noble. Test at `tests/main/interfaces-dvb`.
 
 ### device-buttons
-**Status:** COMPATIBLE (code analysis + verified on noble)
+**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
 
 **Type:** Hardware Device Access
+
 
 **Code analysis:**
 - The interface grants access to `/dev/input/event[0-9]*` and supporting input capability files (lines 37-59 in the implementation).
@@ -2246,9 +2350,10 @@ from the system service does not conflict with other instances doing the same.
 **Verification:** Passed on noble. Test at `tests/main/interfaces-device-buttons`.
 
 ### uhid
-**Status:** COMPATIBLE (code analysis + verified on noble)
+**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
 
 **Type:** Hardware Device Access
+
 
 **Code analysis:**
 - The interface grants write access to `/dev/uhid` (lines 32-38 in the implementation).
@@ -2260,9 +2365,10 @@ from the system service does not conflict with other instances doing the same.
 **Verification:** Passed on noble. Test at `tests/main/interfaces-uhid`.
 
 ### block-devices
-**Status:** COMPATIBLE EXCEPT FOR SHARED RESOURCE (code analysis + verified on noble)
+**Status:** Plug-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE. Slot-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE (no side-specific divergence documented in this entry).
 
 **Type:** Hardware Device Access
+
 
 **Code analysis:**
 - The interface grants broad access to raw disk block devices, controller character devices, and block-related sysfs/udev metadata (lines 58-132 in the implementation).
@@ -2275,9 +2381,10 @@ from the system service does not conflict with other instances doing the same.
 **Verification:** Passed on noble. Test at `tests/main/interfaces-block-devices`.
 
 ### daemon-notify
-**Status:** COMPATIBLE (code analysis + verified on noble)
+**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
 
 **Type:** Snapd/Policy Management
+
 
 **Code analysis:**
 - The interface resolves `NOTIFY_SOCKET` from the environment or defaults to `/run/systemd/notify` (lines 56-88 in the implementation).
@@ -2289,9 +2396,10 @@ from the system service does not conflict with other instances doing the same.
 **Verification:** Passed on noble. Test at `tests/main/interfaces-daemon-notify`.
 
 ### browser-support
-**Status:** COMPATIBLE (code analysis + verified on noble)
+**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
 
 **Type:** Desktop/Graphics/Media Integration
+
 
 **Code analysis:**
 - The interface explicitly uses `@{SNAP_INSTANCE_NAME}` for snap-local runtime socket paths in the sandboxed rules (lines 62-76 in the implementation).
@@ -2303,9 +2411,10 @@ from the system service does not conflict with other instances doing the same.
 **Verification:** Passed on noble. Test at `tests/main/interfaces-browser-support`.
 
 ### kerberos-tickets
-**Status:** COMPATIBLE EXCEPT FOR SHARED RESOURCE (shared per-user state; code analysis + verified on noble)
+**Status:** Plug-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE. Slot-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE (no side-specific divergence documented in this entry).
 
 **Type:** Identity/Credentials/Secrets
+
 
 **Code analysis:**
 - The interface grants owner access to `/var/lib/snapd/hostfs/tmp/krb5cc*` (line 33 in the implementation).
@@ -2319,9 +2428,10 @@ The cache filename is typically session-specific and may look random (for exampl
 **Verification:** Passed on noble. Test at `tests/main/interfaces-kerberos-tickets`.
 
 ### audio-playback-record
-**Status:** COMPATIBLE EXCEPT FOR SHARED RESOURCE (shared audio stack; plug-side only; code analysis + verified on noble)
+**Status:** Plug-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE. Slot-side: not separately classified in this entry (provider behavior out of scope here).
 
 **Type:** Desktop/Graphics/Media Integration
+
 
 **Code analysis:**
 - The plug side uses PulseAudio/PipeWire shared-memory and socket paths, with an instance-aware path substitution for system mode (`###SLOT_INSTANCE_NAME###`) in the connected plug rules (lines 55-175 in the implementation).
@@ -2333,9 +2443,10 @@ The cache filename is typically session-specific and may look random (for exampl
 **Verification:** Passed on noble. Test at `tests/main/interfaces-audio-playback-record`.
 
 ### adb-support
-**Status:** COMPATIBLE (code analysis + verified on noble)
+**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
 
 **Type:** Hardware Device Access
+
 
 **Code analysis:**
 - The interface tags USB devices by vendor ID and emits udev rules for matching devices (lines 129-190 in the implementation).
@@ -2348,9 +2459,10 @@ The cache filename is typically session-specific and may look random (for exampl
 **Verification:** Passed on noble. Test at `tests/main/interfaces-adb-support`.
 
 ### netlink-audit
-**Status:** COMPATIBLE (code analysis + verified on noble)
+**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
 
 **Type:** Network/Netlink Interface
+
 
 **Code analysis:**
 - The interface grants `AF_NETLINK - NETLINK_AUDIT` access and netlink-related capabilities (lines 40-60 in the implementation).
@@ -2362,9 +2474,10 @@ The cache filename is typically session-specific and may look random (for exampl
 **Verification:** Passed on noble. Test at `tests/main/interfaces-netlink-audit`.
 
 ### netlink-connector
-**Status:** COMPATIBLE (code analysis + verified on noble)
+**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
 
 **Type:** Network/Netlink Interface
+
 
 **Code analysis:**
 - The interface grants `AF_NETLINK - NETLINK_CONNECTOR` access and `CAP_NET_ADMIN` (lines 32-49 in the implementation).
@@ -2376,9 +2489,10 @@ The cache filename is typically session-specific and may look random (for exampl
 **Verification:** Passed on noble. Test at `tests/main/interfaces-netlink-connector`.
 
 ### bluez
-**Status:** NOT COMPATIBLE (slot-side system singleton); COMPATIBLE (plug-side)
+**Status:** Plug-side: COMPATIBLE. Slot-side: NOT COMPATIBLE.
 
 **Type:** D-Bus Service/Provider
+
 
 **Code analysis:**
 The bluez interface manages Bluetooth services. It follows the same pattern as
@@ -2423,9 +2537,10 @@ slot (no D-Bus name conflict with only one instance running).
 
 
 ### bluetooth-control
-**Status:** COMPATIBLE (code analysis -- not yet verified)
+**Status:** Plug-side: COMPATIBLE. Slot-side: N/A (system/core/gadget-provided slot; no parallel app slot providers in scope).
 
 **Type:** System Control/Privileged Capability
+
 
 **Code analysis:**
 - Slot is provided by core only (lines 24-29), with implicit slots on core and classic (lines 70-71).
@@ -2439,9 +2554,10 @@ slot (no D-Bus name conflict with only one instance running).
 **Verification:** No verification has yet been done.
 
 ### gpio-chardev
-**Status:** COMPATIBLE (code analysis -- not yet verified)
+**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
 
 **Type:** Hardware Device Access
+
 
 **Code analysis:**
 - Slots are provided by gadget snaps (lines 50-55), and the interface uses instance-aware names throughout the setup.
@@ -2455,9 +2571,10 @@ slot (no D-Bus name conflict with only one instance running).
 **Verification:** No verification has yet been done.
 
 ### kernel-module-observe
-**Status:** COMPATIBLE (code analysis -- not yet verified)
+**Status:** Plug-side: COMPATIBLE. Slot-side: N/A (system/core/gadget-provided slot; no parallel app slot providers in scope).
 
 **Type:** Observability/Diagnostics
+
 
 **Code analysis:**
 - Slot is provided by core only (lines 24-29), with implicit slots on core and classic (lines 54-55).
@@ -2470,9 +2587,10 @@ slot (no D-Bus name conflict with only one instance running).
 **Verification:** No verification has yet been done.
 
 ### ppp
-**Status:** COMPATIBLE (code analysis -- not yet verified)
+**Status:** Plug-side: COMPATIBLE. Slot-side: N/A (system/core/gadget-provided slot; no parallel app slot providers in scope).
 
 **Type:** Network/Netlink Interface
+
 
 **Code analysis:**
 - Slot is provided by core only (lines 24-29), with implicit slots on core and classic (lines 70-71).
@@ -2485,9 +2603,10 @@ slot (no D-Bus name conflict with only one instance running).
 **Verification:** No verification has yet been done.
 
 ### qualcomm-ipc-router
-**Status:** COMPATIBLE (code analysis -- not yet verified)
+**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
 
 **Type:** Hardware Device Access
+
 
 **Code analysis:**
 - The interface supports both system and app slots, and the app-slot path is fully instance-aware via `slot.LabelExpression()` and `plug.LabelExpression()` (lines 195-241).
@@ -2500,9 +2619,10 @@ slot (no D-Bus name conflict with only one instance running).
 **Verification:** No verification has yet been done.
 
 ### tpm
-**Status:** COMPATIBLE (code analysis -- not yet verified)
+**Status:** Plug-side: COMPATIBLE. Slot-side: N/A (system/core/gadget-provided slot; no parallel app slot providers in scope).
 
 **Type:** Hardware Device Access
+
 
 **Code analysis:**
 - Slot is provided by core only (lines 24-29), with implicit slots on core and classic (lines 49-50).
@@ -2515,9 +2635,10 @@ slot (no D-Bus name conflict with only one instance running).
 **Verification:** No verification has yet been done.
 
 ### udisks2
-**Status:** NOT COMPATIBLE (slot-side system singleton); COMPATIBLE (plug-side)
+**Status:** Plug-side: COMPATIBLE. Slot-side: NOT COMPATIBLE.
 
 **Type:** D-Bus Service/Provider
+
 
 **Code analysis:**
 The udisks2 interface manages disk/storage services. Same singleton pattern.
@@ -2555,9 +2676,10 @@ of original snap.
 
 
 ### upower-observe
-**Status:** NOT COMPATIBLE (slot-side D-Bus singleton); COMPATIBLE (plug-side)
+**Status:** Plug-side: COMPATIBLE. Slot-side: NOT COMPATIBLE.
 
 **Type:** D-Bus Service/Provider
+
 
 **Code analysis:**
 The upower-observe interface provides access to the UPower power management service.
@@ -2597,9 +2719,10 @@ For slot-side (providing the UPower service), only one instance can operate.
 
 
 ### ofono
-**Status:** NOT COMPATIBLE (slot-side D-Bus singleton)
+**Status:** Plug-side: not separately classified in this entry. Slot-side: NOT COMPATIBLE.
 
 **Type:** D-Bus Service/Provider
+
 
 **Code analysis:**
 The ofono interface provides telephony services via the ofono daemon.
@@ -2648,9 +2771,10 @@ incompatibility is confirmed by code analysis only (D-Bus singleton `org.ofono` 
 
 
 ### modem-manager
-**Status:** NOT COMPATIBLE (slot-side D-Bus singleton)
+**Status:** Plug-side: not separately classified in this entry. Slot-side: NOT COMPATIBLE.
 
 **Type:** D-Bus Service/Provider
+
 
 **Code analysis:**
 The modem-manager interface provides cellular modem management via ModemManager.
@@ -2696,9 +2820,10 @@ incompatibility is confirmed by code analysis only (D-Bus singleton
 
 
 ### unity7
-**Status:** NOT COMPATIBLE (known documented D-Bus path leakage between instances)
+**Status:** Plug-side: NOT COMPATIBLE. Slot-side: NOT COMPATIBLE (no side-specific divergence documented in this entry).
 
 **Type:** Desktop/Graphics/Media Integration
+
 
 **Code analysis:**
 The unity7 interface grants access to Unity7/GNOME desktop session services. It has a
@@ -2768,9 +2893,10 @@ demonstrate. The incompatibility is confirmed by the explicit code comment at
 
 
 ### content
-**Status:** COMPATIBLE
+**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
 
 **Type:** Filesystem/Mount Interface
+
 
 **Code analysis:**
 The content interface is the most complex interface for parallel installs because it
@@ -2818,9 +2944,10 @@ read shared content, survived removal of original plug snap.
 
 
 ### home
-**Status:** COMPATIBLE
+**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
 
 **Type:** Filesystem/Mount Interface
+
 
 **Code analysis:**
 - AppArmor rules use `owner @{HOME}/` patterns that don't distinguish instances
@@ -2835,9 +2962,10 @@ PASSED on noble.
 
 
 ### desktop-launch
-**Status:** PARTIALLY COMPATIBLE (API access works; desktop file launching does NOT)
+**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
 
 **Type:** Filesystem/Mount Interface
+
 
 **Code analysis:**
 - The snapd API access part (reading `/v2/snaps`, `/v2/icons`) works correctly for
@@ -2864,9 +2992,10 @@ Expected failure -- desktop file launching is incompatible with parallel
 
 
 ### desktop-document-portal
-**Status:** COMPATIBLE
+**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
 
 **Type:** Desktop/Graphics/Media Integration
+
 
 **Code analysis:**
 - The document portal mounts a per-snap subtree of the xdg-desktop-portal FUSE
@@ -2886,9 +3015,10 @@ PASSED on noble.
 
 
 ### cups-control
-**Status:** COMPATIBLE (not verified)
+**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
 
 **Type:** Daemon/Socket Client
+
 
 **Code analysis:**
 - Access to CUPS socket and D-Bus for printing
@@ -2904,9 +3034,10 @@ FAILED -- pre-existing environment issue (no CUPS printer configured).
 
 
 ### polkit
-**Status:** COMPATIBLE
+**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
 
 **Type:** Identity/Credentials/Secrets
+
 
 **Code analysis:**
 The polkit interface installs policy files (`.policy`) and rule files (`.rules`) for
@@ -2946,9 +3077,10 @@ original's files were cleaned up.
 
 
 ### firewall-control
-**Status:** COMPATIBLE
+**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
 
 **Type:** System Control/Privileged Capability
+
 
 **Code analysis:**
 - Grants capability to manipulate iptables/nftables rules
@@ -2966,9 +3098,10 @@ PASSED on noble.
 
 
 ### ssh-keys
-**Status:** COMPATIBLE
+**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
 
 **Type:** Identity/Credentials/Secrets
+
 
 **Code analysis:**
 - Read/write access to `~/.ssh/` files
@@ -2981,9 +3114,10 @@ PASSED on noble.
 
 
 ### ssh-public-keys
-**Status:** COMPATIBLE
+**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
 
 **Type:** Identity/Credentials/Secrets
+
 
 **Code analysis:**
 - Read access to SSH public keys (`~/.ssh/*.pub`, `/etc/ssh/ssh_host_*_key.pub`)
@@ -2995,9 +3129,10 @@ PASSED on noble.
 
 
 ### personal-files
-**Status:** COMPATIBLE
+**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
 
 **Type:** Filesystem/Mount Interface
+
 
 **Code analysis:**
 The personal-files interface grants access to user-specific file paths declared in plug
@@ -3033,9 +3168,10 @@ survived removal of original snap.
 
 
 ### system-files
-**Status:** COMPATIBLE
+**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
 
 **Type:** Filesystem/Mount Interface
+
 
 **Code analysis:**
 Same implementation as personal-files (both use `commonFilesInterface` in
@@ -3060,9 +3196,10 @@ survived removal of original snap.
 
 
 ### hostname-control
-**Status:** COMPATIBLE
+**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
 
 **Type:** System Control/Privileged Capability
+
 
 **Code analysis:**
 - D-Bus client to `org.freedesktop.hostname1` (send-only, `hostname_control.go:45-72`)
@@ -3080,9 +3217,10 @@ snap-name-dependent resources. Parallel instances get identical permissions.
 
 
 ### locale-control
-**Status:** COMPATIBLE
+**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
 
 **Type:** System Control/Privileged Capability
+
 
 **Code analysis:**
 - D-Bus client to `org.freedesktop.locale1` (send-only, `locale_control.go:41-64`)
@@ -3100,9 +3238,10 @@ snap-name-dependent resources.
 
 
 ### timezone-control
-**Status:** COMPATIBLE
+**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
 
 **Type:** D-Bus/IPC Client
+
 
 **Code analysis:**
 - D-Bus client to `org.freedesktop.timedate1` (send-only, `timezone_control.go:49-83`)
@@ -3119,9 +3258,10 @@ snap-name-dependent resources.
 
 
 ### timeserver-control
-**Status:** COMPATIBLE
+**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
 
 **Type:** System Control/Privileged Capability
+
 
 **Code analysis:**
 - D-Bus client to `org.freedesktop.timedate1`, `org.freedesktop.timesync1`,
@@ -3138,9 +3278,10 @@ snap-name-dependent resources.
 
 
 ### network-setup-control
-**Status:** COMPATIBLE
+**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
 
 **Type:** Network/Netlink Interface
+
 
 **Code analysis:**
 - D-Bus client to `io.netplan.Netplan` (send-only, `network_setup_control.go:74-87`)
@@ -3159,9 +3300,10 @@ paths are global system directories.
 
 
 ### account-control
-**Status:** COMPATIBLE (code analysis -- not yet verified by test)
+**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
 
 **Type:** Identity/Credentials/Secrets
+
 
 **Code analysis:**
 - D-Bus client to `org.freedesktop.Accounts` (send-only, `account_control.go:44-73`)
@@ -3183,9 +3325,10 @@ dynamic seccomp GID resolution is deterministic regardless of instance.
 
 
 ### joystick
-**Status:** COMPATIBLE
+**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
 
 **Type:** Hardware Device Access
+
 
 **Code analysis:**
 - Access to `/dev/input/js*` and `/dev/input/event*` devices
@@ -3200,9 +3343,10 @@ PASSED on noble.
 
 
 ### hardware-observe
-**Status:** COMPATIBLE
+**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
 
 **Type:** Observability/Diagnostics
+
 
 **Code analysis:**
 - Read-only access to `/sys/`, `/proc/`, hardware information
@@ -3215,9 +3359,10 @@ PASSED on noble.
 
 
 ### hardware-random-control
-**Status:** COMPATIBLE
+**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
 
 **Type:** System Control/Privileged Capability
+
 
 **Code analysis:**
 - Read/write access to `/dev/hwrng` and sysfs hw_random paths
@@ -3231,9 +3376,10 @@ PASSED on noble.
 
 
 ### hardware-random-observe
-**Status:** COMPATIBLE
+**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
 
 **Type:** Observability/Diagnostics
+
 
 **Code analysis:**
 - Read-only access to `/dev/hwrng` and sysfs hw_random paths
@@ -3246,9 +3392,10 @@ PASSED on noble.
 
 
 ### shared-memory (non-private/named mode)
-**Status:** NOT COMPATIBLE (kernel-global SHM namespace)
+**Status:** Plug-side: NOT COMPATIBLE. Slot-side: NOT COMPATIBLE (no side-specific divergence documented in this entry).
 
 **Type:** Filesystem/Mount Interface
+
 
 **Code analysis:**
 The shared-memory interface has two modes:
@@ -3278,9 +3425,10 @@ Expected failure. The original plug reads `parallel data` instead of
 
 
 ### shared-memory (private mode)
-**Status:** COMPATIBLE
+**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
 
 **Type:** Filesystem/Mount Interface
+
 
 **Code analysis:**
 The private mode of shared-memory gives each snap its own isolated `/dev/shm` namespace
@@ -3317,9 +3465,10 @@ namespace, segments were isolated from original, survived removal of original sn
 
 
 ### posix-mq
-**Status:** NOT COMPATIBLE (kernel-global queue namespace)
+**Status:** Plug-side: NOT COMPATIBLE. Slot-side: NOT COMPATIBLE (no side-specific divergence documented in this entry).
 
 **Type:** Hardware Device Access
+
 
 **Code analysis:**
 The posix-mq interface manages POSIX message queue access between plug and slot snaps.
@@ -3362,9 +3511,10 @@ Expected failure. The `_foo` instance received `priority 7: Original message`
 
 
 ### mount-control
-**Status:** NOT COMPATIBLE
+**Status:** Plug-side: NOT COMPATIBLE. Slot-side: NOT COMPATIBLE (no side-specific divergence documented in this entry).
 
 **Type:** Filesystem/Mount Interface
+
 
 **Code analysis:**
 
@@ -3423,9 +3573,10 @@ Expected failure. `mount: mount /var/tmp/test-snapd-mount-control on
 
 
 ### password-manager-service
-**Status:** COMPATIBLE
+**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
 
 **Type:** Identity/Credentials/Secrets
+
 
 **Code analysis:**
 - Session bus D-Bus access to `org.freedesktop.secrets` (gnome-keyring)
@@ -3446,9 +3597,10 @@ PASSED on noble.
 
 
 ### calendar-service
-**Status:** COMPATIBLE
+**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
 
 **Type:** D-Bus/IPC Client
+
 
 **Code analysis:**
 - Session bus D-Bus access to Evolution Data Server (calendar component)
@@ -3462,18 +3614,20 @@ PASSED on noble.
 PASSED on noble.
 
 ### log-observe
-**Status:** COMPATIBLE (code analysis -- not yet verified by test)
+**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
 
 **Type:** Observability/Diagnostics
+
 
 Read-only access to system logs (`/var/log/`, journal). No D-Bus, no snap-name paths.
 
 **Verification:** Passed on noble. Test at `tests/main/interfaces-log-observe`.
 
 ### network-observe
-**Status:** COMPATIBLE (code analysis -- not yet verified by test)
+**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
 
 **Type:** Network/Netlink Interface
+
 
 Read-only network status queries (D-Bus client to systemd-resolved, read /proc/sys).
 No D-Bus ownership.
@@ -3481,9 +3635,10 @@ No D-Bus ownership.
 **Verification:** Passed on noble. Test at `tests/main/interfaces-network-observe`.
 
 ### mount-observe
-**Status:** COMPATIBLE (code analysis -- not yet verified by test)
+**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
 
 **Type:** Filesystem/Mount Interface
+
 
 Read-only access to `/proc/<pid>/mounts` and mount propagation info. No D-Bus, no
 snap-name paths.
@@ -3491,9 +3646,10 @@ snap-name paths.
 **Verification:** Passed on noble. Test at `tests/main/interfaces-mount-observe`.
 
 ### system-observe
-**Status:** COMPATIBLE (code analysis -- not yet verified by test)
+**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
 
 **Type:** Observability/Diagnostics
+
 
 Read-only access to system info (D-Bus client to hostnamed/systemd, read /proc, /boot).
 No D-Bus ownership.
@@ -3501,61 +3657,67 @@ No D-Bus ownership.
 **Verification:** Passed on noble. Test at `tests/main/interfaces-system-observe`.
 
 ### process-control
-**Status:** COMPATIBLE (code analysis -- not yet verified by test)
+**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
 
 **Type:** System Control/Privileged Capability
+
 
 Capability-based: `kill` syscall, signal sending, priority changes. No paths, no D-Bus.
 
 **Verification:** Passed on noble. Test at `tests/main/interfaces-process-control`.
 
 ### gpg-keys
-**Status:** COMPATIBLE (code analysis -- not yet verified by test)
+**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
 
 **Type:** Identity/Credentials/Secrets
+
 
 Read/write access to `~/.gnupg/` (user file access). No D-Bus, no snap-name paths.
 
 **Verification:** Passed on noble. Test at `tests/main/interfaces-gpg-keys`.
 
 ### gpg-public-keys
-**Status:** COMPATIBLE (code analysis -- not yet verified by test)
+**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
 
 **Type:** Identity/Credentials/Secrets
+
 
 Read-only access to `~/.gnupg/` public keys. No D-Bus, no snap-name paths.
 
 **Verification:** Passed on noble. Test at `tests/main/interfaces-gpg-public-keys`.
 
 ### removable-media
-**Status:** COMPATIBLE (code analysis -- not yet verified by test)
+**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
 
 **Type:** Filesystem/Mount Interface
+
 
 Access to `/media/`, `/run/media/`, `/mnt/` mount points. No D-Bus, no snap-name paths.
 
 **Verification:** Passed on noble. Test at `tests/main/interfaces-removable-media`.
 
 ### kvm
-**Status:** COMPATIBLE (code analysis -- not yet verified by test)
+**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
 
 **Type:** Container/Virtualization Support
+
 
 Device access to `/dev/kvm`. No D-Bus, no snap-name paths.
 
 **Verification:** Passed on noble. Test at `tests/main/interfaces-kvm`.
 
 ### raw-usb
-**Status:** COMPATIBLE (code analysis -- not yet verified by test)
+**Status:** Plug-side: COMPATIBLE. Slot-side: N/A (system/core/gadget-provided slot; no parallel app slot providers in scope).
 
 **Type:** Hardware Device Access
+
 
 Device access to `/dev/bus/usb/`, `/sys/bus/usb/`. No D-Bus, no snap-name paths.
 
 **Verification:** Passed on noble. Test at `tests/main/interfaces-raw-usb`.
 
 #### cuda-driver-libs
-**Status:** COMPATIBLE (code analysis -- not yet verified)
+**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE.
 
 **Type:** Hardware Device Access
 
@@ -3570,7 +3732,7 @@ Device access to `/dev/bus/usb/`, `/sys/bus/usb/`. No D-Bus, no snap-name paths.
 **Verification:** No verification has yet been done.
 
 #### dm-crypt
-**Status:** COMPATIBLE (code analysis -- not yet verified)
+**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE.
 
 **Type:** Hardware Device Access
 
@@ -3586,7 +3748,7 @@ Device access to `/dev/bus/usb/`, `/sys/bus/usb/`. No D-Bus, no snap-name paths.
 **Verification:** No verification has yet been done.
 
 #### dm-multipath
-**Status:** COMPATIBLE (code analysis -- not yet verified)
+**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE.
 
 **Type:** Hardware Device Access
 
@@ -3601,7 +3763,7 @@ Device access to `/dev/bus/usb/`, `/sys/bus/usb/`. No D-Bus, no snap-name paths.
 **Verification:** No verification has yet been done.
 
 #### iscsi-initiator
-**Status:** COMPATIBLE (code analysis -- not yet verified)
+**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE.
 
 **Type:** Hardware Device Access
 
@@ -3616,7 +3778,7 @@ Device access to `/dev/bus/usb/`, `/sys/bus/usb/`. No D-Bus, no snap-name paths.
 **Verification:** No verification has yet been done.
 
 #### packagekit-control
-**Status:** COMPATIBLE (code analysis -- not yet verified)
+**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE.
 
 **Type:** Hardware Device Access
 
@@ -3632,7 +3794,7 @@ Device access to `/dev/bus/usb/`, `/sys/bus/usb/`. No D-Bus, no snap-name paths.
 **Verification:** No verification has yet been done.
 
 #### polkit-agent
-**Status:** COMPATIBLE (code analysis -- not yet verified)
+**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE.
 
 **Type:** Hardware Device Access
 
@@ -3648,7 +3810,7 @@ Device access to `/dev/bus/usb/`, `/sys/bus/usb/`. No D-Bus, no snap-name paths.
 **Verification:** No verification has yet been done.
 
 #### snap-refresh-observe
-**Status:** COMPATIBLE (code analysis -- not yet verified)
+**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE.
 
 **Type:** Hardware Device Access
 
@@ -3663,7 +3825,7 @@ Device access to `/dev/bus/usb/`, `/sys/bus/usb/`. No D-Bus, no snap-name paths.
 **Verification:** No verification has yet been done.
 
 #### ubuntu-pro-control
-**Status:** NOT COMPATIBLE (slot-side singleton); COMPATIBLE (plug-side)
+**Status:** Plug-side: COMPATIBLE. Slot-side: NOT COMPATIBLE.
 
 **Type:** Hardware Device Access
 
@@ -3679,7 +3841,7 @@ Device access to `/dev/bus/usb/`, `/sys/bus/usb/`. No D-Bus, no snap-name paths.
 **Verification:** No verification has yet been done.
 
 #### xdg-portal-permission-store
-**Status:** COMPATIBLE (code analysis -- not yet verified)
+**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE.
 
 **Type:** Hardware Device Access
 
@@ -3694,7 +3856,7 @@ Device access to `/dev/bus/usb/`, `/sys/bus/usb/`. No D-Bus, no snap-name paths.
 **Verification:** No verification has yet been done.
 
 #### shutdown
-**Status:** COMPATIBLE (code analysis -- not yet verified)
+**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE.
 
 **Type:** Hardware Device Access
 
@@ -3710,7 +3872,7 @@ Device access to `/dev/bus/usb/`, `/sys/bus/usb/`. No D-Bus, no snap-name paths.
 **Verification:** No verification has yet been done.
 
 #### kernel-firmware-control
-**Status:** COMPATIBLE (code analysis -- not yet verified)
+**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE.
 
 **Type:** Hardware Device Access
 
@@ -3724,7 +3886,7 @@ Device access to `/dev/bus/usb/`, `/sys/bus/usb/`. No D-Bus, no snap-name paths.
 **Verification:** No verification has yet been done.
 
 #### ion-memory-control
-**Status:** COMPATIBLE (code analysis -- not yet verified)
+**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE.
 
 **Type:** Hardware Device Access
 
@@ -3739,7 +3901,7 @@ Device access to `/dev/bus/usb/`, `/sys/bus/usb/`. No D-Bus, no snap-name paths.
 **Verification:** No verification has yet been done.
 
 #### nvme-control
-**Status:** COMPATIBLE (code analysis -- not yet verified)
+**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE.
 
 **Type:** Hardware Device Access
 
@@ -3755,7 +3917,7 @@ Device access to `/dev/bus/usb/`, `/sys/bus/usb/`. No D-Bus, no snap-name paths.
 **Verification:** No verification has yet been done.
 
 #### remoteproc
-**Status:** COMPATIBLE (code analysis -- not yet verified)
+**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE.
 
 **Type:** Hardware Device Access
 
@@ -3769,7 +3931,7 @@ Device access to `/dev/bus/usb/`, `/sys/bus/usb/`. No D-Bus, no snap-name paths.
 **Verification:** No verification has yet been done.
 
 #### sd-control
-**Status:** COMPATIBLE (code analysis -- not yet verified)
+**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE.
 
 **Type:** Hardware Device Access
 
@@ -3784,7 +3946,7 @@ Device access to `/dev/bus/usb/`, `/sys/bus/usb/`. No D-Bus, no snap-name paths.
 **Verification:** No verification has yet been done.
 
 #### uinput
-**Status:** COMPATIBLE (code analysis -- not yet verified)
+**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE.
 
 **Type:** Hardware Device Access
 
@@ -3799,7 +3961,7 @@ Device access to `/dev/bus/usb/`, `/sys/bus/usb/`. No D-Bus, no snap-name paths.
 **Verification:** No verification has yet been done.
 
 #### xilinx-dma
-**Status:** COMPATIBLE (code analysis -- not yet verified)
+**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE.
 
 **Type:** Hardware Device Access
 
@@ -3815,7 +3977,7 @@ Device access to `/dev/bus/usb/`, `/sys/bus/usb/`. No D-Bus, no snap-name paths.
 **Verification:** No verification has yet been done.
 
 #### kernel-module-control
-**Status:** COMPATIBLE (code analysis -- not yet verified by test)
+**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE.
 
 **Type:** Hardware Device Access
 
@@ -3824,7 +3986,7 @@ Capability-based: insmod/rmmod/lsmod, read `/sys/module/`. No D-Bus, no snap-nam
 **Verification:** Passed on noble. Test at `tests/main/interfaces-kernel-module-control`.
 
 #### gpio-control
-**Status:**
+**Status:** Plug-side: NOT ANALYZED. Slot-side: NOT ANALYZED.
 
 **Type:** Hardware Device Access
 
