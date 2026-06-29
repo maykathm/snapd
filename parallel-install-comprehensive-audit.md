@@ -447,22 +447,37 @@ The remaining shared SHM/socket state is client-server audio IPC, not a parallel
 
 **Verification:** No verification has yet been done.
 
-### cups (provider/slot-side issue)
-**Status:** NOT COMPATIBLE (slot-side); COMPATIBLE (plug-side)
+### cups
+**Status:** NOT COMPATIBLE (slot-side path expansion bug); COMPATIBLE (plug-side)
 
-**Type:** D-Bus Service/Provider
+**Type:** Daemon/Socket Client
 
 **Code analysis:**
-- The plug accesses a fixed socket at `/var/cups/cups.sock` (line 77).
-- The slot declares a `cups-socket-directory` attribute that must be under `$SNAP_COMMON` or `$SNAP_DATA` (lines 115-116).
-- **BUG IDENTIFIED** at line 130: `validateCupsSocketDirSlotAttr` calls `snapInfo.ExpandSnapVariables(cupsdSocketSourceDir)` where `snapInfo` is `slot.Snap()`. This uses `ExpandSnapVariables` which, for `$SNAP_COMMON`, expands using `SnapName()` not `InstanceName()` when using `PerspectiveSelf` (the default).
-- This means if a slot snap `cups-provider_foo` declares `cups-socket-directory: $SNAP_COMMON/cups`, it expands to `/var/snap/cups-provider/common/cups` instead of `/var/snap/cups-provider_foo/common/cups`.
-- The mount entry (lines 201-205) uses this incorrectly-expanded path, causing the bind mount to point to the wrong directory for parallel instances.
-- The AppArmor rules at line 170 also use this path, so the plug gets rules for the wrong location.
+The `cups` interface (distinct from `cups-control`) lets a provider snap expose a CUPS socket to consumers via bind-mount and path-based mediation.
 
-**Reasoning:** The slot-side path expansion bug means parallel instances of a cups provider snap will all try to use the same socket directory (the base snap name's directory), not their instance-specific directories. The plug-side is fine since it just accesses `/var/cups/cups.sock` which is bind-mounted.
+1. **Socket path resolution uses wrong perspective** (`interfaces/builtin/cups.go:130`):
+   `validateCupsSocketDirSlotAttr()` expands the slot's `cups-socket-directory` using `ExpandSnapVariables()` with `PerspectiveSelf`, which resolves `$SNAP_COMMON` via `SnapName()` instead of `InstanceName()`.
 
-**Verification:** No verification has yet been done. This bug was previously identified in the audit and is awaiting a code fix.
+2. **Parallel provider expands to base-name path**: for `cups-provider_foo` and
+   `cups-socket-directory: $SNAP_COMMON/cups-socket`, expansion becomes
+   `/var/snap/cups-provider/common/cups-socket` instead of
+   `/var/snap/cups-provider_foo/common/cups-socket`.
+
+3. **MountConnectedPlug uses the wrong source path** (`interfaces/builtin/cups.go:188-206`):
+   the bind mount into the consumer namespace is generated from that wrongly-expanded host path.
+
+4. **AppArmor rules inherit the same mismatch** (`interfaces/builtin/cups.go:170`):
+   permissions are granted for the wrong source directory, so even policy alignment is against the base-name path.
+
+5. **No D-Bus ownership model here**: unlike singleton service interfaces, `cups` has no D-Bus `bind` ownership semantics and no `LabelExpression()` peer matching; behavior is purely UNIX socket path + mount based.
+
+6. **Contrast with `content`**: `content` uses `PerspectiveOther` for provider path expansion (`interfaces/builtin/content.go:234`), which is the missing behavior here.
+
+**Reasoning:** Plug-side parallel consumers are fine because they are normal clients of a mounted CUPS socket. Slot-side parallel providers are not safe: provider path resolution collapses to the base snap name, so parallel provider instances cannot reliably bind their own instance-specific socket directories.
+
+**Verification:**
+- Plug-side: passed on noble (`test-snapd-cups-consumer_foo` connected and communicated through provider socket; remained functional after removing original consumer).
+- Slot-side parallel provider: not verified by spread in this audit; expected failure remains due to `interfaces/builtin/cups.go:130` path expansion behavior.
 
 ### serial-port
 **Status:** COMPATIBLE (device-specific; code analysis -- not yet verified)
@@ -2641,54 +2656,6 @@ FAILED -- pre-existing environment issue (no CUPS printer configured).
   Failure occurs at `lpr: Error - No default destination` in the original test code
   before any parallel-instance section. Unrelated to parallel installs. Needs a test
   environment with a configured CUPS printer.
-
-
-
-### cups (provider/consumer interface)
-**Status:** NOT COMPATIBLE (slot-side path expansion bug) COMPATIBLE (plug-side)
-
-**Type:** D-Bus Service/Provider
-
-**Code analysis:**
-The `cups` interface (distinct from `cups-control`) allows a snap to provide CUPS print
-services to consuming snaps via a socket bind-mount.
-
-1. **Socket path resolution uses wrong perspective** (`cups.go:130`): The slot's
-   `cups-socket-directory` attribute is expanded via `ExpandSnapVariables()` which uses
-   `PerspectiveSelf` (calls `SnapName()`, not `InstanceName()`):
-   ```go
-   return snapInfo.ExpandSnapVariables(cupsdSocketSourceDir), nil
-   ```
-   For a parallel slot provider `cups-provider_foo` with `cups-socket-directory:
-   $SNAP_COMMON/cups-socket`, this expands to `/var/snap/cups-provider/common/cups-socket`
-   instead of `/var/snap/cups-provider_foo/common/cups-socket`.
-
-2. **Mount entry uses the wrong source path** (`cups.go:188-206`): `MountConnectedPlug`
-   creates a bind mount from the (incorrectly expanded) source path to `/var/cups/` in
-   the plug's namespace. A parallel slot provider's socket directory would be at the
-   instance-specific host path, but the mount entry points to the base snap name path.
-
-3. **No D-Bus usage**: The cups interface has zero D-Bus rules. It communicates
-   exclusively via UNIX sockets.
-
-4. **No LabelExpression usage**: Unlike most slot/plug interfaces, `cups` doesn't use
-   `LabelExpression()` or `###SLOT_SECURITY_TAGS###` for peer matching. Access is
-   purely path-based.
-
-5. **Contrast with content interface**: The `content` interface correctly uses
-   `PerspectiveOther` when resolving the slot provider's paths (`content.go:234`). The
-   `cups` interface does not -- this is likely a bug.
-
-**Reasoning:** The socket path expansion bug means a parallel-installed CUPS provider's
-actual socket directory (at the instance-specific host path) doesn't match what the
-plug's AppArmor rules and mount entries reference. The plug would try to bind-mount
-from a non-existent or wrong directory.
-
-**Verification:** 
-- **Results:** PASSED on noble (plug-side consumer). Parallel `test-snapd-cups-consumer_foo`
-connected to the provider's cups socket via `$CUPS_SERVER` and communicated successfully;
-survived removal of original consumer snap. Note: parallel *provider* not tested -- the
-`cups.go:130` bug would only manifest with a parallel provider snap.
 
 
 
