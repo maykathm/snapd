@@ -2545,6 +2545,156 @@ from the system service does not conflict with other instances doing the same.
 
 **Verification:** Passed on noble. Test at `tests/main/interfaces-browser-support`.
 
+### audio-playback
+**Status:** Plug-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE. Slot-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE.
+
+**Type:** Desktop/Graphics/Media Integration
+
+
+**Code analysis:**
+- Plug-side policy includes instance-aware substitutions for non-implicit slot snaps: `slot.Snap().InstanceName()` is used for both `XDG_RUNTIME_DIR` and `SNAP_COMMON` socket paths (`interfaces/builtin/audio_playback.go:169`, `interfaces/builtin/audio_playback.go:172`).
+- Slot-side policy exposes shared audio daemon resources under `/run/pulse`, `/run/user/*/pulse`, and shared memory (`interfaces/builtin/audio_playback.go:97-129`).
+- Interface is designed as a shared client/service model with service-side mediation of recording decisions (`interfaces/builtin/audio_playback.go:33-41`).
+
+**Reasoning:** Parallel instances are handled at the policy level for snap-instance naming, but both sides still interact with a shared audio stack and shared runtime resources.
+
+**Verification:** No verification has yet been done.
+
+### audio-record
+**Status:** Plug-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE. Slot-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE.
+
+**Type:** Desktop/Graphics/Media Integration
+
+
+**Code analysis:**
+- Interface is explicitly a companion to `audio-playback`, with recording mediation delegated to the audio service (`interfaces/builtin/audio_record.go:28-36`).
+- Plug-side adds no distinct exclusive path/name ownership; it just enables the mediated access flow (`interfaces/builtin/audio_record.go:51-55`).
+- Slot declaration permits app/core providers and denies auto-connect by default (`interfaces/builtin/audio_record.go:40-49`).
+
+**Reasoning:** There is no snap-instance naming collision in this interface, but recording capability is mediated through a shared audio service and therefore remains a shared runtime resource.
+
+**Verification:** No verification has yet been done.
+
+### desktop
+**Status:** Plug-side: COMPATIBLE. Slot-side: NOT COMPATIBLE.
+
+**Type:** Desktop/Graphics/Media Integration
+
+
+**Code analysis:**
+- Plug-side uses instance-aware paths for document portal mounts via `plug.Snap().InstanceName()` (`interfaces/builtin/desktop.go:737`, `interfaces/builtin/desktop.go:760`).
+- Connected plug/slot policy uses label expressions so mediation is per-connection (`interfaces/builtin/desktop.go:724-727`, `interfaces/builtin/desktop.go:813-816`).
+- Slot-side permanent policy includes binding well-known desktop service names such as `org.gnome.Shell{,.*}` and `org.gnome.SettingsDaemon{,.*}` (`interfaces/builtin/desktop.go:567-580`).
+
+**Reasoning:** Consumer snaps are parallel-install safe. Provider snaps attempting to act as a full desktop session service hit singleton D-Bus ownership constraints.
+
+**Verification:** No verification has yet been done.
+
+### egl-driver-libs
+**Status:** Plug-side: N/A (system/core plug only on classic; parallel app plugs out of scope). Slot-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE.
+
+**Type:** Desktop/Graphics/Media Integration
+
+
+**Code analysis:**
+- Plug installation is limited to `core` and intended as system plug usage on classic (`interfaces/builtin/egl_driver_libs.go:42-50`, `interfaces/builtin/egl_driver_libs.go:169-171`).
+- Slot side validates compatibility/priority metadata and exposes vendor files through shared system directories like `/etc/glvnd/egl_vendor.d` (`interfaces/builtin/egl_driver_libs.go:64-93`, `interfaces/builtin/egl_driver_libs.go:105`, `interfaces/builtin/egl_driver_libs.go:108-139`).
+- Base declaration explicitly allows multiple slots per plug (`interfaces/builtin/egl_driver_libs.go:47-49`).
+
+**Reasoning:** Interface logic supports multiple providers, but they converge on shared system loader state, so behavior depends on shared global configuration rather than instance isolation.
+
+**Verification:** No verification has yet been done.
+
+### gbm-driver-libs
+**Status:** Plug-side: N/A (system/core plug only on classic; parallel app plugs out of scope). Slot-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE.
+
+**Type:** Desktop/Graphics/Media Integration
+
+
+**Code analysis:**
+- Plug installation is restricted to `core` and currently treated as system-plug-only (`interfaces/builtin/gbm_driver_libs.go:46-54`, `interfaces/builtin/gbm_driver_libs.go:177-179`).
+- Slot side validates compatibility and exports driver symlinks into architecture-global GBM directories (`interfaces/builtin/gbm_driver_libs.go:70-110`, `interfaces/builtin/gbm_driver_libs.go:121-142`).
+- Multiple slots per plug are allowed by base declaration (`interfaces/builtin/gbm_driver_libs.go:51-53`).
+
+**Reasoning:** No snap-instance name collision is encoded, but slot providers share and modify common host graphics-driver resolution paths.
+
+**Verification:** No verification has yet been done.
+
+### nvidia-video-driver-libs
+**Status:** Plug-side: N/A (system/core plug only on classic; parallel app plugs out of scope). Slot-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE.
+
+**Type:** Desktop/Graphics/Media Integration
+
+
+**Code analysis:**
+- Plug usage is currently system/core-scoped on classic (`interfaces/builtin/nvidia_video_driver_libs.go:39-47`, `interfaces/builtin/nvidia_video_driver_libs.go:125-127`).
+- Slot side validates compatibility and exports shared driver libraries through system library-source integration (`interfaces/builtin/nvidia_video_driver_libs.go:61-83`, `interfaces/builtin/nvidia_video_driver_libs.go:98-106`).
+- Declaration allows multiple slots per plug (`interfaces/builtin/nvidia_video_driver_libs.go:44-46`).
+
+**Reasoning:** Designed for composable provider slots, but all providers feed a shared system library environment.
+
+**Verification:** No verification has yet been done.
+
+### opengl-driver-libs
+**Status:** Plug-side: N/A (system/core plug only on classic; parallel app plugs out of scope). Slot-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE.
+
+**Type:** Desktop/Graphics/Media Integration
+
+
+**Code analysis:**
+- Plug side is restricted to core/system use on classic (`interfaces/builtin/opengl_driver_libs.go:39-47`, `interfaces/builtin/opengl_driver_libs.go:119-121`).
+- Slot side validates compatibility and contributes libraries via shared system library-source plumbing (`interfaces/builtin/opengl_driver_libs.go:61-79`, `interfaces/builtin/opengl_driver_libs.go:92-100`).
+- Base declarations allow many slots connected to one system plug (`interfaces/builtin/opengl_driver_libs.go:44-46`).
+
+**Reasoning:** No per-instance ownership conflict is hardcoded, but resulting driver resolution is a shared host-level state.
+
+**Verification:** No verification has yet been done.
+
+### opengles-driver-libs
+**Status:** Plug-side: N/A (system/core plug only on classic; parallel app plugs out of scope). Slot-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE.
+
+**Type:** Desktop/Graphics/Media Integration
+
+
+**Code analysis:**
+- Plug side is currently core/system-only on classic (`interfaces/builtin/opengles_driver_libs.go:40-48`, `interfaces/builtin/opengles_driver_libs.go:120-122`).
+- Slot side validates compatibility and exports library-source content into shared system resolution paths (`interfaces/builtin/opengles_driver_libs.go:62-80`, `interfaces/builtin/opengles_driver_libs.go:93-101`).
+- Multiple slots-per-plug are allowed (`interfaces/builtin/opengles_driver_libs.go:45-47`).
+
+**Reasoning:** Parallel providers are supported structurally, but they still participate in one shared host graphics-library namespace.
+
+**Verification:** No verification has yet been done.
+
+### thumbnailer-service
+**Status:** Plug-side: COMPATIBLE. Slot-side: NOT COMPATIBLE.
+
+**Type:** Desktop/Graphics/Media Integration
+
+
+**Code analysis:**
+- Slot side binds a well-known session bus name `com.canonical.Thumbnailer` (`interfaces/builtin/thumbnailer_service.go:60-63`).
+- Connected slot policy correctly uses `plug.Snap().InstanceName()` for plug data-path access (`interfaces/builtin/thumbnailer_service.go:130-133`).
+- Plug side is a client to the thumbnailer D-Bus API and uses slot label mediation (`interfaces/builtin/thumbnailer_service.go:85-98`, `interfaces/builtin/thumbnailer_service.go:115-119`).
+
+**Reasoning:** Multiple client instances can coexist, but multiple provider instances cannot all own the same well-known D-Bus service name.
+
+**Verification:** No verification has yet been done.
+
+### vulkan-driver-libs
+**Status:** Plug-side: N/A (system/core plug only on classic; parallel app plugs out of scope). Slot-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE.
+
+**Type:** Desktop/Graphics/Media Integration
+
+
+**Code analysis:**
+- Plug side is restricted to core/system scope on classic (`interfaces/builtin/vulkan_driver_libs.go:45-53`, `interfaces/builtin/vulkan_driver_libs.go:291-293`).
+- Slot side validates compatibility and structured JSON metadata, then populates shared directories `/etc/vulkan/icd.d`, `/etc/vulkan/implicit_layer.d`, and `/etc/vulkan/explicit_layer.d` (`interfaces/builtin/vulkan_driver_libs.go:67-96`, `interfaces/builtin/vulkan_driver_libs.go:107-116`, `interfaces/builtin/vulkan_driver_libs.go:240-259`).
+- Base declaration allows `slots-per-plug: *` (`interfaces/builtin/vulkan_driver_libs.go:50-52`).
+
+**Reasoning:** Interface is intentionally multi-provider, but providers act on shared global Vulkan loader state rather than isolated instance-owned state.
+
+**Verification:** No verification has yet been done.
+
 ### kerberos-tickets
 **Status:** Plug-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE. Slot-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE (no side-specific divergence documented in this entry).
 
@@ -3977,4 +4127,3 @@ Device access to `/dev/bus/usb/`, `/sys/bus/usb/`. No D-Bus, no snap-name paths.
 **Reasoning:** Plug-side access is not parallel-safe in practice because it gives global write control over shared GPIO lines and gpiochip devices. Two instances can reconfigure pin direction/value/edge for the same hardware and interfere immediately. Slot-side is core-only and not an app-provider parallel-install scenario.
 
 **Verification:** No verification has yet been done.
-
