@@ -170,6 +170,8 @@ These grant syscall-level capabilities with no named resources, paths, or D-Bus 
 ### custom-device
 **Status:** COMPATIBLE (code analysis -- not yet verified)
 
+**Type:** Hardware Device Access
+
 **Code analysis:**
 - The slot definition is gadget-driven and intentionally open-ended.
 - `custom-device` defaults the slot attribute to the slot name if unspecified.
@@ -182,6 +184,8 @@ These grant syscall-level capabilities with no named resources, paths, or D-Bus 
 
 ### confdb
 **Status:** COMPATIBLE EXCEPT FOR SHARED RESOURCE (shared confdb view; code analysis -- not yet verified)
+
+**Type:** Snapd/Policy Management
 
 **Code analysis:**
 - Auto-connection is driven by publisher account matching.
@@ -196,6 +200,8 @@ These grant syscall-level capabilities with no named resources, paths, or D-Bus 
 ### raw-volume
 **Status:** COMPATIBLE EXCEPT FOR SHARED RESOURCE (shared partition; code analysis -- not yet verified)
 
+**Type:** Filesystem/Mount Interface
+
 **Code analysis:**
 - The slot must point at a concrete disk partition.
 - The accepted device paths are explicit partition nodes only.
@@ -208,6 +214,8 @@ These grant syscall-level capabilities with no named resources, paths, or D-Bus 
 
 ### opengl
 **Status:** COMPATIBLE EXCEPT FOR SHARED RESOURCE (shared GPU; code analysis -- not yet verified)
+
+**Type:** Desktop/Graphics/Media Integration
 
 **Code analysis:**
 - Access is to GPU driver stacks, DRM render nodes, and vendor libraries.
@@ -222,6 +230,8 @@ These grant syscall-level capabilities with no named resources, paths, or D-Bus 
 ### jack1
 **Status:** COMPATIBLE EXCEPT FOR SHARED RESOURCE (shared session memory; code analysis -- not yet verified)
 
+**Type:** Daemon/Socket Client
+
 **Code analysis:**
 - Access is to JACK1 shared memory endpoints under `/dev/shm/jack-*`.
 - The rules are based on JACK's server/client naming convention, not on snap instance names.
@@ -234,6 +244,8 @@ These grant syscall-level capabilities with no named resources, paths, or D-Bus 
 ### pcscd
 **Status:** COMPATIBLE EXCEPT FOR SHARED RESOURCE (shared daemon resource; code analysis -- not yet verified)
 
+**Type:** Daemon/Socket Client
+
 **Code analysis:**
 - Client access is via `/run/pcscd/pcscd.comm`.
 - The interface also grants read access to OpenSC config files.
@@ -245,6 +257,8 @@ These grant syscall-level capabilities with no named resources, paths, or D-Bus 
 
 ### network
 **Status:** COMPATIBLE (code analysis -- not yet verified)
+
+**Type:** Network/Netlink Interface
 
 **Code analysis:**
 - Client-side network access only.
@@ -259,6 +273,8 @@ These grant syscall-level capabilities with no named resources, paths, or D-Bus 
 ### network-manager-observe
 **Status:** COMPATIBLE (code analysis -- not yet verified)
 
+**Type:** D-Bus/IPC Client
+
 **Code analysis:**
 - The interface only observes NetworkManager state and settings.
 - It uses D-Bus as a client and subscribes to signals; it does not own the NetworkManager bus name.
@@ -270,6 +286,8 @@ These grant syscall-level capabilities with no named resources, paths, or D-Bus 
 
 ### openvswitch
 **Status:** COMPATIBLE (code analysis -- not yet verified)
+
+**Type:** Daemon/Socket Client
 
 **Code analysis:**
 - Access is to Open vSwitch management sockets such as `/run/openvswitch/db.sock` and `*.mgmt`.
@@ -283,6 +301,8 @@ These grant syscall-level capabilities with no named resources, paths, or D-Bus 
 ### libvirt
 **Status:** COMPATIBLE (code analysis -- not yet verified)
 
+**Type:** Daemon/Socket Client
+
 **Code analysis:**
 - Access is to libvirt sockets (`/run/libvirt/libvirt-sock*`) plus a few config paths.
 - The seccomp rules allow socket operations needed by libvirt clients.
@@ -294,6 +314,8 @@ These grant syscall-level capabilities with no named resources, paths, or D-Bus 
 
 ### docker
 **Status:** COMPATIBLE (code analysis -- not yet verified)
+
+**Type:** Daemon/Socket Client
 
 **Code analysis:**
 - Access is to the Docker daemon socket (`/run/docker.sock` or `/var/run/docker.sock`).
@@ -307,6 +329,8 @@ These grant syscall-level capabilities with no named resources, paths, or D-Bus 
 ### podman
 **Status:** COMPATIBLE (code analysis -- not yet verified)
 
+**Type:** Daemon/Socket Client
+
 **Code analysis:**
 - Access is to both the system Podman socket and the rootless user socket.
 - The AppArmor rules are socket-path based and not instance-scoped.
@@ -318,6 +342,8 @@ These grant syscall-level capabilities with no named resources, paths, or D-Bus 
 
 ### can-bus
 **Status:** COMPATIBLE EXCEPT FOR SHARED RESOURCE (shared medium; code analysis -- not yet verified)
+
+**Type:** Network/Netlink Interface
 
 **Code analysis:**
 - The interface grants CAN network access and allows AF_CAN sockets.
@@ -331,6 +357,8 @@ These grant syscall-level capabilities with no named resources, paths, or D-Bus 
 ### kernel-crypto-api
 **Status:** COMPATIBLE (code analysis -- not yet verified)
 
+**Type:** Hardware Device Access
+
 **Code analysis:**
 - Access is to the Linux kernel crypto API through AF_ALG and NETLINK_CRYPTO.
 - The implementation explicitly notes the API is intended for any process and requires no special privileges.
@@ -342,6 +370,8 @@ These grant syscall-level capabilities with no named resources, paths, or D-Bus 
 
 ### avahi-control
 **Status:** COMPATIBLE (plug-side only; code analysis -- not yet verified)
+
+**Type:** D-Bus Service/Provider
 
 **Code analysis:**
 - The interface explicitly imports and extends `avahi-observe` behavior.
@@ -356,6 +386,8 @@ These grant syscall-level capabilities with no named resources, paths, or D-Bus 
 ### fwupd
 **Status:** NOT COMPATIBLE (slot-side singleton; code analysis -- not yet verified)
 
+**Type:** D-Bus Service/Provider
+
 **Code analysis:**
 - Permanent slot rules bind `org.freedesktop.fwupd` on the system bus.
 - The slot side carries extensive privileged access to firmware, EFI variables, TPM, MEI, NVMe, USB, and systemd D-Bus control paths.
@@ -368,6 +400,8 @@ These grant syscall-level capabilities with no named resources, paths, or D-Bus 
 
 ### maliit
 **Status:** NOT COMPATIBLE (slot-side singleton; code analysis -- not yet verified)
+
+**Type:** D-Bus Service/Provider
 
 **Code analysis:**
 - The slot binds the well-known session-bus name `org.maliit.server`.
@@ -382,6 +416,8 @@ These grant syscall-level capabilities with no named resources, paths, or D-Bus 
 ### mpris
 **Status:** COMPATIBLE (code analysis -- not yet verified)
 
+**Type:** D-Bus Service/Provider
+
 **Code analysis:**
 - The slot binds `org.mpris.MediaPlayer2.<name>` based on a `name` attribute, defaulting to `SNAP_INSTANCE_NAME`.
 - The code explicitly warns that snaps using this interface must adjust themselves for parallel installs.
@@ -394,6 +430,8 @@ These grant syscall-level capabilities with no named resources, paths, or D-Bus 
 
 ### pipewire
 **Status:** COMPATIBLE (plug-side only; code analysis -- not yet verified)
+
+**Type:** Daemon/Socket Client
 
 **Code analysis:**
 - The plug accesses PipeWire sockets at `/run/user/[0-9]*/pipewire-[0-9]` for classic/system slots.
@@ -412,6 +450,8 @@ The remaining shared SHM/socket state is client-server audio IPC, not a parallel
 ### cups (provider/slot-side issue)
 **Status:** NOT COMPATIBLE (slot-side); COMPATIBLE (plug-side)
 
+**Type:** D-Bus Service/Provider
+
 **Code analysis:**
 - The plug accesses a fixed socket at `/var/cups/cups.sock` (line 77).
 - The slot declares a `cups-socket-directory` attribute that must be under `$SNAP_COMMON` or `$SNAP_DATA` (lines 115-116).
@@ -427,6 +467,8 @@ The remaining shared SHM/socket state is client-server audio IPC, not a parallel
 ### serial-port
 **Status:** COMPATIBLE (device-specific; code analysis -- not yet verified)
 
+**Type:** Hardware Device Access
+
 **Code analysis:**
 - Slots are provided by core or gadget snaps only (lines 41-43), not by application snaps.
 - The slot requires a `path` attribute pointing to a specific device node (e.g., `/dev/ttyUSB0`) or a udev symlink with USB vendor/product attributes.
@@ -441,6 +483,8 @@ The remaining shared SHM/socket state is client-server audio IPC, not a parallel
 
 ### hidraw
 **Status:** COMPATIBLE (device-specific; code analysis -- not yet verified)
+
+**Type:** Hardware Device Access
 
 **Code analysis:**
 - Slots are provided by core or gadget snaps only (lines 39-41), not by application snaps.
@@ -458,6 +502,8 @@ The remaining shared SHM/socket state is client-server audio IPC, not a parallel
 
 ### i2c
 **Status:** COMPATIBLE (device-specific; code analysis -- not yet verified)
+
+**Type:** Hardware Device Access
 
 **Code analysis:**
 - Slots are provided by gadget or core snaps only (lines 39-41), not by application snaps.
@@ -477,6 +523,8 @@ The remaining shared SHM/socket state is client-server audio IPC, not a parallel
 ### media-control
 **Status:** COMPATIBLE EXCEPT FOR SHARED RESOURCE (shared hardware; code analysis -- not yet verified)
 
+**Type:** Desktop/Graphics/Media Integration
+
 **Code analysis:**
 - Slot is provided by core only (lines 32-33), with implicit slots on core and classic (lines 55-56).
 - AppArmor rules grant access to `/dev/media[0-9]*` and `/dev/v4l-subdev[0-9]*` (lines 39-43).
@@ -490,6 +538,8 @@ The remaining shared SHM/socket state is client-server audio IPC, not a parallel
 
 ### gsettings
 **Status:** COMPATIBLE EXCEPT FOR SHARED RESOURCE (shared per-user state; code analysis -- not yet verified)
+
+**Type:** D-Bus/IPC Client
 
 **Code analysis:**
 - Slot is provided by core only (lines 27-28), with implicit slot on classic (line 53).
@@ -508,6 +558,8 @@ The remaining shared SHM/socket state is client-server audio IPC, not a parallel
 ### lxd
 **Status:** COMPATIBLE (code analysis -- not yet verified)
 
+**Type:** Daemon/Socket Client
+
 **Code analysis:**
 - Slot installation is denied by default, requires snap-declaration (lines 26-28).
 - AppArmor rules grant access to the LXD socket at `/var/snap/lxd/common/lxd/unix.socket` (line 35).
@@ -522,6 +574,8 @@ The remaining shared SHM/socket state is client-server audio IPC, not a parallel
 
 ### microceph
 **Status:** COMPATIBLE (code analysis -- not yet verified)
+
+**Type:** Daemon/Socket Client
 
 **Code analysis:**
 - Slot installation is denied by default, requires snap-declaration (lines 25-28).
@@ -538,6 +592,8 @@ The remaining shared SHM/socket state is client-server audio IPC, not a parallel
 ### microovn
 **Status:** COMPATIBLE (code analysis -- not yet verified)
 
+**Type:** Daemon/Socket Client
+
 **Code analysis:**
 - Slot installation is denied by default, requires snap-declaration (lines 25-28).
 - AppArmor rules grant access to the MicroOVN socket at `/var/snap/microovn/common/state/control.socket` (line 34).
@@ -553,6 +609,8 @@ The remaining shared SHM/socket state is client-server audio IPC, not a parallel
 ### appstream-metadata
 **Status:** COMPATIBLE (code analysis -- not yet verified)
 
+**Type:** Observability/Diagnostics
+
 **Code analysis:**
 - Slot is provided by core only (lines 35-40), with implicit slot on classic (line 126).
 - AppArmor rules grant read access to AppStream metadata under `/usr/share/{metainfo,appdata,app-info,swcatalog}` and apt list metadata (lines 47-61).
@@ -565,6 +623,8 @@ The remaining shared SHM/socket state is client-server audio IPC, not a parallel
 
 ### bool-file
 **Status:** COMPATIBLE (code analysis -- not yet verified)
+
+**Type:** Filesystem/Mount Interface
 
 **Code analysis:**
 - Slots are provided by core or gadget snaps only (lines 34-40).
@@ -580,6 +640,8 @@ The remaining shared SHM/socket state is client-server audio IPC, not a parallel
 ### cifs-mount
 **Status:** COMPATIBLE (code analysis -- not yet verified)
 
+**Type:** Filesystem/Mount Interface
+
 **Code analysis:**
 - Slot is provided by core only (lines 24-29), with implicit slots on core and classic (lines 71-72).
 - AppArmor and seccomp permissions are for mount/umount of CIFS filesystems (lines 32-65).
@@ -592,6 +654,8 @@ The remaining shared SHM/socket state is client-server audio IPC, not a parallel
 
 ### empty
 **Status:** COMPATIBLE (code analysis -- not yet verified)
+
+**Type:** Test/Meta Interface
 
 **Code analysis:**
 - This interface intentionally contributes no permissions.
@@ -607,6 +671,8 @@ The remaining shared SHM/socket state is client-server audio IPC, not a parallel
 ### fuse-support
 **Status:** COMPATIBLE (code analysis -- not yet verified)
 
+**Type:** Hardware Device Access
+
 **Code analysis:**
 - Slot is provided by core only (lines 28-33), with implicit slots on core and classic except old Ubuntu 14.04 (lines 100-101).
 - AppArmor grants access to `/dev/fuse`, `sys_admin`, and mount targets under snap-specific writable directories (lines 43-92).
@@ -621,6 +687,8 @@ The remaining shared SHM/socket state is client-server audio IPC, not a parallel
 ### nfs-mount
 **Status:** COMPATIBLE (code analysis -- not yet verified)
 
+**Type:** Filesystem/Mount Interface
+
 **Code analysis:**
 - Slot is provided by core only (lines 24-29), with implicit slots on core and classic (lines 85-86).
 - AppArmor and seccomp permissions are for NFS mount/umount operations (lines 32-79).
@@ -633,6 +701,8 @@ The remaining shared SHM/socket state is client-server audio IPC, not a parallel
 
 ### optical-drive
 **Status:** COMPATIBLE EXCEPT FOR SHARED RESOURCE (shared hardware; code analysis -- not yet verified)
+
+**Type:** Hardware Device Access
 
 **Code analysis:**
 - Slot is provided by core only (lines 32-43), with implicit slot on classic only (line 107).
@@ -647,6 +717,8 @@ The remaining shared SHM/socket state is client-server audio IPC, not a parallel
 ### physical-memory-observe
 **Status:** COMPATIBLE (code analysis -- not yet verified)
 
+**Type:** Observability/Diagnostics
+
 **Code analysis:**
 - Slot is provided by core only (lines 24-29), with implicit slots on core and classic (lines 49-50).
 - AppArmor grants read-only `/dev/mem` and `/proc/*/pagemap` access (lines 32-41).
@@ -659,6 +731,8 @@ The remaining shared SHM/socket state is client-server audio IPC, not a parallel
 
 ### pkcs11
 **Status:** COMPATIBLE (code analysis -- not yet verified)
+
+**Type:** Identity/Credentials/Secrets
 
 **Code analysis:**
 - The slot provides a `pkcs11-socket` attribute and must live under `/run/p11-kit` (lines 71-93).
@@ -673,6 +747,8 @@ The remaining shared SHM/socket state is client-server audio IPC, not a parallel
 ### system-packages-doc
 **Status:** COMPATIBLE (code analysis -- not yet verified)
 
+**Type:** Observability/Diagnostics
+
 **Code analysis:**
 - Slot is provided by core only (lines 31-36), with implicit slot on classic (line 204-205).
 - AppArmor grants read access to documentation directories under `/usr/share`, `/usr/local/share`, and `/var/lib/snapd/hostfs`-backed locations (lines 39-53).
@@ -686,6 +762,8 @@ The remaining shared SHM/socket state is client-server audio IPC, not a parallel
 ### display-control
 **Status:** COMPATIBLE (code analysis -- not yet verified)
 
+**Type:** Desktop/Graphics/Media Integration
+
 **Code analysis:**
 - Slot is provided by core only (lines 34-39), with implicit slot on classic (line 137).
 - AppArmor rules cover backlight and keyboard backlight sysfs nodes plus UPower and GNOME Settings Daemon D-Bus APIs (lines 46-91).
@@ -698,6 +776,8 @@ The remaining shared SHM/socket state is client-server audio IPC, not a parallel
 
 ### desktop-legacy
 **Status:** COMPATIBLE EXCEPT FOR SHARED RESOURCE (shared desktop/session services; code analysis -- not yet verified)
+
+**Type:** D-Bus/IPC Client
 
 **Code analysis:**
 - Slot is provided by core only (lines 33-38), with implicit slot on classic (line 441).
@@ -720,6 +800,8 @@ The remaining shared SHM/socket state is client-server audio IPC, not a parallel
 ### gconf
 **Status:** COMPATIBLE EXCEPT FOR SHARED RESOURCE (shared per-user state; code analysis -- not yet verified)
 
+**Type:** D-Bus/IPC Client
+
 **Code analysis:**
 - Slot is provided by core only (lines 28-33), with implicit slot on classic (line 70).
 - AppArmor rules grant access to the GConf D-Bus service:
@@ -737,6 +819,8 @@ The remaining shared SHM/socket state is client-server audio IPC, not a parallel
 
 ### login-session-control
 **Status:** COMPATIBLE (code analysis -- not yet verified)
+
+**Type:** D-Bus/IPC Client
 
 **Code analysis:**
 - Slot is provided by core only (lines 24-29), with implicit slots on core and classic (lines 68-69).
@@ -756,6 +840,8 @@ The remaining shared SHM/socket state is client-server audio IPC, not a parallel
 ### login-session-observe
 **Status:** COMPATIBLE (code analysis -- not yet verified)
 
+**Type:** D-Bus/IPC Client
+
 **Code analysis:**
 - Slot is provided by core only (lines 24-29), with implicit slots on core and classic (lines 123-124).
 - AppArmor rules grant:
@@ -773,6 +859,8 @@ The remaining shared SHM/socket state is client-server audio IPC, not a parallel
 
 ### screen-inhibit-control
 **Status:** COMPATIBLE (code analysis -- not yet verified)
+
+**Type:** D-Bus/IPC Client
 
 **Code analysis:**
 - Slot may be provided by app or core snaps (lines 31-43), with implicit slot on classic (line 213).
@@ -796,6 +884,8 @@ The remaining shared SHM/socket state is client-server audio IPC, not a parallel
 ### time-control
 **Status:** COMPATIBLE (code analysis -- not yet verified)
 
+**Type:** D-Bus/IPC Client
+
 **Code analysis:**
 - Slot is provided by core only (lines 24-29), with implicit slots on core and classic (lines 143-144).
 - AppArmor rules grant:
@@ -818,6 +908,8 @@ The remaining shared SHM/socket state is client-server audio IPC, not a parallel
 ### alsa
 **Status:** COMPATIBLE
 
+**Type:** Hardware Device Access
+
 **Code analysis:**
 - AppArmor rules grant access to `/dev/snd/` and `/dev/snd/*` (read/write)
 - UDev rules match sound devices by kernel name patterns (`c116:[0-9]*`, `+sound:card[0-9]*`)
@@ -834,6 +926,8 @@ PASSED on noble.
 
 ### pulseaudio
 **Status:** COMPATIBLE (plug-side only)
+
+**Type:** Daemon/Socket Client
 
 **Code analysis:**
 - Shared memory: `/{run,dev}/shm/pulse-shm-* mrwk,` (`pulseaudio.go:49`, also `:118`)
@@ -867,6 +961,8 @@ PASSED on noble.
 ### x11
 **Status:** COMPATIBLE (plug-side only)
 
+**Type:** Desktop/Graphics/Media Integration
+
 **Code analysis:**
 - Slot-side creates sockets at `/tmp/.X11-unix/X[0-9]*`. Multiple X servers on
   different display numbers (X0, X1) can coexist.
@@ -890,6 +986,8 @@ PASSED on noble (parallel instances communicate correctly via
 
 ### wayland
 **Status:** COMPATIBLE (plug-side only)
+
+**Type:** Desktop/Graphics/Media Integration
 
 **Code analysis:**
 - Plug-side accesses `/run/user/[0-9]*/wayland-[0-9]*` sockets provided by the
@@ -917,6 +1015,8 @@ PASSED on ubuntu-22.04-64 (noble is disabled for this test).
 
 ### network-control
 **Status:** COMPATIBLE (plug-side only)
+
+**Type:** Network/Netlink Interface
 
 **Code analysis:**
 - The connected plug AppArmor rules at `network_control.go:81-151` only use `dbus send`
@@ -947,6 +1047,8 @@ PASSED on noble.
 ### network-bind
 **Status:** COMPATIBLE
 
+**Type:** Network/Netlink Interface
+
 **Code analysis:**
 - Grants capability to bind to network ports and accept connections.
 - No D-Bus name ownership, no shared memory, no instance-specific paths.
@@ -962,6 +1064,8 @@ PASSED on noble.
 ### network-status
 **Status:** COMPATIBLE
 
+**Type:** Network/Netlink Interface
+
 **Code analysis:**
 - Read-only D-Bus access to the `org.freedesktop.portal.NetworkMonitor` portal.
 - No D-Bus ownership, no writes, no shared state.
@@ -975,6 +1079,8 @@ PASSED on noble.
 ### network-setup-observe
 **Status:** COMPATIBLE
 
+**Type:** Network/Netlink Interface
+
 **Code analysis:**
 - Read-only file access to netplan configuration (`/etc/netplan/`, `/etc/network/`)
 - Read-only D-Bus access to Netplan Info API
@@ -987,6 +1093,8 @@ PASSED on noble.
 
 ### network-manager
 **Status:** NOT COMPATIBLE (slot-side system singleton)
+
+**Type:** D-Bus Service/Provider
 
 **Code analysis:**
 The network-manager interface is a system singleton service with multiple fatal conflicts
@@ -1034,6 +1142,8 @@ Expected failure on Ubuntu Core 18. The `_foo` nmcli initially works
 ### location-control
 **Status:** NOT COMPATIBLE (slot-side); COMPATIBLE (plug-side consumer only)
 
+**Type:** D-Bus Service/Provider
+
 **Code analysis:**
 - The SLOT permanently binds `dbus (bind) bus=system name="com.ubuntu.location.Service"`
 - The PLUG only sends/receives on that bus name
@@ -1060,6 +1170,8 @@ Expected failure. `org.freedesktop.DBus.Error.AccessDenied: An AppArmor
 
 ### avahi-observe
 **Status:** COMPATIBLE (plug-side)
+
+**Type:** D-Bus/IPC Client
 
 **Code analysis:**
 - The `dbus (bind) bus=system name="org.freedesktop.Avahi"` rule exists ONLY in
@@ -1091,6 +1203,8 @@ PASSED on noble.
 ### contacts-service
 **Status:** COMPATIBLE
 
+**Type:** D-Bus/IPC Client
+
 **Code analysis:**
 - Session bus D-Bus access to Evolution Data Server
 - Session bus allows multiple simultaneous clients
@@ -1103,6 +1217,8 @@ PASSED on noble.
 
 ### accounts-service
 **Status:** COMPATIBLE
+
+**Type:** D-Bus/IPC Client
 
 **Code analysis:**
 - Session bus D-Bus access to `org.gnome.OnlineAccounts` (GNOME Online Accounts)
@@ -1120,6 +1236,8 @@ PASSED on noble.
 
 ### system-dbus (generic `dbus` interface)
 **Status:** NOT COMPATIBLE (slot-side)
+
+**Type:** D-Bus Service/Provider
 
 **Code analysis:**
 This is the most well-documented incompatibility:
@@ -1165,6 +1283,8 @@ Expected failure. `org.freedesktop.DBus.Error.AccessDenied: An AppArmor
 ### location-observe
 **Status:** COMPATIBLE (plug-side only)
 
+**Type:** D-Bus/IPC Client
+
 Same architecture as `location-control` plug-side. A consumer observing location data
 from the system service does not conflict with other instances doing the same.
 
@@ -1175,6 +1295,8 @@ from the system service does not conflict with other instances doing the same.
 ### online-accounts-service
 **Status:** NOT COMPATIBLE (slot-side); COMPATIBLE (plug-side)
 
+**Type:** D-Bus Service/Provider
+
 **Code analysis:**
 - Slot binds `dbus (bind) bus=session name="com.ubuntu.OnlineAccounts.Manager"`
 - Same D-Bus name uniqueness issue as location-control slot-side
@@ -1183,6 +1305,8 @@ from the system service does not conflict with other instances doing the same.
 
 ### autopilot-introspection
 **Status:** COMPATIBLE (code analysis -- not yet verified)
+
+**Type:** D-Bus/IPC Client
 
 **Code analysis:**
 - Slot is provided by core only (lines 24-29), with implicit slots on core and classic (lines 69-70).
@@ -1200,6 +1324,8 @@ from the system service does not conflict with other instances doing the same.
 ### dbus
 **Status:** NOT COMPATIBLE (slot-side singleton); COMPATIBLE (plug-side)
 
+**Type:** D-Bus Service/Provider
+
 **Code analysis:**
 - This interface is explicitly built around a well-known D-Bus name provided by the slot snap.
 - Permanent slot policy binds the requested bus name with `dbus (bind)` and grants ownership in the generated D-Bus policy (lines 49-150).
@@ -1215,6 +1341,8 @@ from the system service does not conflict with other instances doing the same.
 ### ubuntu-download-manager
 **Status:** NOT COMPATIBLE (slot-side singleton); COMPATIBLE (plug-side)
 
+**Type:** D-Bus Service/Provider
+
 **Code analysis:**
 - The permanent slot binds the well-known session-bus name `com.canonical.applications.Downloader` (lines 127-130).
 - The permanent slot also grants D-Bus ownership and listen/accept permissions for that daemon role (lines 131-151).
@@ -1228,6 +1356,8 @@ from the system service does not conflict with other instances doing the same.
 
 ### system-trace
 **Status:** COMPATIBLE (code analysis -- not yet verified)
+
+**Type:** Observability/Diagnostics
 
 **Code analysis:**
 - Slot is provided by core only (lines 24-29), with implicit slots on core and classic (lines 71-72).
@@ -1243,6 +1373,8 @@ from the system service does not conflict with other instances doing the same.
 ### media-hub
 **Status:** NOT COMPATIBLE (slot-side singleton; code analysis -- not yet verified)
 
+**Type:** D-Bus Service/Provider
+
 **Code analysis:**
 - The permanent slot binds the well-known session-bus name `core.ubuntu.media.Service` (lines 64-68).
 - The slot AppArmor rules also allow request/release-name operations on the session bus and talk to unconfined clients for the service path (lines 49-99).
@@ -1257,6 +1389,8 @@ from the system service does not conflict with other instances doing the same.
 ### mir
 **Status:** NOT COMPATIBLE (slot-side singleton; code analysis -- not yet verified)
 
+**Type:** D-Bus Service/Provider
+
 **Code analysis:**
 - The permanent slot owns the Mir server runtime resources, including `/run/mir_socket`, `/run/user/[0-9]*/mir_socket`, `/dev/tty[0-9]*`, and `/dev/input/*` (lines 42-71).
 - The slot AppArmor also includes `/dev/shm/\#[0-9]*` shared-memory objects and `sys_admin` / `sys_tty_config` capabilities (lines 42-71).
@@ -1269,6 +1403,8 @@ from the system service does not conflict with other instances doing the same.
 
 ### storage-framework-service
 **Status:** NOT COMPATIBLE (slot-side singleton; code analysis -- not yet verified)
+
+**Type:** D-Bus Service/Provider
 
 **Code analysis:**
 - The permanent slot binds `com.canonical.StorageFramework.Registry` and `com.canonical.StorageFramework.Provider.*` on the session bus (lines 55-73).
@@ -1283,6 +1419,8 @@ from the system service does not conflict with other instances doing the same.
 ### unity8
 **Status:** NOT COMPATIBLE (slot-side singleton; code analysis -- not yet verified)
 
+**Type:** D-Bus Service/Provider
+
 **Code analysis:**
 - The connected plug talks to Unity 8 session services over the session bus, including `com.canonical.URLDispatcher` and `com.ubuntu.content.dbus.Service` (lines 45-89).
 - The URL dispatcher peer is a well-known bus name, and the content-hub-style interface is presented as a shared session service.
@@ -1295,6 +1433,8 @@ from the system service does not conflict with other instances doing the same.
 
 ### unity8-calendar
 **Status:** NOT COMPATIBLE (slot-side singleton; code analysis -- not yet verified)
+
+**Type:** D-Bus Service/Provider
 
 **Code analysis:**
 - The permanent slot binds `org.gnome.evolution.dataserver.Calendar7`, `org.gnome.evolution.dataserver.Subprocess.Backend.Calendar*`, and `com.canonical.SyncMonitor` on the session bus (lines 33-47).
@@ -1309,6 +1449,8 @@ from the system service does not conflict with other instances doing the same.
 ### unity8-contacts
 **Status:** NOT COMPATIBLE (slot-side singleton; code analysis -- not yet verified)
 
+**Type:** D-Bus Service/Provider
+
 **Code analysis:**
 - The permanent slot binds `org.gnome.evolution.dataserver.AddressBook9`, `org.gnome.evolution.dataserver.Subprocess.Backend.AddressBook*`, `com.canonical.pim`, and `com.meego.msyncd` on the session bus (lines 33-54).
 - The slot AppArmor exposes address book factory/view/subprocess paths and Canonical PIM paths to unconfined clients (lines 55-93).
@@ -1321,6 +1463,8 @@ from the system service does not conflict with other instances doing the same.
 
 ### screencast-legacy
 **Status:** NOT COMPATIBLE (plug-side only; code analysis -- not yet verified)
+
+**Type:** D-Bus/IPC Client
 
 **Code analysis:**
 - The plug talks to gnome-shell screenshot/screencast interfaces on the session bus (lines 32-53).
@@ -1335,6 +1479,8 @@ from the system service does not conflict with other instances doing the same.
 ### ros-opt-data
 **Status:** COMPATIBLE (code analysis -- not yet verified)
 
+**Type:** Filesystem/Mount Interface
+
 **Code analysis:**
 - The plug gets read-only access to `/var/lib/snapd/hostfs/opt/ros/**` and common ROS file extensions under that tree (lines 31-49).
 - The interface is implicit on classic and not on core, which matches a host filesystem read-only pattern.
@@ -1348,6 +1494,8 @@ from the system service does not conflict with other instances doing the same.
 ### system-backup
 **Status:** COMPATIBLE (code analysis -- not yet verified)
 
+**Type:** Observability/Diagnostics
+
 **Code analysis:**
 - The plug gets read-only access across the host filesystem through `/var/lib/snapd/hostfs/` exclusions and `dac_read_search` (lines 32-47).
 - The policy explicitly excludes `/dev`, `/sys`, and `/proc` from the broad read rule and then re-adds narrow cases as needed.
@@ -1359,6 +1507,8 @@ from the system service does not conflict with other instances doing the same.
 
 ### system-source-code
 **Status:** COMPATIBLE (code analysis -- not yet verified)
+
+**Type:** Observability/Diagnostics
 
 **Code analysis:**
 - The plug gets read-only access to `/usr/src/{,**}` (line 38).
@@ -1372,6 +1522,8 @@ from the system service does not conflict with other instances doing the same.
 ### juju-client-observe
 **Status:** COMPATIBLE (code analysis -- not yet verified)
 
+**Type:** Observability/Diagnostics
+
 **Code analysis:**
 - The plug gets read access to `~/.local/share/juju/{,**}` using `owner` file rules (lines 32-35).
 - The interface is classic-only and reads the user’s Juju client state; it does not own a bus name.
@@ -1383,6 +1535,8 @@ from the system service does not conflict with other instances doing the same.
 
 ### netlink-driver
 **Status:** COMPATIBLE (code analysis -- not yet verified)
+
+**Type:** Network/Netlink Interface
 
 **Code analysis:**
 - The slot is keyed by a numeric `family` attribute and a validated `family-name` (lines 66-100).
@@ -1397,6 +1551,8 @@ from the system service does not conflict with other instances doing the same.
 ### core-support
 **Status:** COMPATIBLE (code analysis -- not yet verified)
 
+**Type:** Hardware Device Access
+
 **Code analysis:**
 - This interface is explicitly hollow and grants no permissions (lines 39-41).
 - It only exists so callers can test for its presence; `commonInterface` is registered with no AppArmor/seccomp/udev policy.
@@ -1408,6 +1564,8 @@ from the system service does not conflict with other instances doing the same.
 
 ### accel
 **Status:** NOT COMPATIBLE (exclusive hardware; code analysis -- not yet verified)
+
+**Type:** Hardware Device Access
 
 **Code analysis:**
 - The interface grants access to `/dev/accel/accel*` (lines 4560-4566 in the bucket summary).
@@ -1421,6 +1579,8 @@ from the system service does not conflict with other instances doing the same.
 ### acrn-support
 **Status:** NOT COMPATIBLE (exclusive hardware; code analysis -- not yet verified)
 
+**Type:** Hardware Device Access
+
 **Code analysis:**
 - The interface grants access to `/dev/acrn_hsm` (lines 4572-4579 in the bucket summary).
 - ACRN management is a single hypervisor control device node.
@@ -1433,6 +1593,8 @@ from the system service does not conflict with other instances doing the same.
 ### allegro-vcu
 **Status:** NOT COMPATIBLE (exclusive hardware; code analysis -- not yet verified)
 
+**Type:** Hardware Device Access
+
 **Code analysis:**
 - The interface grants access to `/dev/allegroDecodeIP`, `/dev/allegroIP`, and `/dev/dmaproxy` (lines 4583-4590 in the bucket summary).
 - These are hardware codec device nodes, not per-instance resources.
@@ -1444,6 +1606,8 @@ from the system service does not conflict with other instances doing the same.
 ### broadcom-asic-control
 **Status:** NOT COMPATIBLE (exclusive hardware; code analysis -- not yet verified)
 
+**Type:** System Control/Privileged Capability
+
 **Code analysis:**
 - The interface grants access to `/dev/linux-user-bde`, `/dev/linux-kernel-bde`, and `/dev/linux-bcm-knet` (lines 4594-4601 in the bucket summary).
 - These are ASIC kernel module/device interfaces for a specific hardware platform.
@@ -1454,6 +1618,8 @@ from the system service does not conflict with other instances doing the same.
 
 ### camera
 **Status:** COMPATIBLE EXCEPT FOR SHARED RESOURCE (shared hardware; code analysis -- not yet verified)
+
+**Type:** Desktop/Graphics/Media Integration
 
 **Code analysis:**
 - Slot is provided by core only (lines 28-33), with implicit slots on core and classic (lines 80-81).
@@ -1469,6 +1635,8 @@ from the system service does not conflict with other instances doing the same.
 ### cpu-control
 **Status:** NOT COMPATIBLE (system-global control; code analysis -- not yet verified)
 
+**Type:** System Control/Privileged Capability
+
 **Code analysis:**
 - The interface targets `/sys/devices/system/cpu/**` (lines 4628-4635 in the bucket summary).
 - It controls governor, scaling, and hotplug settings for the whole system.
@@ -1481,6 +1649,8 @@ from the system service does not conflict with other instances doing the same.
 ### dcdbas-control
 **Status:** NOT COMPATIBLE (system-global control; code analysis -- not yet verified)
 
+**Type:** System Control/Privileged Capability
+
 **Code analysis:**
 - The interface targets `/sys/devices/platform/dcdbas/*` (lines 4639-4646 in the bucket summary).
 - It exposes the Dell Systems Management Base Driver, which is a single system resource.
@@ -1491,6 +1661,8 @@ from the system service does not conflict with other instances doing the same.
 
 ### dsp
 **Status:** NOT COMPATIBLE (exclusive hardware; code analysis -- not yet verified)
+
+**Type:** Hardware Device Access
 
 **Code analysis:**
 - The interface grants access to `/dev/ucode` and `/dev/iav*` (lines 4650-4657 in the bucket summary).
@@ -1503,6 +1675,8 @@ from the system service does not conflict with other instances doing the same.
 ### fpga
 **Status:** NOT COMPATIBLE (exclusive hardware; code analysis -- not yet verified)
 
+**Type:** Hardware Device Access
+
 **Code analysis:**
 - The interface grants access to `/dev/fpga[0-9]*` (lines 4661-4668 in the bucket summary).
 - These are numbered FPGA device nodes with shared hardware state.
@@ -1514,6 +1688,8 @@ from the system service does not conflict with other instances doing the same.
 ### framebuffer
 **Status:** NOT COMPATIBLE (exclusive hardware; code analysis -- not yet verified)
 
+**Type:** Hardware Device Access
+
 **Code analysis:**
 - The interface grants access to `/dev/fb[0-9]*` (lines 4672-4679 in the bucket summary).
 - Framebuffer devices are global display hardware.
@@ -1524,6 +1700,8 @@ from the system service does not conflict with other instances doing the same.
 
 ### gpio
 **Status:** COMPATIBLE (code analysis -- not yet verified)
+
+**Type:** Hardware Device Access
 
 **Code analysis:**
 - Slots are provided by core or gadget snaps only (lines 35-41), not by app snaps.
@@ -1538,6 +1716,8 @@ from the system service does not conflict with other instances doing the same.
 ### gpio-memory-control
 **Status:** COMPATIBLE (code analysis -- not yet verified)
 
+**Type:** System Control/Privileged Capability
+
 **Code analysis:**
 - Slot is provided by core only (lines 25-30), with implicit slots on core and classic (lines 47-48).
 - AppArmor rules grant access to `/dev/gpiomem` (line 38).
@@ -1551,6 +1731,8 @@ from the system service does not conflict with other instances doing the same.
 ### hugepages-control
 **Status:** NOT COMPATIBLE (system-global control; code analysis -- not yet verified)
 
+**Type:** System Control/Privileged Capability
+
 **Code analysis:**
 - Slot is provided by core only (`hugepages_control.go:29-35`), with implicit slots on core and classic (`hugepages_control.go:74-76`).
 - The interface controls system hugepage sysfs and `/proc/sys/vm/*` plus `/{dev,run}/hugepages/` (`hugepages_control.go:39-54`).
@@ -1563,6 +1745,8 @@ from the system service does not conflict with other instances doing the same.
 
 ### iio
 **Status:** COMPATIBLE (code analysis -- not yet verified)
+
+**Type:** Hardware Device Access
 
 **Code analysis:**
 - Slots are provided by core or gadget snaps only (lines 36-42).
@@ -1578,6 +1762,8 @@ from the system service does not conflict with other instances doing the same.
 ### intel-mei
 **Status:** NOT COMPATIBLE (exclusive hardware; code analysis -- not yet verified)
 
+**Type:** Hardware Device Access
+
 **Code analysis:**
 - The interface grants access to `/dev/mei[0-9]*` (lines 4727-4734 in the bucket summary).
 - Intel MEI is a system-management bus exposed as hardware device nodes.
@@ -1589,6 +1775,8 @@ from the system service does not conflict with other instances doing the same.
 ### intel-qat
 **Status:** NOT COMPATIBLE (shared accelerator hardware; code analysis -- not yet verified)
 
+**Type:** Hardware Device Access
+
 **Code analysis:**
 - The interface grants access to `/dev/vfio/*` and IOMMU sysfs (lines 4738-4745 in the bucket summary).
 - It targets Intel QuickAssist Technology accelerator hardware.
@@ -1599,6 +1787,8 @@ from the system service does not conflict with other instances doing the same.
 
 ### io-ports-control
 **Status:** NOT COMPATIBLE (system-global control; code analysis -- not yet verified)
+
+**Type:** System Control/Privileged Capability
 
 **Code analysis:**
 - Slot is provided by core only (`io_ports_control.go:24-30`), with implicit slots on core and classic (`io_ports_control.go:57-58`).
@@ -1614,6 +1804,8 @@ from the system service does not conflict with other instances doing the same.
 ### mediatek-accel
 **Status:** COMPATIBLE (code analysis -- not yet verified)
 
+**Type:** Hardware Device Access
+
 **Code analysis:**
 - Slot is provided by core only (lines 33-38), with plug-side `units` selection validated in `BeforePreparePlug()` (lines 94-122).
 - The selected units (`apu`, `vcu`) drive AppArmor and udev snippets (lines 71-88, 124-147).
@@ -1626,6 +1818,8 @@ from the system service does not conflict with other instances doing the same.
 ### physical-memory-control
 **Status:** NOT COMPATIBLE (extreme privilege; code analysis -- not yet verified)
 
+**Type:** System Control/Privileged Capability
+
 **Code analysis:**
 - The interface grants read/write access to `/dev/mem` (lines 4805-4813 in the bucket summary).
 - This is full physical memory access.
@@ -1637,6 +1831,8 @@ from the system service does not conflict with other instances doing the same.
 ### power-control
 **Status:** NOT COMPATIBLE (system-global control; code analysis -- not yet verified)
 
+**Type:** System Control/Privileged Capability
+
 **Code analysis:**
 - The interface targets `/sys/devices/**/power/*` and power-supply knobs (implementation section for `power-control`).
 - It controls wakeup, runtime power management, and battery threshold settings for the whole system.
@@ -1647,6 +1843,8 @@ from the system service does not conflict with other instances doing the same.
 
 ### ptp
 **Status:** COMPATIBLE (code analysis -- not yet verified)
+
+**Type:** Network/Netlink Interface
 
 **Code analysis:**
 - Slot is provided by core only, with implicit slots on core and classic.
@@ -1660,6 +1858,8 @@ from the system service does not conflict with other instances doing the same.
 
 ### pwm
 **Status:** COMPATIBLE EXCEPT FOR SHARED RESOURCE (shared hardware channel; code analysis -- not yet verified)
+
+**Type:** Hardware Device Access
 
 **Code analysis:**
 - Slots are provided by core or gadget snaps only (`pwm.go:36-42`).
@@ -1675,6 +1875,8 @@ from the system service does not conflict with other instances doing the same.
 ### spi
 **Status:** COMPATIBLE EXCEPT FOR SHARED RESOURCE (shared bus/device; code analysis -- not yet verified)
 
+**Type:** Hardware Device Access
+
 **Code analysis:**
 - Slots are provided by core or gadget snaps only (`spi.go:36-43`).
 - Slot path validation ensures a concrete `/dev/spidevN.M` node (`spi.go:60-79`).
@@ -1688,6 +1890,8 @@ from the system service does not conflict with other instances doing the same.
 ### u2f-devices
 **Status:** COMPATIBLE EXCEPT FOR SHARED RESOURCE (shared token; code analysis -- not yet verified)
 
+**Type:** Identity/Credentials/Secrets
+
 **Code analysis:**
 - The interface grants access to `/dev/hidraw*` and related udev/sysfs metadata (`u2f_devices.go:227-243`).
 - UDev matching is vendor/product based for known U2F/FIDO tokens (`u2f_devices.go:249-252`).
@@ -1699,6 +1903,8 @@ from the system service does not conflict with other instances doing the same.
 
 ### uio
 **Status:** COMPATIBLE (code analysis -- not yet verified)
+
+**Type:** Hardware Device Access
 
 **Code analysis:**
 - Slots are provided by core or gadget snaps only.
@@ -1713,6 +1919,8 @@ from the system service does not conflict with other instances doing the same.
 ### usb-gadget
 **Status:** NOT COMPATIBLE (system-global control; code analysis -- not yet verified)
 
+**Type:** Hardware Device Access
+
 **Code analysis:**
 - The interface grants broad access to USB gadget configfs (`usb_gadget.go:168-179`).
 - FunctionFS mount targets are expanded from the plug snap identity via `expandMountWhereVariable()` (`usb_gadget.go:205`).
@@ -1725,6 +1933,8 @@ from the system service does not conflict with other instances doing the same.
 
 ### vcio
 **Status:** COMPATIBLE (code analysis -- not yet verified)
+
+**Type:** Hardware Device Access
 
 **Code analysis:**
 - Slot is provided by core only, with implicit slots on core and classic.
@@ -1739,6 +1949,8 @@ from the system service does not conflict with other instances doing the same.
 ### raw-input
 **Status:** COMPATIBLE (code analysis + verified on noble)
 
+**Type:** Hardware Device Access
+
 **Code analysis:**
 - The interface grants access to `/dev/input/*` and input-device sysfs/udev metadata (lines 44-57 in the implementation).
 - UDev tagging is based on input device subsystems, not snap names.
@@ -1751,6 +1963,8 @@ from the system service does not conflict with other instances doing the same.
 ### dvb
 **Status:** COMPATIBLE (code analysis + verified on noble)
 
+**Type:** Hardware Device Access
+
 **Code analysis:**
 - The interface grants access to `/dev/dvb/adapter[0-9]*/*` and DVB udev metadata (lines 32-39 in the implementation).
 - The interface is device-path based and uses subsystem tagging, not snap naming.
@@ -1761,6 +1975,8 @@ from the system service does not conflict with other instances doing the same.
 
 ### device-buttons
 **Status:** COMPATIBLE (code analysis + verified on noble)
+
+**Type:** Hardware Device Access
 
 **Code analysis:**
 - The interface grants access to `/dev/input/event[0-9]*` and supporting input capability files (lines 37-59 in the implementation).
@@ -1773,6 +1989,8 @@ from the system service does not conflict with other instances doing the same.
 ### uhid
 **Status:** COMPATIBLE (code analysis + verified on noble)
 
+**Type:** Hardware Device Access
+
 **Code analysis:**
 - The interface grants write access to `/dev/uhid` (lines 32-38 in the implementation).
 - There is no udev tagging because UHID is not represented in sysfs.
@@ -1784,6 +2002,8 @@ from the system service does not conflict with other instances doing the same.
 
 ### block-devices
 **Status:** COMPATIBLE EXCEPT FOR SHARED RESOURCE (code analysis + verified on noble)
+
+**Type:** Hardware Device Access
 
 **Code analysis:**
 - The interface grants broad access to raw disk block devices, controller character devices, and block-related sysfs/udev metadata (lines 58-132 in the implementation).
@@ -1798,6 +2018,8 @@ from the system service does not conflict with other instances doing the same.
 ### daemon-notify
 **Status:** COMPATIBLE (code analysis + verified on noble)
 
+**Type:** Snapd/Policy Management
+
 **Code analysis:**
 - The interface resolves `NOTIFY_SOCKET` from the environment or defaults to `/run/systemd/notify` (lines 56-88 in the implementation).
 - It validates the socket path and emits an AppArmor rule for the resolved socket.
@@ -1810,6 +2032,8 @@ from the system service does not conflict with other instances doing the same.
 ### browser-support
 **Status:** COMPATIBLE (code analysis + verified on noble)
 
+**Type:** Desktop/Graphics/Media Integration
+
 **Code analysis:**
 - The interface explicitly uses `@{SNAP_INSTANCE_NAME}` for snap-local runtime socket paths in the sandboxed rules (lines 62-76 in the implementation).
 - It also uses owner rules for per-user shared-memory and browser-specific state, and a session D-Bus access to RealtimeKit.
@@ -1821,6 +2045,8 @@ from the system service does not conflict with other instances doing the same.
 
 ### kerberos-tickets
 **Status:** COMPATIBLE EXCEPT FOR SHARED RESOURCE (shared per-user state; code analysis + verified on noble)
+
+**Type:** Identity/Credentials/Secrets
 
 **Code analysis:**
 - The interface grants owner access to `/var/lib/snapd/hostfs/tmp/krb5cc*` (line 33 in the implementation).
@@ -1836,6 +2062,8 @@ The cache filename is typically session-specific and may look random (for exampl
 ### audio-playback-record
 **Status:** COMPATIBLE EXCEPT FOR SHARED RESOURCE (shared audio stack; plug-side only; code analysis + verified on noble)
 
+**Type:** Desktop/Graphics/Media Integration
+
 **Code analysis:**
 - The plug side uses PulseAudio/PipeWire shared-memory and socket paths, with an instance-aware path substitution for system mode (`###SLOT_INSTANCE_NAME###`) in the connected plug rules (lines 55-175 in the implementation).
 - The slot side exposes standard audio daemon resources and shared memory.
@@ -1847,6 +2075,8 @@ The cache filename is typically session-specific and may look random (for exampl
 
 ### adb-support
 **Status:** COMPATIBLE (code analysis + verified on noble)
+
+**Type:** Hardware Device Access
 
 **Code analysis:**
 - The interface tags USB devices by vendor ID and emits udev rules for matching devices (lines 129-190 in the implementation).
@@ -1861,6 +2091,8 @@ The cache filename is typically session-specific and may look random (for exampl
 ### netlink-audit
 **Status:** COMPATIBLE (code analysis + verified on noble)
 
+**Type:** Network/Netlink Interface
+
 **Code analysis:**
 - The interface grants `AF_NETLINK - NETLINK_AUDIT` access and netlink-related capabilities (lines 40-60 in the implementation).
 - `BeforeConnectPlug()` checks host AppArmor parser support for `cap-audit-read`.
@@ -1873,6 +2105,8 @@ The cache filename is typically session-specific and may look random (for exampl
 ### netlink-connector
 **Status:** COMPATIBLE (code analysis + verified on noble)
 
+**Type:** Network/Netlink Interface
+
 **Code analysis:**
 - The interface grants `AF_NETLINK - NETLINK_CONNECTOR` access and `CAP_NET_ADMIN` (lines 32-49 in the implementation).
 - The policy intentionally allows communications via all netlink connectors.
@@ -1884,6 +2118,8 @@ The cache filename is typically session-specific and may look random (for exampl
 
 ### bluez
 **Status:** NOT COMPATIBLE (slot-side system singleton); COMPATIBLE (plug-side)
+
+**Type:** D-Bus Service/Provider
 
 **Code analysis:**
 The bluez interface manages Bluetooth services. It follows the same pattern as
@@ -1930,6 +2166,8 @@ slot (no D-Bus name conflict with only one instance running).
 ### bluetooth-control
 **Status:** COMPATIBLE (code analysis -- not yet verified)
 
+**Type:** System Control/Privileged Capability
+
 **Code analysis:**
 - Slot is provided by core only (lines 24-29), with implicit slots on core and classic (lines 70-71).
 - AppArmor rules grant access to Bluetooth kernel interfaces and device nodes (`/sys/devices/**/bluetooth/**`, `/dev/vhci`, `/dev/stpbt`) (lines 32-56).
@@ -1943,6 +2181,8 @@ slot (no D-Bus name conflict with only one instance running).
 
 ### gpio-chardev
 **Status:** COMPATIBLE (code analysis -- not yet verified)
+
+**Type:** Hardware Device Access
 
 **Code analysis:**
 - Slots are provided by gadget snaps (lines 50-55), and the interface uses instance-aware names throughout the setup.
@@ -1958,6 +2198,8 @@ slot (no D-Bus name conflict with only one instance running).
 ### kernel-module-observe
 **Status:** COMPATIBLE (code analysis -- not yet verified)
 
+**Type:** Observability/Diagnostics
+
 **Code analysis:**
 - Slot is provided by core only (lines 24-29), with implicit slots on core and classic (lines 54-55).
 - AppArmor grants read access to `/proc/modules`, `/sys/module/**`, and modprobe config directories (lines 32-48).
@@ -1970,6 +2212,8 @@ slot (no D-Bus name conflict with only one instance running).
 
 ### ppp
 **Status:** COMPATIBLE (code analysis -- not yet verified)
+
+**Type:** Network/Netlink Interface
 
 **Code analysis:**
 - Slot is provided by core only (lines 24-29), with implicit slots on core and classic (lines 70-71).
@@ -1984,6 +2228,8 @@ slot (no D-Bus name conflict with only one instance running).
 ### qualcomm-ipc-router
 **Status:** COMPATIBLE (code analysis -- not yet verified)
 
+**Type:** Hardware Device Access
+
 **Code analysis:**
 - The interface supports both system and app slots, and the app-slot path is fully instance-aware via `slot.LabelExpression()` and `plug.LabelExpression()` (lines 195-241).
 - Slot attributes `qcipc` and `address` are validated, and the socket address is injected directly into AppArmor/Seccomp snippets (lines 174-192, 244-263).
@@ -1997,6 +2243,8 @@ slot (no D-Bus name conflict with only one instance running).
 ### tpm
 **Status:** COMPATIBLE (code analysis -- not yet verified)
 
+**Type:** Hardware Device Access
+
 **Code analysis:**
 - Slot is provided by core only (lines 24-29), with implicit slots on core and classic (lines 49-50).
 - AppArmor grants access to `/dev/tpm[0-9]*` and `/dev/tpmrm[0-9]*` (lines 32-38).
@@ -2009,6 +2257,8 @@ slot (no D-Bus name conflict with only one instance running).
 
 ### udisks2
 **Status:** NOT COMPATIBLE (slot-side system singleton); COMPATIBLE (plug-side)
+
+**Type:** D-Bus Service/Provider
 
 **Code analysis:**
 The udisks2 interface manages disk/storage services. Same singleton pattern.
@@ -2047,6 +2297,8 @@ of original snap.
 
 ### upower-observe
 **Status:** NOT COMPATIBLE (slot-side D-Bus singleton); COMPATIBLE (plug-side)
+
+**Type:** D-Bus Service/Provider
 
 **Code analysis:**
 The upower-observe interface provides access to the UPower power management service.
@@ -2087,6 +2339,8 @@ For slot-side (providing the UPower service), only one instance can operate.
 
 ### ofono
 **Status:** NOT COMPATIBLE (slot-side D-Bus singleton)
+
+**Type:** D-Bus Service/Provider
 
 **Code analysis:**
 The ofono interface provides telephony services via the ofono daemon.
@@ -2137,6 +2391,8 @@ incompatibility is confirmed by code analysis only (D-Bus singleton `org.ofono` 
 ### modem-manager
 **Status:** NOT COMPATIBLE (slot-side D-Bus singleton)
 
+**Type:** D-Bus Service/Provider
+
 **Code analysis:**
 The modem-manager interface provides cellular modem management via ModemManager.
 
@@ -2182,6 +2438,8 @@ incompatibility is confirmed by code analysis only (D-Bus singleton
 
 ### unity7
 **Status:** NOT COMPATIBLE (known documented D-Bus path leakage between instances)
+
+**Type:** Desktop/Graphics/Media Integration
 
 **Code analysis:**
 The unity7 interface grants access to Unity7/GNOME desktop session services. It has a
@@ -2253,6 +2511,8 @@ demonstrate. The incompatibility is confirmed by the explicit code comment at
 ### content
 **Status:** COMPATIBLE
 
+**Type:** Filesystem/Mount Interface
+
 **Code analysis:**
 The content interface is the most complex interface for parallel installs because it
 creates bind mounts between snaps. The code handles parallel instances correctly through
@@ -2301,6 +2561,8 @@ read shared content, survived removal of original plug snap.
 ### home
 **Status:** COMPATIBLE
 
+**Type:** Filesystem/Mount Interface
+
 **Code analysis:**
 - AppArmor rules use `owner @{HOME}/` patterns that don't distinguish instances
 - Both instances access the same home directory files, which is the intended behavior
@@ -2315,6 +2577,8 @@ PASSED on noble.
 
 ### desktop-launch
 **Status:** PARTIALLY COMPATIBLE (API access works; desktop file launching does NOT)
+
+**Type:** Filesystem/Mount Interface
 
 **Code analysis:**
 - The snapd API access part (reading `/v2/snaps`, `/v2/icons`) works correctly for
@@ -2343,6 +2607,8 @@ Expected failure -- desktop file launching is incompatible with parallel
 ### desktop-document-portal
 **Status:** COMPATIBLE
 
+**Type:** Desktop/Graphics/Media Integration
+
 **Code analysis:**
 - The document portal mounts a per-snap subtree of the xdg-desktop-portal FUSE
   filesystem over `$XDG_RUNTIME_DIR/doc` inside the snap's sandbox
@@ -2363,6 +2629,8 @@ PASSED on noble.
 ### cups-control
 **Status:** COMPATIBLE (not verified)
 
+**Type:** Daemon/Socket Client
+
 **Code analysis:**
 - Access to CUPS socket and D-Bus for printing
 - Multiple instances can submit print jobs simultaneously
@@ -2378,6 +2646,8 @@ FAILED -- pre-existing environment issue (no CUPS printer configured).
 
 ### cups (provider/consumer interface)
 **Status:** NOT COMPATIBLE (slot-side path expansion bug) COMPATIBLE (plug-side)
+
+**Type:** D-Bus Service/Provider
 
 **Code analysis:**
 The `cups` interface (distinct from `cups-control`) allows a snap to provide CUPS print
@@ -2425,6 +2695,8 @@ survived removal of original consumer snap. Note: parallel *provider* not tested
 ### polkit
 **Status:** COMPATIBLE
 
+**Type:** Identity/Credentials/Secrets
+
 **Code analysis:**
 The polkit interface installs policy files (`.policy`) and rule files (`.rules`) for
 polkit authorization.
@@ -2465,6 +2737,8 @@ original's files were cleaned up.
 ### firewall-control
 **Status:** COMPATIBLE
 
+**Type:** System Control/Privileged Capability
+
 **Code analysis:**
 - Grants capability to manipulate iptables/nftables rules
 - AppArmor rules are purely capability-based (no snap-name-dependent paths)
@@ -2483,6 +2757,8 @@ PASSED on noble.
 ### ssh-keys
 **Status:** COMPATIBLE
 
+**Type:** Identity/Credentials/Secrets
+
 **Code analysis:**
 - Read/write access to `~/.ssh/` files
 - No shared memory, no D-Bus, no instance-specific paths
@@ -2496,6 +2772,8 @@ PASSED on noble.
 ### ssh-public-keys
 **Status:** COMPATIBLE
 
+**Type:** Identity/Credentials/Secrets
+
 **Code analysis:**
 - Read access to SSH public keys (`~/.ssh/*.pub`, `/etc/ssh/ssh_host_*_key.pub`)
 - No shared memory, no D-Bus, no writes to global resources
@@ -2507,6 +2785,8 @@ PASSED on noble.
 
 ### personal-files
 **Status:** COMPATIBLE
+
+**Type:** Filesystem/Mount Interface
 
 **Code analysis:**
 The personal-files interface grants access to user-specific file paths declared in plug
@@ -2544,6 +2824,8 @@ survived removal of original snap.
 ### system-files
 **Status:** COMPATIBLE
 
+**Type:** Filesystem/Mount Interface
+
 **Code analysis:**
 Same implementation as personal-files (both use `commonFilesInterface` in
 `common_files.go`).
@@ -2569,6 +2851,8 @@ survived removal of original snap.
 ### hostname-control
 **Status:** COMPATIBLE
 
+**Type:** System Control/Privileged Capability
+
 **Code analysis:**
 - D-Bus client to `org.freedesktop.hostname1` (send-only, `hostname_control.go:45-72`)
 - Writes to `/etc/hostname`, `/etc/writable/hostname` (`hostname_control.go:35-38`)
@@ -2586,6 +2870,8 @@ snap-name-dependent resources. Parallel instances get identical permissions.
 
 ### locale-control
 **Status:** COMPATIBLE
+
+**Type:** System Control/Privileged Capability
 
 **Code analysis:**
 - D-Bus client to `org.freedesktop.locale1` (send-only, `locale_control.go:41-64`)
@@ -2605,6 +2891,8 @@ snap-name-dependent resources.
 ### timezone-control
 **Status:** COMPATIBLE
 
+**Type:** D-Bus/IPC Client
+
 **Code analysis:**
 - D-Bus client to `org.freedesktop.timedate1` (send-only, `timezone_control.go:49-83`)
 - Reads `/usr/share/zoneinfo/**`, writes `/etc/timezone`, `/etc/localtime`
@@ -2622,6 +2910,8 @@ snap-name-dependent resources.
 ### timeserver-control
 **Status:** COMPATIBLE
 
+**Type:** System Control/Privileged Capability
+
 **Code analysis:**
 - D-Bus client to `org.freedesktop.timedate1`, `org.freedesktop.timesync1`,
   `org.freedesktop.network1` (send-only, `timeserver_control.go:51-106`)
@@ -2638,6 +2928,8 @@ snap-name-dependent resources.
 
 ### network-setup-control
 **Status:** COMPATIBLE
+
+**Type:** Network/Netlink Interface
 
 **Code analysis:**
 - D-Bus client to `io.netplan.Netplan` (send-only, `network_setup_control.go:74-87`)
@@ -2657,6 +2949,8 @@ paths are global system directories.
 
 ### account-control
 **Status:** COMPATIBLE (code analysis -- not yet verified by test)
+
+**Type:** Identity/Credentials/Secrets
 
 **Code analysis:**
 - D-Bus client to `org.freedesktop.Accounts` (send-only, `account_control.go:44-73`)
@@ -2680,6 +2974,8 @@ dynamic seccomp GID resolution is deterministic regardless of instance.
 ### joystick
 **Status:** COMPATIBLE
 
+**Type:** Hardware Device Access
+
 **Code analysis:**
 - Access to `/dev/input/js*` and `/dev/input/event*` devices
 - UDev tagging by input subsystem
@@ -2695,6 +2991,8 @@ PASSED on noble.
 ### hardware-observe
 **Status:** COMPATIBLE
 
+**Type:** Observability/Diagnostics
+
 **Code analysis:**
 - Read-only access to `/sys/`, `/proc/`, hardware information
 - No writes, no D-Bus, no shared memory
@@ -2707,6 +3005,8 @@ PASSED on noble.
 
 ### hardware-random-control
 **Status:** COMPATIBLE
+
+**Type:** System Control/Privileged Capability
 
 **Code analysis:**
 - Read/write access to `/dev/hwrng` and sysfs hw_random paths
@@ -2722,6 +3022,8 @@ PASSED on noble.
 ### hardware-random-observe
 **Status:** COMPATIBLE
 
+**Type:** Observability/Diagnostics
+
 **Code analysis:**
 - Read-only access to `/dev/hwrng` and sysfs hw_random paths
 - Subset of hardware-random-control (read only)
@@ -2734,6 +3036,8 @@ PASSED on noble.
 
 ### shared-memory (non-private/named mode)
 **Status:** NOT COMPATIBLE (kernel-global SHM namespace)
+
+**Type:** Filesystem/Mount Interface
 
 **Code analysis:**
 The shared-memory interface has two modes:
@@ -2764,6 +3068,8 @@ Expected failure. The original plug reads `parallel data` instead of
 
 ### shared-memory (private mode)
 **Status:** COMPATIBLE
+
+**Type:** Filesystem/Mount Interface
 
 **Code analysis:**
 The private mode of shared-memory gives each snap its own isolated `/dev/shm` namespace
@@ -2801,6 +3107,8 @@ namespace, segments were isolated from original, survived removal of original sn
 
 ### posix-mq
 **Status:** NOT COMPATIBLE (kernel-global queue namespace)
+
+**Type:** Hardware Device Access
 
 **Code analysis:**
 The posix-mq interface manages POSIX message queue access between plug and slot snaps.
@@ -2844,6 +3152,8 @@ Expected failure. The `_foo` instance received `priority 7: Original message`
 
 ### mount-control
 **Status:** NOT COMPATIBLE
+
+**Type:** Filesystem/Mount Interface
 
 **Code analysis:**
 
@@ -2904,6 +3214,8 @@ Expected failure. `mount: mount /var/tmp/test-snapd-mount-control on
 ### password-manager-service
 **Status:** COMPATIBLE
 
+**Type:** Identity/Credentials/Secrets
+
 **Code analysis:**
 - Session bus D-Bus access to `org.freedesktop.secrets` (gnome-keyring)
 - The plug only sends/receives -- it does not own the keyring service name
@@ -2925,6 +3237,8 @@ PASSED on noble.
 ### calendar-service
 **Status:** COMPATIBLE
 
+**Type:** D-Bus/IPC Client
+
 **Code analysis:**
 - Session bus D-Bus access to Evolution Data Server (calendar component)
 - Same architecture as contacts-service (session bus, client-only)
@@ -2939,12 +3253,16 @@ PASSED on noble.
 ### log-observe
 **Status:** COMPATIBLE (code analysis -- not yet verified by test)
 
+**Type:** Observability/Diagnostics
+
 Read-only access to system logs (`/var/log/`, journal). No D-Bus, no snap-name paths.
 
 **Verification:** Passed on noble. Test at `tests/main/interfaces-log-observe`.
 
 ### network-observe
 **Status:** COMPATIBLE (code analysis -- not yet verified by test)
+
+**Type:** Network/Netlink Interface
 
 Read-only network status queries (D-Bus client to systemd-resolved, read /proc/sys).
 No D-Bus ownership.
@@ -2954,6 +3272,8 @@ No D-Bus ownership.
 ### mount-observe
 **Status:** COMPATIBLE (code analysis -- not yet verified by test)
 
+**Type:** Filesystem/Mount Interface
+
 Read-only access to `/proc/<pid>/mounts` and mount propagation info. No D-Bus, no
 snap-name paths.
 
@@ -2961,6 +3281,8 @@ snap-name paths.
 
 ### system-observe
 **Status:** COMPATIBLE (code analysis -- not yet verified by test)
+
+**Type:** Observability/Diagnostics
 
 Read-only access to system info (D-Bus client to hostnamed/systemd, read /proc, /boot).
 No D-Bus ownership.
@@ -2970,12 +3292,16 @@ No D-Bus ownership.
 ### process-control
 **Status:** COMPATIBLE (code analysis -- not yet verified by test)
 
+**Type:** System Control/Privileged Capability
+
 Capability-based: `kill` syscall, signal sending, priority changes. No paths, no D-Bus.
 
 **Verification:** Passed on noble. Test at `tests/main/interfaces-process-control`.
 
 ### gpg-keys
 **Status:** COMPATIBLE (code analysis -- not yet verified by test)
+
+**Type:** Identity/Credentials/Secrets
 
 Read/write access to `~/.gnupg/` (user file access). No D-Bus, no snap-name paths.
 
@@ -2984,12 +3310,16 @@ Read/write access to `~/.gnupg/` (user file access). No D-Bus, no snap-name path
 ### gpg-public-keys
 **Status:** COMPATIBLE (code analysis -- not yet verified by test)
 
+**Type:** Identity/Credentials/Secrets
+
 Read-only access to `~/.gnupg/` public keys. No D-Bus, no snap-name paths.
 
 **Verification:** Passed on noble. Test at `tests/main/interfaces-gpg-public-keys`.
 
 ### removable-media
 **Status:** COMPATIBLE (code analysis -- not yet verified by test)
+
+**Type:** Filesystem/Mount Interface
 
 Access to `/media/`, `/run/media/`, `/mnt/` mount points. No D-Bus, no snap-name paths.
 
@@ -2998,6 +3328,8 @@ Access to `/media/`, `/run/media/`, `/mnt/` mount points. No D-Bus, no snap-name
 ### kvm
 **Status:** COMPATIBLE (code analysis -- not yet verified by test)
 
+**Type:** Container/Virtualization Support
+
 Device access to `/dev/kvm`. No D-Bus, no snap-name paths.
 
 **Verification:** Passed on noble. Test at `tests/main/interfaces-kvm`.
@@ -3005,12 +3337,16 @@ Device access to `/dev/kvm`. No D-Bus, no snap-name paths.
 ### raw-usb
 **Status:** COMPATIBLE (code analysis -- not yet verified by test)
 
+**Type:** Hardware Device Access
+
 Device access to `/dev/bus/usb/`, `/sys/bus/usb/`. No D-Bus, no snap-name paths.
 
 **Verification:** Passed on noble. Test at `tests/main/interfaces-raw-usb`.
 
 #### cuda-driver-libs
 **Status:** COMPATIBLE (code analysis -- not yet verified)
+
+**Type:** Hardware Device Access
 
 **Code analysis:**
 - The interface is mostly about publishing CUDA driver libraries and config metadata.
@@ -3024,6 +3360,8 @@ Device access to `/dev/bus/usb/`, `/sys/bus/usb/`. No D-Bus, no snap-name paths.
 
 #### dm-crypt
 **Status:** COMPATIBLE (code analysis -- not yet verified)
+
+**Type:** Hardware Device Access
 
 **Code analysis:**
 - Slots are provided by core only (lines 24-29), with implicit slots on core and classic (lines 88-89).
@@ -3039,6 +3377,8 @@ Device access to `/dev/bus/usb/`, `/sys/bus/usb/`. No D-Bus, no snap-name paths.
 #### dm-multipath
 **Status:** COMPATIBLE (code analysis -- not yet verified)
 
+**Type:** Hardware Device Access
+
 **Code analysis:**
 - Slot is provided by core only (lines 40-45), with implicit slots on classic (line 84) and app/slot declarations intended for system use.
 - AppArmor grants access to multipath configuration, device-mapper control, multipath device nodes, and the multipathd abstract socket (lines 48-65).
@@ -3052,6 +3392,8 @@ Device access to `/dev/bus/usb/`, `/sys/bus/usb/`. No D-Bus, no snap-name paths.
 #### iscsi-initiator
 **Status:** COMPATIBLE (code analysis -- not yet verified)
 
+**Type:** Hardware Device Access
+
 **Code analysis:**
 - Slot is provided by core only (lines 39-44), with implicit slots on classic (line 103).
 - AppArmor grants access to iSCSI config/state files, sysfs session/host data, and the iscsiadm abstract socket (lines 47-88).
@@ -3064,6 +3406,8 @@ Device access to `/dev/bus/usb/`, `/sys/bus/usb/`. No D-Bus, no snap-name paths.
 
 #### packagekit-control
 **Status:** COMPATIBLE (code analysis -- not yet verified)
+
+**Type:** Hardware Device Access
 
 **Code analysis:**
 - Slot is provided by core only (lines 30-35), with implicit slot on classic (line 107).
@@ -3079,6 +3423,8 @@ Device access to `/dev/bus/usb/`, `/sys/bus/usb/`. No D-Bus, no snap-name paths.
 #### polkit-agent
 **Status:** COMPATIBLE (code analysis -- not yet verified)
 
+**Type:** Hardware Device Access
+
 **Code analysis:**
 - Slot is provided by core only when the helper exists, and the interface is implicitly on core/classic depending on helper availability (line 142).
 - AppArmor rules allow registering with polkitd on the system bus and talking to accounts-daemon for UI prompts (lines 47-129).
@@ -3093,6 +3439,8 @@ Device access to `/dev/bus/usb/`, `/sys/bus/usb/`. No D-Bus, no snap-name paths.
 #### snap-refresh-observe
 **Status:** COMPATIBLE (code analysis -- not yet verified)
 
+**Type:** Hardware Device Access
+
 **Code analysis:**
 - Slot is provided by core only (lines 30-35), with implicit slots on core and classic (lines 42-43).
 - The interface has no AppArmor, seccomp, mount, or udev snippets of its own.
@@ -3105,6 +3453,8 @@ Device access to `/dev/bus/usb/`, `/sys/bus/usb/`. No D-Bus, no snap-name paths.
 
 #### ubuntu-pro-control
 **Status:** NOT COMPATIBLE (slot-side singleton); COMPATIBLE (plug-side)
+
+**Type:** Hardware Device Access
 
 **Code analysis:**
 - Slot is provided by core only (lines 30-35), with implicit slot on classic (line 128).
@@ -3120,6 +3470,8 @@ Device access to `/dev/bus/usb/`, `/sys/bus/usb/`. No D-Bus, no snap-name paths.
 #### xdg-portal-permission-store
 **Status:** COMPATIBLE (code analysis -- not yet verified)
 
+**Type:** Hardware Device Access
+
 **Code analysis:**
 - Slot is provided by core only (lines 30-35), with implicit slot on core and classic (lines 69-70).
 - AppArmor rules grant session-bus access to the portal PermissionStore object at `/org/freedesktop/impl/portal/PermissionStore` (lines 38-63).
@@ -3132,6 +3484,8 @@ Device access to `/dev/bus/usb/`, `/sys/bus/usb/`. No D-Bus, no snap-name paths.
 
 #### shutdown
 **Status:** COMPATIBLE (code analysis -- not yet verified)
+
+**Type:** Hardware Device Access
 
 **Code analysis:**
 - Slot is provided by core only (lines 30-35), with implicit slots on core and classic (lines 93-94).
@@ -3147,6 +3501,8 @@ Device access to `/dev/bus/usb/`, `/sys/bus/usb/`. No D-Bus, no snap-name paths.
 #### kernel-firmware-control
 **Status:** COMPATIBLE (code analysis -- not yet verified)
 
+**Type:** Hardware Device Access
+
 **Code analysis:**
 - Slot is provided by core only (lines 31-36), with implicit slots on core and classic (lines 48-49).
 - AppArmor rules only grant write access to `/sys/module/firmware_class/parameters/path` (line 41).
@@ -3158,6 +3514,8 @@ Device access to `/dev/bus/usb/`, `/sys/bus/usb/`. No D-Bus, no snap-name paths.
 
 #### ion-memory-control
 **Status:** COMPATIBLE (code analysis -- not yet verified)
+
+**Type:** Hardware Device Access
 
 **Code analysis:**
 - Slot is provided by core only (lines 24-30), with an explicit plug-installation restriction (lines 32-36).
@@ -3171,6 +3529,8 @@ Device access to `/dev/bus/usb/`, `/sys/bus/usb/`. No D-Bus, no snap-name paths.
 
 #### nvme-control
 **Status:** COMPATIBLE (code analysis -- not yet verified)
+
+**Type:** Hardware Device Access
 
 **Code analysis:**
 - Slot is provided by core only (lines 40-45), with explicit plug-installation restriction (lines 34-38).
@@ -3186,6 +3546,8 @@ Device access to `/dev/bus/usb/`, `/sys/bus/usb/`. No D-Bus, no snap-name paths.
 #### remoteproc
 **Status:** COMPATIBLE (code analysis -- not yet verified)
 
+**Type:** Hardware Device Access
+
 **Code analysis:**
 - Slot is provided by core only (lines 30-35), with implicit slots on core and classic (lines 52-53).
 - AppArmor grants access to remoteproc sysfs state under `/sys/devices/platform/**/remoteproc/remoteproc[0-9]/...` (lines 38-46).
@@ -3197,6 +3559,8 @@ Device access to `/dev/bus/usb/`, `/sys/bus/usb/`. No D-Bus, no snap-name paths.
 
 #### sd-control
 **Status:** COMPATIBLE (code analysis -- not yet verified)
+
+**Type:** Hardware Device Access
 
 **Code analysis:**
 - Slot is provided by core only (lines 30-35), with implicit slots on core and classic (lines 95-96).
@@ -3211,6 +3575,8 @@ Device access to `/dev/bus/usb/`, `/sys/bus/usb/`. No D-Bus, no snap-name paths.
 #### uinput
 **Status:** COMPATIBLE (code analysis -- not yet verified)
 
+**Type:** Hardware Device Access
+
 **Code analysis:**
 - Slot is provided by core only (lines 39-44), with implicit slots on core and classic (lines 74-75).
 - AppArmor grants write access to `/dev/uinput` and `/dev/input/uinput` (lines 47-53).
@@ -3223,6 +3589,8 @@ Device access to `/dev/bus/usb/`, `/sys/bus/usb/`. No D-Bus, no snap-name paths.
 
 #### xilinx-dma
 **Status:** COMPATIBLE (code analysis -- not yet verified)
+
+**Type:** Hardware Device Access
 
 **Code analysis:**
 - Slot is provided by core only (lines 32-37), with implicit slots on core and classic (lines 74-75).
@@ -3238,12 +3606,16 @@ Device access to `/dev/bus/usb/`, `/sys/bus/usb/`. No D-Bus, no snap-name paths.
 #### kernel-module-control
 **Status:** COMPATIBLE (code analysis -- not yet verified by test)
 
+**Type:** Hardware Device Access
+
 Capability-based: insmod/rmmod/lsmod, read `/sys/module/`. No D-Bus, no snap-name paths.
 
 **Verification:** Passed on noble. Test at `tests/main/interfaces-kernel-module-control`.
 
 #### gpio-control
 **Status:**
+
+**Type:** Hardware Device Access
 
 **Code analysis:**
 - Not analyzed further for parallel-install compatibility.
