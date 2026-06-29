@@ -3628,8 +3628,9 @@ PASSED on noble.
 
 
 
-### shared-memory (non-private/named mode)
-**Status:** Plug-side: NOT COMPATIBLE. Slot-side: NOT COMPATIBLE (no side-specific divergence documented in this entry).
+### shared-memory
+**Status:** non-private/named mode Plug-side: NOT COMPATIBLE. Slot-side: NOT COMPATIBLE (no side-specific divergence documented in this entry).
+private mode Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
 
 **Type:** Filesystem/Mount Interface
 
@@ -3649,25 +3650,6 @@ The shared-memory interface has two modes:
    No instance name or prefix is added to the path. Both `shm-slot` and `shm-slot_foo`
    get AppArmor rules for the exact same `/dev/shm/writable-bar`.
 
-**Reasoning:** In non-private mode, SHM names are kernel-global. When both the original
-slot and a parallel slot write to the same named SHM path, they operate on the same
-kernel object. The `_foo` slot's write clobbers the original's data. There is no
-per-instance isolation of named SHM objects.
-
-**Verification:**
-Expected failure. The original plug reads `parallel data` instead of
-  `original data`, because `shm-slot_foo` overwrote the same kernel SHM object at
-  `/dev/shm/writable-bar`. The named SHM paths are not instance-scoped.
-
-
-
-### shared-memory (private mode)
-**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
-
-**Type:** Filesystem/Mount Interface
-
-
-**Code analysis:**
 The private mode of shared-memory gives each snap its own isolated `/dev/shm` namespace
 via a bind mount. This is distinct from the named mode tested above.
 
@@ -3691,15 +3673,22 @@ via a bind mount. This is distinct from the named mode tested above.
    mode, private SHM allows any name under `/dev/shm/` because the namespace is fully
    isolated.
 
-**Reasoning:** Private shared-memory is designed for per-snap isolation. The
+**Reasoning:** In non-private mode, SHM names are kernel-global. When both the original
+slot and a parallel slot write to the same named SHM path, they operate on the same
+kernel object. The `_foo` slot's write clobbers the original's data. There is no
+per-instance isolation of named SHM objects.
+
+Private shared-memory is designed for per-snap isolation. The
 `InstanceName()` usage ensures parallel instances get separate namespaces. This is the
 most isolation-friendly mode of shared-memory.
 
-**Verification:** 
--Result: PASSED on noble. Parallel instance got its own `/dev/shm/snap.shm-private_foo/`
+**Verification:**
+Expected failure for non-private mode. The original plug reads `parallel data` instead of
+  `original data`, because `shm-slot_foo` overwrote the same kernel SHM object at
+  `/dev/shm/writable-bar`. The named SHM paths are not instance-scoped.
+
+PASSED on noble for private mode. Parallel instance got its own `/dev/shm/snap.shm-private_foo/`
 namespace, segments were isolated from original, survived removal of original snap.
-
-
 
 ### posix-mq
 **Status:** Plug-side: NOT COMPATIBLE. Slot-side: NOT COMPATIBLE (no side-specific divergence documented in this entry).
