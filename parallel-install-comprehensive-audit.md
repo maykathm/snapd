@@ -1420,53 +1420,6 @@ PASSED on noble.
 
 
 
-### system-dbus (generic `dbus` interface)
-**Status:** Plug-side: not separately classified in this entry. Slot-side: NOT COMPATIBLE.
-
-**Type:** D-Bus Service/Provider
-
-
-**Code analysis:**
-This is the most well-documented incompatibility:
-
-1. **D-Bus activation file conflict** (`wrappers/dbus.go:137`): The activation file is
-   named `busName + ".service"` (e.g., `com.dbustest.HelloWorld.service`). This is NOT
-   instance-namespaced. When `test-snapd-dbus-provider_foo` is installed, it overwrites
-   the activation file that was for `test-snapd-dbus-provider`.
-
-2. **D-Bus bus policy allows both to own** (`interfaces/builtin/dbus.go:353-368`): Each
-   instance gets its own policy file (named by security tag), but both grant
-   `<allow own="com.dbustest.HelloWorld"/>`. D-Bus only allows ONE process to own a
-   well-known name at a time.
-
-3. **AppArmor peer labels are instance-specific**: The connected plug template substitutes
-   `###SLOT_SECURITY_TAGS###` with `slot.LabelExpression()` which uses `InstanceName()`.
-   So consumer_foo's AppArmor profile expects to talk to
-   `snap.test-snapd-dbus-provider_foo.*`, but the actual D-Bus message is routed to
-   whoever owns the name -- which is `snap.test-snapd-dbus-provider.*` (the original).
-
-4. **Code acknowledgement** (`interfaces/builtin/dbus.go:84-87`):
-   ```
-   # Note, snapd does not allow declaring a 'well-known' name that ends with
-   # '-[0-9]+' or that contains '_'. Parallel installs of DBus services aren't
-   # supported at this time, but if they were, this could allow a parallel
-   # install's well-known name to overlap with the normal install.
-   ```
-
-**Reasoning:** This is a fundamental architectural limitation. The D-Bus name model
-(globally unique names) is incompatible with having multiple instances of the same
-service snap.
-
-**Verification:**
-Expected failure. `org.freedesktop.DBus.Error.AccessDenied: An AppArmor
-  policy prevents this sender from sending this message to this recipient;
-  label="snap.test-snapd-dbus-consumer_foo.dbus-system-consumer (enforce)"
-  destination=... label="snap.test-snapd-dbus-provider.system-provider (enforce)"`.
-  Both providers compete for `com.dbustest.HelloWorld`; consumer_foo's AppArmor profile
-  expects peer `snap.test-snapd-dbus-provider_foo.*` but D-Bus routes to the original.
-
-
-
 ### location-observe
 **Status:** Plug-side: COMPATIBLE. Slot-side: not separately classified in this entry (provider behavior out of scope here).
 
@@ -1524,10 +1477,43 @@ from the system service does not conflict with other instances doing the same.
 - `AppArmorConnectedPlug()` and `AppArmorConnectedSlot()` both compare plug/slot attributes and only emit policy when the names match (lines 316-350, 402-429).
 - The generated AppArmor peer labels use `slot.LabelExpression()` and `plug.LabelExpression()`, so the security labels are instance-aware, but the D-Bus well-known name itself is a singleton resource.
 - `DBusPermanentSlot()` only emits bus policy for system services, but a parallel app slot still cannot have two instances both binding the same bus name.
+- D-Bus activation files are keyed only by bus name (`busName + ".service"`), so parallel providers with the same well-known name overwrite each other's activation entry (`wrappers/dbus.go:137`).
+
+This is the most well-documented incompatibility:
+
+1. **D-Bus activation file conflict** (`wrappers/dbus.go:137`): The activation file is
+   named `busName + ".service"` (e.g., `com.dbustest.HelloWorld.service`). This is NOT
+   instance-namespaced. When `test-snapd-dbus-provider_foo` is installed, it overwrites
+   the activation file that was for `test-snapd-dbus-provider`.
+
+2. **D-Bus bus policy allows both to own** (`interfaces/builtin/dbus.go:353-368`): Each
+   instance gets its own policy file (named by security tag), but both grant
+   `<allow own="com.dbustest.HelloWorld"/>`. D-Bus only allows ONE process to own a
+   well-known name at a time.
+
+3. **AppArmor peer labels are instance-specific**: The connected plug template substitutes
+   `###SLOT_SECURITY_TAGS###` with `slot.LabelExpression()` which uses `InstanceName()`.
+   So consumer_foo's AppArmor profile expects to talk to
+   `snap.test-snapd-dbus-provider_foo.*`, but the actual D-Bus message is routed to
+   whoever owns the name -- which is `snap.test-snapd-dbus-provider.*` (the original).
+
+4. **Code acknowledgement** (`interfaces/builtin/dbus.go:84-87`):
+   ```
+   # Note, snapd does not allow declaring a 'well-known' name that ends with
+   # '-[0-9]+' or that contains '_'. Parallel installs of DBus services aren't
+   # supported at this time, but if they were, this could allow a parallel
+   # install's well-known name to overlap with the normal install.
+   ```
 
 **Reasoning:** The `dbus` interface is the canonical singleton-service case. Parallel instances of a provider snap cannot both own the same well-known D-Bus name, so slot-side is not compatible. Plug-side use is fine because multiple consumers can talk to the same service if the connection is set up correctly.
 
-**Verification:** No verification has yet been done.
+**Verification:** Expected failure observed for parallel provider installs (consumer AppArmor peer label mismatch once D-Bus routes to the winning provider name owner). `org.freedesktop.DBus.Error.AccessDenied: An AppArmor
+  policy prevents this sender from sending this message to this recipient;
+  label="snap.test-snapd-dbus-consumer_foo.dbus-system-consumer (enforce)"
+  destination=... label="snap.test-snapd-dbus-provider.system-provider (enforce)"`.
+  Both providers compete for `com.dbustest.HelloWorld`; consumer_foo's AppArmor profile
+  expects peer `snap.test-snapd-dbus-provider_foo.*` but D-Bus routes to the original.
+
 
 ### ubuntu-download-manager
 **Status:** Plug-side: COMPATIBLE. Slot-side: NOT COMPATIBLE.
@@ -2555,10 +2541,13 @@ from the system service does not conflict with other instances doing the same.
 - Plug-side policy includes instance-aware substitutions for non-implicit slot snaps: `slot.Snap().InstanceName()` is used for both `XDG_RUNTIME_DIR` and `SNAP_COMMON` socket paths (`interfaces/builtin/audio_playback.go:169`, `interfaces/builtin/audio_playback.go:172`).
 - Slot-side policy exposes shared audio daemon resources under `/run/pulse`, `/run/user/*/pulse`, and shared memory (`interfaces/builtin/audio_playback.go:97-129`).
 - Interface is designed as a shared client/service model with service-side mediation of recording decisions (`interfaces/builtin/audio_playback.go:33-41`).
+- The plug side uses PulseAudio/PipeWire shared-memory and socket paths, with an instance-aware path substitution for system mode (`###SLOT_INSTANCE_NAME###`) in the connected plug rules (lines 55-175 in the implementation).
+- The slot side exposes standard audio daemon resources and shared memory.
+- The interface is designed around shared-client audio IPC, not per-snap exclusive ownership.
 
 **Reasoning:** Parallel instances are handled at the policy level for snap-instance naming, but both sides still interact with a shared audio stack and shared runtime resources.
 
-**Verification:** No verification has yet been done.
+**Verification:** Passed on noble. Test at `tests/main/interfaces-audio-playback-record`.
 
 ### audio-record
 **Status:** Plug-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE. Slot-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE.
@@ -2573,7 +2562,7 @@ from the system service does not conflict with other instances doing the same.
 
 **Reasoning:** There is no snap-instance naming collision in this interface, but recording capability is mediated through a shared audio service and therefore remains a shared runtime resource.
 
-**Verification:** No verification has yet been done.
+**Verification:** Passed on noble. Covered by `tests/main/interfaces-audio-playback-record`.
 
 ### desktop
 **Status:** Plug-side: COMPATIBLE. Slot-side: NOT COMPATIBLE.
@@ -2585,10 +2574,11 @@ from the system service does not conflict with other instances doing the same.
 - Plug-side uses instance-aware paths for document portal mounts via `plug.Snap().InstanceName()` (`interfaces/builtin/desktop.go:737`, `interfaces/builtin/desktop.go:760`).
 - Connected plug/slot policy uses label expressions so mediation is per-connection (`interfaces/builtin/desktop.go:724-727`, `interfaces/builtin/desktop.go:813-816`).
 - Slot-side permanent policy includes binding well-known desktop service names such as `org.gnome.Shell{,.*}` and `org.gnome.SettingsDaemon{,.*}` (`interfaces/builtin/desktop.go:567-580`).
+- Document portal behavior is instance-scoped (`$XDG_RUNTIME_DIR/doc/by-app/snap.<instance>`) and mounted into each snap namespace, which isolates parallel instances at the portal mount layer (`interfaces/builtin/desktop.go:737`, `interfaces/builtin/desktop.go:760-765`).
 
-**Reasoning:** Consumer snaps are parallel-install safe. Provider snaps attempting to act as a full desktop session service hit singleton D-Bus ownership constraints.
+**Reasoning:** Consumer snaps are parallel-install safe, including the document-portal mount path that is keyed by instance name. Provider snaps attempting to act as a full desktop session service hit singleton D-Bus ownership constraints.
 
-**Verification:** No verification has yet been done.
+**Verification:** Passed on noble for document-portal mount behavior.
 
 ### egl-driver-libs
 **Status:** Plug-side: N/A (system/core plug only on classic; parallel app plugs out of scope). Slot-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE.
@@ -2711,21 +2701,6 @@ The cache filename is typically session-specific and may look random (for exampl
 `snap run` rewrites `KRB5CCNAME` from the caller's environment into `/var/lib/snapd/hostfs/tmp/krb5cc*`, so different users can naturally end up pointing at different Kerberos caches. That is user/session scoping, not parallel-instance scoping: two instances run by the same user generally share the same cache, while different users can have different caches regardless of snap instance name.
 
 **Verification:** Passed on noble. Test at `tests/main/interfaces-kerberos-tickets`.
-
-### audio-playback-record
-**Status:** Plug-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE. Slot-side: not separately classified in this entry (provider behavior out of scope here).
-
-**Type:** Desktop/Graphics/Media Integration
-
-
-**Code analysis:**
-- The plug side uses PulseAudio/PipeWire shared-memory and socket paths, with an instance-aware path substitution for system mode (`###SLOT_INSTANCE_NAME###`) in the connected plug rules (lines 55-175 in the implementation).
-- The slot side exposes standard audio daemon resources and shared memory.
-- The interface is designed around shared-client audio IPC, not per-snap exclusive ownership.
-
-**Reasoning:** The plug side is policy-safe and verified, but the audio stack is still shared. Parallel consumer snaps can coexist, yet they can still contend for the same audio server, latency, or device routing.
-
-**Verification:** Passed on noble. Test at `tests/main/interfaces-audio-playback-record`.
 
 ### adb-support
 **Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
@@ -3276,29 +3251,6 @@ Expected failure -- desktop file launching is incompatible with parallel
 
 
 
-### desktop-document-portal
-**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
-
-**Type:** Desktop/Graphics/Media Integration
-
-
-**Code analysis:**
-- The document portal mounts a per-snap subtree of the xdg-desktop-portal FUSE
-  filesystem over `$XDG_RUNTIME_DIR/doc` inside the snap's sandbox
-- The per-snap directory uses instance-aware naming:
-  `by-app/snap.INSTANCE_NAME` -- snapd's mount namespace setup correctly scopes
-  this to the instance name
-- The snap sees only its own confined directory, not the unconfined parent
-
-**Reasoning:** The document portal is inherently per-snap-instance. Each instance
-gets its own `by-app/snap.INSTANCE_NAME` directory mounted, providing proper
-isolation. A parallel instance gets its own portal mount.
-
-**Verification:**
-PASSED on noble.
-
-
-
 ### cups-control
 **Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
 
@@ -3676,24 +3628,76 @@ PASSED on noble.
 
 
 
-### shared-memory
-**Status:** Plug-side: NOT COMPATIBLE (named/non-private mode); COMPATIBLE (private mode). Slot-side: N/A (system/core/gadget-provided slot; no parallel app slot providers in scope).
+### shared-memory (non-private/named mode)
+**Status:** Plug-side: NOT COMPATIBLE. Slot-side: NOT COMPATIBLE (no side-specific divergence documented in this entry).
 
 **Type:** Filesystem/Mount Interface
 
 
 **Code analysis:**
-The shared-memory interface has two operational modes:
+The shared-memory interface has two modes:
 
-1. **Named/non-private mode**: Uses specific named paths in `/dev/shm/` from slot `write`/`read` attributes, rendered directly into AppArmor rules (`shared_memory.go:209-232`) without instance prefixing.
-2. **Private mode** (`private: true`): Uses per-instance bind mounts of `/dev/shm/snap.<INSTANCE_NAME>/` onto `/dev/shm/` via `plug.Snap().InstanceName()` (`shared_memory.go:304-308`).
-3. **Private mode namespace isolation**: Each parallel instance gets an isolated SHM namespace view; names are not shared across instances (`shared_memory.go:293-296`, `shared_memory.go:304-308`).
+1. **Private mode** (`private: true` in plug attrs): Uses per-instance bind mounts.
+   Fully isolated. See the "shared-memory (private mode)" section below.
 
-**Reasoning:** Named/non-private mode is not parallel-safe because SHM object names are kernel-global and not instance-scoped. Private mode is parallel-safe because each instance receives an isolated `/dev/shm` namespace keyed by instance name.
+2. **Named mode** (non-private): Uses specific named paths in `/dev/shm/`. The SHM
+   object names come directly from the slot's `write` and `read` attributes (e.g.,
+   `writable-bar`) and are used as-is in AppArmor rules (`shared_memory.go:209-232`):
+   ```go
+   fmt.Fprintf(w, "\"/{dev,run}/shm/%s\" mrwlk,\n", path)
+   ```
+   No instance name or prefix is added to the path. Both `shm-slot` and `shm-slot_foo`
+   get AppArmor rules for the exact same `/dev/shm/writable-bar`.
+
+**Reasoning:** In non-private mode, SHM names are kernel-global. When both the original
+slot and a parallel slot write to the same named SHM path, they operate on the same
+kernel object. The `_foo` slot's write clobbers the original's data. There is no
+per-instance isolation of named SHM objects.
 
 **Verification:**
-- Named/non-private mode: expected failure observed; shared object overwrite occurred (`parallel data` replaced `original data` in `/dev/shm/writable-bar`).
-- Private mode: passed on noble; parallel instance used isolated `/dev/shm/snap.shm-private_foo/` namespace and did not clobber the original.
+Expected failure. The original plug reads `parallel data` instead of
+  `original data`, because `shm-slot_foo` overwrote the same kernel SHM object at
+  `/dev/shm/writable-bar`. The named SHM paths are not instance-scoped.
+
+
+
+### shared-memory (private mode)
+**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
+
+**Type:** Filesystem/Mount Interface
+
+
+**Code analysis:**
+The private mode of shared-memory gives each snap its own isolated `/dev/shm` namespace
+via a bind mount. This is distinct from the named mode tested above.
+
+1. **Per-instance bind mount** (`shared_memory.go:304-308`): The private mode UpdateNS
+   rule uses `plug.Snap().InstanceName()`:
+   ```go
+   spec.AddUpdateNSf(`  # Private /dev/shm
+     /dev/ r,
+     /dev/shm/{,**} rw,
+     mount options=(bind, rw) /dev/shm/snap.%s/ -> /dev/shm/,
+     umount /dev/shm/,`, plug.Snap().InstanceName())
+   ```
+   For `snap_foo`, this creates a bind mount from `/dev/shm/snap.snap_foo/` to
+   `/dev/shm/`, giving the instance its own private SHM directory.
+
+2. **Instance isolation is guaranteed**: Each parallel instance gets its own
+   `/dev/shm/snap.INSTANCE_NAME/` directory mounted over `/dev/shm/` in its namespace.
+   The two instances cannot see each other's SHM files.
+
+3. **No naming restrictions in private mode** (`shared_memory.go:293-296`): Unlike named
+   mode, private SHM allows any name under `/dev/shm/` because the namespace is fully
+   isolated.
+
+**Reasoning:** Private shared-memory is designed for per-snap isolation. The
+`InstanceName()` usage ensures parallel instances get separate namespaces. This is the
+most isolation-friendly mode of shared-memory.
+
+**Verification:** 
+-Result: PASSED on noble. Parallel instance got its own `/dev/shm/snap.shm-private_foo/`
+namespace, segments were isolated from original, survived removal of original snap.
 
 
 
