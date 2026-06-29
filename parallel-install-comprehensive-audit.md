@@ -3391,76 +3391,24 @@ PASSED on noble.
 
 
 
-### shared-memory (non-private/named mode)
-**Status:** Plug-side: NOT COMPATIBLE. Slot-side: NOT COMPATIBLE (no side-specific divergence documented in this entry).
+### shared-memory
+**Status:** Plug-side: NOT COMPATIBLE (named/non-private mode); COMPATIBLE (private mode). Slot-side: N/A (system/core/gadget-provided slot; no parallel app slot providers in scope).
 
 **Type:** Filesystem/Mount Interface
 
 
 **Code analysis:**
-The shared-memory interface has two modes:
+The shared-memory interface has two operational modes:
 
-1. **Private mode** (`private: true` in plug attrs): Uses per-instance bind mounts.
-   Fully isolated. See the "shared-memory (private mode)" section below.
+1. **Named/non-private mode**: Uses specific named paths in `/dev/shm/` from slot `write`/`read` attributes, rendered directly into AppArmor rules (`shared_memory.go:209-232`) without instance prefixing.
+2. **Private mode** (`private: true`): Uses per-instance bind mounts of `/dev/shm/snap.<INSTANCE_NAME>/` onto `/dev/shm/` via `plug.Snap().InstanceName()` (`shared_memory.go:304-308`).
+3. **Private mode namespace isolation**: Each parallel instance gets an isolated SHM namespace view; names are not shared across instances (`shared_memory.go:293-296`, `shared_memory.go:304-308`).
 
-2. **Named mode** (non-private): Uses specific named paths in `/dev/shm/`. The SHM
-   object names come directly from the slot's `write` and `read` attributes (e.g.,
-   `writable-bar`) and are used as-is in AppArmor rules (`shared_memory.go:209-232`):
-   ```go
-   fmt.Fprintf(w, "\"/{dev,run}/shm/%s\" mrwlk,\n", path)
-   ```
-   No instance name or prefix is added to the path. Both `shm-slot` and `shm-slot_foo`
-   get AppArmor rules for the exact same `/dev/shm/writable-bar`.
-
-**Reasoning:** In non-private mode, SHM names are kernel-global. When both the original
-slot and a parallel slot write to the same named SHM path, they operate on the same
-kernel object. The `_foo` slot's write clobbers the original's data. There is no
-per-instance isolation of named SHM objects.
+**Reasoning:** Named/non-private mode is not parallel-safe because SHM object names are kernel-global and not instance-scoped. Private mode is parallel-safe because each instance receives an isolated `/dev/shm` namespace keyed by instance name.
 
 **Verification:**
-Expected failure. The original plug reads `parallel data` instead of
-  `original data`, because `shm-slot_foo` overwrote the same kernel SHM object at
-  `/dev/shm/writable-bar`. The named SHM paths are not instance-scoped.
-
-
-
-### shared-memory (private mode)
-**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
-
-**Type:** Filesystem/Mount Interface
-
-
-**Code analysis:**
-The private mode of shared-memory gives each snap its own isolated `/dev/shm` namespace
-via a bind mount. This is distinct from the named mode tested above.
-
-1. **Per-instance bind mount** (`shared_memory.go:304-308`): The private mode UpdateNS
-   rule uses `plug.Snap().InstanceName()`:
-   ```go
-   spec.AddUpdateNSf(`  # Private /dev/shm
-     /dev/ r,
-     /dev/shm/{,**} rw,
-     mount options=(bind, rw) /dev/shm/snap.%s/ -> /dev/shm/,
-     umount /dev/shm/,`, plug.Snap().InstanceName())
-   ```
-   For `snap_foo`, this creates a bind mount from `/dev/shm/snap.snap_foo/` to
-   `/dev/shm/`, giving the instance its own private SHM directory.
-
-2. **Instance isolation is guaranteed**: Each parallel instance gets its own
-   `/dev/shm/snap.INSTANCE_NAME/` directory mounted over `/dev/shm/` in its namespace.
-   The two instances cannot see each other's SHM files.
-
-3. **No naming restrictions in private mode** (`shared_memory.go:293-296`): Unlike named
-   mode, private SHM allows any name under `/dev/shm/` because the namespace is fully
-   isolated.
-
-**Reasoning:** Private shared-memory is designed for per-snap isolation. The
-`InstanceName()` usage ensures parallel instances get separate namespaces. This is the
-most isolation-friendly mode of shared-memory.
-
-**Verification:** 
--Result: PASSED on noble. Parallel instance got its own `/dev/shm/snap.shm-private_foo/`
-namespace, segments were isolated from original, survived removal of original snap.
+- Named/non-private mode: expected failure observed; shared object overwrite occurred (`parallel data` replaced `original data` in `/dev/shm/writable-bar`).
+- Private mode: passed on noble; parallel instance used isolated `/dev/shm/snap.shm-private_foo/` namespace and did not clobber the original.
 
 
 
@@ -3716,7 +3664,7 @@ Device access to `/dev/bus/usb/`, `/sys/bus/usb/`. No D-Bus, no snap-name paths.
 
 **Verification:** Passed on noble. Test at `tests/main/interfaces-raw-usb`.
 
-#### cuda-driver-libs
+### cuda-driver-libs
 **Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE.
 
 **Type:** Hardware Device Access
@@ -3731,53 +3679,7 @@ Device access to `/dev/bus/usb/`, `/sys/bus/usb/`. No D-Bus, no snap-name paths.
 
 **Verification:** No verification has yet been done.
 
-#### dm-crypt
-**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE.
-
-**Type:** Hardware Device Access
-
-**Code analysis:**
-- Slots are provided by core only (lines 24-29), with implicit slots on core and classic (lines 88-89).
-- AppArmor grants access to `/dev/mapper/control`, `/dev/dm-*`, cryptsetup, mount helpers, and mount points under `/run/media` and `/media` (lines 39-62).
-- Seccomp only adds keyring-related syscalls (lines 64-69).
-- KMod and UDev rules are tied to the device-mapper stack (lines 71-82).
-- The mount points are generic system locations, not snap-instance-specific paths.
-
-**Reasoning:** dm-crypt is a global device-mapper interface. The mount path handling is generic and not keyed by snap instance names, so there is no instance collision surface in the policy code.
-
-**Verification:** No verification has yet been done.
-
-#### dm-multipath
-**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE.
-
-**Type:** Hardware Device Access
-
-**Code analysis:**
-- Slot is provided by core only (lines 40-45), with implicit slots on classic (line 84) and app/slot declarations intended for system use.
-- AppArmor grants access to multipath configuration, device-mapper control, multipath device nodes, and the multipathd abstract socket (lines 48-65).
-- UDev and KMod rules are for the device-mapper/multipath stack (lines 67-78).
-- The socket address is a fixed abstract address, not a snap-instance-specific path.
-
-**Reasoning:** Multipath management is a global storage daemon/device interface. Parallel instances are just concurrent clients of the same system multipath stack; the code does not show an instance naming problem.
-
-**Verification:** No verification has yet been done.
-
-#### iscsi-initiator
-**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE.
-
-**Type:** Hardware Device Access
-
-**Code analysis:**
-- Slot is provided by core only (lines 39-44), with implicit slots on classic (line 103).
-- AppArmor grants access to iSCSI config/state files, sysfs session/host data, and the iscsiadm abstract socket (lines 47-88).
-- KMod modules are declared for iSCSI transport support (lines 94-97).
-- No snap-instance-specific paths are used.
-
-**Reasoning:** iSCSI initiator behavior is driven by system-wide daemon/config files and an abstract Unix socket. Parallel instances are just concurrent clients and the interface code does not reveal an instance-naming issue.
-
-**Verification:** No verification has yet been done.
-
-#### packagekit-control
+### packagekit-control
 **Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE.
 
 **Type:** Hardware Device Access
@@ -3793,7 +3695,7 @@ Device access to `/dev/bus/usb/`, `/sys/bus/usb/`. No D-Bus, no snap-name paths.
 
 **Verification:** No verification has yet been done.
 
-#### polkit-agent
+### polkit-agent
 **Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE.
 
 **Type:** Hardware Device Access
@@ -3809,7 +3711,7 @@ Device access to `/dev/bus/usb/`, `/sys/bus/usb/`. No D-Bus, no snap-name paths.
 
 **Verification:** No verification has yet been done.
 
-#### snap-refresh-observe
+### snap-refresh-observe
 **Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE.
 
 **Type:** Hardware Device Access
@@ -3824,7 +3726,7 @@ Device access to `/dev/bus/usb/`, `/sys/bus/usb/`. No D-Bus, no snap-name paths.
 
 **Verification:** No verification has yet been done.
 
-#### ubuntu-pro-control
+### ubuntu-pro-control
 **Status:** Plug-side: COMPATIBLE. Slot-side: NOT COMPATIBLE.
 
 **Type:** Hardware Device Access
@@ -3840,7 +3742,7 @@ Device access to `/dev/bus/usb/`, `/sys/bus/usb/`. No D-Bus, no snap-name paths.
 
 **Verification:** No verification has yet been done.
 
-#### xdg-portal-permission-store
+### xdg-portal-permission-store
 **Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE.
 
 **Type:** Hardware Device Access
@@ -3855,23 +3757,7 @@ Device access to `/dev/bus/usb/`, `/sys/bus/usb/`. No D-Bus, no snap-name paths.
 
 **Verification:** No verification has yet been done.
 
-#### shutdown
-**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE.
-
-**Type:** Hardware Device Access
-
-**Code analysis:**
-- Slot is provided by core only (lines 30-35), with implicit slots on core and classic (lines 93-94).
-- AppArmor rules only talk to systemd-logind and systemd over the system bus for poweroff/reboot/shutdown operations (lines 43-76).
-- The interface also grants a Unix socket bind rule for `@*/bus/*/system` (line 81), which is pattern-based rather than snap-name-based.
-- Seccomp only adds `bind` (lines 84-87).
-- No snap-instance-specific paths or per-instance file generation are present.
-
-**Reasoning:** Shutdown is a system-wide capability interface. Parallel instances can all request the same system power operations; there is no snap-instance collision in the policy code.
-
-**Verification:** No verification has yet been done.
-
-#### kernel-firmware-control
+### kernel-firmware-control
 **Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE.
 
 **Type:** Hardware Device Access
@@ -3885,7 +3771,7 @@ Device access to `/dev/bus/usb/`, `/sys/bus/usb/`. No D-Bus, no snap-name paths.
 
 **Verification:** No verification has yet been done.
 
-#### ion-memory-control
+### ion-memory-control
 **Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE.
 
 **Type:** Hardware Device Access
@@ -3900,7 +3786,7 @@ Device access to `/dev/bus/usb/`, `/sys/bus/usb/`. No D-Bus, no snap-name paths.
 
 **Verification:** No verification has yet been done.
 
-#### nvme-control
+### nvme-control
 **Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE.
 
 **Type:** Hardware Device Access
@@ -3916,21 +3802,7 @@ Device access to `/dev/bus/usb/`, `/sys/bus/usb/`. No D-Bus, no snap-name paths.
 
 **Verification:** No verification has yet been done.
 
-#### remoteproc
-**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE.
-
-**Type:** Hardware Device Access
-
-**Code analysis:**
-- Slot is provided by core only (lines 30-35), with implicit slots on core and classic (lines 52-53).
-- AppArmor grants access to remoteproc sysfs state under `/sys/devices/platform/**/remoteproc/remoteproc[0-9]/...` (lines 38-46).
-- No D-Bus, sockets, or snap-instance-specific paths are used.
-
-**Reasoning:** Remoteproc is a global kernel framework. Multiple instances can observe/control the same remoteproc nodes as allowed by the slot, with no snap instance name dependency.
-
-**Verification:** No verification has yet been done.
-
-#### sd-control
+### sd-control
 **Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE.
 
 **Type:** Hardware Device Access
@@ -3945,38 +3817,7 @@ Device access to `/dev/bus/usb/`, `/sys/bus/usb/`. No D-Bus, no snap-name paths.
 
 **Verification:** No verification has yet been done.
 
-#### uinput
-**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE.
-
-**Type:** Hardware Device Access
-
-**Code analysis:**
-- Slot is provided by core only (lines 39-44), with implicit slots on core and classic (lines 74-75).
-- AppArmor grants write access to `/dev/uinput` and `/dev/input/uinput` (lines 47-53).
-- UDev tags the `uinput` device (line 64).
-- The comments explicitly note this is sensitive because it can inject arbitrary input, but no snap-instance-specific paths are present.
-
-**Reasoning:** This is a global input injection device. Multiple parallel instances can share the same device access; the code does not use instance naming or per-snap mount paths.
-
-**Verification:** No verification has yet been done.
-
-#### xilinx-dma
-**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE.
-
-**Type:** Hardware Device Access
-
-**Code analysis:**
-- Slot is provided by core only (lines 32-37), with implicit slots on core and classic (lines 74-75).
-- AppArmor grants access to Xilinx XDMA/QDMA device nodes and driver sysfs state (lines 42-61).
-- UDev tags the relevant `xdma` and `qdma` subsystems (lines 64-68).
-- The interface note says the xdma subsystem alone should uniquely identify relevant devices (line 63).
-- No snap-instance-specific paths are used.
-
-**Reasoning:** This is hardware-device based and the code is scoped by the device subsystem rather than the snap instance. Parallel instances can access the same PCIe DMA hardware without snapd-level collision.
-
-**Verification:** No verification has yet been done.
-
-#### kernel-module-control
+### kernel-module-control
 **Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE.
 
 **Type:** Hardware Device Access
@@ -3989,7 +3830,7 @@ Device access to `/dev/bus/usb/`, `/sys/bus/usb/`. No D-Bus, no snap-name paths.
 
 **Verification:** Passed on noble. Test at `tests/main/interfaces-kernel-module-control`.
 
-#### gpio-control
+### gpio-control
 **Status:** Plug-side: NOT COMPATIBLE. Slot-side: N/A (system/core/gadget-provided slot; no parallel app slot providers in scope).
 
 **Type:** Hardware Device Access
@@ -4003,501 +3844,3 @@ Device access to `/dev/bus/usb/`, `/sys/bus/usb/`. No D-Bus, no snap-name paths.
 **Verification:** No verification has yet been done.
 
 
-
-#### accel
-**Status:** Plug-side: NOT COMPATIBLE. Slot-side: NOT COMPATIBLE (no side-specific divergence documented in this entry).
-
-**Type:** Hardware Device Access
-
-**Code analysis:**
-- Device access: `/dev/accel/accel*`
-- Compute accelerator devices (AI/ML acceleration)
-- Plug-side interface with implicit slot on core and classic
-- No D-Bus, no shared memory, no instance-specific paths
-
-**Reasoning:** Named device paths (`/dev/accel/accel*`) are global hardware resources. Multiple instances would compete for the same accelerator device.
-
-
-
-**Verification:** No verification has yet been done.
-#### acrn-support
-**Status:** Plug-side: NOT COMPATIBLE. Slot-side: NOT COMPATIBLE (no side-specific divergence documented in this entry).
-
-**Type:** Hardware Device Access
-
-**Code analysis:**
-- Device access: `/dev/acrn_hsm`
-- ACRN hypervisor management interface
-- Plug-side, slot on core
-
-**Reasoning:** Single `/dev/acrn_hsm` device node is a global resource. Only one instance can manage the hypervisor.
-
-
-
-**Verification:** No verification has yet been done.
-#### allegro-vcu
-**Status:** Plug-side: NOT COMPATIBLE. Slot-side: NOT COMPATIBLE (no side-specific divergence documented in this entry).
-
-**Type:** Hardware Device Access
-
-**Code analysis:**
-- Device access: `/dev/allegroDecodeIP`, `/dev/allegroIP`, `/dev/dmaproxy`
-- Allegro Video Codec Unit encoder/decoder
-- Plug-side
-
-**Reasoning:** Hardware codec devices are shared resources. Not meaningful for multiple parallel instances.
-
-
-
-**Verification:** No verification has yet been done.
-#### broadcom-asic-control
-**Status:** Plug-side: NOT COMPATIBLE. Slot-side: NOT COMPATIBLE (no side-specific divergence documented in this entry).
-
-**Type:** System Control/Privileged Capability
-
-**Code analysis:**
-- Device access: `/dev/linux-user-bde`, `/dev/linux-kernel-bde`, `/dev/linux-bcm-knet`
-- Broadcom ASIC kernel module interface
-- Plug-side
-
-**Reasoning:** Kernel module + device node for specific ASIC hardware. Single-instance hardware.
-
-
-
-**Verification:** No verification has yet been done.
-#### camera
-**Status:** Plug-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE. Slot-side: N/A (system/core/gadget-provided slot; no parallel app slot providers in scope).
-
-**Type:** Desktop/Graphics/Media Integration
-
-**Code analysis:**
-- Device access: `/dev/video[0-9]*`, `/dev/vchiq`
-- Camera device access (video capture)
-- Plug-side, implicit on core and classic
-- No D-Bus, no shared memory, no instance-specific paths
-
-**Reasoning:** Physical camera devices are global hardware resources. Multiple instances would read from the same camera.
-
-
-
-**Verification:** No verification has yet been done.
-#### can-bus
-**Status:** Plug-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE. Slot-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE (no side-specific divergence documented in this entry).
-
-**Type:** Network/Netlink Interface
-
-**Code analysis:**
-- Socket access: `AF_CAN` socket protocol
-- CAN bus networking interface
-- Plug-side, implicit on core and classic
-
-**Reasoning:** CAN bus is a shared medium. Multiple instances can connect concurrently as clients; the bus itself is the shared resource.
-
-
-
-**Verification:** No verification has yet been done.
-#### cpu-control
-**Status:** Plug-side: NOT COMPATIBLE. Slot-side: NOT COMPATIBLE (no side-specific divergence documented in this entry).
-
-**Type:** System Control/Privileged Capability
-
-**Code analysis:**
-- Path access: `/sys/devices/system/cpu/**`
-- CPU frequency scaling, governor control, hotplug
-- Plug-side
-
-**Reasoning:** CPU sysfs knobs are system-global. Two instances writing different governor settings would conflict.
-
-
-
-**Verification:** No verification has yet been done.
-#### dcdbas-control
-**Status:** Plug-side: NOT COMPATIBLE. Slot-side: NOT COMPATIBLE (no side-specific divergence documented in this entry).
-
-**Type:** System Control/Privileged Capability
-
-**Code analysis:**
-- Path access: `/sys/devices/platform/dcdbas/*`
-- Dell Systems Management Base Driver
-- Plug-side
-
-**Reasoning:** Dell BMC sysfs interface is a single system resource.
-
-
-
-**Verification:** No verification has yet been done.
-#### dsp
-**Status:** Plug-side: NOT COMPATIBLE. Slot-side: NOT COMPATIBLE (no side-specific divergence documented in this entry).
-
-**Type:** Hardware Device Access
-
-**Code analysis:**
-- Device access: `/dev/ucode`, `/dev/iav*`
-- Ambarella DSP coprocessor
-- Plug-side
-
-**Reasoning:** DSP hardware device is a single-instance resource.
-
-
-
-**Verification:** No verification has yet been done.
-#### fpga
-**Status:** Plug-side: NOT COMPATIBLE. Slot-side: NOT COMPATIBLE (no side-specific divergence documented in this entry).
-
-**Type:** Hardware Device Access
-
-**Code analysis:**
-- Device access: `/dev/fpga[0-9]*`
-- FPGA subsystem (programmable logic)
-- Plug-side
-
-**Reasoning:** Numbered FPGA device nodes are shared. Multiple instances programming the same FPGA would conflict.
-
-
-
-**Verification:** No verification has yet been done.
-#### framebuffer
-**Status:** Plug-side: NOT COMPATIBLE. Slot-side: NOT COMPATIBLE (no side-specific divergence documented in this entry).
-
-**Type:** Hardware Device Access
-
-**Code analysis:**
-- Device access: `/dev/fb[0-9]*`
-- Linux framebuffer device
-- Plug-side, implicit on core and classic
-
-**Reasoning:** Framebuffer devices are global display resources. Two instances writing to `/dev/fb0` would conflict.
-
-
-
-**Verification:** No verification has yet been done.
-#### gpio
-**Status:** Plug-side: COMPATIBLE. Slot-side: N/A (system/core/gadget-provided slot; no parallel app slot providers in scope).
-
-**Type:** Hardware Device Access
-
-**Code analysis:**
-- Path access: `/sys/class/gpio/gpio<N>` (specific numbered GPIO pin)
-- Specific GPIO pin control via slot-declared pin number
-- Both plug and slot sides
-
-**Reasoning:** GPIO pins are physical hardware resources. Two instances claiming the same pin would conflict at the kernel level.
-
-
-
-**Verification:** No verification has yet been done.
-#### gpio-memory-control
-**Status:** Plug-side: COMPATIBLE. Slot-side: N/A (system/core/gadget-provided slot; no parallel app slot providers in scope).
-
-**Type:** System Control/Privileged Capability
-
-**Code analysis:**
-- Device access: `/dev/gpiomem`
-- GPIO physical memory access
-- Plug-side, implicit on core and classic
-
-**Reasoning:** `/dev/gpiomem` provides direct GPIO register access. Single system resource.
-
-
-
-**Verification:** No verification has yet been done.
-#### hugepages-control
-**Status:** Plug-side: NOT COMPATIBLE. Slot-side: N/A (system/core/gadget-provided slot; no parallel app slot providers in scope).
-
-**Type:** System Control/Privileged Capability
-
-**Code analysis:**
-- Path access: `/sys/kernel/mm/hugepages/*`
-- Control hugepage pool sizes
-- Plug-side
-
-**Reasoning:** System-wide kernel memory configuration. Only one instance should manage hugepages.
-
-
-
-**Verification:** No verification has yet been done.
-#### iio
-**Status:** Plug-side: COMPATIBLE. Slot-side: N/A (system/core/gadget-provided slot; no parallel app slot providers in scope).
-
-**Type:** Hardware Device Access
-
-**Code analysis:**
-- Device access: `/dev/iio:device*` (numbered)
-- Industrial I/O sensor device (accelerometer, gyroscope, etc.)
-- Plug-side
-
-**Reasoning:** Numbered IIO devices are physical sensors. Shared hardware resource.
-
-
-
-**Verification:** No verification has yet been done.
-#### intel-mei
-**Status:** Plug-side: NOT COMPATIBLE. Slot-side: NOT COMPATIBLE (no side-specific divergence documented in this entry).
-
-**Type:** Hardware Device Access
-
-**Code analysis:**
-- Device access: `/dev/mei[0-9]*`
-- Intel Management Engine Interface
-- Plug-side, implicit on core and classic
-
-**Reasoning:** MEI is a system-management bus. Single-instance hardware.
-
-
-
-**Verification:** No verification has yet been done.
-#### intel-qat
-**Status:** Plug-side: NOT COMPATIBLE. Slot-side: NOT COMPATIBLE (no side-specific divergence documented in this entry).
-
-**Type:** Hardware Device Access
-
-**Code analysis:**
-- Device access: `/dev/vfio/*`, IOMMU sysfs
-- Intel QuickAssist Technology accelerator
-- Plug-side
-
-**Reasoning:** QAT acceleration hardware is a shared PCIe device.
-
-
-
-**Verification:** No verification has yet been done.
-#### io-ports-control
-**Status:** Plug-side: NOT COMPATIBLE. Slot-side: N/A (system/core/gadget-provided slot; no parallel app slot providers in scope).
-
-**Type:** System Control/Privileged Capability
-
-**Code analysis:**
-- Device access: `/dev/port`
-- Syscalls: `ioperm`, `iopl`
-- All I/O port access
-- Plug-side
-
-**Reasoning:** Grants full I/O port access. System-global resource.
-
-
-
-**Verification:** No verification has yet been done.
-#### kernel-crypto-api
-**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
-
-**Type:** Hardware Device Access
-
-**Code analysis:**
-- Socket access: `AF_ALG` socket family
-- Linux kernel crypto API (hardware-accelerated crypto)
-- Plug-side, implicit on core and classic
-
-**Reasoning:** Multiple instances can use the kernel crypto API simultaneously. This is more of a system capability than an exclusive device.
-
-
-
-**Verification:** No verification has yet been done.
-#### mediatek-accel
-**Status:** Plug-side: COMPATIBLE. Slot-side: N/A (system/core/gadget-provided slot; no parallel app slot providers in scope).
-
-**Type:** Hardware Device Access
-
-**Code analysis:**
-- Device access: `/dev/apu`, `/dev/vpu`
-- MediaTek Genio APU/VPU accelerators
-- Both plug and slot sides
-
-**Reasoning:** Hardware accelerator devices are shared resources.
-
-
-
-**Verification:** No verification has yet been done.
-#### opengl
-**Status:** Plug-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE. Slot-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE (no side-specific divergence documented in this entry).
-
-**Type:** Desktop/Graphics/Media Integration
-
-**Code analysis:**
-- GPU device nodes (DRM render nodes)
-- OpenGL rendering acceleration
-- Plug-side, implicit on core and classic
-
-**Reasoning:** Multiple processes accessing the same GPU is normal and supported by the driver stack. Parallel instances can share the GPU, so this is likely COMPATIBLE for plug-side usage.
-
-
-
-**Verification:** No verification has yet been done.
-#### optical-drive
-**Status:** Plug-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE. Slot-side: N/A (system/core/gadget-provided slot; no parallel app slot providers in scope).
-
-**Type:** Hardware Device Access
-
-**Code analysis:**
-- Device access: `/dev/sr[0-9]*`, `/dev/scd[0-9]*`
-- CD/DVD/Blu-ray optical drives
-- Plug-side
-
-**Reasoning:** Optical drives are exclusive-access hardware. Only one process can read from a physical optical drive at a time.
-
-
-
-**Verification:** No verification has yet been done.
-#### physical-memory-control
-**Status:** Plug-side: NOT COMPATIBLE. Slot-side: NOT COMPATIBLE (no side-specific divergence documented in this entry).
-
-**Type:** System Control/Privileged Capability
-
-**Code analysis:**
-- Device access: `/dev/mem` (read/write)
-- Full physical memory access
-- Plug-side, implicit on core and classic
-
-**Reasoning:** `/dev/mem` provides access to all physical memory. System-global resource, not meaningful for parallel installs.
-
-
-
-**Verification:** No verification has yet been done.
-#### physical-memory-observe
-**Status:** Plug-side: COMPATIBLE. Slot-side: N/A (system/core/gadget-provided slot; no parallel app slot providers in scope).
-
-**Type:** Observability/Diagnostics
-
-**Code analysis:**
-- Device access: `/dev/mem` (read-only)
-- Read-only physical memory inspection
-- Plug-side, implicit on core and classic
-
-**Reasoning:** Read-only access, so two instances can coexist reading `/dev/mem`, though this is an extreme privilege. Likely COMPATIBLE for parallel installs.
-
-
-
-**Verification:** No verification has yet been done.
-#### power-control
-**Status:** Plug-side: NOT COMPATIBLE. Slot-side: NOT COMPATIBLE (no side-specific divergence documented in this entry).
-
-**Type:** System Control/Privileged Capability
-
-**Code analysis:**
-- Path access: `/sys/devices/**/power/*`
-- System power management control
-- Plug-side
-
-**Reasoning:** Power management sysfs is system-global configuration. Two instances setting different power policies would conflict.
-
-
-
-**Verification:** No verification has yet been done.
-#### ptp
-**Status:** Plug-side: COMPATIBLE. Slot-side: N/A (system/core/gadget-provided slot; no parallel app slot providers in scope).
-
-**Type:** Network/Netlink Interface
-
-**Code analysis:**
-- Device access: `/dev/ptp[0-9]*`
-- Precision Time Protocol hardware clock
-- Plug-side, implicit on core and classic
-
-**Reasoning:** PTP hardware clocks are physical timestamping devices. Shared resource.
-
-
-
-**Verification:** No verification has yet been done.
-#### pwm
-**Status:** Plug-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE. Slot-side: N/A (system/core/gadget-provided slot; no parallel app slot providers in scope).
-
-**Type:** Hardware Device Access
-
-**Code analysis:**
-- Path access: `/sys/class/pwm/pwmchip<N>` (numbered channel)
-- Specific PWM channel control
-- Plug-side
-
-**Reasoning:** Numbered PWM channels are physical hardware outputs. Two instances claiming the same channel would conflict.
-
-
-
-**Verification:** No verification has yet been done.
-#### spi
-**Status:** Plug-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE. Slot-side: N/A (system/core/gadget-provided slot; no parallel app slot providers in scope).
-
-**Type:** Hardware Device Access
-
-**Code analysis:**
-- Device access: `/dev/spidev<N>.<M>` (numbered bus and chip select)
-- Specific SPI bus access
-- Both plug and slot sides
-
-**Reasoning:** SPI buses are numbered physical hardware. Two instances accessing the same SPI bus simultaneously would cause bus contention.
-
-
-
-**Verification:** No verification has yet been done.
-#### u2f-devices
-**Status:** Plug-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE. Slot-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE (no side-specific divergence documented in this entry).
-
-**Type:** Identity/Credentials/Secrets
-
-**Code analysis:**
-- UDev rules: USB vendor/product patterns for U2F/FIDO keys
-- FIDO/U2F authentication device access
-- Plug-side
-
-**Reasoning:** U2F devices are physical USB tokens. Only one process can interact with a specific hardware token at a time.
-
-
-
-**Verification:** No verification has yet been done.
-#### uio
-**Status:** Plug-side: COMPATIBLE. Slot-side: N/A (system/core/gadget-provided slot; no parallel app slot providers in scope).
-
-**Type:** Hardware Device Access
-
-**Code analysis:**
-- Device access: `/dev/uio[0-9]*` (numbered)
-- Userspace I/O device driver framework
-- Both plug and slot sides
-
-**Reasoning:** UIO devices are physical hardware exposed to userspace. Numbered device nodes are shared.
-
-
-
-**Verification:** No verification has yet been done.
-#### usb-gadget
-**Status:** Plug-side: NOT COMPATIBLE. Slot-side: NOT COMPATIBLE (no side-specific divergence documented in this entry).
-
-**Type:** Hardware Device Access
-
-**Code analysis:**
-- Configfs access: USB gadget configuration filesystem
-- USB peripheral mode gadget control
-- Both plug and slot sides
-
-**Reasoning:** USB gadget configfs is a single system-wide interface. Two instances cannot both configure the USB gadget simultaneously.
-
-
-
-**Verification:** No verification has yet been done.
-#### vcio
-**Status:** Plug-side: COMPATIBLE. Slot-side: N/A (system/core/gadget-provided slot; no parallel app slot providers in scope).
-
-**Type:** Hardware Device Access
-
-**Code analysis:**
-- Device access: `/dev/vcio`
-- VideoCore I/O (Raspberry Pi GPU co-processor)
-- Plug-side, implicit on core and classic
-
-**Reasoning:** `/dev/vcio` is a single hardware mailbox interface for the VideoCore GPU. Shared resource.
-
-
-
-**Verification:** No verification has yet been done.
-#### raw-volume
-**Status:** Plug-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE. Slot-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE (no side-specific divergence documented in this entry).
-
-**Type:** Filesystem/Mount Interface
-
-**Code analysis:**
-- Specific disk partition access using a slot-declared device node
-- Valid partitions are limited to disk partition names such as `sdX1`, `nvme0n1p1`, `mmcblk0p1`, etc.
-- Uses AppArmor and udev rules derived from the slot's path attribute
-- Device-specific and not instance-aware
-
-**Reasoning:** This interface is tied to a specific partition rather than an instance name. Two parallel instances can only be safe if they are deliberately connected to different partitions.
-
-**Verification:** No verification has yet been done.
