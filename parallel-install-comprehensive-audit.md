@@ -162,7 +162,7 @@ These grant syscall-level capabilities with no named resources, paths, or D-Bus 
 **Verification:** No verification has yet been done.
 
 ### confdb
-**Status:** Plug-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE. Slot-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE (no side-specific divergence documented in this entry).
+**Status:** Plug-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE. Slot-side: N/A (system/core-provided slot; no parallel app slot providers in scope).
 
 **Type:** Snapd/Policy Management
 
@@ -926,7 +926,7 @@ The `cups` interface (distinct from `cups-control`) lets a provider snap expose 
 **Verification:** No verification has yet been done.
 
 ### display-control
-**Status:** Plug-side: COMPATIBLE. Slot-side: N/A (system/core/gadget-provided slot; no parallel app slot providers in scope).
+**Status:** Plug-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE. Slot-side: N/A (system/core/gadget-provided slot; no parallel app slot providers in scope).
 
 **Type:** Desktop/Graphics/Media Integration
 
@@ -1385,7 +1385,7 @@ PASSED on noble.
 
 
 ### contacts-service
-**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
+**Status:** Plug-side: COMPATIBLE. Slot-side: N/A (system/core-provided slot; no parallel app slot providers in scope).
 
 **Type:** D-Bus/IPC Client
 
@@ -1401,7 +1401,7 @@ PASSED on noble.
 
 
 ### accounts-service
-**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
+**Status:** Plug-side: COMPATIBLE. Slot-side: N/A (system/core-provided slot; no parallel app slot providers in scope).
 
 **Type:** D-Bus/IPC Client
 
@@ -1567,7 +1567,7 @@ This is the most well-documented incompatibility:
 **Verification:** No verification has yet been done.
 
 ### mir
-**Status:** Plug-side: not separately classified in this entry. Slot-side: NOT COMPATIBLE.
+**Status:** Plug-side: COMPATIBLE. Slot-side: NOT COMPATIBLE.
 
 **Type:** D-Bus Service/Provider
 
@@ -1599,7 +1599,7 @@ This is the most well-documented incompatibility:
 **Verification:** No verification has yet been done.
 
 ### unity8
-**Status:** Plug-side: not separately classified in this entry. Slot-side: NOT COMPATIBLE.
+**Status:** Plug-side: COMPATIBLE. Slot-side: not separately classified in this entry (provider behavior out of scope here).
 
 **Type:** D-Bus Service/Provider
 
@@ -1647,7 +1647,7 @@ This is the most well-documented incompatibility:
 **Verification:** No verification has yet been done.
 
 ### screencast-legacy
-**Status:** Plug-side: NOT COMPATIBLE. Slot-side: not separately classified in this entry (provider behavior out of scope here).
+**Status:** Plug-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE. Slot-side: N/A (system/core-provided slot; no parallel app slot providers in scope).
 
 **Type:** D-Bus/IPC Client
 
@@ -1658,12 +1658,12 @@ This is the most well-documented incompatibility:
 - The interface does not own a bus name itself, but the permissions are explicitly tied to the desktop session service.
 - No snap-instance-specific pathing is used by snapd.
 
-**Reasoning:** The interface is intentionally powerful and can write arbitrary files via gnome-shell. That is not a snap-instance collision per se, but it is not a safe parallel-install interface to analyze as compatible; it is a privileged client-side desktop capability.
+**Reasoning:** The interface is privileged and can affect shared user-visible outputs (screen/audio capture and file destinations), but it is still a client-side D-Bus interface with no instance-name collision in policy.
 
 **Verification:** No verification has yet been done.
 
 ### ros-opt-data
-**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
+**Status:** Plug-side: COMPATIBLE. Slot-side: N/A (system/core-provided slot; no parallel app slot providers in scope).
 
 **Type:** Filesystem/Mount Interface
 
@@ -1740,7 +1740,7 @@ This is the most well-documented incompatibility:
 **Verification:** No verification has yet been done.
 
 ### core-support
-**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
+**Status:** Plug-side: N/A (core-only plug; parallel app plugs out of scope). Slot-side: N/A (core-only slot; no parallel app slot providers in scope).
 
 **Type:** Hardware Device Access
 
@@ -2103,7 +2103,7 @@ This is the most well-documented incompatibility:
 **Verification:** No verification has yet been done.
 
 ### u2f-devices
-**Status:** Plug-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE. Slot-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE (no side-specific divergence documented in this entry).
+**Status:** Plug-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE. Slot-side: N/A (system/core-provided slot; no parallel app slot providers in scope).
 
 **Type:** Identity/Credentials/Secrets
 
@@ -2686,7 +2686,7 @@ This is the most well-documented incompatibility:
 **Verification:** No verification has yet been done.
 
 ### kerberos-tickets
-**Status:** Plug-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE. Slot-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE (no side-specific divergence documented in this entry).
+**Status:** Plug-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE. Slot-side: N/A (system/core-provided slot; no parallel app slot providers in scope).
 
 **Type:** Identity/Credentials/Secrets
 
@@ -2847,7 +2847,7 @@ slot (no D-Bus name conflict with only one instance running).
 **Verification:** No verification has yet been done.
 
 ### ppp
-**Status:** Plug-side: COMPATIBLE. Slot-side: N/A (system/core/gadget-provided slot; no parallel app slot providers in scope).
+**Status:** Plug-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE. Slot-side: N/A (system/core/gadget-provided slot; no parallel app slot providers in scope).
 
 **Type:** Network/Netlink Interface
 
@@ -2858,7 +2858,7 @@ slot (no D-Bus name conflict with only one instance running).
 - KMod and UDev support are declared for `ppp_generic` and the relevant devices (lines 54-64).
 - No snap-instance-specific paths are used.
 
-**Reasoning:** PPP is a global daemon/device interface. Parallel instances behave as ordinary clients of the same system PPP stack; the policy does not encode any instance-specific paths.
+**Reasoning:** PPP control is a shared host service/device surface (`pppd`, `/etc/ppp/**`, `/dev/ppp`). There is no instance-name collision in policy, but parallel instances can interfere through shared PPP runtime/config state.
 
 **Verification:** No verification has yet been done.
 
@@ -3204,7 +3204,7 @@ read shared content, survived removal of original plug snap.
 
 
 ### home
-**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
+**Status:** Plug-side: COMPATIBLE. Slot-side: N/A (system/core-provided slot; no parallel app slot providers in scope).
 
 **Type:** Filesystem/Mount Interface
 
@@ -3222,7 +3222,7 @@ PASSED on noble.
 
 
 ### desktop-launch
-**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
+**Status:** Plug-side: NOT COMPATIBLE. Slot-side: N/A (system/core-provided slot; no parallel app slot providers in scope).
 
 **Type:** Filesystem/Mount Interface
 
@@ -3335,15 +3335,15 @@ PASSED on noble.
 
 
 ### ssh-keys
-**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
+**Status:** Plug-side: COMPATIBLE. Slot-side: N/A (system/core-provided slot; no parallel app slot providers in scope).
 
 **Type:** Identity/Credentials/Secrets
 
 
 **Code analysis:**
-- Read/write access to `~/.ssh/` files
+- Read access to `~/.ssh/` files
 - No shared memory, no D-Bus, no instance-specific paths
-- Multiple instances reading/writing SSH keys is the same as having SSH access
+- Multiple instances reading SSH keys is the same as having SSH read access
 
 **Verification:**
 PASSED on noble.
@@ -3351,7 +3351,7 @@ PASSED on noble.
 
 
 ### ssh-public-keys
-**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
+**Status:** Plug-side: COMPATIBLE. Slot-side: N/A (system/core-provided slot; no parallel app slot providers in scope).
 
 **Type:** Identity/Credentials/Secrets
 
@@ -3537,7 +3537,7 @@ paths are global system directories.
 
 
 ### account-control
-**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
+**Status:** Plug-side: COMPATIBLE. Slot-side: N/A (system/core-provided slot; no parallel app slot providers in scope).
 
 **Type:** Identity/Credentials/Secrets
 
@@ -3799,7 +3799,7 @@ Expected failure. `mount: mount /var/tmp/test-snapd-mount-control on
 
 
 ### password-manager-service
-**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
+**Status:** Plug-side: COMPATIBLE. Slot-side: N/A (system/core-provided slot; no parallel app slot providers in scope).
 
 **Type:** Identity/Credentials/Secrets
 
@@ -3823,7 +3823,7 @@ PASSED on noble.
 
 
 ### calendar-service
-**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
+**Status:** Plug-side: COMPATIBLE. Slot-side: N/A (system/core-provided slot; no parallel app slot providers in scope).
 
 **Type:** D-Bus/IPC Client
 
@@ -3835,6 +3835,8 @@ PASSED on noble.
 
 **Previous audit errors**:
 - Classified as "NOT COMPATIBLE" -- INCORRECT. Test proves it works.
+
+**Reasoning:** Evolution Data Server calendar access is client-side session D-Bus use. Parallel instances are additional clients to shared user-session calendar data, with no snap-instance naming collision in interface policy.
 
 **Verification:**
 PASSED on noble.
@@ -3861,7 +3863,7 @@ No D-Bus ownership.
 **Verification:** Passed on noble. Test at `tests/main/interfaces-network-observe`.
 
 ### mount-observe
-**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
+**Status:** Plug-side: COMPATIBLE. Slot-side: N/A (system/core-provided slot; no parallel app slot providers in scope).
 
 **Type:** Filesystem/Mount Interface
 
@@ -3893,7 +3895,7 @@ Capability-based: `kill` syscall, signal sending, priority changes. No paths, no
 **Verification:** Passed on noble. Test at `tests/main/interfaces-process-control`.
 
 ### gpg-keys
-**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
+**Status:** Plug-side: COMPATIBLE. Slot-side: N/A (system/core-provided slot; no parallel app slot providers in scope).
 
 **Type:** Identity/Credentials/Secrets
 
@@ -3903,17 +3905,17 @@ Read/write access to `~/.gnupg/` (user file access). No D-Bus, no snap-name path
 **Verification:** Passed on noble. Test at `tests/main/interfaces-gpg-keys`.
 
 ### gpg-public-keys
-**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
+**Status:** Plug-side: COMPATIBLE. Slot-side: N/A (system/core-provided slot; no parallel app slot providers in scope).
 
 **Type:** Identity/Credentials/Secrets
 
 
-Read-only access to `~/.gnupg/` public keys. No D-Bus, no snap-name paths.
+Read access to public-key and config files, plus limited lock-file writes required by some gpg operations. No D-Bus, no snap-name paths.
 
 **Verification:** Passed on noble. Test at `tests/main/interfaces-gpg-public-keys`.
 
 ### removable-media
-**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
+**Status:** Plug-side: COMPATIBLE. Slot-side: N/A (system/core-provided slot; no parallel app slot providers in scope).
 
 **Type:** Filesystem/Mount Interface
 
@@ -3943,9 +3945,9 @@ Device access to `/dev/bus/usb/`, `/sys/bus/usb/`. No D-Bus, no snap-name paths.
 **Verification:** Passed on noble. Test at `tests/main/interfaces-raw-usb`.
 
 ### cuda-driver-libs
-**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE.
+**Status:** Plug-side: N/A (system/core plug only on classic; parallel app plugs out of scope). Slot-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE.
 
-**Type:** Hardware Device Access
+**Type:** Desktop/Graphics/Media Integration
 
 **Code analysis:**
 - The interface is mostly about publishing CUDA driver libraries and config metadata.
@@ -3958,9 +3960,9 @@ Device access to `/dev/bus/usb/`, `/sys/bus/usb/`. No D-Bus, no snap-name paths.
 **Verification:** No verification has yet been done.
 
 ### packagekit-control
-**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE.
+**Status:** Plug-side: COMPATIBLE. Slot-side: N/A (system/core-provided slot; no parallel app slot providers in scope).
 
-**Type:** Hardware Device Access
+**Type:** System Control/Privileged Capability
 
 **Code analysis:**
 - Slot is provided by core only (lines 30-35), with implicit slot on classic (line 107).
@@ -3974,9 +3976,9 @@ Device access to `/dev/bus/usb/`, `/sys/bus/usb/`. No D-Bus, no snap-name paths.
 **Verification:** No verification has yet been done.
 
 ### polkit-agent
-**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE.
+**Status:** Plug-side: COMPATIBLE. Slot-side: N/A (system/core-provided slot; no parallel app slot providers in scope).
 
-**Type:** Hardware Device Access
+**Type:** Identity/Credentials/Secrets
 
 **Code analysis:**
 - Slot is provided by core only when the helper exists, and the interface is implicitly on core/classic depending on helper availability (line 142).
@@ -3990,9 +3992,9 @@ Device access to `/dev/bus/usb/`, `/sys/bus/usb/`. No D-Bus, no snap-name paths.
 **Verification:** No verification has yet been done.
 
 ### snap-refresh-observe
-**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE.
+**Status:** Plug-side: COMPATIBLE. Slot-side: N/A (system/core-provided slot; no parallel app slot providers in scope).
 
-**Type:** Hardware Device Access
+**Type:** Observability/Diagnostics
 
 **Code analysis:**
 - Slot is provided by core only (lines 30-35), with implicit slots on core and classic (lines 42-43).
@@ -4095,9 +4097,9 @@ Device access to `/dev/bus/usb/`, `/sys/bus/usb/`. No D-Bus, no snap-name paths.
 **Verification:** No verification has yet been done.
 
 ### ubuntu-pro-control
-**Status:** Plug-side: COMPATIBLE. Slot-side: NOT COMPATIBLE.
+**Status:** Plug-side: COMPATIBLE. Slot-side: N/A (system/core-provided slot; no parallel app slot providers in scope).
 
-**Type:** Hardware Device Access
+**Type:** Snapd/Policy Management
 
 **Code analysis:**
 - Slot is provided by core only (lines 30-35), with implicit slot on classic (line 128).
@@ -4106,14 +4108,14 @@ Device access to `/dev/bus/usb/`, `/sys/bus/usb/`. No D-Bus, no snap-name paths.
 - No snap-instance-specific paths are used; the only filesystem access is `/etc/ubuntu-advantage/uaclient.conf` (line 43).
 - No mount or shared-memory rules are present.
 
-**Reasoning:** Ubuntu Pro control is a daemon-client interface on top of a singleton service. Parallel consumers are fine, but parallel providers would contend for the same well-known D-Bus name, so slot-side is not compatible.
+**Reasoning:** Ubuntu Pro control is a client interface to a shared system daemon. Parallel consumers are fine; slot provider analysis is out of scope here because slot installation is core-only.
 
 **Verification:** No verification has yet been done.
 
 ### xdg-portal-permission-store
-**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE.
+**Status:** Plug-side: COMPATIBLE. Slot-side: N/A (system/core-provided slot; no parallel app slot providers in scope).
 
-**Type:** Hardware Device Access
+**Type:** Desktop/Graphics/Media Integration
 
 **Code analysis:**
 - Slot is provided by core only (lines 30-35), with implicit slot on core and classic (lines 69-70).
@@ -4126,9 +4128,9 @@ Device access to `/dev/bus/usb/`, `/sys/bus/usb/`. No D-Bus, no snap-name paths.
 **Verification:** No verification has yet been done.
 
 ### kernel-firmware-control
-**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE.
+**Status:** Plug-side: COMPATIBLE. Slot-side: N/A (system/core-provided slot; no parallel app slot providers in scope).
 
-**Type:** Hardware Device Access
+**Type:** System Control/Privileged Capability
 
 **Code analysis:**
 - Slot is provided by core only (lines 31-36), with implicit slots on core and classic (lines 48-49).
@@ -4140,9 +4142,9 @@ Device access to `/dev/bus/usb/`, `/sys/bus/usb/`. No D-Bus, no snap-name paths.
 **Verification:** No verification has yet been done.
 
 ### ion-memory-control
-**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE.
+**Status:** Plug-side: COMPATIBLE. Slot-side: N/A (system/core-provided slot; no parallel app slot providers in scope).
 
-**Type:** Hardware Device Access
+**Type:** System Control/Privileged Capability
 
 **Code analysis:**
 - Slot is provided by core only (lines 24-30), with an explicit plug-installation restriction (lines 32-36).
@@ -4155,9 +4157,9 @@ Device access to `/dev/bus/usb/`, `/sys/bus/usb/`. No D-Bus, no snap-name paths.
 **Verification:** No verification has yet been done.
 
 ### nvme-control
-**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE.
+**Status:** Plug-side: COMPATIBLE. Slot-side: N/A (system/core-provided slot; no parallel app slot providers in scope).
 
-**Type:** Hardware Device Access
+**Type:** System Control/Privileged Capability
 
 **Code analysis:**
 - Slot is provided by core only (lines 40-45), with explicit plug-installation restriction (lines 34-38).
@@ -4171,9 +4173,9 @@ Device access to `/dev/bus/usb/`, `/sys/bus/usb/`. No D-Bus, no snap-name paths.
 **Verification:** No verification has yet been done.
 
 ### sd-control
-**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE.
+**Status:** Plug-side: COMPATIBLE. Slot-side: N/A (system/core-provided slot; no parallel app slot providers in scope).
 
-**Type:** Hardware Device Access
+**Type:** System Control/Privileged Capability
 
 **Code analysis:**
 - Slot is provided by core only (lines 30-35), with implicit slots on core and classic (lines 95-96).
@@ -4186,22 +4188,22 @@ Device access to `/dev/bus/usb/`, `/sys/bus/usb/`. No D-Bus, no snap-name paths.
 **Verification:** No verification has yet been done.
 
 ### kernel-module-control
-**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE.
+**Status:** Plug-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE. Slot-side: N/A (system/core-provided slot; no parallel app slot providers in scope).
 
-**Type:** Hardware Device Access
+**Type:** System Control/Privileged Capability
 
 **Code analysis:**
 - Capability-based module management (insmod/rmmod/lsmod) and read access to `/sys/module/`.
 - No D-Bus name ownership and no snap-instance-specific filesystem pathing.
 
-**Reasoning:** This is a shared kernel capability surface rather than a snap-instance-named resource. Parallel instances can be granted the same capability without an instance-name collision in policy.
+**Reasoning:** This grants shared kernel module management authority (`sys_module`). There is no snap-instance naming collision in policy, but parallel instances can interfere by loading/unloading shared kernel modules.
 
 **Verification:** Passed on noble. Test at `tests/main/interfaces-kernel-module-control`.
 
 ### gpio-control
 **Status:** Plug-side: NOT COMPATIBLE. Slot-side: N/A (system/core/gadget-provided slot; no parallel app slot providers in scope).
 
-**Type:** Hardware Device Access
+**Type:** System Control/Privileged Capability
 
 **Code analysis:**
 - This interface grants broad control of all GPIO pins and device nodes (`/sys/class/gpio`, `/sys/devices/platform/**/gpio`, `/dev/gpiochip[0-9]*`) (lines 43-57).
