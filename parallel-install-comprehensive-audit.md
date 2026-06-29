@@ -330,6 +330,141 @@ These grant syscall-level capabilities with no named resources, paths, or D-Bus 
 
 **Verification:** No verification has yet been done.
 
+### docker-support
+**Status:** Plug-side: NOT COMPATIBLE. Slot-side: N/A (system/core/gadget-provided slot; no parallel app slot providers in scope).
+
+**Type:** Container/Virtualization Support
+
+
+**Code analysis:**
+- Interface is explicitly for operating as the Docker daemon and container runtime (`interfaces/builtin/docker_support.go:35`, `interfaces/builtin/docker_support.go:71-76`).
+- AppArmor and seccomp are intentionally broad (including `@unrestricted` paths/syscalls in privileged mode), plus extensive mount/cgroup/profile control (`interfaces/builtin/docker_support.go:70-277`, `interfaces/builtin/docker_support.go:279-734`).
+- Uses `controlsDeviceCgroup` and service delegate semantics (`interfaces/builtin/docker_support.go:883-885`, `interfaces/builtin/docker_support.go:736`).
+
+**Reasoning:** This is host-level orchestration authority, not an instance-scoped client interface. Parallel instances would contend over shared daemon/runtime state and system resources.
+
+**Verification:** No verification has yet been done.
+
+### kubernetes-support
+**Status:** Plug-side: NOT COMPATIBLE. Slot-side: N/A (system/core/gadget-provided slot; no parallel app slot providers in scope).
+
+**Type:** Container/Virtualization Support
+
+
+**Code analysis:**
+- Interface is intended for running Kubernetes services (`interfaces/builtin/kubernetes_support.go:34`).
+- Grants broad cgroup, mount, ptrace, and systemd-run interactions depending on flavor (`interfaces/builtin/kubernetes_support.go:50-229`, `interfaces/builtin/kubernetes_support.go:320-383`).
+- Includes `controlsDeviceCgroup` and service delegation (`interfaces/builtin/kubernetes_support.go:103`, `interfaces/builtin/kubernetes_support.go:300-312`).
+
+**Reasoning:** Kubernetes node control is system-global orchestration. Parallel instances would compete over shared host cgroups, mounts, and runtime coordination.
+
+**Verification:** No verification has yet been done.
+
+### lxd-support
+**Status:** Plug-side: NOT COMPATIBLE. Slot-side: N/A (system/core/gadget-provided slot; no parallel app slot providers in scope).
+
+**Type:** Container/Virtualization Support
+
+
+**Code analysis:**
+- Interface is for operating as the LXD service (`interfaces/builtin/lxd_support.go:33`).
+- Grants profile-changing/unconfined behavior, unrestricted seccomp, and device cgroup control (`interfaces/builtin/lxd_support.go:49-69`, `interfaces/builtin/lxd_support.go:128-130`).
+- Supports optional unconfined mode via plug attribute (`interfaces/builtin/lxd_support.go:81-113`).
+
+**Reasoning:** LXD service operation is host-global VM/container management. Parallel instances are not isolated and would conflict on shared runtime and host control surfaces.
+
+**Verification:** No verification has yet been done.
+
+### microceph-support
+**Status:** Plug-side: NOT COMPATIBLE. Slot-side: N/A (system/core/gadget-provided slot; no parallel app slot providers in scope).
+
+**Type:** Container/Virtualization Support
+
+
+**Code analysis:**
+- Interface is for operating as the MicroCeph service (`interfaces/builtin/microceph_support.go:22`).
+- Grants rw access to global block devices and RBD management sysfs under `/sys/bus/rbd/**` (`interfaces/builtin/microceph_support.go:38-56`).
+- Policy is device/system-path based, not instance-scoped.
+
+**Reasoning:** Storage orchestration here is host-global. Parallel instances would contend over shared block/rbd resources and mutable storage state.
+
+**Verification:** No verification has yet been done.
+
+### microstack-support
+**Status:** Plug-side: NOT COMPATIBLE. Slot-side: N/A (system/core/gadget-provided slot; no parallel app slot providers in scope).
+
+**Type:** Container/Virtualization Support
+
+
+**Code analysis:**
+- Interface is for operating as MicroStack (OpenStack services stack) (`interfaces/builtin/microstack_support.go:38`).
+- Grants extensive host device, cgroup, mount, AppArmor management, and capability access (`interfaces/builtin/microstack_support.go:54-229`).
+- Declares `controlsDeviceCgroup` and a broad set of kernel modules (`interfaces/builtin/microstack_support.go:248-277`).
+
+**Reasoning:** This is broad host orchestration authority across compute/network/storage subsystems. Parallel instances are expected to interfere on shared system control planes.
+
+**Verification:** No verification has yet been done.
+
+### multipass-support
+**Status:** Plug-side: NOT COMPATIBLE. Slot-side: N/A (system/core/gadget-provided slot; no parallel app slot providers in scope).
+
+**Type:** Container/Virtualization Support
+
+
+**Code analysis:**
+- Interface is for operating as the Multipass service (`interfaces/builtin/multipass_support.go:40`).
+- Allows AppArmor policy manipulation and profile transitions for spawned utilities (`interfaces/builtin/multipass_support.go:56-86`).
+- Grants privilege-separation and file-owner-changing syscalls/capabilities for daemon-managed helper processes (`interfaces/builtin/multipass_support.go:71-115`).
+
+**Reasoning:** Multipass daemon behavior is host-global VM/runtime orchestration. Multiple parallel instances would share and compete for the same host virtualization resources.
+
+**Verification:** No verification has yet been done.
+
+### nomad-support
+**Status:** Plug-side: NOT COMPATIBLE. Slot-side: N/A (system/core/gadget-provided slot; no parallel app slot providers in scope).
+
+**Type:** Container/Virtualization Support
+
+
+**Code analysis:**
+- Interface enables running Hashicorp Nomad as a service (`interfaces/builtin/nomad_support.go:24-29`).
+- Grants cgroup hierarchy management and ownership-changing privileges (`interfaces/builtin/nomad_support.go:44-76`).
+- Uses `controlsDeviceCgroup` and service delegation (`interfaces/builtin/nomad_support.go:91-109`).
+
+**Reasoning:** Nomad scheduler/agent control is host-global orchestration. Parallel instances would conflict on shared cgroup tree and scheduling state.
+
+**Verification:** No verification has yet been done.
+
+### nvidia-drivers-support
+**Status:** Plug-side: NOT COMPATIBLE. Slot-side: N/A (system/core/gadget-provided slot; no parallel app slot providers in scope).
+
+**Type:** Container/Virtualization Support
+
+
+**Code analysis:**
+- Interface is for NVIDIA userspace driver system setup (`interfaces/builtin/nvidia_drivers_support.go:22`).
+- Grants character-device creation and rw access to global `/dev/nvidia*` nodes (`interfaces/builtin/nvidia_drivers_support.go:45-56`, `interfaces/builtin/nvidia_drivers_support.go:58-66`).
+- Operates on shared host device namespace, not instance-specific paths.
+
+**Reasoning:** Managing global NVIDIA driver device nodes is host-global setup work. Parallel instances are not independently scoped and can interfere over the same device namespace.
+
+**Verification:** No verification has yet been done.
+
+### openvswitch-support
+**Status:** Plug-side: NOT COMPATIBLE. Slot-side: N/A (system/core/gadget-provided slot; no parallel app slot providers in scope).
+
+**Type:** Container/Virtualization Support
+
+
+**Code analysis:**
+- Interface is for operating as the Open vSwitch service (`interfaces/builtin/openvswitch_support.go:22`).
+- Declares kernel module control/loading for `openvswitch` (`interfaces/builtin/openvswitch_support.go:32-42`).
+- No per-instance namespacing is introduced in the interface definition.
+
+**Reasoning:** OVS service/kernel-module management is a shared host control surface. Parallel service instances are not isolated at interface level and are expected to conflict.
+
+**Verification:** No verification has yet been done.
+
 ### can-bus
 **Status:** Plug-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE. Slot-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE (no side-specific divergence documented in this entry).
 
@@ -3842,5 +3977,4 @@ Device access to `/dev/bus/usb/`, `/sys/bus/usb/`. No D-Bus, no snap-name paths.
 **Reasoning:** Plug-side access is not parallel-safe in practice because it gives global write control over shared GPIO lines and gpiochip devices. Two instances can reconfigure pin direction/value/edge for the same hardware and interfere immediately. Slot-side is core-only and not an app-provider parallel-install scenario.
 
 **Verification:** No verification has yet been done.
-
 
