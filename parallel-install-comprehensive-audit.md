@@ -317,14 +317,14 @@ These grant syscall-level capabilities with no named resources, paths, or D-Bus 
 **Verification:** No verification has yet been done.
 
 ### can-bus
-**Status:** COMPATIBLE (code analysis -- not yet verified)
+**Status:** COMPATIBLE EXCEPT FOR SHARED RESOURCE (shared medium; code analysis -- not yet verified)
 
 **Code analysis:**
 - The interface grants CAN network access and allows AF_CAN sockets.
 - No instance-specific pathing or ownership is present.
 - The kernel handles CAN bus concurrency; the interface is just a client to that medium.
 
-**Reasoning:** parallel instances can use the CAN bus at the same time, but they share the same underlying hardware bus.
+**Reasoning:** parallel instances can use CAN concurrently and there is no snap-instance naming collision in this interface. They still share the same bus and can interfere at protocol/application level if they use overlapping identifiers.
 
 **Verification:** No verification has yet been done.
 
@@ -632,7 +632,7 @@ The remaining shared SHM/socket state is client-server audio IPC, not a parallel
 **Verification:** No verification has yet been done.
 
 ### optical-drive
-**Status:** COMPATIBLE (code analysis -- not yet verified)
+**Status:** COMPATIBLE EXCEPT FOR SHARED RESOURCE (shared hardware; code analysis -- not yet verified)
 
 **Code analysis:**
 - Slot is provided by core only (lines 32-43), with implicit slot on classic only (line 107).
@@ -640,7 +640,7 @@ The remaining shared SHM/socket state is client-server audio IPC, not a parallel
 - UDev rules tag the relevant SCSI device types (lines 56-63).
 - No snap-instance-specific paths are used.
 
-**Reasoning:** Optical drives are global hardware devices. The interface is attribute/device based, not instance-name based.
+**Reasoning:** The interface is attribute/device based, not instance-name based, so there is no snap-instance collision. Optical drives are still shared physical hardware and concurrent read/write operations can interfere.
 
 **Verification:** No verification has yet been done.
 
@@ -862,20 +862,6 @@ conflict, but that's not a parallel-install concern.
 
 **Verification:**
 PASSED on noble.
-
-
-### pipewire
-**Status:** COMPATIBLE (plug-side only) -- NOT VERIFIED
-
-**Code analysis:** Similar architecture to pulseaudio (shared memory IPC between server
-and clients). Multiple clients connecting to the same PipeWire server is the normal use
-case. Slot-side (running multiple PW servers) would conflict.
-
-**Reasoning:** Same as pulseaudio -- plug-side consumers don't conflict.
-
-**Verification:** No spread test run. Needs verification.
-
-
 
 
 ### x11
@@ -1480,18 +1466,6 @@ from the system service does not conflict with other instances doing the same.
 
 **Verification:** No verification has yet been done.
 
-### can-bus
-**Status:** COMPATIBLE EXCEPT FOR SHARED RESOURCE (shared medium; code analysis -- not yet verified)
-
-**Code analysis:**
-- The interface grants CAN network access and allows AF_CAN sockets (lines 4617-4624 in the bucket summary).
-- No instance-specific pathing or ownership is present.
-- The kernel handles CAN concurrency; the interface is just a client to that medium.
-
-**Reasoning:** Parallel instances can coexist as snapd clients, but they share the same CAN medium and can interfere at the protocol/application level if they use the same bus or identifiers.
-
-**Verification:** No verification has yet been done.
-
 ### cpu-control
 **Status:** NOT COMPATIBLE (system-global control; code analysis -- not yet verified)
 
@@ -1578,9 +1552,10 @@ from the system service does not conflict with other instances doing the same.
 **Status:** NOT COMPATIBLE (system-global control; code analysis -- not yet verified)
 
 **Code analysis:**
-- The interface controls system hugepage sysfs and `/proc/sys/vm/*` plus `/{dev,run}/hugepages/` (lines 4705-4713 in the bucket summary).
-- The runtime directory uses `owner`, but that is user ownership, not snap-instance scoping.
-- A mount rule permits `/dev/hugepages`.
+- Slot is provided by core only (`hugepages_control.go:29-35`), with implicit slots on core and classic (`hugepages_control.go:74-76`).
+- The interface controls system hugepage sysfs and `/proc/sys/vm/*` plus `/{dev,run}/hugepages/` (`hugepages_control.go:39-54`).
+- The runtime directory uses `owner`, but that is user/file ownership, not snap-instance scoping (`hugepages_control.go:54`).
+- A mount rule permits `/dev/hugepages` (`hugepages_control.go:67`).
 
 **Reasoning:** Hugepages are a global kernel memory facility. Parallel instances would contend for the same system controls.
 
@@ -1626,21 +1601,13 @@ from the system service does not conflict with other instances doing the same.
 **Status:** NOT COMPATIBLE (system-global control; code analysis -- not yet verified)
 
 **Code analysis:**
-- The interface grants access to `/dev/port` and the `sys_rawio` capability, plus `ioperm`/`iopl` syscalls (lines 4749-4757 in the bucket summary).
+- Slot is provided by core only (`io_ports_control.go:24-30`), with implicit slots on core and classic (`io_ports_control.go:57-58`).
+- AppArmor grants access to `/dev/port` and `capability sys_rawio` (`io_ports_control.go:32-39`).
+- Seccomp allows `ioperm` and `iopl` (`io_ports_control.go:41-49`).
+- UDev tags the `port` device (`io_ports_control.go:51`).
 - This is full I/O port access for the system.
 
 **Reasoning:** I/O port access is a global machine capability and is inherently not instance-isolated.
-
-**Verification:** No verification has yet been done.
-
-### kernel-crypto-api
-**Status:** COMPATIBLE (code analysis -- not yet verified)
-
-**Code analysis:**
-- The interface grants `AF_ALG` access to the kernel crypto API (lines 4761-4768 in the bucket summary).
-- It is a shared kernel subsystem and does not own a singleton name or path.
-
-**Reasoning:** Multiple instances can use the kernel crypto API simultaneously. This is a shared subsystem, not an exclusive snap-scoped resource.
 
 **Verification:** No verification has yet been done.
 
@@ -1656,28 +1623,6 @@ from the system service does not conflict with other instances doing the same.
 
 **Verification:** No verification has yet been done.
 
-### opengl
-**Status:** COMPATIBLE EXCEPT FOR SHARED RESOURCE (shared GPU; code analysis -- not yet verified)
-
-**Code analysis:**
-- The interface grants access to GPU device nodes / DRM render nodes (lines 4783-4790 in the bucket summary).
-- It is a shared-client GPU interface and does not encode snap-instance scoping.
-
-**Reasoning:** Parallel instances are fine from snapd’s point of view, but they still share the same GPU and can contend for graphics resources or performance.
-
-**Verification:** No verification has yet been done.
-
-### optical-drive
-**Status:** NOT COMPATIBLE (exclusive hardware; code analysis -- not yet verified)
-
-**Code analysis:**
-- The interface grants access to `/dev/sr[0-9]*` and `/dev/scd[0-9]*` (lines 4794-4801 in the bucket summary).
-- These are physical optical drives, which are exclusive devices.
-
-**Reasoning:** Optical drives are exclusive-access hardware. Two instances trying to use the same drive are not a parallel-install-safe pattern.
-
-**Verification:** No verification has yet been done.
-
 ### physical-memory-control
 **Status:** NOT COMPATIBLE (extreme privilege; code analysis -- not yet verified)
 
@@ -1689,23 +1634,12 @@ from the system service does not conflict with other instances doing the same.
 
 **Verification:** No verification has yet been done.
 
-### physical-memory-observe
-**Status:** COMPATIBLE (code analysis -- not yet verified)
-
-**Code analysis:**
-- The interface grants read-only `/dev/mem` access (lines 4816-4823 in the bucket summary).
-- It is read-only physical memory inspection with no snap-instance-specific logic.
-
-**Reasoning:** Read-only access means parallel instances can coexist reading the same data, though this remains an extreme privilege.
-
-**Verification:** No verification has yet been done.
-
 ### power-control
 **Status:** NOT COMPATIBLE (system-global control; code analysis -- not yet verified)
 
 **Code analysis:**
-- The interface targets `/sys/devices/**/power/*` (lines 4827-4835 in the bucket summary).
-- It controls power-management settings for the whole system.
+- The interface targets `/sys/devices/**/power/*` and power-supply knobs (implementation section for `power-control`).
+- It controls wakeup, runtime power management, and battery threshold settings for the whole system.
 
 **Reasoning:** Power policy is system-global, so parallel instances would contend for the same controls.
 
@@ -1715,32 +1649,39 @@ from the system service does not conflict with other instances doing the same.
 **Status:** COMPATIBLE (code analysis -- not yet verified)
 
 **Code analysis:**
-- The interface grants access to `/dev/ptp[0-9]*` and related sysfs knobs (lines 4838-4845 in the bucket summary).
-- It is a hardware clock device interface.
+- Slot is provided by core only, with implicit slots on core and classic.
+- AppArmor grants access to `/dev/ptp[0-9]*` and related `/sys/class/ptp/` paths.
+- UDev tagging is device-based.
+- It is a hardware clock device interface with no instance-specific naming.
 
 **Reasoning:** PTP hardware clocks are shared devices. Parallel instances can access the same underlying clock hardware from separate snaps without snapd-level collision.
 
 **Verification:** No verification has yet been done.
 
 ### pwm
-**Status:** NOT COMPATIBLE (exclusive hardware; code analysis -- not yet verified)
+**Status:** COMPATIBLE EXCEPT FOR SHARED RESOURCE (shared hardware channel; code analysis -- not yet verified)
 
 **Code analysis:**
-- The interface targets `/sys/class/pwm/pwmchipN` and specific channels (lines 4849-4856 in the bucket summary).
-- It is tied to numbered PWM outputs.
+- Slots are provided by core or gadget snaps only (`pwm.go:36-42`).
+- The interface validates `channel` and `chip-number` slot attributes (`pwm.go:53-77`).
+- AppArmor rules are generated from the resolved sysfs PWM chip path (`pwm.go:80-107`).
+- A systemd service exports/unexports the selected PWM channel (`pwm.go:110-129`).
+- It is tied to specific hardware chip/channel values from the slot.
 
-**Reasoning:** PWM channels are physical hardware outputs. Two instances claiming the same channel would conflict.
+**Reasoning:** There is no snap-instance naming collision in the interface code, so parallel installs are policy-safe. PWM channels are physical outputs, so instances targeting the same chip/channel can still conflict at hardware level.
 
 **Verification:** No verification has yet been done.
 
 ### spi
-**Status:** NOT COMPATIBLE (exclusive hardware; code analysis -- not yet verified)
+**Status:** COMPATIBLE EXCEPT FOR SHARED RESOURCE (shared bus/device; code analysis -- not yet verified)
 
 **Code analysis:**
-- The interface grants access to `/dev/spidev<N>.<M>` (lines 4860-4867 in the bucket summary).
-- It is tied to a numbered SPI bus and chip select.
+- Slots are provided by core or gadget snaps only (`spi.go:36-43`).
+- Slot path validation ensures a concrete `/dev/spidevN.M` node (`spi.go:60-79`).
+- AppArmor and UDev rules are generated from the slot path (`spi.go:81-102`).
+- It is tied to a numbered SPI bus/chip-select device path.
 
-**Reasoning:** SPI buses are physical hardware. Two instances accessing the same SPI bus simultaneously would cause bus contention.
+**Reasoning:** The interface is path/slot-driven and does not introduce snap-instance naming collisions. Parallel instances can still contend if they access the same physical SPI device concurrently.
 
 **Verification:** No verification has yet been done.
 
@@ -1748,8 +1689,9 @@ from the system service does not conflict with other instances doing the same.
 **Status:** COMPATIBLE EXCEPT FOR SHARED RESOURCE (shared token; code analysis -- not yet verified)
 
 **Code analysis:**
-- The interface matches USB vendor/product patterns for U2F/FIDO tokens (lines 4871-4878 in the bucket summary).
-- It is a physical token interface.
+- The interface grants access to `/dev/hidraw*` and related udev/sysfs metadata (`u2f_devices.go:227-243`).
+- UDev matching is vendor/product based for known U2F/FIDO tokens (`u2f_devices.go:249-252`).
+- It is a physical token interface with device matching rather than instance naming.
 
 **Reasoning:** The interface is policy-safe, but the underlying token is a shared physical device. Parallel instances can contend for the same security key at the application level.
 
@@ -1759,8 +1701,10 @@ from the system service does not conflict with other instances doing the same.
 **Status:** COMPATIBLE (code analysis -- not yet verified)
 
 **Code analysis:**
-- The interface grants access to `/dev/uio[0-9]*` (lines 4882-4889 in the bucket summary).
+- Slots are provided by core or gadget snaps only.
+- Slot path validation requires `/dev/uioN` and AppArmor/UDev rules are generated from that path.
 - UIO devices are userspace-mapped hardware devices.
+- No snap-instance-specific names are involved.
 
 **Reasoning:** The interface is device-based. Multiple instances can share the same access path without snapd-level collision, though the hardware itself may still be shared.
 
@@ -1770,8 +1714,10 @@ from the system service does not conflict with other instances doing the same.
 **Status:** NOT COMPATIBLE (system-global control; code analysis -- not yet verified)
 
 **Code analysis:**
-- The interface grants access to USB gadget configfs (lines 4893-4900 in the bucket summary).
-- Configfs is used to configure the system-wide USB peripheral mode gadget.
+- The interface grants broad access to USB gadget configfs (`usb_gadget.go:168-179`).
+- FunctionFS mount targets are expanded from the plug snap identity via `expandMountWhereVariable()` (`usb_gadget.go:205`).
+- The interface validates persistent mount targets and rejects persistent mounts under `$SNAP_DATA` and `$SNAP_USER_DATA` (`usb_gadget.go:74-81`).
+- Configfs remains the system-wide USB peripheral configuration plane.
 
 **Reasoning:** USB gadget configuration is a single system-wide control plane. Parallel instances cannot both safely manage it.
 
@@ -1781,7 +1727,9 @@ from the system service does not conflict with other instances doing the same.
 **Status:** COMPATIBLE (code analysis -- not yet verified)
 
 **Code analysis:**
-- The interface grants access to `/dev/vcio` (lines 4904-4911 in the bucket summary).
+- Slot is provided by core only, with implicit slots on core and classic.
+- AppArmor grants access to `/dev/vcio` and related sysfs/udev metadata.
+- UDev tagging is device-based.
 - It is a single hardware mailbox interface for the VideoCore GPU.
 
 **Reasoning:** This is a shared hardware mailbox rather than a snap-scoped resource. Parallel instances can access it as concurrent clients.
@@ -1934,28 +1882,6 @@ The cache filename is typically session-specific and may look random (for exampl
 
 **Verification:** Passed on noble. Test at `tests/main/interfaces-netlink-connector`.
 
-### power-control
-**Status:** NOT COMPATIBLE (system-global control; code analysis -- not yet verified)
-
-**Code analysis:**
-- The interface targets `/sys/devices/**/power/*` and power-supply knobs (lines 1-61 in the implementation).
-- It controls wakeup, runtime power management, and battery threshold settings for the system.
-
-**Reasoning:** Power settings are system-global. Parallel instances changing them would conflict.
-
-**Verification:** No verification has yet been done.
-
-### u2f-devices
-**Status:** COMPATIBLE (code analysis -- not yet verified)
-
-**Code analysis:**
-- The interface grants access to `/dev/hidraw*` and matching udev metadata for known U2F/FIDO devices (lines 227-243 and 249-265 in the implementation).
-- It relies on device matching rather than snap-instance naming.
-
-**Reasoning:** U2F devices are physical tokens, but the interface is device-based and does not create any snap-instance collision surface.
-
-**Verification:** No verification has yet been done.
-
 ### bluez
 **Status:** NOT COMPATIBLE (slot-side system singleton); COMPATIBLE (plug-side)
 
@@ -2001,20 +1927,6 @@ slot (no D-Bus name conflict with only one instance running).
 
 
 
-### camera
-**Status:** COMPATIBLE (code analysis -- not yet verified)
-
-**Code analysis:**
-- Slot is provided by core only (lines 28-33), with implicit slots on core and classic (lines 80-81).
-- AppArmor rules are device-path based and intentionally broad: `/dev/video[0-9]*`, `/dev/vchiq`, and supporting sysfs/udev paths (lines 36-57).
-- UDev rules tag video devices (lines 71-74).
-- No snap-instance-specific paths are used.
-- The interface explicitly notes it allows access to all cameras until better device assignment exists (line 37).
-
-**Reasoning:** Camera devices are shared hardware resources. Parallel instances accessing the same global camera nodes is expected; the interface code is not instance-scoped and does not create a collision surface.
-
-**Verification:** No verification has yet been done.
-
 ### bluetooth-control
 **Status:** COMPATIBLE (code analysis -- not yet verified)
 
@@ -2026,19 +1938,6 @@ slot (no D-Bus name conflict with only one instance running).
 - No snap-instance-specific paths, D-Bus names, or sockets are involved.
 
 **Reasoning:** This interface controls the system Bluetooth stack, which is a global kernel/service resource. Multiple parallel instances can be granted the same access; the code does not create snap-instance collisions.
-
-**Verification:** No verification has yet been done.
-
-### gpio
-**Status:** COMPATIBLE (code analysis -- not yet verified)
-
-**Code analysis:**
-- Slots are provided by core or gadget snaps only (lines 35-41), not by app snaps.
-- The slot is keyed by a GPIO number attribute and the code resolves the sysfs path via `evalSymlinks()` before emitting rules (lines 83-105).
-- The interface also sets up a per-slot systemd service to export/unexport the GPIO line (lines 108-122).
-- No snap-instance-specific names are used beyond the slot-supplied GPIO number.
-
-**Reasoning:** GPIO access is tied to a physical pin, not a snap instance. Parallel installs can connect to the same pin or different pins as declared by the slot; there is no instance-name collision in the interface code.
 
 **Verification:** No verification has yet been done.
 
@@ -2056,61 +1955,6 @@ slot (no D-Bus name conflict with only one instance running).
 
 **Verification:** No verification has yet been done.
 
-### gpio-memory-control
-**Status:** COMPATIBLE (code analysis -- not yet verified)
-
-**Code analysis:**
-- Slot is provided by core only (lines 25-30), with implicit slots on core and classic (lines 47-48).
-- AppArmor rules grant access to `/dev/gpiomem` (line 38).
-- UDev tags the `gpiomem` device (line 41).
-- No instance-specific names, sockets, or mounts are used.
-
-**Reasoning:** This is a global GPIO memory device and the interface is just device-path based. Multiple instances can share the same access without snap-instance collisions in snapd policy.
-
-**Verification:** No verification has yet been done.
-
-### hugepages-control
-**Status:** COMPATIBLE (code analysis -- not yet verified)
-
-**Code analysis:**
-- Slot is provided by core only (lines 29-34), with implicit slots on core and classic (noted in the interface registration).
-- AppArmor rules cover system hugepage sysfs, `/proc/sys/vm/*`, and `/{dev,run}/hugepages/` (lines 37-68).
-- The rules use `owner` for the hugepages runtime directory (line 54), but that is user/file ownership, not snap instance naming.
-- A mount rule permits `/dev/hugepages` (line 67).
-- No snap-instance-specific paths are involved.
-
-**Reasoning:** Hugepages are a global kernel memory facility. Parallel instances can all manipulate the same system hugepage controls; the interface code does not introduce any snap-instance-specific pathing.
-
-**Verification:** No verification has yet been done.
-
-### iio
-**Status:** COMPATIBLE (code analysis -- not yet verified)
-
-**Code analysis:**
-- Slots are provided by core or gadget snaps only (lines 36-42).
-- Slot validation requires a device node path under `/dev/iio:deviceN` (lines 77-95).
-- AppArmor rules are generated from the specific slot path and derived device name (lines 98-133).
-- UDev tags the device by the exact `/dev/iio:deviceN` node (lines 135-141).
-- No snap-instance-specific names are used.
-
-**Reasoning:** The interface targets a specific IIO hardware device, not an instance-scoped resource. Parallel installs can connect to the same device or different devices without snapd-level collision.
-
-**Verification:** No verification has yet been done.
-
-### io-ports-control
-**Status:** COMPATIBLE (code analysis -- not yet verified)
-
-**Code analysis:**
-- Slot is provided by core only (lines 24-29), with implicit slots on core and classic (lines 57-58).
-- AppArmor grants access to `/dev/port` and the `sys_rawio` capability (lines 32-39).
-- Seccomp allows `ioperm` and `iopl` (lines 41-49).
-- UDev tags the `port` device (line 51).
-- No snap-instance-specific paths or D-Bus names are involved.
-
-**Reasoning:** I/O port access is a global hardware capability. The interface is pure capability/device access and does not depend on instance naming.
-
-**Verification:** No verification has yet been done.
-
 ### kernel-module-observe
 **Status:** COMPATIBLE (code analysis -- not yet verified)
 
@@ -2121,18 +1965,6 @@ slot (no D-Bus name conflict with only one instance running).
 - No snap-instance-specific paths are used.
 
 **Reasoning:** This is read-only kernel module observation. Parallel instances can all read the same global module state without colliding at the interface level.
-
-**Verification:** No verification has yet been done.
-
-### mediatek-accel
-**Status:** COMPATIBLE (code analysis -- not yet verified)
-
-**Code analysis:**
-- Slot is provided by core only (lines 33-38), with plug-side `units` selection validated in `BeforePreparePlug()` (lines 94-122).
-- The selected units (`apu`, `vcu`) drive AppArmor and udev snippets (lines 71-88, 124-147).
-- No snap-instance-specific paths are involved; access is keyed by device type and slot attributes.
-
-**Reasoning:** The interface is device-selector based and not instance-name based. Parallel installs can use the same hardware accelerator devices as long as the declared units match.
 
 **Verification:** No verification has yet been done.
 
@@ -2149,32 +1981,6 @@ slot (no D-Bus name conflict with only one instance running).
 
 **Verification:** No verification has yet been done.
 
-### ptp
-**Status:** COMPATIBLE (code analysis -- not yet verified)
-
-**Code analysis:**
-- Slot is provided by core only (lines 24-29), with implicit slots on core and classic (lines 49-50).
-- AppArmor grants access to `/dev/ptp[0-9]*` and related sysfs knobs under `/sys/class/ptp/` (lines 32-39).
-- UDev tags PTP devices by subsystem and kernel name (lines 41-43).
-- No snap-instance-specific paths are used.
-
-**Reasoning:** PTP hardware clocks are global devices. The interface is purely device-based and does not create any snap-instance collision point.
-
-**Verification:** No verification has yet been done.
-
-### pwm
-**Status:** COMPATIBLE (code analysis -- not yet verified)
-
-**Code analysis:**
-- Slots are provided by core or gadget snaps only (lines 36-42).
-- The interface validates slot attributes `channel` and `chip-number` and resolves `/sys/class/pwm/pwmchipN` with `evalSymlinks()` (lines 52-107).
-- A systemd service exports/unexports the PWM channel using the slot-supplied chip/channel values (lines 110-129).
-- No snap-instance-specific names are used beyond slot attributes.
-
-**Reasoning:** PWM access is tied to a specific hardware chip/channel. Parallel installs do not collide at the interface layer because the slot defines the hardware target.
-
-**Verification:** No verification has yet been done.
-
 ### qualcomm-ipc-router
 **Status:** COMPATIBLE (code analysis -- not yet verified)
 
@@ -2188,19 +1994,6 @@ slot (no D-Bus name conflict with only one instance running).
 
 **Verification:** No verification has yet been done.
 
-### spi
-**Status:** COMPATIBLE (code analysis -- not yet verified)
-
-**Code analysis:**
-- Slots are provided by core or gadget snaps only (lines 36-42).
-- Slot path validation ensures the path is a concrete `/dev/spidevN.M` node (lines 60-79).
-- AppArmor and udev rules are generated from the slot path, and the interface uses `slot.Ref()` / `slot.Snap()` in a way that is instance-aware for slot identity (lines 81-101).
-- No snap-instance-specific mounts or D-Bus rules are present.
-
-**Reasoning:** SPI access is tied to a concrete bus/device node. Parallel instances do not collide at the interface layer because the slot defines the hardware target.
-
-**Verification:** No verification has yet been done.
-
 ### tpm
 **Status:** COMPATIBLE (code analysis -- not yet verified)
 
@@ -2211,46 +2004,6 @@ slot (no D-Bus name conflict with only one instance running).
 - No snap-instance-specific names, sockets, or mounts are involved.
 
 **Reasoning:** TPM is a global hardware device. The interface is pure device access and does not encode any snap-instance-specific scoping.
-
-**Verification:** No verification has yet been done.
-
-### uio
-**Status:** COMPATIBLE (code analysis -- not yet verified)
-
-**Code analysis:**
-- Slots are provided by core or gadget snaps only (lines 39-45).
-- Slot path validation uses `verifySlotPathAttribute()` and requires `/dev/uioN` (lines 65-72).
-- AppArmor rules are derived from the slot path and a shared deduplicated sysfs rule is used for all connections (lines 74-119).
-- UDev tags the exact UIO device (lines 122-129).
-- No snap-instance-specific names are involved.
-
-**Reasoning:** UIO access is tied to the declared hardware node. Parallel instances are just concurrent consumers of the same or different UIO devices, with no snapd instance collision.
-
-**Verification:** No verification has yet been done.
-
-### usb-gadget
-**Status:** COMPATIBLE (code analysis -- not yet verified)
-
-**Code analysis:**
-- This interface is mount-heavy and uses `plug.Snap()` to expand `where` paths for FunctionFS mounts (lines 160-225).
-- `expandMountWhereVariable()` is used to resolve mount targets from the plug snap's identity (line 205), keeping paths instance-aware where needed.
-- The interface validates persistent mount targets so they cannot be under `$SNAP_DATA` or `$SNAP_USER_DATA` (lines 74-81).
-- The code is careful to use the slot/plug attributes rather than hardcoded snap names.
-
-**Reasoning:** USB gadget setup is based on the configured function mounts and device controller, not on snap instance naming. The path expansion and mount generation appear to be driven by snap identity in the intended direction.
-
-**Verification:** No verification has yet been done.
-
-### vcio
-**Status:** COMPATIBLE (code analysis -- not yet verified)
-
-**Code analysis:**
-- Slot is provided by core only (lines 29-34), with implicit slots on core and classic (lines 59-60).
-- AppArmor grants access to `/dev/vcio` and related sysfs/udev data (lines 37-49).
-- UDev tags the `vcio` device (lines 51-53).
-- No snap-instance-specific names or paths are used.
-
-**Reasoning:** VideoCore I/O is a global device interface. Parallel instances can share the same hardware access without instance-scoped conflicts in the policy code.
 
 **Verification:** No verification has yet been done.
 
