@@ -4011,6 +4011,96 @@ Device access to `/dev/bus/usb/`, `/sys/bus/usb/`. No D-Bus, no snap-name paths.
 
 **Verification:** No verification has yet been done.
 
+### classic-support
+**Status:** Plug-side: NOT COMPATIBLE. Slot-side: N/A (system/core-provided slot; no parallel app slot providers in scope).
+
+**Type:** Filesystem/Mount Interface
+
+
+**Code analysis:**
+- Plug-side policy is intentionally unrestricted and includes broad capabilities (`sys_admin`, `dac_override`, `mknod`, `chown`) plus mount/umount and `sudo`/`systemd-run` execution (`interfaces/builtin/classic_support.go:43-123`).
+- AppArmor mount rules include both `@{SNAP_NAME}` and `@{SNAP_INSTANCE_NAME}` path variants for parallel-install remapping (`interfaces/builtin/classic_support.go:72-86`).
+- Slot installation is restricted to core (`interfaces/builtin/classic_support.go:35-41`).
+
+**Reasoning:** Even with instance-aware path allowances, this interface grants host-global classic-mode control and broad mount/system authority, so parallel instances are not isolated and can interfere heavily.
+
+**Verification:** No verification has yet been done.
+
+### snap-fde-control
+**Status:** Plug-side: COMPATIBLE. Slot-side: N/A (system/core-provided slot; no parallel app slot providers in scope).
+
+**Type:** Snapd/Policy Management
+
+
+**Code analysis:**
+- Interface is a policy gate for access to the FDE subset of snapd's system-volumes API (`interfaces/builtin/snap_fde_control.go:22`).
+- Definition is marker-like: no AppArmor/seccomp/mount snippets in the interface file; only base declarations and implicit core/classic behavior (`interfaces/builtin/snap_fde_control.go:24-46`).
+- Slot side is core-only (`interfaces/builtin/snap_fde_control.go:30-35`).
+
+**Reasoning:** No snap-instance-specific filesystem or D-Bus ownership surface is introduced by this interface definition; parallel plug instances are just additional authorized clients.
+
+**Verification:** No verification has yet been done.
+
+### snap-interfaces-requests-control
+**Status:** Plug-side: COMPATIBLE. Slot-side: N/A (system/core-provided slot; no parallel app slot providers in scope).
+
+**Type:** Snapd/Policy Management
+
+
+**Code analysis:**
+- Plug-side AppArmor allows client communication with a fixed shell-integration D-Bus API (`com.canonical.Shell.PermissionPrompting`) and does not bind service names (`interfaces/builtin/snap_interfaces_requests_control.go:43-65`).
+- Plug attribute validation for `handler-service` checks service existence and user-daemon scope; it does not introduce global naming ownership (`interfaces/builtin/snap_interfaces_requests_control.go:71-96`).
+- Slot installation is core-only (`interfaces/builtin/snap_interfaces_requests_control.go:36-42`).
+
+**Reasoning:** This interface is client/policy oriented. Parallel installs do not create instance-name collisions in the interface behavior.
+
+**Verification:** No verification has yet been done.
+
+### snap-refresh-control
+**Status:** Plug-side: COMPATIBLE. Slot-side: N/A (system/core-provided slot; no parallel app slot providers in scope).
+
+**Type:** Snapd/Policy Management
+
+
+**Code analysis:**
+- Interface is explicitly marker-like and used by snapd refresh/inhibit logic to gate `snapctl refresh --proceed` behavior (`interfaces/builtin/snap_refresh_control.go:22-25`).
+- No AppArmor/seccomp snippets are defined in this interface file (`interfaces/builtin/snap_refresh_control.go:42-50`).
+- Slot installation is restricted to core (`interfaces/builtin/snap_refresh_control.go:34-39`).
+
+**Reasoning:** There is no path/socket/name ownership policy in the interface definition itself, so no parallel-install naming collision surface is introduced.
+
+**Verification:** No verification has yet been done.
+
+### snap-themes-control
+**Status:** Plug-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE. Slot-side: N/A (system/core-provided slot; no parallel app slot providers in scope).
+
+**Type:** Snapd/Policy Management
+
+
+**Code analysis:**
+- Interface is a policy gate for snapd's theme installation API (`interfaces/builtin/snap_themes_control.go:22`).
+- It is defined as a common marker interface with no local AppArmor/seccomp policy snippets (`interfaces/builtin/snap_themes_control.go:38-46`).
+- Slot side is core-only (`interfaces/builtin/snap_themes_control.go:30-35`).
+
+**Reasoning:** Interface definition itself is parallel-safe, but operations target shared host theme state, so concurrent instances can contend at the shared-resource level.
+
+**Verification:** No verification has yet been done.
+
+### snapd-control
+**Status:** Plug-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE. Slot-side: N/A (system/core-provided slot; no parallel app slot providers in scope).
+
+**Type:** Snapd/Policy Management
+
+
+**Code analysis:**
+- Plug-side AppArmor grants client access to the shared snapd Unix socket `/run/snapd.socket` (`interfaces/builtin/snapd_control.go:44-48`).
+- Plug-side validation only checks optional `refresh-schedule` attribute values and does not introduce instance-specific naming (`interfaces/builtin/snapd_control.go:54-62`).
+- Slot side is core-only (`interfaces/builtin/snapd_control.go:36-42`).
+
+**Reasoning:** Multiple parallel instances can connect as concurrent snapd clients, but they operate against a single global daemon and shared system state.
+
+**Verification:** No verification has yet been done.
+
 ### ubuntu-pro-control
 **Status:** Plug-side: COMPATIBLE. Slot-side: NOT COMPATIBLE.
 
