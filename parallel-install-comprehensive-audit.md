@@ -1961,6 +1961,250 @@ from the system service does not conflict with other instances doing the same.
 
 **Verification:** No verification has yet been done.
 
+### auditd-support
+**Status:** NOT COMPATIBLE (plug-side; system-global audit control; code analysis -- not yet verified). Slot-side N/A (core-only slot).
+
+**Type:** Hardware Device Access
+
+**Code analysis:**
+- Grants `NETLINK_AUDIT` access and `capability audit_control` (`interfaces/builtin/auditd_support.go:38-53`).
+- Allows writing audit daemon state files under `/run` (`interfaces/builtin/auditd_support.go:57-59`).
+- Intended to host auditd with kernel audit rule control (`interfaces/builtin/auditd_support.go:22`).
+
+**Reasoning:** Kernel audit configuration is a global control plane. Parallel instances would contend over the same audit subsystem and daemon state.
+
+**Verification:** No verification has yet been done.
+
+### checkbox-support
+**Status:** NOT COMPATIBLE (plug-side; system-global orchestration control; code analysis -- not yet verified). Slot-side N/A (core-only slot).
+
+**Type:** Hardware Device Access
+
+**Code analysis:**
+- Allows `StartTransientUnit` and `KillUnit` on systemd over system bus (`interfaces/builtin/checkbox_support.go:41-57`).
+- Receives global job/property signals from systemd (`interfaces/builtin/checkbox_support.go:63-81`).
+- Interface purpose is executing arbitrary system tests (`interfaces/builtin/checkbox_support.go:22`).
+
+**Reasoning:** This controls global systemd unit lifecycle and shared host state, so parallel instances can interfere with each other at system level.
+
+**Verification:** No verification has yet been done.
+
+### devlxd
+**Status:** COMPATIBLE EXCEPT FOR SHARED RESOURCE (plug-side; shared LXD daemon state; code analysis -- not yet verified). Slot-side N/A (core-only slot).
+
+**Type:** Hardware Device Access
+
+**Code analysis:**
+- Grants access to a fixed host socket `/dev/lxd/sock` (`interfaces/builtin/devlxd.go:38-43`).
+- Interface is a client API to devlxd inside LXD instances (`interfaces/builtin/devlxd.go:39-40`).
+
+**Reasoning:** No snap-instance naming collision exists in policy; all instances are concurrent clients of the same devlxd endpoint and therefore share daemon state.
+
+**Verification:** No verification has yet been done.
+
+### dm-crypt
+**Status:** NOT COMPATIBLE (plug-side; system-global storage control; code analysis -- not yet verified). Slot-side N/A (core-only slot).
+
+**Type:** Hardware Device Access
+
+**Code analysis:**
+- Grants access to device-mapper control, `/dev/dm-*`, `cryptsetup`, and mount operations (`interfaces/builtin/dm_crypt.go:40-57`).
+- Allows kernel keyring operations and module loading for dm-crypt (`interfaces/builtin/dm_crypt.go:64-76`).
+- Operates on global storage/mount resources under `/run/media` and `/media` (`interfaces/builtin/dm_crypt.go:45-50`).
+
+**Reasoning:** dm-crypt management changes host-wide block-device and mount state; parallel instances can conflict on mapper devices and mount targets.
+
+**Verification:** No verification has yet been done.
+
+### dm-multipath
+**Status:** NOT COMPATIBLE (plug-side; system-global multipath control; code analysis -- not yet verified). Slot-side N/A (core-only slot).
+
+**Type:** Hardware Device Access
+
+**Code analysis:**
+- Grants read/write access to global multipath config and bindings (`interfaces/builtin/dm_multipath.go:49-53`).
+- Grants device-mapper control and multipath daemon socket access (`interfaces/builtin/dm_multipath.go:54-65`).
+- Designed to create/reload/remove multipath maps via multipathd (`interfaces/builtin/dm_multipath.go:23-27`).
+
+**Reasoning:** Multipath map management is host-global storage orchestration. Parallel instances can race/override each other while managing the same maps.
+
+**Verification:** No verification has yet been done.
+
+### firmware-updater-support
+**Status:** POTENTIALLY COMPATIBLE (plug-side; policy-only marker interface; code analysis -- not yet verified). Slot-side N/A (core-only slot).
+
+**Type:** Hardware Device Access
+
+**Code analysis:**
+- Interface defines base declarations and identity only; no connected AppArmor/Seccomp snippets (`interfaces/builtin/firmware_updater_support.go:22-46`).
+- Intended to identify snaps operating as a firmware updater (`interfaces/builtin/firmware_updater_support.go:22`).
+
+**Reasoning:** The interface itself does not introduce instance-path collisions, but real behavior depends on the updater application/service model using it.
+
+**Verification:** No verification has yet been done.
+
+### greengrass-support
+**Status:** NOT COMPATIBLE (plug-side; broad host control and shared cgroup/mount state; code analysis -- not yet verified). Slot-side N/A (core-only slot).
+
+**Type:** Hardware Device Access
+
+**Code analysis:**
+- Grants extensive capabilities for namespaces, mounts, cgroups, ptrace, and device control (`interfaces/builtin/greengrass_support.go:70-353`, `interfaces/builtin/greengrass_support.go:360-400`).
+- Uses broad mount/pivot-root rules over snap data paths and host resources (`interfaces/builtin/greengrass_support.go:153-275`).
+- Comments note parallel-install handling for SNAP name variables in several rules (`interfaces/builtin/greengrass_support.go:153-155`, `interfaces/builtin/greengrass_support.go:187-189`).
+
+**Reasoning:** Even with explicit parallel-path handling in snippets, this interface manages shared host-level container and cgroup state; multiple instances can interfere materially.
+
+**Verification:** No verification has yet been done.
+
+### iscsi-initiator
+**Status:** NOT COMPATIBLE (plug-side; system-global iSCSI initiator state; code analysis -- not yet verified). Slot-side N/A (core-only slot).
+
+**Type:** Hardware Device Access
+
+**Code analysis:**
+- Grants rw access to global iSCSI config/state under `/etc/iscsi/**` (`interfaces/builtin/iscsi_initiator.go:47-65`).
+- Grants rw access to iSCSI session/host sysfs control paths (`interfaces/builtin/iscsi_initiator.go:72-85`).
+- Connects to shared iscsiadm abstract socket (`interfaces/builtin/iscsi_initiator.go:86-88`).
+
+**Reasoning:** iSCSI initiator configuration and session management are host-global; parallel instances can race on shared config, sessions, and daemon interactions.
+
+**Verification:** No verification has yet been done.
+
+### kernel-module-load
+**Status:** NOT COMPATIBLE (plug-side; system-global kernel module control; code analysis -- not yet verified). Slot-side N/A (core-only slot).
+
+**Type:** Hardware Device Access
+
+**Code analysis:**
+- Interface allows dynamic/on-boot/denied module loading policy via plug attributes (`interfaces/builtin/kernel_module_load.go:56-63`, `interfaces/builtin/kernel_module_load.go:186-223`).
+- Supports per-module options and writes module policy through kmod backend (`interfaces/builtin/kernel_module_load.go:190-215`).
+- Base declaration denies normal connections by default (`interfaces/builtin/kernel_module_load.go:41-47`).
+
+**Reasoning:** Kernel module load/unload policy is global kernel state; parallel instances can conflict by changing module load behavior and options.
+
+**Verification:** No verification has yet been done.
+
+### remoteproc
+**Status:** COMPATIBLE EXCEPT FOR SHARED RESOURCE (plug-side; shared remote processor state; code analysis -- not yet verified). Slot-side N/A (core-only slot).
+
+**Type:** Hardware Device Access
+
+**Code analysis:**
+- Grants rw access to remoteproc sysfs controls (`firmware`, `state`, `coredump`, `recovery`) (`interfaces/builtin/remoteproc.go:41-46`).
+- Controls are addressed by global `remoteprocN` device entries.
+
+**Reasoning:** No snap-instance naming collision appears in policy, but all instances target shared remote processor controls and can interfere.
+
+**Verification:** No verification has yet been done.
+
+### ros-snapd-support
+**Status:** POTENTIALLY COMPATIBLE (plug-side; policy-only marker interface; code analysis -- not yet verified). Slot-side N/A (core-only slot).
+
+**Type:** Hardware Device Access
+
+**Code analysis:**
+- Interface contains only identity/base declarations and no connected security snippets (`interfaces/builtin/ros_snapd_support.go:22-46`).
+- Declared purpose is access to snapd apps control API (`interfaces/builtin/ros_snapd_support.go:22`).
+
+**Reasoning:** No direct instance-collision surface exists in interface policy itself; runtime behavior depends on how the consuming snap uses snapd APIs.
+
+**Verification:** No verification has yet been done.
+
+### scsi-generic
+**Status:** COMPATIBLE EXCEPT FOR SHARED RESOURCE (plug-side; shared SCSI generic devices; code analysis -- not yet verified). Slot-side N/A (core-only slot).
+
+**Type:** Hardware Device Access
+
+**Code analysis:**
+- Grants rw access to `/dev/sg[0-9]*` (`interfaces/builtin/scsi_generic.go:38-42`).
+- UDev tagging is device-based with no instance naming (`interfaces/builtin/scsi_generic.go:44-47`).
+
+**Reasoning:** Policy is device-path based and not instance-scoped. Parallel instances can be connected, but concurrent access to the same sg device can interfere.
+
+**Verification:** No verification has yet been done.
+
+### shutdown
+**Status:** NOT COMPATIBLE (plug-side; system-global power management control; code analysis -- not yet verified). Slot-side N/A (core-only slot).
+
+**Type:** Hardware Device Access
+
+**Code analysis:**
+- Grants system bus calls to reboot/poweroff/halt and login1 shutdown APIs (`interfaces/builtin/shutdown.go:43-55`).
+- Adds capability for systemctl socket bind needed by clients (`interfaces/builtin/shutdown.go:81-87`).
+
+**Reasoning:** Shutdown/reboot control is inherently host-global; parallel instances are not isolated and can trigger conflicting system-wide actions.
+
+**Verification:** No verification has yet been done.
+
+### steam-support
+**Status:** COMPATIBLE EXCEPT FOR SHARED RESOURCE (plug-side; shared host devices/services; code analysis -- not yet verified). Slot-side N/A (core-only slot).
+
+**Type:** Hardware Device Access
+
+**Code analysis:**
+- Uses highly permissive AppArmor (`allow all` when supported) and unrestricted seccomp (`@unrestricted`) (`interfaces/builtin/steam_support.go:78-90`, `interfaces/builtin/steam_support.go:386-399`).
+- Adds extensive udev access for input/VR devices (`interfaces/builtin/steam_support.go:92-372`).
+- No instance-specific pathing is used to separate host-level device access.
+
+**Reasoning:** Parallel instances are likely possible from a naming perspective, but they share the same host input/VR devices and broad privileged host interactions.
+
+**Verification:** No verification has yet been done.
+
+### tee
+**Status:** COMPATIBLE EXCEPT FOR SHARED RESOURCE (plug-side; shared TEE devices; code analysis -- not yet verified). Slot-side N/A (core-only slot).
+
+**Type:** Hardware Device Access
+
+**Code analysis:**
+- Grants rw access to `/dev/tee*`, `/dev/teepriv*`, and `/dev/qseecom` (`interfaces/builtin/tee.go:38-47`).
+- UDev rules are device-based and not instance-scoped (`interfaces/builtin/tee.go:49-53`).
+
+**Reasoning:** Interface policy is simple device access with no instance naming collisions. Parallel instances still share the same secure-world device endpoints.
+
+**Verification:** No verification has yet been done.
+
+### uinput
+**Status:** NOT COMPATIBLE (plug-side; global input injection control; code analysis -- not yet verified). Slot-side N/A (core-only slot).
+
+**Type:** Hardware Device Access
+
+**Code analysis:**
+- Grants write access to uinput injection devices (`/dev/uinput`, `/dev/input/uinput`) (`interfaces/builtin/uinput.go:47-53`).
+- Interface comments explicitly call out arbitrary input injection risk (`interfaces/builtin/uinput.go:22-33`, `interfaces/builtin/uinput.go:55-63`).
+
+**Reasoning:** Input injection affects global host input state. Multiple parallel instances can interfere by injecting arbitrary events into the same system input stream.
+
+**Verification:** No verification has yet been done.
+
+### userns
+**Status:** COMPATIBLE (plug-side; code analysis -- not yet verified). Slot-side N/A (core-only slot).
+
+**Type:** Hardware Device Access
+
+**Code analysis:**
+- Grants `clone`/`unshare` seccomp permissions for user namespaces (`interfaces/builtin/userns.go:52-56`).
+- Adds AppArmor `userns` rule only when parser feature is available (`interfaces/builtin/userns.go:66-91`).
+- No fixed shared resource paths or singleton names are involved.
+
+**Reasoning:** This is a capability-style permission rather than shared named resource ownership, so there is no direct parallel-instance naming collision.
+
+**Verification:** No verification has yet been done.
+
+### xilinx-dma
+**Status:** COMPATIBLE EXCEPT FOR SHARED RESOURCE (plug-side; shared DMA hardware; code analysis -- not yet verified). Slot-side N/A (core-only slot).
+
+**Type:** Hardware Device Access
+
+**Code analysis:**
+- Grants rw access to XDMA/QDMA device nodes and related sysfs parameters (`interfaces/builtin/xilinx_dma.go:42-61`).
+- UDev tagging is subsystem/device based (`interfaces/builtin/xilinx_dma.go:63-68`).
+- No snap-instance-specific pathing is used.
+
+**Reasoning:** Interface policy is device-based and does not create instance-name collisions. Parallel instances still contend for the same accelerator hardware and queue resources.
+
+**Verification:** No verification has yet been done.
+
 ### raw-input
 **Status:** COMPATIBLE (code analysis + verified on noble)
 
