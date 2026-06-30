@@ -20,7 +20,7 @@
 ## Additional Interface Analyses
 
 ### custom-device
-**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
+**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE.
 
 **Type:** Hardware Device Access
 
@@ -31,7 +31,7 @@
 - Connection approval is keyed on the plug attribute matching the slot value.
 - The interface validates paths and udev rules carefully, but it does not inject snap-instance-specific naming.
 
-**Reasoning:** there is no snap-instance naming or collision point in the interface code itself. The behavior is gadget-defined, but that does not make the interface incompatible for parallel installs.
+**Reasoning:** No snap-instance naming or collision points exist in the interface code for either plug or slot side. The interface is gadget-driven and path-based. Parallel instances can connect to the same slot or provide different slots without conflicts.
 
 **Verification:** No verification has yet been done.
 
@@ -52,7 +52,7 @@
 **Verification:** No verification has yet been done.
 
 ### raw-volume
-**Status:** Plug-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE. Slot-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE (no side-specific divergence documented in this entry).
+**Status:** Plug-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE. Slot-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE.
 
 **Type:** Filesystem/Mount Interface
 
@@ -63,12 +63,12 @@
 - AppArmor and udev rules are generated from the slot path, not from instance naming.
 - Auto-connect is allowed only for declarations, but the slot is still tied to the chosen partition.
 
-**Reasoning:** this is not a snap-instance naming problem. Parallel instances can both access the same partition if connected to the same slot, but that still means they are sharing raw disk hardware and can interfere at the filesystem/data level.
+**Reasoning:** The interface is path-based with no snap-instance-specific naming on either side. Parallel plug instances can connect to the same slot without snapd conflicts. Parallel slot instances can provide different partitions without conflicts. However, if multiple instances access the same partition (same slot), they share raw disk hardware and can interfere at the filesystem/data level - this is a shared resource concern, not a snapd incompatibility.
 
 **Verification:** No verification has yet been done.
 
 ### opengl
-**Status:** Plug-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE. Slot-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE (no side-specific divergence documented in this entry).
+**Status:** Plug-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE. Slot-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE.
 
 **Type:** Desktop/Graphics/Media Integration
 
@@ -79,12 +79,12 @@
 - The interface uses instance-agnostic paths and does not key access on snap instance identity.
 - Some vendor-specific state is shared, but the code treats it as normal multi-client GPU access.
 
-**Reasoning:** the interface reads like a shared-client GPU interface rather than a per-snap singleton. Parallel instances are fine at the snapd policy layer, but they still contend for the same GPU resources and performance.
+**Reasoning:** The interface is client/server model where the slot provides GPU access. No snap-instance-specific naming exists on either side. Parallel plug instances work as multiple GPU clients. Parallel slot instances (if app-provided) would provide access to different GPUs without conflicts at the snapd layer. All instances share the same GPU hardware resources and performance, which is the shared resource concern.
 
 **Verification:** No verification has yet been done.
 
 ### jack1
-**Status:** Plug-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE. Slot-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE (no side-specific divergence documented in this entry).
+**Status:** Plug-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE. Slot-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE.
 
 **Type:** Daemon/Socket Client
 
@@ -94,12 +94,12 @@
 - The rules are based on JACK's server/client naming convention, not on snap instance names.
 - There is no snap-specific namespace logic in the interface.
 
-**Reasoning:** The JACK client/server model is fine for parallel installs at the snapd policy layer, but the same JACK session namespace and shared memory are still in play. Two instances can coexist as clients, yet they can interfere through the shared JACK server/session resources.
+**Reasoning:** The JACK client/server model supports multiple clients. Parallel plug instances work as concurrent JACK clients. Parallel slot instances (if app-provided) could run different JACK servers on different shared memory segments. However, all instances sharing the same JACK session namespace and shared memory can interfere at the audio session level - this is a shared resource concern.
 
 **Verification:** No verification has yet been done.
 
 ### pcscd
-**Status:** Plug-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE. Slot-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE (no side-specific divergence documented in this entry).
+**Status:** Plug-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE. Slot-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE.
 
 **Type:** Daemon/Socket Client
 
@@ -109,12 +109,12 @@
 - The interface also grants read access to OpenSC config files.
 - No singleton service ownership or instance-specific pathing is involved.
 
-**Reasoning:** The interface is policy-safe, but the PC/SC daemon and the smart cards/readers behind it are shared resources. Parallel instances can coexist as clients, yet they can still contend for the same smart card or reader session.
+**Reasoning:** The interface is socket-based client/server model. Parallel plug instances work as concurrent PC/SC clients. Parallel slot instances (if app-provided) could provide different PC/SC daemons on different sockets. However, all instances accessing the same daemon and smart cards/readers contend for shared hardware resources.
 
 **Verification:** No verification has yet been done.
 
 ### network
-**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
+**Status:** Plug-side: COMPATIBLE. Slot-side: N/A (core-only slot; no parallel app slot providers possible).
 
 **Type:** Network/Netlink Interface
 
@@ -124,13 +124,14 @@
 - Uses `systemd-resolved` and `systemd` D-Bus APIs as a client.
 - No snap-instance-specific pathing or service ownership.
 - The seccomp snippet is generic networking support, not a singleton resource.
+- Slot is restricted to core only (slot-snap-type: [core]).
 
-**Reasoning:** this is the canonical shared-client networking case.
+**Reasoning:** This is a pure client interface for network access. Parallel plug instances work as independent network clients. The slot side is core-only, so parallel app-provided slots are not possible.
 
 **Verification:** No verification has yet been done.
 
 ### network-manager-observe
-**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
+**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE.
 
 **Type:** D-Bus/IPC Client
 
@@ -140,12 +141,12 @@
 - It uses D-Bus as a client and subscribes to signals; it does not own the NetworkManager bus name.
 - The code adjusts the peer label depending on classic vs confined NetworkManager, but not on snap instance identity.
 
-**Reasoning:** multiple instances are just multiple observers of the same NetworkManager service.
+**Reasoning:** This is a read-only D-Bus client interface. Parallel plug instances work as multiple independent observers of NetworkManager. Parallel slot instances (if app-provided) could each provide a NetworkManager service without conflicts at the interface level.
 
 **Verification:** No verification has yet been done.
 
 ### openvswitch
-**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
+**Status:** Plug-side: COMPATIBLE. Slot-side: N/A (core-only slot; no parallel app slot providers possible).
 
 **Type:** Daemon/Socket Client
 
@@ -154,13 +155,14 @@
 - Access is to Open vSwitch management sockets such as `/run/openvswitch/db.sock` and `*.mgmt`.
 - The interface is client-side and does not define a singleton service.
 - The rules are broad enough to cover per-bridge sockets and runtime control sockets.
+- Slot is restricted to core only (slot-snap-type: [core]).
 
-**Reasoning:** this is a socket client interface. Parallel instances should be able to talk to the same OVS daemon concurrently.
+**Reasoning:** This is a socket client interface. Parallel plug instances work as concurrent OVS clients. The slot side is core-only, so parallel app-provided slots are not possible.
 
 **Verification:** No verification has yet been done.
 
 ### libvirt
-**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
+**Status:** Plug-side: COMPATIBLE. Slot-side: N/A (core-only slot; no parallel app slot providers possible).
 
 **Type:** Daemon/Socket Client
 
@@ -169,13 +171,14 @@
 - Access is to libvirt sockets (`/run/libvirt/libvirt-sock*`) plus a few config paths.
 - The seccomp rules allow socket operations needed by libvirt clients.
 - There is no instance-name scoping or service-name ownership.
+- Slot is restricted to core only (slot-snap-type: [core]).
 
-**Reasoning:** parallel instances should behave like ordinary libvirt clients, sharing the daemon socket.
+**Reasoning:** This is a socket client interface. Parallel plug instances work as concurrent libvirt clients. The slot side is core-only, so parallel app-provided slots are not possible.
 
 **Verification:** No verification has yet been done.
 
 ### docker
-**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
+**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE.
 
 **Type:** Daemon/Socket Client
 
@@ -185,12 +188,12 @@
 - The interface is explicit about privileged socket access, but it is still client-side.
 - No snap-instance-specific naming is involved.
 
-**Reasoning:** multiple instances can act as concurrent Docker clients. The risk is operational privilege, not snap-instance collision.
+**Reasoning:** This is a socket client interface. Parallel plug instances work as concurrent Docker clients. Parallel slot instances (if app-provided) could provide different Docker daemons on different sockets without conflicts at the interface level.
 
 **Verification:** No verification has yet been done.
 
 ### podman
-**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
+**Status:** Plug-side: COMPATIBLE. Slot-side: N/A (core-only slot; no parallel app slot providers possible).
 
 **Type:** Daemon/Socket Client
 
@@ -199,8 +202,9 @@
 - Access is to both the system Podman socket and the rootless user socket.
 - The AppArmor rules are socket-path based and not instance-scoped.
 - The interface is client-side; it does not own a service name.
+- Slot is restricted to core only (slot-snap-type: [core]).
 
-**Reasoning:** parallel instances should work as concurrent Podman clients.
+**Reasoning:** This is a socket client interface. Parallel plug instances work as concurrent Podman clients. The slot side is core-only, so parallel app-provided slots are not possible.
 
 **Verification:** No verification has yet been done.
 
@@ -340,7 +344,7 @@
 **Verification:** No verification has yet been done.
 
 ### can-bus
-**Status:** Plug-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE. Slot-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE (no side-specific divergence documented in this entry).
+**Status:** Plug-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE. Slot-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE.
 
 **Type:** Network/Netlink Interface
 
@@ -350,12 +354,12 @@
 - No instance-specific pathing or ownership is present.
 - The kernel handles CAN bus concurrency; the interface is just a client to that medium.
 
-**Reasoning:** parallel instances can use CAN concurrently and there is no snap-instance naming collision in this interface. They still share the same bus and can interfere at protocol/application level if they use overlapping identifiers.
+**Reasoning:** The interface is network/protocol based with no snap-instance-specific naming on either side. Parallel plug instances work as concurrent CAN bus clients. Parallel slot instances (if app-provided) could provide access to different CAN interfaces without snapd conflicts. However, instances sharing the same bus can interfere at the CAN protocol/application level if they use overlapping identifiers - this is a shared resource concern.
 
 **Verification:** No verification has yet been done.
 
 ### kernel-crypto-api
-**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
+**Status:** Plug-side: COMPATIBLE. Slot-side: N/A (core-only slot; no parallel app slot providers possible).
 
 **Type:** Hardware Device Access
 
@@ -364,8 +368,9 @@
 - Access is to the Linux kernel crypto API through AF_ALG and NETLINK_CRYPTO.
 - The implementation explicitly notes the API is intended for any process and requires no special privileges.
 - No instance-specific paths or service names are involved.
+- Slot is restricted to core only (slot-snap-type: [core]).
 
-**Reasoning:** this is a shared kernel service interface. Multiple instances should behave like concurrent clients of the same kernel crypto subsystem.
+**Reasoning:** This is a kernel API client interface. Parallel plug instances work as concurrent clients of the kernel crypto subsystem. The slot side is core-only, so parallel app-provided slots are not possible.
 
 **Verification:** No verification has yet been done.
 
@@ -418,7 +423,7 @@
 **Verification:** No verification has yet been done.
 
 ### mpris
-**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
+**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE.
 
 **Type:** D-Bus Service/Provider
 
@@ -429,7 +434,7 @@
 - The plug side discovers and talks to the player over the session bus.
 - The implementation is careful about per-snap naming, but the well-known bus name still represents a provider identity.
 
-**Reasoning:** parallel clients are fine, and parallel providers are handled by default because the well-known name falls back to `SNAP_INSTANCE_NAME`. The interface code already expects snaps to use per-instance naming, so parallel installs do not introduce a snapd-side collision.
+**Reasoning:** Parallel plug instances work as independent MPRIS clients. Parallel slot instances work correctly because the D-Bus well-known name uses `SNAP_INSTANCE_NAME` by default (e.g., `org.mpris.MediaPlayer2.snap_foo` vs `org.mpris.MediaPlayer2.snap`). The interface code explicitly supports per-instance naming, preventing D-Bus name collisions between parallel provider instances.
 
 **Verification:** No verification has yet been done.
 
@@ -578,7 +583,7 @@ The `cups` interface (distinct from `cups-control`) lets a provider snap expose 
 **Verification:** No verification has yet been done.
 
 ### lxd
-**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
+**Status:** Plug-side: COMPATIBLE. Slot-side: NOT COMPATIBLE.
 
 **Type:** Daemon/Socket Client
 
@@ -587,16 +592,16 @@ The `cups` interface (distinct from `cups-control`) lets a provider snap expose 
 - Slot installation is denied by default, requires snap-declaration (lines 26-28).
 - AppArmor rules grant access to the LXD socket at `/var/snap/lxd/common/lxd/unix.socket` (line 35).
 - Seccomp rules allow `AF_NETLINK` socket creation (line 42).
-- The socket path is hardcoded to the `lxd` snap's location, not parameterized by instance name.
+- The socket path is **hardcoded** to the `lxd` snap's location, not parameterized by instance name.
 - No D-Bus, no shared memory.
 - This is a client interface to the LXD daemon.
 
-**Reasoning:** The lxd interface grants client access to the LXD daemon's Unix socket. Multiple parallel instances of a plugging snap would all connect to the same LXD daemon as concurrent clients, which is normal socket-client behavior. The LXD daemon manages concurrent connections. No instance-naming issues exist since this is purely client access to a fixed socket path.
+**Reasoning:** Parallel plug instances work as concurrent LXD clients. However, parallel slot instances CANNOT work because the socket path is hardcoded to `/var/snap/lxd/...`. A parallel instance like `lxd_test` would have its socket at `/var/snap/lxd_test/common/lxd/unix.socket`, but the interface would still generate AppArmor rules for `/var/snap/lxd/...`, preventing the connection from working.
 
 **Verification:** No verification has yet been done.
 
 ### microceph
-**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
+**Status:** Plug-side: COMPATIBLE. Slot-side: NOT COMPATIBLE.
 
 **Type:** Daemon/Socket Client
 
@@ -605,16 +610,16 @@ The `cups` interface (distinct from `cups-control`) lets a provider snap expose 
 - Slot installation is denied by default, requires snap-declaration (lines 25-28).
 - AppArmor rules grant access to the MicroCeph socket at `/var/snap/microceph/common/state/control.socket` (line 34).
 - Seccomp rules allow `AF_NETLINK` socket creation (line 40).
-- The socket path is hardcoded to the `microceph` snap's location, not parameterized by instance name.
+- The socket path is **hardcoded** to the `microceph` snap's location, not parameterized by instance name.
 - No D-Bus, no shared memory.
-- This is a client interface to the MicroCeph daemon.
 
-**Reasoning:** The microceph interface grants client access to the MicroCeph control socket. Multiple parallel instances of a plugging snap would all connect to the same MicroCeph daemon as concurrent clients. The daemon manages concurrent connections. No instance-naming issues since this is client access to a fixed socket path.
+**Reasoning:** Parallel plug instances work as concurrent MicroCeph clients. However, parallel slot instances CANNOT work because the socket path is hardcoded to `/var/snap/microceph/...`. A parallel instance like `microceph_test` would have its socket at `/var/snap/microceph_test/common/state/control.socket`, but the interface would still generate AppArmor rules for `/var/snap/microceph/...`, preventing the connection from working.
 
 **Verification:** No verification has yet been done.
 
 ### microovn
-**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
+### microovn
+**Status:** Plug-side: COMPATIBLE. Slot-side: NOT COMPATIBLE.
 
 **Type:** Daemon/Socket Client
 
@@ -623,11 +628,11 @@ The `cups` interface (distinct from `cups-control`) lets a provider snap expose 
 - Slot installation is denied by default, requires snap-declaration (lines 25-28).
 - AppArmor rules grant access to the MicroOVN socket at `/var/snap/microovn/common/state/control.socket` (line 34).
 - Seccomp rules allow `AF_NETLINK` socket creation (line 40).
-- The socket path is hardcoded to the `microovn` snap's location, not parameterized by instance name.
+- The socket path is **hardcoded** to the `microovn` snap's location, not parameterized by instance name.
 - No D-Bus, no shared memory.
 - This is a client interface to the MicroOVN daemon.
 
-**Reasoning:** The microovn interface grants client access to the MicroOVN control socket. Multiple parallel instances of a plugging snap would all connect to the same MicroOVN daemon as concurrent clients. The daemon manages concurrent connections. No instance-naming issues since this is client access to a fixed socket path.
+**Reasoning:** Parallel plug instances work as concurrent MicroOVN clients. However, parallel slot instances CANNOT work because the socket path is hardcoded to `/var/snap/microovn/...`. A parallel instance like `microovn_test` would have its socket at `/var/snap/microovn_test/common/state/control.socket`, but the interface would still generate AppArmor rules for `/var/snap/microovn/...`, preventing the connection from working.
 
 **Verification:** No verification has yet been done.
 
@@ -681,7 +686,7 @@ The `cups` interface (distinct from `cups-control`) lets a provider snap expose 
 **Verification:** No verification has yet been done.
 
 ### empty
-**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
+**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE.
 
 **Type:** Test/Meta Interface
 
@@ -763,7 +768,7 @@ The `cups` interface (distinct from `cups-control`) lets a provider snap expose 
 **Verification:** No verification has yet been done.
 
 ### pkcs11
-**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
+**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE.
 
 **Type:** Identity/Credentials/Secrets
 
@@ -774,7 +779,7 @@ The `cups` interface (distinct from `cups-control`) lets a provider snap expose 
 - AppArmor and Seccomp rules use the socket path as supplied by the slot (lines 107-155).
 - The interface is path-driven by the slot, not by snap instance names.
 
-**Reasoning:** This is a named socket interface whose path is set by the slot, not by the snap instance. Parallel instances talk to the same p11-kit service or different sockets as declared by the slot, so there is no snap-instance collision in the code.
+**Reasoning:** This is a path-based socket interface where the socket path is declared by the slot, not tied to snap instance names. Parallel plug instances can connect to the same or different PKCS#11 services without conflicts. Parallel slot instances can provide different PKCS#11 sockets at different paths without conflicts.
 
 **Verification:** No verification has yet been done.
 
@@ -898,7 +903,7 @@ The `cups` interface (distinct from `cups-control`) lets a provider snap expose 
 **Verification:** No verification has yet been done.
 
 ### screen-inhibit-control
-**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
+**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE.
 
 **Type:** D-Bus/IPC Client
 
@@ -948,7 +953,7 @@ The `cups` interface (distinct from `cups-control`) lets a provider snap expose 
 
 
 ### alsa
-**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
+**Status:** Plug-side: COMPATIBLE. Slot-side: N/A (core-only slot; no parallel app slot providers possible).
 
 **Type:** Hardware Device Access
 
@@ -959,10 +964,9 @@ The `cups` interface (distinct from `cups-control`) lets a provider snap expose 
 - No D-Bus usage, no shared memory, no instance-specific paths
 - Multiple instances access the same physical devices, which is the intended behavior for
   audio (the kernel/ALSA manages concurrent access)
+- Slot is restricted to core only (slot-snap-type: [core]).
 
-**Reasoning:** Audio devices are global hardware resources. Multiple snaps (parallel or
-not) accessing `/dev/snd/*` is already the normal case. The AppArmor rules are purely
-device-path-based and don't reference snap names at all.
+**Reasoning:** This is a hardware device access interface. Parallel plug instances work as concurrent ALSA clients accessing the same audio devices. The slot side is core-only, so parallel app-provided slots are not possible.
 
 **Verification:**
 PASSED on noble.
@@ -1092,7 +1096,7 @@ PASSED on noble.
 
 
 ### network-bind
-**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
+**Status:** Plug-side: COMPATIBLE. Slot-side: N/A (core-only slot; no parallel app slot providers possible).
 
 **Type:** Network/Netlink Interface
 
@@ -1101,8 +1105,9 @@ PASSED on noble.
 - Grants capability to bind to network ports and accept connections.
 - No D-Bus name ownership, no shared memory, no instance-specific paths.
 - Multiple instances can each bind to different ports without conflict.
+- Slot is restricted to core only (slot-snap-type: [core]).
 
-**Reasoning:** Pure network capability. Same as two different snaps each binding a port.
+**Reasoning:** This is a network capability interface. Parallel plug instances can each bind different ports without conflicts. The slot side is core-only, so parallel app-provided slots are not possible.
 
 **Verification:**
 PASSED on noble.
@@ -1110,7 +1115,7 @@ PASSED on noble.
 
 
 ### network-status
-**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
+**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE.
 
 **Type:** Network/Netlink Interface
 
@@ -1126,7 +1131,7 @@ PASSED on noble.
 
 
 ### network-setup-observe
-**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
+**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE.
 
 **Type:** Network/Netlink Interface
 
@@ -1552,7 +1557,7 @@ This is the most well-documented incompatibility:
 **Verification:** No verification has yet been done.
 
 ### system-backup
-**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
+**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE.
 
 **Type:** Observability/Diagnostics
 
@@ -1567,7 +1572,7 @@ This is the most well-documented incompatibility:
 **Verification:** No verification has yet been done.
 
 ### system-source-code
-**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
+**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE.
 
 **Type:** Observability/Diagnostics
 
@@ -1582,7 +1587,7 @@ This is the most well-documented incompatibility:
 **Verification:** No verification has yet been done.
 
 ### juju-client-observe
-**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
+**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE.
 
 **Type:** Observability/Diagnostics
 
@@ -1597,7 +1602,7 @@ This is the most well-documented incompatibility:
 **Verification:** No verification has yet been done.
 
 ### netlink-driver
-**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
+**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE.
 
 **Type:** Network/Netlink Interface
 
@@ -1628,7 +1633,7 @@ This is the most well-documented incompatibility:
 **Verification:** No verification has yet been done.
 
 ### accel
-**Status:** Plug-side: NOT COMPATIBLE. Slot-side: NOT COMPATIBLE (no side-specific divergence documented in this entry).
+**Status:** Plug-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE. Slot-side: N/A (core-only slot; no parallel app slot providers possible).
 
 **Type:** Hardware Device Access
 
@@ -1637,13 +1642,14 @@ This is the most well-documented incompatibility:
 - The interface grants access to `/dev/accel/accel*` (lines 4560-4566 in the bucket summary).
 - The access is device-node based and tied to global accelerator hardware.
 - No instance-specific pathing or name expansion exists in the interface model.
+- Slot is restricted to core only (implicitOnCore/implicitOnClassic).
 
-**Reasoning:** Accelerator device nodes are exclusive physical hardware resources. Two parallel instances would contend for the same accelerator device, so this is not a good parallel-install fit.
+**Reasoning:** The interface is device-path-based with no snap-instance-specific naming. Parallel plug instances can access the accelerator devices without snapd-level conflicts. However, they share the same physical accelerator hardware, which is the shared resource concern.
 
 **Verification:** No verification has yet been done.
 
 ### acrn-support
-**Status:** Plug-side: NOT COMPATIBLE. Slot-side: NOT COMPATIBLE (no side-specific divergence documented in this entry).
+**Status:** Plug-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE. Slot-side: N/A (core-only slot; no parallel app slot providers possible).
 
 **Type:** Hardware Device Access
 
@@ -1652,13 +1658,14 @@ This is the most well-documented incompatibility:
 - The interface grants access to `/dev/acrn_hsm` (lines 4572-4579 in the bucket summary).
 - ACRN management is a single hypervisor control device node.
 - No snap-instance-specific logic is involved.
+- Slot is restricted to core only (implicitOnCore/implicitOnClassic).
 
-**Reasoning:** This is a single global hypervisor-management device. Parallel instances would compete for the same control node.
+**Reasoning:** The interface is device-path-based with no snap-instance-specific naming. Parallel plug instances can access the ACRN hypervisor device without snapd-level conflicts. However, they share the same global hypervisor control device, which is the shared resource concern.
 
 **Verification:** No verification has yet been done.
 
 ### allegro-vcu
-**Status:** Plug-side: NOT COMPATIBLE. Slot-side: NOT COMPATIBLE (no side-specific divergence documented in this entry).
+**Status:** Plug-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE. Slot-side: N/A (core-only slot; no parallel app slot providers possible).
 
 **Type:** Hardware Device Access
 
@@ -1666,13 +1673,14 @@ This is the most well-documented incompatibility:
 **Code analysis:**
 - The interface grants access to `/dev/allegroDecodeIP`, `/dev/allegroIP`, and `/dev/dmaproxy` (lines 4583-4590 in the bucket summary).
 - These are hardware codec device nodes, not per-instance resources.
+- Slot is restricted to core only (implicitOnCore/implicitOnClassic).
 
-**Reasoning:** The codec hardware is shared and effectively exclusive. Parallel instances would contend for the same devices.
+**Reasoning:** The interface is device-path-based with no snap-instance-specific naming. Parallel plug instances can access the codec devices without snapd-level conflicts. However, they share the same hardware codec devices, which is the shared resource concern.
 
 **Verification:** No verification has yet been done.
 
 ### broadcom-asic-control
-**Status:** Plug-side: NOT COMPATIBLE. Slot-side: NOT COMPATIBLE (no side-specific divergence documented in this entry).
+**Status:** Plug-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE. Slot-side: N/A (core-only slot; no parallel app slot providers possible).
 
 **Type:** System Control/Privileged Capability
 
@@ -1680,8 +1688,9 @@ This is the most well-documented incompatibility:
 **Code analysis:**
 - The interface grants access to `/dev/linux-user-bde`, `/dev/linux-kernel-bde`, and `/dev/linux-bcm-knet` (lines 4594-4601 in the bucket summary).
 - These are ASIC kernel module/device interfaces for a specific hardware platform.
+- Slot is restricted to core only (implicitOnCore/implicitOnClassic).
 
-**Reasoning:** Broadcom ASIC control is tied to a single hardware resource and is not instance-isolated.
+**Reasoning:** The interface is device-path-based with no snap-instance-specific naming. Parallel plug instances can access the ASIC control devices without snapd-level conflicts. However, they share the same hardware ASIC resource, which is the shared resource concern.
 
 **Verification:** No verification has yet been done.
 
@@ -1703,7 +1712,7 @@ This is the most well-documented incompatibility:
 **Verification:** No verification has yet been done.
 
 ### cpu-control
-**Status:** Plug-side: NOT COMPATIBLE. Slot-side: NOT COMPATIBLE (no side-specific divergence documented in this entry).
+**Status:** Plug-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE. Slot-side: N/A (core-only slot; no parallel app slot providers possible).
 
 **Type:** System Control/Privileged Capability
 
@@ -1712,13 +1721,14 @@ This is the most well-documented incompatibility:
 - The interface targets `/sys/devices/system/cpu/**` (lines 4628-4635 in the bucket summary).
 - It controls governor, scaling, and hotplug settings for the whole system.
 - No snap-instance-specific logic is involved.
+- Slot is restricted to core only (implicitOnCore/implicitOnClassic).
 
-**Reasoning:** CPU policy is a system-global control surface. Parallel instances changing settings would conflict.
+**Reasoning:** The interface is sysfs-path-based with no snap-instance-specific naming. Parallel plug instances can access CPU control without snapd-level conflicts. However, they share the same global CPU policy settings, which is the shared resource concern.
 
 **Verification:** No verification has yet been done.
 
 ### dcdbas-control
-**Status:** Plug-side: NOT COMPATIBLE. Slot-side: NOT COMPATIBLE (no side-specific divergence documented in this entry).
+**Status:** Plug-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE. Slot-side: N/A (core-only slot; no parallel app slot providers possible).
 
 **Type:** System Control/Privileged Capability
 
@@ -1726,13 +1736,14 @@ This is the most well-documented incompatibility:
 **Code analysis:**
 - The interface targets `/sys/devices/platform/dcdbas/*` (lines 4639-4646 in the bucket summary).
 - It exposes the Dell Systems Management Base Driver, which is a single system resource.
+- Slot is restricted to core only (implicitOnCore/implicitOnClassic).
 
-**Reasoning:** This is a single system-management interface. Parallel instances would contend for the same sysfs knobs.
+**Reasoning:** The interface is sysfs-path-based with no snap-instance-specific naming. Parallel plug instances can access the dcdbas interface without snapd-level conflicts. However, they share the same system-management resource, which is the shared resource concern.
 
 **Verification:** No verification has yet been done.
 
 ### dsp
-**Status:** Plug-side: NOT COMPATIBLE. Slot-side: NOT COMPATIBLE (no side-specific divergence documented in this entry).
+**Status:** Plug-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE. Slot-side: N/A (core-only slot; no parallel app slot providers possible).
 
 **Type:** Hardware Device Access
 
@@ -1740,13 +1751,14 @@ This is the most well-documented incompatibility:
 **Code analysis:**
 - The interface grants access to `/dev/ucode` and `/dev/iav*` (lines 4650-4657 in the bucket summary).
 - These are hardware DSP device nodes.
+- Slot is restricted to core only (implicitOnCore/implicitOnClassic).
 
-**Reasoning:** DSP hardware is a single-instance resource. Parallel instances would share/contend for the same device.
+**Reasoning:** The interface is device-path-based with no snap-instance-specific naming. Parallel plug instances can access the DSP devices without snapd-level conflicts. However, they share the same hardware DSP resource, which is the shared resource concern.
 
 **Verification:** No verification has yet been done.
 
 ### fpga
-**Status:** Plug-side: NOT COMPATIBLE. Slot-side: NOT COMPATIBLE (no side-specific divergence documented in this entry).
+**Status:** Plug-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE. Slot-side: N/A (core-only slot; no parallel app slot providers possible).
 
 **Type:** Hardware Device Access
 
@@ -1754,13 +1766,14 @@ This is the most well-documented incompatibility:
 **Code analysis:**
 - The interface grants access to `/dev/fpga[0-9]*` (lines 4661-4668 in the bucket summary).
 - These are numbered FPGA device nodes with shared hardware state.
+- Slot is restricted to core only (implicitOnCore/implicitOnClassic).
 
-**Reasoning:** FPGA programming/control is hardware-exclusive. Parallel instances programming the same FPGA would conflict.
+**Reasoning:** The interface is device-path-based with no snap-instance-specific naming. Parallel plug instances can access the FPGA devices without snapd-level conflicts. However, they share the same hardware FPGA resource, which is the shared resource concern.
 
 **Verification:** No verification has yet been done.
 
 ### framebuffer
-**Status:** Plug-side: NOT COMPATIBLE. Slot-side: NOT COMPATIBLE (no side-specific divergence documented in this entry).
+**Status:** Plug-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE. Slot-side: N/A (core-only slot; no parallel app slot providers possible).
 
 **Type:** Hardware Device Access
 
@@ -1768,8 +1781,9 @@ This is the most well-documented incompatibility:
 **Code analysis:**
 - The interface grants access to `/dev/fb[0-9]*` (lines 4672-4679 in the bucket summary).
 - Framebuffer devices are global display hardware.
+- Slot is restricted to core only (implicitOnCore/implicitOnClassic).
 
-**Reasoning:** Two instances writing the same framebuffer would conflict on the same display device.
+**Reasoning:** The interface is device-path-based with no snap-instance-specific naming. Parallel plug instances can access the framebuffer devices without snapd-level conflicts. However, they share the same display hardware, which is the shared resource concern.
 
 **Verification:** No verification has yet been done.
 
@@ -1839,7 +1853,7 @@ This is the most well-documented incompatibility:
 **Verification:** No verification has yet been done.
 
 ### intel-mei
-**Status:** Plug-side: NOT COMPATIBLE. Slot-side: NOT COMPATIBLE (no side-specific divergence documented in this entry).
+**Status:** Plug-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE. Slot-side: N/A (core-only slot; no parallel app slot providers possible).
 
 **Type:** Hardware Device Access
 
@@ -1847,13 +1861,14 @@ This is the most well-documented incompatibility:
 **Code analysis:**
 - The interface grants access to `/dev/mei[0-9]*` (lines 4727-4734 in the bucket summary).
 - Intel MEI is a system-management bus exposed as hardware device nodes.
+- Slot is restricted to core only (implicitOnCore/implicitOnClassic).
 
-**Reasoning:** This is a single hardware-management channel. Parallel instances would contend for the same device resource.
+**Reasoning:** The interface is device-path-based with no snap-instance-specific naming. Parallel plug instances can access the MEI devices without snapd-level conflicts. However, they share the same hardware management channel, which is the shared resource concern.
 
 **Verification:** No verification has yet been done.
 
 ### intel-qat
-**Status:** Plug-side: NOT COMPATIBLE. Slot-side: NOT COMPATIBLE (no side-specific divergence documented in this entry).
+**Status:** Plug-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE. Slot-side: N/A (core-only slot; no parallel app slot providers possible).
 
 **Type:** Hardware Device Access
 
@@ -1867,7 +1882,7 @@ This is the most well-documented incompatibility:
 **Verification:** No verification has yet been done.
 
 ### io-ports-control
-**Status:** Plug-side: NOT COMPATIBLE. Slot-side: N/A (system/core/gadget-provided slot; no parallel app slot providers in scope).
+**Status:** Plug-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE. Slot-side: N/A (system/core/gadget-provided slot; no parallel app slot providers in scope).
 
 **Type:** System Control/Privileged Capability
 
@@ -1879,7 +1894,7 @@ This is the most well-documented incompatibility:
 - UDev tags the `port` device (`io_ports_control.go:51`).
 - This is full I/O port access for the system.
 
-**Reasoning:** I/O port access is a global machine capability and is inherently not instance-isolated.
+**Reasoning:** The interface is device-path-based with no snap-instance-specific naming. Parallel plug instances can access I/O ports without snapd-level conflicts. However, they share the same global machine I/O port space, which is the shared resource concern.
 
 **Verification:** No verification has yet been done.
 
@@ -1899,7 +1914,7 @@ This is the most well-documented incompatibility:
 **Verification:** No verification has yet been done.
 
 ### physical-memory-control
-**Status:** Plug-side: NOT COMPATIBLE. Slot-side: NOT COMPATIBLE (no side-specific divergence documented in this entry).
+**Status:** Plug-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE. Slot-side: N/A (core-only slot; no parallel app slot providers possible).
 
 **Type:** System Control/Privileged Capability
 
@@ -1907,13 +1922,14 @@ This is the most well-documented incompatibility:
 **Code analysis:**
 - The interface grants read/write access to `/dev/mem` (lines 4805-4813 in the bucket summary).
 - This is full physical memory access.
+- Slot is restricted to core only (implicitOnCore/implicitOnClassic).
 
-**Reasoning:** This is an extreme system-global privilege and is not a sensible parallel-install target.
+**Reasoning:** The interface is device-path-based with no snap-instance-specific naming. Parallel plug instances can access physical memory without snapd-level conflicts. However, they share the same system memory resource, which is the shared resource concern.
 
 **Verification:** No verification has yet been done.
 
 ### power-control
-**Status:** Plug-side: NOT COMPATIBLE. Slot-side: NOT COMPATIBLE (no side-specific divergence documented in this entry).
+**Status:** Plug-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE. Slot-side: N/A (core-only slot; no parallel app slot providers possible).
 
 **Type:** System Control/Privileged Capability
 
@@ -1921,8 +1937,9 @@ This is the most well-documented incompatibility:
 **Code analysis:**
 - The interface targets `/sys/devices/**/power/*` and power-supply knobs (implementation section for `power-control`).
 - It controls wakeup, runtime power management, and battery threshold settings for the whole system.
+- Slot is restricted to core only (implicitOnCore/implicitOnClassic).
 
-**Reasoning:** Power policy is system-global, so parallel instances would contend for the same controls.
+**Reasoning:** The interface is sysfs-path-based with no snap-instance-specific naming. Parallel plug instances can access power controls without snapd-level conflicts. However, they share the same global power policy settings, which is the shared resource concern.
 
 **Verification:** No verification has yet been done.
 
@@ -2007,7 +2024,7 @@ This is the most well-documented incompatibility:
 **Verification:** No verification has yet been done.
 
 ### usb-gadget
-**Status:** Plug-side: NOT COMPATIBLE. Slot-side: NOT COMPATIBLE (no side-specific divergence documented in this entry).
+**Status:** Plug-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE. Slot-side: N/A (core-only slot; no parallel app slot providers possible).
 
 **Type:** Hardware Device Access
 
@@ -2017,8 +2034,9 @@ This is the most well-documented incompatibility:
 - FunctionFS mount targets are expanded from the plug snap identity via `expandMountWhereVariable()` (`usb_gadget.go:205`).
 - The interface validates persistent mount targets and rejects persistent mounts under `$SNAP_DATA` and `$SNAP_USER_DATA` (`usb_gadget.go:74-81`).
 - Configfs remains the system-wide USB peripheral configuration plane.
+- Slot is restricted to core only (implicitOnCore/implicitOnClassic).
 
-**Reasoning:** USB gadget configuration is a single system-wide control plane. Parallel instances cannot both safely manage it.
+**Reasoning:** The interface is configfs-path-based with no snap-instance-specific naming in the configfs plane itself. Parallel plug instances can access USB gadget configuration without snapd-level conflicts. However, they share the same system-wide USB peripheral control plane, which is the shared resource concern.
 
 **Verification:** No verification has yet been done.
 
@@ -2301,7 +2319,7 @@ This is the most well-documented incompatibility:
 **Verification:** No verification has yet been done.
 
 ### raw-input
-**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
+**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE.
 
 **Type:** Hardware Device Access
 
@@ -2316,7 +2334,7 @@ This is the most well-documented incompatibility:
 **Verification:** Passed on noble. Test at `tests/main/interfaces-raw-input`.
 
 ### dvb
-**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
+**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE.
 
 **Type:** Hardware Device Access
 
@@ -2330,7 +2348,7 @@ This is the most well-documented incompatibility:
 **Verification:** Passed on noble. Test at `tests/main/interfaces-dvb`.
 
 ### device-buttons
-**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
+**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE.
 
 **Type:** Hardware Device Access
 
@@ -2344,7 +2362,7 @@ This is the most well-documented incompatibility:
 **Verification:** Passed on noble. Test at `tests/main/interfaces-device-buttons`.
 
 ### uhid
-**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
+**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE.
 
 **Type:** Hardware Device Access
 
@@ -2359,7 +2377,7 @@ This is the most well-documented incompatibility:
 **Verification:** Passed on noble. Test at `tests/main/interfaces-uhid`.
 
 ### block-devices
-**Status:** Plug-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE. Slot-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE (no side-specific divergence documented in this entry).
+**Status:** Plug-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE. Slot-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE.
 
 **Type:** Hardware Device Access
 
@@ -2375,7 +2393,7 @@ This is the most well-documented incompatibility:
 **Verification:** Passed on noble. Test at `tests/main/interfaces-block-devices`.
 
 ### daemon-notify
-**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
+**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE.
 
 **Type:** Snapd/Policy Management
 
@@ -2390,7 +2408,7 @@ This is the most well-documented incompatibility:
 **Verification:** Passed on noble. Test at `tests/main/interfaces-daemon-notify`.
 
 ### browser-support
-**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
+**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE.
 
 **Type:** Desktop/Graphics/Media Integration
 
@@ -2576,7 +2594,7 @@ The cache filename is typically session-specific and may look random (for exampl
 **Verification:** Passed on noble. Test at `tests/main/interfaces-kerberos-tickets`.
 
 ### adb-support
-**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
+**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE.
 
 **Type:** Hardware Device Access
 
@@ -2592,7 +2610,7 @@ The cache filename is typically session-specific and may look random (for exampl
 **Verification:** Passed on noble. Test at `tests/main/interfaces-adb-support`.
 
 ### netlink-audit
-**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
+**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE.
 
 **Type:** Network/Netlink Interface
 
@@ -2607,7 +2625,7 @@ The cache filename is typically session-specific and may look random (for exampl
 **Verification:** Passed on noble. Test at `tests/main/interfaces-netlink-audit`.
 
 ### netlink-connector
-**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
+**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE.
 
 **Type:** Network/Netlink Interface
 
@@ -2687,7 +2705,7 @@ slot (no D-Bus name conflict with only one instance running).
 **Verification:** No verification has yet been done.
 
 ### gpio-chardev
-**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
+**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE.
 
 **Type:** Hardware Device Access
 
@@ -2736,7 +2754,7 @@ slot (no D-Bus name conflict with only one instance running).
 **Verification:** No verification has yet been done.
 
 ### qualcomm-ipc-router
-**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
+**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE.
 
 **Type:** Hardware Device Access
 
@@ -2953,7 +2971,7 @@ incompatibility is confirmed by code analysis only (D-Bus singleton
 
 
 ### unity7
-**Status:** Plug-side: NOT COMPATIBLE. Slot-side: NOT COMPATIBLE (no side-specific divergence documented in this entry).
+**Status:** Plug-side: NOT COMPATIBLE. Slot-side: NOT COMPATIBLE.
 
 **Type:** Desktop/Graphics/Media Integration
 
@@ -3026,7 +3044,7 @@ demonstrate. The incompatibility is confirmed by the explicit code comment at
 
 
 ### content
-**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
+**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE.
 
 **Type:** Filesystem/Mount Interface
 
@@ -3125,7 +3143,7 @@ Expected failure -- desktop file launching is incompatible with parallel
 
 
 ### cups-control
-**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
+**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE.
 
 **Type:** Daemon/Socket Client
 
@@ -3144,7 +3162,7 @@ FAILED -- pre-existing environment issue (no CUPS printer configured).
 
 
 ### polkit
-**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
+**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE.
 
 **Type:** Identity/Credentials/Secrets
 
@@ -3187,7 +3205,7 @@ original's files were cleaned up.
 
 
 ### firewall-control
-**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
+**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE.
 
 **Type:** System Control/Privileged Capability
 
@@ -3239,7 +3257,7 @@ PASSED on noble.
 
 
 ### personal-files
-**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
+**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE.
 
 **Type:** Filesystem/Mount Interface
 
@@ -3278,7 +3296,7 @@ survived removal of original snap.
 
 
 ### system-files
-**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
+**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE.
 
 **Type:** Filesystem/Mount Interface
 
@@ -3306,7 +3324,7 @@ survived removal of original snap.
 
 
 ### hostname-control
-**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
+**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE.
 
 **Type:** System Control/Privileged Capability
 
@@ -3327,7 +3345,7 @@ snap-name-dependent resources. Parallel instances get identical permissions.
 
 
 ### locale-control
-**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
+**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE.
 
 **Type:** System Control/Privileged Capability
 
@@ -3348,7 +3366,7 @@ snap-name-dependent resources.
 
 
 ### timezone-control
-**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
+**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE.
 
 **Type:** D-Bus/IPC Client
 
@@ -3368,7 +3386,7 @@ snap-name-dependent resources.
 
 
 ### timeserver-control
-**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
+**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE.
 
 **Type:** System Control/Privileged Capability
 
@@ -3388,7 +3406,7 @@ snap-name-dependent resources.
 
 
 ### network-setup-control
-**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
+**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE.
 
 **Type:** Network/Netlink Interface
 
@@ -3435,7 +3453,7 @@ dynamic seccomp GID resolution is deterministic regardless of instance.
 
 
 ### joystick
-**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
+**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE.
 
 **Type:** Hardware Device Access
 
@@ -3453,7 +3471,7 @@ PASSED on noble.
 
 
 ### hardware-observe
-**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
+**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE.
 
 **Type:** Observability/Diagnostics
 
@@ -3469,7 +3487,7 @@ PASSED on noble.
 
 
 ### hardware-random-control
-**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
+**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE.
 
 **Type:** System Control/Privileged Capability
 
@@ -3486,7 +3504,7 @@ PASSED on noble.
 
 
 ### hardware-random-observe
-**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
+**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE.
 
 **Type:** Observability/Diagnostics
 
@@ -3502,8 +3520,8 @@ PASSED on noble.
 
 
 ### shared-memory
-**Status:** non-private/named mode Plug-side: NOT COMPATIBLE. Slot-side: NOT COMPATIBLE (no side-specific divergence documented in this entry).
-private mode Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
+**Status:** non-private/named mode Plug-side: NOT COMPATIBLE. Slot-side: NOT COMPATIBLE.
+private mode Plug-side: COMPATIBLE. Slot-side: COMPATIBLE.
 
 **Type:** Filesystem/Mount Interface
 
@@ -3564,7 +3582,7 @@ PASSED on noble for private mode. Parallel instance got its own `/dev/shm/snap.s
 namespace, segments were isolated from original, survived removal of original snap.
 
 ### posix-mq
-**Status:** Plug-side: NOT COMPATIBLE. Slot-side: NOT COMPATIBLE (no side-specific divergence documented in this entry).
+**Status:** Plug-side: NOT COMPATIBLE. Slot-side: NOT COMPATIBLE.
 
 **Type:** Hardware Device Access
 
@@ -3610,7 +3628,7 @@ Expected failure. The `_foo` instance received `priority 7: Original message`
 
 
 ### mount-control
-**Status:** Plug-side: NOT COMPATIBLE. Slot-side: NOT COMPATIBLE (no side-specific divergence documented in this entry).
+**Status:** Plug-side: NOT COMPATIBLE. Slot-side: NOT COMPATIBLE.
 
 **Type:** Filesystem/Mount Interface
 
@@ -3690,7 +3708,7 @@ PASSED on noble.
 PASSED on noble.
 
 ### log-observe
-**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
+**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE.
 
 **Type:** Observability/Diagnostics
 
@@ -3700,7 +3718,7 @@ Read-only access to system logs (`/var/log/`, journal). No D-Bus, no snap-name p
 **Verification:** Passed on noble. Test at `tests/main/interfaces-log-observe`.
 
 ### network-observe
-**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
+**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE.
 
 **Type:** Network/Netlink Interface
 
@@ -3722,7 +3740,7 @@ snap-name paths.
 **Verification:** Passed on noble. Test at `tests/main/interfaces-mount-observe`.
 
 ### system-observe
-**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
+**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE.
 
 **Type:** Observability/Diagnostics
 
@@ -3733,7 +3751,7 @@ No D-Bus ownership.
 **Verification:** Passed on noble. Test at `tests/main/interfaces-system-observe`.
 
 ### process-control
-**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
+**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE.
 
 **Type:** System Control/Privileged Capability
 
@@ -3773,7 +3791,7 @@ Access to `/media/`, `/run/media/`, `/mnt/` mount points. No D-Bus, no snap-name
 **Verification:** Passed on noble. Test at `tests/main/interfaces-removable-media`.
 
 ### kvm
-**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE (no side-specific divergence documented in this entry).
+**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE.
 
 **Type:** Container/Virtualization Support
 
