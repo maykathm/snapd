@@ -462,29 +462,24 @@ The remaining shared SHM/socket state is client-server audio IPC, not a parallel
 **Code analysis:**
 The `cups` interface (distinct from `cups-control`) lets a provider snap expose a CUPS socket to consumers via bind-mount and path-based mediation.
 
-1. **Socket path resolution uses wrong perspective** (`interfaces/builtin/cups.go:130`):
-   `validateCupsSocketDirSlotAttr()` expands the slot's `cups-socket-directory` using `ExpandSnapVariables()` with `PerspectiveSelf`, which resolves `$SNAP_COMMON` via `SnapName()` instead of `InstanceName()`.
+1. **Socket path resolution uses `PerspectiveSelf`** (`interfaces/builtin/cups.go:130`):
+   `validateCupsSocketDirSlotAttr()` expands the slot's `cups-socket-directory` using `ExpandSnapVariables()`, which defaults to `PerspectiveSelf` and resolves `$SNAP_COMMON` via `SnapName()` to `/var/snap/cups-provider/common/cups-socket`.
 
-2. **Parallel provider expands to base-name path**: for `cups-provider_foo` and
-   `cups-socket-directory: $SNAP_COMMON/cups-socket`, expansion becomes
-   `/var/snap/cups-provider/common/cups-socket` instead of
-   `/var/snap/cups-provider_foo/common/cups-socket`.
+2. **The provider snap sees namespace-remapped paths**: Inside the provider snap's mount namespace, `/var/snap/cups-provider/` is bind-mounted from the host path `/var/snap/cups-provider_foo/`. When the provider creates its socket at what it sees as `/var/snap/cups-provider/common/cups-socket`, the socket is actually created at the host path `/var/snap/cups-provider_foo/common/cups-socket`.
 
-3. **MountConnectedPlug uses the wrong source path** (`interfaces/builtin/cups.go:188-206`):
-   the bind mount into the consumer namespace is generated from that wrongly-expanded host path.
+3. **MountConnectedPlug uses the namespace path, not the host path** (`interfaces/builtin/cups.go:188-206`):
+   The bind mount into the consumer namespace is created from `cupsdSocketSourceDir` which is `/var/snap/cups-provider/common/cups-socket`. But this path doesn't exist on the host filesystem outside the provider's namespace—the actual socket is at `/var/snap/cups-provider_foo/common/cups-socket`.
 
-4. **AppArmor rules inherit the same mismatch** (`interfaces/builtin/cups.go:170`):
-   permissions are granted for the wrong source directory, so even policy alignment is against the base-name path.
+4. **AppArmor rules have the same mismatch** (`interfaces/builtin/cups.go:170`):
+   Permissions are granted for `/var/snap/cups-provider/common/**` instead of `/var/snap/cups-provider_foo/common/**`.
 
-5. **No D-Bus ownership model here**: unlike singleton service interfaces, `cups` has no D-Bus `bind` ownership semantics and no `LabelExpression()` peer matching; behavior is purely UNIX socket path + mount based.
+5. **Contrast with `content` interface**: `content` uses `PerspectiveOther` for provider path expansion (`interfaces/builtin/content.go:234`), which calls `InstanceName()` and produces the correct host path `/var/snap/cups-provider_foo/...`.
 
-6. **Contrast with `content`**: `content` uses `PerspectiveOther` for provider path expansion (`interfaces/builtin/content.go:234`), which is the missing behavior here.
-
-**Reasoning:** Plug-side parallel consumers are fine because they are normal clients of a mounted CUPS socket. Slot-side parallel providers are not safe: provider path resolution collapses to the base snap name, so parallel provider instances cannot reliably bind their own instance-specific socket directories.
+**Reasoning:** The cups interface needs to bind-mount from the **host filesystem path** where the socket actually exists, but it only knows the **namespace-internal path** that the provider sees. For parallel instances, these paths differ. The interface should use `PerspectiveOther` when expanding the slot's `$SNAP_COMMON` path to get the actual host path with the instance key.
 
 **Verification:**
 - Plug-side: passed on noble (`test-snapd-cups-consumer_foo` connected and communicated through provider socket; remained functional after removing original consumer).
-- Slot-side parallel provider: not verified by spread in this audit; expected failure remains due to `interfaces/builtin/cups.go:130` path expansion behavior.
+- Slot-side parallel provider: expected to fail because bind mount source path doesn't exist on host.
 
 ### serial-port
 **Status:** Plug-side: COMPATIBLE. Slot-side: N/A (system/core/gadget-provided slot; no parallel app slot providers in scope).
@@ -3618,25 +3613,13 @@ Expected failure. The `_foo` instance received `priority 7: Original message`
 
 **Code analysis:**
 
-This is a genuine incompatibility rooted in how `$SNAP_COMMON` is expanded:
+1. **Path expansion uses `SnapName()` for namespace paths** (`snap/info.go:829`):
+   `$SNAP_COMMON` expands to `/var/snap/<snap>/common` using the base snap name, which is correct for paths inside the snap's mount namespace where `/var/snap/<snap_instance>/` is remapped to `/var/snap/<snap>/`.
 
-1. **Path expansion uses `SnapName()`, not `InstanceName()`** (`snap/info.go:829`):
-   ```go
-   func (s *Info) ExpandSnapVariablesSetSnapMountDir(...) string {
-       name := s.SnapName()  // <-- always base name, ignores instance key
-       ...
-       case "SNAP_COMMON":
-           return CommonDataDir(name)  // -> /var/snap/<SnapName>/common
-   ```
-   For `test-snapd-mount-control_foo`, `$SNAP_COMMON` expands to
-   `/var/snap/test-snapd-mount-control/common` (same as base instance), not
-   `/var/snap/test-snapd-mount-control_foo/common`.
+2. **AppArmor mount rules use namespace paths** (`mount_control.go:623-691`): 
+   The generated AppArmor mount rules use the expanded path (via `SnapName()`), allowing mounting to `/var/snap/test-snapd-mount-control/common/target1`. When a parallel instance tries to use the `mount` syscall directly with a host path like `/var/snap/test-snapd-mount-control_foo/common/target1`, AppArmor denies it because the rule only allows the base-name path.
 
-2. **AppArmor mount rules** (`mount_control.go:623-691`): The generated AppArmor mount
-   rules use the expanded path (via SnapName), so the rule allows mounting to
-   `/var/snap/test-snapd-mount-control/common/target1` regardless of instance.
-
-3. **Permission check in `snapctl mount`** (`overlord/hookstate/ctlcmd/mount.go:62-72`):
+3. **Permission check in `snapctl mount` uses namespace paths** (`overlord/hookstate/ctlcmd/mount.go:62-72`):
    ```go
    func matchMountPathAttribute(path string, attribute any, snapInfo *snap.Info) bool {
        expandedPattern := snapInfo.ExpandSnapVariables(pattern)  // uses SnapName()
@@ -3644,24 +3627,11 @@ This is a genuine incompatibility rooted in how `$SNAP_COMMON` is expanded:
        return err == nil && pp.Matches(path)
    }
    ```
-   The pattern and the path are compared after expansion. If the snap passes the
-   host-level instance path (`/var/snap/test-snapd-mount-control_foo/common/target1`),
-   it won't match the expanded pattern
-   (`/var/snap/test-snapd-mount-control/common/target1`).
+   The pattern is expanded using the base snap name. When the snap provides a path argument to `snapctl mount`, that path is what the snap sees in its namespace (e.g., `/var/snap/test-snapd-mount-control/common/target1`), which matches the pattern. However, `snapctl mount --persistent` creates a systemd mount unit on the host.
 
-4. **Mount namespace remapping**: Inside the snap's mount namespace, parallel instances
-   see their instance-specific data at the same path as the base snap would (namespace
-   remapping). So `$SNAP_COMMON` inside the namespace points to the right data. But
-   `snapctl mount --persistent` creates a systemd mount unit on the HOST, where the
-   actual directories are instance-specific.
+4. **Systemd mount units operate on host paths**: The systemd mount unit created by `snapctl mount --persistent` must use the actual host filesystem path, which for a parallel instance would be `/var/snap/test-snapd-mount-control_foo/common/target1`. But the current implementation doesn't translate from namespace paths to host paths.
 
-**Reasoning:** The mount-control interface has a fundamental inconsistency: AppArmor rules
-and permission checks use `SnapName()` (namespace-internal perspective), but the systemd
-mount unit operates on host paths (which are instance-specific). A parallel instance
-trying to use `mount` (direct syscall) is denied by AppArmor because the host path
-(`/var/snap/..._foo/...`) doesn't match the AppArmor rule (which uses the base name). A
-parallel instance using `snapctl mount` would create a unit pointing to the wrong
-directory on the host.
+**Reasoning:** The mount-control interface has a fundamental mismatch: it uses namespace-internal paths (via `SnapName()`) for AppArmor rules and permission checks, but direct `mount` syscalls and systemd mount units operate on host paths (which include the instance key). Parallel instances are blocked by AppArmor when using direct mounts with host paths, and `snapctl mount --persistent` would create mount units pointing to incorrect paths on the host.
 
 **Verification (interfaces-mount-control):**
 Expected failure. `mount: mount /var/tmp/test-snapd-mount-control on
