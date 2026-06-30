@@ -13,6 +13,41 @@
 
 ## Executive Summary
 
+- **Overall pattern:** Most interfaces are plug-side usable under parallel installs. The most common slot result is `N/A` because many slots are restricted to system snaps (`core`/`gadget`/`os`/`snapd`), so parallel app-provided slots are out of scope by policy.
+- **Type-level trend:**
+  - **Hardware / privileged control interfaces:** Usually `Plug-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE` + `Slot-side: N/A` (system-provided). These generally do not have snapd instance-key bugs; the limitation is shared host hardware/state.
+  - **D-Bus provider interfaces:** Frequently `Slot-side: NOT COMPATIBLE` due to fixed well-known bus names (singleton identity), even when connected mediation labels are instance-aware.
+  - **Client-style interfaces (network/socket/observe):** Typically `Plug-side: COMPATIBLE`, with caveats only when the app chooses host-global identities (fixed ports, fixed names).
+  - **Path-driven service interfaces:** Compatible when paths are instance-aware; not compatible when provider paths are hardcoded to unkeyed snap names.
+- **Important classification correction made in this audit:** Several interfaces previously treated as `NOT COMPATIBLE` were reclassified to `COMPATIBLE EXCEPT FOR SHARED RESOURCE` because the interface layer itself is parallel-safe and only the underlying host resource is shared.
+
+### Bugs and code defects found
+
+- **`desktop` session identity bug (visible UX failure):** Parallel GUI instances can show a generic icon / wrong dock matching (Firefox reproduction) because desktop session identity is not fully instance-aware. `StartupWMClass` is allowlisted but not rewritten per instance (`wrappers/desktop.go:99`).
+- **`cups` slot-side path perspective bug:** Provider path handling uses the wrong perspective for host-side bind-mount source resolution; slot-side needs host-instance paths (`PerspectiveOther` style), otherwise parallel provider source paths do not resolve correctly.
+- **`lxd`, `microceph`, `microovn` slot-side hardcoded socket bug:** Interface rules target fixed unkeyed paths (`/var/snap/lxd/...`, `/var/snap/microceph/...`, `/var/snap/microovn/...`), so parallel provider instances with keyed host paths cannot be addressed correctly.
+- **`mount-control` namespace/host path bug:** Mount request processing mixes namespace-visible paths and host-level mount/systemd unit semantics; paths that are valid in snap namespace are not reliably valid for host-side execution.
+- **`shared-memory` named mode bug:** Named mode uses declared names as-is under `/dev/shm` (kernel-global object namespace), with no automatic instance discriminator.
+- **`posix-mq` bug-by-design in named queues:** Queue paths are used as declared (kernel-global namespace), so equal names across parallel instances collide on the same queue object.
+- **`unity7` known mediation bug:** Existing code comment documents unintended D-Bus mediation overlap for keyed instances via `UNITY_SNAP_NAME` handling.
+- **`dbus` activation/global-name bug:** Activation files are global and keyed by `busName + ".service"` while well-known name ownership is singleton; parallel providers contend/overwrite activation and routing.
+
+### Interfaces that would otherwise be compatible
+
+- **Would be compatible if fixed:** `cups` slot-side, `lxd` slot-side, `microceph` slot-side, `microovn` slot-side, and `mount-control` plug-side are primarily blocked by concrete code/path handling defects rather than an inherent parallel-install model limitation.
+- **Conditionally compatible by app behavior:** `desktop` plug-side is interface-safe, but app/session identity surfaces (`desktop-file-ids`, `StartupWMClass`, launcher resolution) can still break parallel UX unless made instance-aware.
+
+| Interface(s) | Current status impact | Root cause | Fix direction |
+| --- | --- | --- | --- |
+| `cups` (slot side) | `Slot-side: NOT COMPATIBLE` | Provider-side host path resolution uses self perspective for a cross-snap/host bind source; keyed instance host path is not resolved correctly. | Use host/other-snap perspective (`InstanceName()` / `PerspectiveOther`) when constructing host-visible source paths. |
+| `lxd`, `microceph`, `microovn` (slot side) | `Slot-side: NOT COMPATIBLE` | Hardcoded unkeyed provider socket paths (`/var/snap/<name>/...`) do not map to keyed parallel provider paths on host. | Replace hardcoded provider paths with instance-aware provider path construction (keyed host path for provider snap). |
+| `mount-control` (plug side) | `Plug-side: NOT COMPATIBLE` | Path validation/execution crosses namespace and host semantics; namespace-valid paths are not consistently valid for host mount/systemd unit execution. | Normalize/translate request paths explicitly to host-visible paths before host-side checks/execution; keep namespace-vs-host boundary explicit. |
+| `shared-memory` (named mode) | `Plug-side: NOT COMPATIBLE` in named mode | Named `/dev/shm` objects are kernel-global and used as declared, with no automatic instance discriminator. | Introduce instance-aware naming convention or enforce/require private mode for parallel-safe usage. |
+| `posix-mq` (named queues) | `Plug-side: NOT COMPATIBLE` | Queue names are kernel-global and taken directly from slot attributes; same names collide across instances. | Introduce instance-aware queue naming guidance/mechanism or require unique names per instance by policy. |
+| `dbus` (provider side broadly) | Many `Slot-side: NOT COMPATIBLE` provider cases | Well-known bus name is singleton and activation file namespace is global (`busName + ".service"`). | Require per-instance bus names for parallel providers, or explicitly keep provider side singleton and document this as design constraint. |
+| `unity7` | `NOT COMPATIBLE` | Known mediation overlap for keyed instances (`UNITY_SNAP_NAME` handling). | Rework D-Bus mediation name derivation to remain isolated for keyed instances. |
+| `desktop` (app/session behavior) | Plug side policy is compatible, UX may fail | Session identity surfaces (`StartupWMClass`, desktop IDs/lookup) are not consistently instance-aware end-to-end. | Ensure per-instance desktop/session identity (`StartupWMClass`, desktop ID resolution) and app runtime WMClass alignment. |
+
 
 ## App Feature Checklist
 
