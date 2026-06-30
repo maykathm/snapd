@@ -1312,6 +1312,10 @@ from the system service does not conflict with other instances doing the same.
 - Slot binds `dbus (bind) bus=session name="com.ubuntu.OnlineAccounts.Manager"`
 - Same D-Bus name uniqueness issue as location-control slot-side
 
+**Reasoning:** Plug-side parallel consumers can work as multiple clients of the online accounts service. Slot-side parallel providers cannot both own the well-known D-Bus name `com.ubuntu.OnlineAccounts.Manager` on the session bus.
+
+**Verification:** No verification has yet been done.
+
 
 
 ### autopilot-introspection
