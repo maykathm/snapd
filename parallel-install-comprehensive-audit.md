@@ -52,7 +52,7 @@
 **Verification:** No verification has yet been done.
 
 ### raw-volume
-**Status:** Plug-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE. Slot-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE.
+**Status:** Plug-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE. Slot-side: N/A (system/core/gadget-provided slot; no parallel app slot providers in scope).
 
 **Type:** Filesystem/Mount Interface
 
@@ -68,7 +68,7 @@
 **Verification:** No verification has yet been done.
 
 ### opengl
-**Status:** Plug-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE. Slot-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE.
+**Status:** Plug-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE. Slot-side: N/A (system/core-provided slot; no parallel app slot providers in scope).
 
 **Type:** Desktop/Graphics/Media Integration
 
@@ -84,7 +84,7 @@
 **Verification:** No verification has yet been done.
 
 ### jack1
-**Status:** Plug-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE. Slot-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE.
+**Status:** Plug-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE. Slot-side: N/A (system/core-provided slot; no parallel app slot providers in scope).
 
 **Type:** Daemon/Socket Client
 
@@ -99,7 +99,7 @@
 **Verification:** No verification has yet been done.
 
 ### pcscd
-**Status:** Plug-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE. Slot-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE.
+**Status:** Plug-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE. Slot-side: N/A (system/core-provided slot; no parallel app slot providers in scope).
 
 **Type:** Daemon/Socket Client
 
@@ -344,7 +344,7 @@
 **Verification:** No verification has yet been done.
 
 ### can-bus
-**Status:** Plug-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE. Slot-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE.
+**Status:** Plug-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE. Slot-side: N/A (system/core-provided slot; no parallel app slot providers in scope).
 
 **Type:** Network/Netlink Interface
 
@@ -1064,7 +1064,7 @@ PASSED on ubuntu-22.04-64 (noble is disabled for this test).
 
 
 ### network-control
-**Status:** Plug-side: COMPATIBLE. Slot-side: not separately classified in this entry (provider behavior out of scope here).
+**Status:** Plug-side: COMPATIBLE. Slot-side: N/A (system/core-provided slot; no parallel app slot providers in scope).
 
 **Type:** Network/Netlink Interface
 
@@ -1115,7 +1115,7 @@ PASSED on noble.
 
 
 ### network-status
-**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE.
+**Status:** Plug-side: COMPATIBLE. Slot-side: N/A (system/core-provided slot; no parallel app slot providers in scope).
 
 **Type:** Network/Netlink Interface
 
@@ -1131,7 +1131,7 @@ PASSED on noble.
 
 
 ### network-setup-observe
-**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE.
+**Status:** Plug-side: COMPATIBLE. Slot-side: N/A (system/core-provided slot; no parallel app slot providers in scope).
 
 **Type:** Network/Netlink Interface
 
@@ -1557,7 +1557,7 @@ This is the most well-documented incompatibility:
 **Verification:** No verification has yet been done.
 
 ### system-backup
-**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE.
+**Status:** Plug-side: COMPATIBLE. Slot-side: N/A (system/core-provided slot; no parallel app slot providers in scope).
 
 **Type:** Observability/Diagnostics
 
@@ -1572,7 +1572,7 @@ This is the most well-documented incompatibility:
 **Verification:** No verification has yet been done.
 
 ### system-source-code
-**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE.
+**Status:** Plug-side: COMPATIBLE. Slot-side: N/A (system/core-provided slot; no parallel app slot providers in scope).
 
 **Type:** Observability/Diagnostics
 
@@ -1587,7 +1587,7 @@ This is the most well-documented incompatibility:
 **Verification:** No verification has yet been done.
 
 ### juju-client-observe
-**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE.
+**Status:** Plug-side: COMPATIBLE. Slot-side: N/A (system/core-provided slot; no parallel app slot providers in scope).
 
 **Type:** Observability/Diagnostics
 
@@ -1602,7 +1602,7 @@ This is the most well-documented incompatibility:
 **Verification:** No verification has yet been done.
 
 ### netlink-driver
-**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE.
+**Status:** Plug-side: COMPATIBLE. Slot-side: N/A (system/core/gadget-provided slot; no parallel app slot providers in scope).
 
 **Type:** Network/Netlink Interface
 
@@ -2319,7 +2319,7 @@ This is the most well-documented incompatibility:
 **Verification:** No verification has yet been done.
 
 ### raw-input
-**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE.
+**Status:** Plug-side: COMPATIBLE. Slot-side: N/A (system/core-provided slot; no parallel app slot providers in scope).
 
 **Type:** Hardware Device Access
 
@@ -2334,7 +2334,7 @@ This is the most well-documented incompatibility:
 **Verification:** Passed on noble. Test at `tests/main/interfaces-raw-input`.
 
 ### dvb
-**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE.
+**Status:** Plug-side: COMPATIBLE. Slot-side: N/A (system/core-provided slot; no parallel app slot providers in scope).
 
 **Type:** Hardware Device Access
 
@@ -2348,7 +2348,7 @@ This is the most well-documented incompatibility:
 **Verification:** Passed on noble. Test at `tests/main/interfaces-dvb`.
 
 ### device-buttons
-**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE.
+**Status:** Plug-side: COMPATIBLE. Slot-side: N/A (system/core-provided slot; no parallel app slot providers in scope).
 
 **Type:** Hardware Device Access
 
@@ -2362,7 +2362,7 @@ This is the most well-documented incompatibility:
 **Verification:** Passed on noble. Test at `tests/main/interfaces-device-buttons`.
 
 ### uhid
-**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE.
+**Status:** Plug-side: COMPATIBLE. Slot-side: N/A (system/core-provided slot; no parallel app slot providers in scope).
 
 **Type:** Hardware Device Access
 
@@ -2377,7 +2377,7 @@ This is the most well-documented incompatibility:
 **Verification:** Passed on noble. Test at `tests/main/interfaces-uhid`.
 
 ### block-devices
-**Status:** Plug-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE. Slot-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE.
+**Status:** Plug-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE. Slot-side: N/A (system/core-provided slot; no parallel app slot providers in scope).
 
 **Type:** Hardware Device Access
 
@@ -2393,7 +2393,7 @@ This is the most well-documented incompatibility:
 **Verification:** Passed on noble. Test at `tests/main/interfaces-block-devices`.
 
 ### daemon-notify
-**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE.
+**Status:** Plug-side: COMPATIBLE. Slot-side: N/A (system/core-provided slot; no parallel app slot providers in scope).
 
 **Type:** Snapd/Policy Management
 
@@ -2408,7 +2408,7 @@ This is the most well-documented incompatibility:
 **Verification:** Passed on noble. Test at `tests/main/interfaces-daemon-notify`.
 
 ### browser-support
-**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE.
+**Status:** Plug-side: COMPATIBLE. Slot-side: N/A (system/core-provided slot; no parallel app slot providers in scope).
 
 **Type:** Desktop/Graphics/Media Integration
 
@@ -2594,7 +2594,7 @@ The cache filename is typically session-specific and may look random (for exampl
 **Verification:** Passed on noble. Test at `tests/main/interfaces-kerberos-tickets`.
 
 ### adb-support
-**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE.
+**Status:** Plug-side: COMPATIBLE. Slot-side: N/A (system/core-provided slot; no parallel app slot providers in scope).
 
 **Type:** Hardware Device Access
 
@@ -2610,7 +2610,7 @@ The cache filename is typically session-specific and may look random (for exampl
 **Verification:** Passed on noble. Test at `tests/main/interfaces-adb-support`.
 
 ### netlink-audit
-**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE.
+**Status:** Plug-side: COMPATIBLE. Slot-side: N/A (system/core-provided slot; no parallel app slot providers in scope).
 
 **Type:** Network/Netlink Interface
 
@@ -2625,7 +2625,7 @@ The cache filename is typically session-specific and may look random (for exampl
 **Verification:** Passed on noble. Test at `tests/main/interfaces-netlink-audit`.
 
 ### netlink-connector
-**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE.
+**Status:** Plug-side: COMPATIBLE. Slot-side: N/A (system/core-provided slot; no parallel app slot providers in scope).
 
 **Type:** Network/Netlink Interface
 
@@ -2705,7 +2705,7 @@ slot (no D-Bus name conflict with only one instance running).
 **Verification:** No verification has yet been done.
 
 ### gpio-chardev
-**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE.
+**Status:** Plug-side: COMPATIBLE. Slot-side: N/A (gadget-provided slot; no parallel app slot providers in scope).
 
 **Type:** Hardware Device Access
 
@@ -2971,7 +2971,7 @@ incompatibility is confirmed by code analysis only (D-Bus singleton
 
 
 ### unity7
-**Status:** Plug-side: NOT COMPATIBLE. Slot-side: NOT COMPATIBLE.
+**Status:** Plug-side: NOT COMPATIBLE. Slot-side: N/A (system/core-provided slot).
 
 **Type:** Desktop/Graphics/Media Integration
 
@@ -3162,7 +3162,7 @@ FAILED -- pre-existing environment issue (no CUPS printer configured).
 
 
 ### polkit
-**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE.
+**Status:** Plug-side: COMPATIBLE. Slot-side: N/A (system/core-provided slot; no parallel app slot providers in scope).
 
 **Type:** Identity/Credentials/Secrets
 
@@ -3205,7 +3205,7 @@ original's files were cleaned up.
 
 
 ### firewall-control
-**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE.
+**Status:** Plug-side: COMPATIBLE. Slot-side: N/A (system/core-provided slot; no parallel app slot providers in scope).
 
 **Type:** System Control/Privileged Capability
 
@@ -3257,7 +3257,7 @@ PASSED on noble.
 
 
 ### personal-files
-**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE.
+**Status:** Plug-side: COMPATIBLE. Slot-side: N/A (system/core-provided slot; no parallel app slot providers in scope).
 
 **Type:** Filesystem/Mount Interface
 
@@ -3296,7 +3296,7 @@ survived removal of original snap.
 
 
 ### system-files
-**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE.
+**Status:** Plug-side: COMPATIBLE. Slot-side: N/A (system/core-provided slot; no parallel app slot providers in scope).
 
 **Type:** Filesystem/Mount Interface
 
@@ -3324,7 +3324,7 @@ survived removal of original snap.
 
 
 ### hostname-control
-**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE.
+**Status:** Plug-side: COMPATIBLE. Slot-side: N/A (system/core-provided slot; no parallel app slot providers in scope).
 
 **Type:** System Control/Privileged Capability
 
@@ -3345,7 +3345,7 @@ snap-name-dependent resources. Parallel instances get identical permissions.
 
 
 ### locale-control
-**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE.
+**Status:** Plug-side: COMPATIBLE. Slot-side: N/A (system/core-provided slot; no parallel app slot providers in scope).
 
 **Type:** System Control/Privileged Capability
 
@@ -3366,7 +3366,7 @@ snap-name-dependent resources.
 
 
 ### timezone-control
-**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE.
+**Status:** Plug-side: COMPATIBLE. Slot-side: N/A (system/core-provided slot; no parallel app slot providers in scope).
 
 **Type:** D-Bus/IPC Client
 
@@ -3386,7 +3386,7 @@ snap-name-dependent resources.
 
 
 ### timeserver-control
-**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE.
+**Status:** Plug-side: COMPATIBLE. Slot-side: N/A (system/core-provided slot; no parallel app slot providers in scope).
 
 **Type:** System Control/Privileged Capability
 
@@ -3406,7 +3406,7 @@ snap-name-dependent resources.
 
 
 ### network-setup-control
-**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE.
+**Status:** Plug-side: COMPATIBLE. Slot-side: N/A (system/core-provided slot; no parallel app slot providers in scope).
 
 **Type:** Network/Netlink Interface
 
@@ -3453,7 +3453,7 @@ dynamic seccomp GID resolution is deterministic regardless of instance.
 
 
 ### joystick
-**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE.
+**Status:** Plug-side: COMPATIBLE. Slot-side: N/A (system/core-provided slot; no parallel app slot providers in scope).
 
 **Type:** Hardware Device Access
 
@@ -3471,7 +3471,7 @@ PASSED on noble.
 
 
 ### hardware-observe
-**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE.
+**Status:** Plug-side: COMPATIBLE. Slot-side: N/A (system/core-provided slot; no parallel app slot providers in scope).
 
 **Type:** Observability/Diagnostics
 
@@ -3487,7 +3487,7 @@ PASSED on noble.
 
 
 ### hardware-random-control
-**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE.
+**Status:** Plug-side: COMPATIBLE. Slot-side: N/A (system/core-provided slot; no parallel app slot providers in scope).
 
 **Type:** System Control/Privileged Capability
 
@@ -3504,7 +3504,7 @@ PASSED on noble.
 
 
 ### hardware-random-observe
-**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE.
+**Status:** Plug-side: COMPATIBLE. Slot-side: N/A (system/core-provided slot; no parallel app slot providers in scope).
 
 **Type:** Observability/Diagnostics
 
@@ -3520,8 +3520,8 @@ PASSED on noble.
 
 
 ### shared-memory
-**Status:** non-private/named mode Plug-side: NOT COMPATIBLE. Slot-side: NOT COMPATIBLE.
-private mode Plug-side: COMPATIBLE. Slot-side: COMPATIBLE.
+**Status:** non-private/named mode Plug-side: NOT COMPATIBLE. Slot-side: N/A (system/core-provided slot).
+private mode Plug-side: COMPATIBLE. Slot-side: N/A (system/core-provided slot).
 
 **Type:** Filesystem/Mount Interface
 
@@ -3628,7 +3628,7 @@ Expected failure. The `_foo` instance received `priority 7: Original message`
 
 
 ### mount-control
-**Status:** Plug-side: NOT COMPATIBLE. Slot-side: NOT COMPATIBLE.
+**Status:** Plug-side: NOT COMPATIBLE. Slot-side: N/A (system/core-provided slot)
 
 **Type:** Filesystem/Mount Interface
 
@@ -3708,7 +3708,7 @@ PASSED on noble.
 PASSED on noble.
 
 ### log-observe
-**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE.
+**Status:** Plug-side: COMPATIBLE. Slot-side: N/A (system/core-provided slot; no parallel app slot providers in scope).
 
 **Type:** Observability/Diagnostics
 
@@ -3718,7 +3718,7 @@ Read-only access to system logs (`/var/log/`, journal). No D-Bus, no snap-name p
 **Verification:** Passed on noble. Test at `tests/main/interfaces-log-observe`.
 
 ### network-observe
-**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE.
+**Status:** Plug-side: COMPATIBLE. Slot-side: N/A (system/core-provided slot; no parallel app slot providers in scope).
 
 **Type:** Network/Netlink Interface
 
@@ -3740,7 +3740,7 @@ snap-name paths.
 **Verification:** Passed on noble. Test at `tests/main/interfaces-mount-observe`.
 
 ### system-observe
-**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE.
+**Status:** Plug-side: COMPATIBLE. Slot-side: N/A (system/core-provided slot; no parallel app slot providers in scope).
 
 **Type:** Observability/Diagnostics
 
@@ -3751,7 +3751,7 @@ No D-Bus ownership.
 **Verification:** Passed on noble. Test at `tests/main/interfaces-system-observe`.
 
 ### process-control
-**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE.
+**Status:** Plug-side: COMPATIBLE. Slot-side: N/A (system/core-provided slot; no parallel app slot providers in scope).
 
 **Type:** System Control/Privileged Capability
 
@@ -3791,7 +3791,7 @@ Access to `/media/`, `/run/media/`, `/mnt/` mount points. No D-Bus, no snap-name
 **Verification:** Passed on noble. Test at `tests/main/interfaces-removable-media`.
 
 ### kvm
-**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE.
+**Status:** Plug-side: COMPATIBLE. Slot-side: N/A (system/core-provided slot; no parallel app slot providers in scope).
 
 **Type:** Container/Virtualization Support
 
