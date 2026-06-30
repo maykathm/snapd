@@ -20,6 +20,11 @@
   - **Client-style interfaces (network/socket/observe):** Typically `Plug-side: COMPATIBLE`, with caveats only when the app chooses host-global identities (fixed ports, fixed names).
   - **Path-driven service interfaces:** Compatible when paths are instance-aware; not compatible when provider paths are hardcoded to unkeyed snap names.
 - **Important classification correction made in this audit:** Several interfaces previously treated as `NOT COMPATIBLE` were reclassified to `COMPATIBLE EXCEPT FOR SHARED RESOURCE` because the interface layer itself is parallel-safe and only the underlying host resource is shared.
+- **COMPATIBLE-side re-verification (this revision):** Every interface previously marked plain `COMPATIBLE` was re-checked against current source, with special attention to `SNAP_NAME` vs `SNAP_INSTANCE_NAME` (`SnapName()`/`PerspectiveSelf` vs `InstanceName()`/`PerspectiveOther`) usage. Outcomes:
+  - **No new `SNAP_NAME`-for-host-path bugs were found** among the COMPATIBLE interfaces. Interfaces that build host-side artifacts were confirmed to use the instance name correctly: `content` (source=`PerspectiveOther`/target=`PerspectiveSelf`), `gpio-chardev` (systemd export service, host symlink, AppArmor host device paths, and udev tag all use `InstanceName()`), `polkit`/`polkit-agent` (instance-aware file names / peer label), `x11`/`wayland`/`browser-support`/`pulseaudio`/`pipewire`/`desktop` (instance-keyed `/run/user/.../snap.<instance>/` paths), and the `cifs-mount`/`nfs-mount`/`fuse-support` mount rules (both `@{SNAP_NAME}` and `@{SNAP_INSTANCE_NAME}` variants, with `fuse-support` correctly using instance-only for the non-remapped `~/snap/` path).
+  - **Single-pinned-device hardware interfaces** were reclassified from plain `COMPATIBLE` to `COMPATIBLE EXCEPT FOR SHARED RESOURCE` for consistency with `spi`/`pwm`: `serial-port`, `hidraw`, `i2c`, `iio`, `uio`, `gpio`, `gpio-memory-control`, `vcio`. (Device-*class* interfaces such as `tpm`, `joystick`, `raw-input`, `dvb`, `device-buttons`, `uhid`, `kvm`, `ptp`, `raw-usb`, `mediatek-accel` remain plain `COMPATIBLE`.)
+  - **Shared per-user/system-file interfaces** were reclassified to `COMPATIBLE EXCEPT FOR SHARED RESOURCE`: `home`, `personal-files`, `system-files`, `removable-media`, `bool-file`, `browser-support`, and `gpg-keys` (writes the shared `~/.gnupg/random_seed`; `gpg-public-keys` stays `COMPATIBLE`).
+  - **Slot-side corrections:** `pkcs11` slot-side changed from `COMPATIBLE` to `COMPATIBLE EXCEPT FOR SHARED RESOURCE` (the `pkcs11-socket` path is forced into shared `/run/p11-kit/` and is not instance-key disambiguated). `docker` and `custom-device` slot-side changed from `COMPATIBLE` to `N/A` (their slots are not app-providable by default — `deny-installation`/`allow-installation: false`). `avahi-control`/`avahi-observe` slot-side made explicit as `NOT COMPATIBLE` for app-provided slots (singleton `org.freedesktop.Avahi`).
 
 ### Bugs and code defects found
 
@@ -184,18 +189,20 @@ resource caveat.
 ## Additional Interface Analyses
 
 ### custom-device
-**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE.
+**Status:** Plug-side: COMPATIBLE. Slot-side: N/A (gadget/snap-declaration-provided slot; `allow-installation: false`, so no parallel app slot providers in scope).
 
 **Type:** Hardware Device Access
 
 
 **Code analysis:**
-- The slot definition is gadget-driven and intentionally open-ended.
-- `custom-device` defaults the slot attribute to the slot name if unspecified.
-- Connection approval is keyed on the plug attribute matching the slot value.
-- The interface validates paths and udev rules carefully, but it does not inject snap-instance-specific naming.
+- The slot is gadget-driven and intentionally open-ended: the base declaration sets `allow-installation: false` (`interfaces/builtin/custom_device.go:43`), so a normal app snap cannot provide this slot on its own; only the gadget (or a snap with an explicit snap-declaration) can. Connection approval is keyed on the plug attribute matching the slot value: `custom-device: $SLOT(custom-device)` (`custom_device.go:44-46`).
+- `BeforePrepareSlot()` defaults the `custom-device` slot attribute to the slot name if empty (`custom_device.go:256-259`), and `BeforePreparePlug()` defaults the plug attribute to the plug name (`custom_device.go:335-341`). Neither uses a snap or instance name.
+- `AppArmorConnectedPlug()` (`custom_device.go:346-386`) emits rules entirely from the slot's `devices` (`rwk`), `read-devices` (`r`), and `files` read/write attributes — all gadget-authored absolute paths. No `SnapName()`, `InstanceName()`, `ExpandSnapVariables()`, or `LabelExpression()` is used anywhere in the file.
+- `UDevConnectedPlug()` (`custom_device.go:406-516`) calls `spec.TagDevice()` (lines 477, 487, 495-496, 512) with `KERNEL==`/`SUBSYSTEM==`/`ENV`/`ATTR` rules derived from slot attributes. `TagDevice` attaches the consuming snap's security tag, which already includes the instance name, so udev tagging is instance-aware automatically.
+- No hardcoded `/var/snap/<name>/` or `/snap/<name>/` paths, no D-Bus name ownership, no shared-memory/posix-mq/abstract-socket names.
+- Attribute validation: `BeforePrepareSlot()` (`custom_device.go:246-326`) validates device paths (regexp `^/dev/[^"|{}\\]+$`), forbids a path in both `devices` and `read-devices`, validates `files` paths and `udev-tagging` rules.
 
-**Reasoning:** No snap-instance naming or collision points exist in the interface code for either plug or slot side. The interface is gadget-driven and path-based. Parallel instances can connect to the same slot or provide different slots without conflicts.
+**Reasoning:** The consuming-plug AppArmor/udev policy is built entirely from gadget-authored device/file paths and contains no per-snap-instance naming; udev tags are instance-aware via `TagDevice`. Multiple keyed instances connecting the same slot get identical, non-colliding rules, so the plug side is parallel-install compatible. Because the device/file set is whatever the gadget declares (a class of resources, not inherently one pinned device), this is plain COMPATIBLE rather than a forced shared-resource case. The slot side is out of scope for parallel app installs because `allow-installation: false` prevents app snaps from providing it.
 
 **Verification:** No verification has yet been done.
 
@@ -284,13 +291,12 @@ resource caveat.
 
 
 **Code analysis:**
-- Client-side network access only.
-- Uses `systemd-resolved` and `systemd` D-Bus APIs as a client.
-- No snap-instance-specific pathing or service ownership.
-- The seccomp snippet is generic networking support, not a singleton resource.
-- Slot is restricted to core only (slot-snap-type: [core]).
+- Client-side network access only. The connected-plug AppArmor is a static snippet (`network.go:42-75`) containing only `dbus send` rules to `org.freedesktop.resolve1` (lines 51-56) and `org.freedesktop.systemd1` (lines 61-66), plus nameservice/ssl_certs abstractions and read-only `@{PROC}/sys/net/...` (lines 70-71). There is no `dbus (bind)` and no `DBusPermanentSlot`, so the interface owns no D-Bus name — it is purely a client.
+- Seccomp snippet (`network.go:78-91`) is generic networking support: `bind`, `socket AF_NETLINK - NETLINK_ROUTE`, `socket AF_CONN`.
+- No use of `SnapName()`, `InstanceName()`, `ExpandSnapVariables()`, or `LabelExpression()`; no hardcoded `/var/snap/<name>/` paths; no udev tagging; no shared kernel objects, abstract sockets, or fixed ports.
+- Slot is restricted to core only (`network.go:24-29`: `slot-snap-type: [core]`); registered as a `commonInterface` with `implicitOnCore`/`implicitOnClassic` (lines 97-98).
 
-**Reasoning:** This is a pure client interface for network access. Parallel plug instances work as independent network clients. The slot side is core-only, so parallel app-provided slots are not possible.
+**Reasoning:** This is a pure client interface for network access (send-only D-Bus to resolved/systemd1 plus a generic seccomp networking grant). Parallel plug instances work as independent network clients with no snapd-level (instance-name) collision. The slot side is core-only, so parallel app-provided slots are not possible.
 
 **Verification:** No verification has yet been done.
 
@@ -301,11 +307,12 @@ resource caveat.
 
 
 **Code analysis:**
-- The interface only observes NetworkManager state and settings.
-- It uses D-Bus as a client and subscribes to signals; it does not own the NetworkManager bus name.
-- The code adjusts the peer label depending on classic vs confined NetworkManager, but not on snap instance identity.
+- The slot is app-providable (`network_manager_observe.go:31-40`: `allow-installation: slot-snap-type: [app, core]`, `deny-auto-connection`, `deny-connection: on-classic: false`); `ImplicitOnClassic: true` (line 191).
+- The interface only observes NetworkManager state and settings. The connected-plug AppArmor (`network_manager_observe.go:103-180`) is a **system-bus** D-Bus client: `dbus (send)` reads (Get/GetAll, GetDevices, ListConnections, GetSettings, GetManagedObjects, lines 106-135) and `dbus (receive)` of signals (PropertiesChanged, StateChanged, Device/Interfaces Added/Removed, lines 138-179), all with `peer=(label=###SLOT_SECURITY_TAGS###)`.
+- **It does not own the NetworkManager bus name.** There is no `dbus (bind)` and no `DBusPermanentSlot` anywhere; `org.freedesktop.NetworkManager` appears only as a `send` peer destination (`name=...`), which is client addressing. Even the connected-**slot** snippet (`network_manager_observe.go:44-101`, applied when `!release.OnClassic`) is `dbus (receive)`/`dbus (send)` only — it never binds the name.
+- `AppArmorConnectedPlug()` uses `slot.LabelExpression()` (line 204) and `AppArmorConnectedSlot()` uses `plug.LabelExpression()` (line 214); these build instance-aware peer labels. No `InstanceName()`/`SnapName()`/`ExpandSnapVariables()`, no hardcoded `/var/snap/<name>/` paths, no shared per-user state files, no seccomp/udev.
 
-**Reasoning:** This is a read-only D-Bus client interface. Parallel plug instances work as multiple independent observers of NetworkManager. Parallel slot instances (if app-provided) could each provide a NetworkManager service without conflicts at the interface level.
+**Reasoning:** This is a read-only system-bus D-Bus client interface. Parallel plug instances work as multiple independent observers of NetworkManager with instance-aware peer labels and no name ownership. The slot side is also parallel-install safe: although an app snap may provide it, the slot never binds/owns `org.freedesktop.NetworkManager` (its rules are receive/send only), so it is not a singleton — hence Slot-side COMPATIBLE.
 
 **Verification:** No verification has yet been done.
 
@@ -316,12 +323,11 @@ resource caveat.
 
 
 **Code analysis:**
-- Access is to Open vSwitch management sockets such as `/run/openvswitch/db.sock` and `*.mgmt`.
-- The interface is client-side and does not define a singleton service.
-- The rules are broad enough to cover per-bridge sockets and runtime control sockets.
-- Slot is restricted to core only (slot-snap-type: [core]).
+- Path-based client access to Open vSwitch management sockets: `/run/openvswitch/db.sock rw` (`openvswitch.go:37`), `/run/openvswitch/*.mgmt rw` (line 38), `/run/openvswitch/ovs-vswitchd.*.ctl rw` (line 40), `/run/openvswitch/ovs-vswitchd.pid rw` (line 41). These are sockets owned by the host ovs daemon — client access, with no service definition.
+- No D-Bus (no `dbus (bind)`/`DBusPermanentSlot`), no seccomp snippet, no udev tagging, and no use of `SnapName()`/`InstanceName()`/`ExpandSnapVariables()`/`LabelExpression()`. The `/run/openvswitch/` paths are host daemon paths, not snap-name paths.
+- Slot is restricted to core only (`openvswitch.go:24-30`: `slot-snap-type: [core]`); note the interface sets `implicitOnClassic: true` but NOT `implicitOnCore` (`openvswitch.go:45-51`), so the slot type is core-only and the interface is implicitly available on classic only.
 
-**Reasoning:** This is a socket client interface. Parallel plug instances work as concurrent OVS clients. The slot side is core-only, so parallel app-provided slots are not possible.
+**Reasoning:** This is a client-side interface to the host's Open vSwitch management sockets. It defines no singleton service and bakes in no snap name, so parallel plug instances each connect to the same host ovs daemon as concurrent clients with no snapd-level collision. The slot side is core-only, so parallel app-provided slots are not possible.
 
 **Verification:** No verification has yet been done.
 
@@ -332,27 +338,27 @@ resource caveat.
 
 
 **Code analysis:**
-- Access is to libvirt sockets (`/run/libvirt/libvirt-sock*`) plus a few config paths.
-- The seccomp rules allow socket operations needed by libvirt clients.
-- There is no instance-name scoping or service-name ownership.
-- Slot is restricted to core only (slot-snap-type: [core]).
+- Path-based client access to libvirt sockets: `/run/libvirt/libvirt-sock-ro rw` (`libvirt.go:33`), `/run/libvirt/libvirt-sock rw` (line 34), plus read-only `/etc/libvirt/* r` (line 35) and `/var/lib/snapd/hostfs/var/lib/libvirt/dnsmasq/{,**} r` (line 36, a host path). These are sockets owned by the host libvirtd — client access, no service-name ownership.
+- Seccomp (`libvirt.go:40-43`) allows `listen`, `accept`, `accept4`. No D-Bus (no `dbus (bind)`/`DBusPermanentSlot`), no udev tagging, and no use of `SnapName()`/`InstanceName()`/`ExpandSnapVariables()`/`LabelExpression()`.
+- Slot is restricted to core only (`libvirt.go:24-30`: `slot-snap-type: [core]`); note `implicitOnClassic: true` is set but NOT `implicitOnCore` (`libvirt.go:46-53`), so the slot type is core-only and the interface is implicitly available on classic only.
 
-**Reasoning:** This is a socket client interface. Parallel plug instances work as concurrent libvirt clients. The slot side is core-only, so parallel app-provided slots are not possible.
+**Reasoning:** This is a client-side interface to the host libvirtd sockets plus a few read-only config paths. It has no instance-name scoping and no service-name ownership, so parallel plug instances each connect to the same host libvirtd as concurrent clients with no snapd-level collision. The slot side is core-only, so parallel app-provided slots are not possible.
 
 **Verification:** No verification has yet been done.
 
 ### docker
-**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE.
+**Status:** Plug-side: COMPATIBLE. Slot-side: N/A (slot is denied to app snaps by default; only core/system can provide it).
 
 **Type:** Daemon/Socket Client
 
 
 **Code analysis:**
-- Access is to the Docker daemon socket (`/run/docker.sock` or `/var/run/docker.sock`).
-- The interface is explicit about privileged socket access, but it is still client-side.
-- No snap-instance-specific naming is involved.
+- The connected-plug AppArmor (`docker.go:37-43`) is socket-path based and client-only: it grants `/{,var/}run/docker.sock rw,` (line 42) to talk to the Docker daemon socket. No `dbus (bind)`, no `DBusPermanentSlot`, no name ownership.
+- Connected-plug seccomp (`docker.go:45-51`) grants `bind` and `socket AF_NETLINK - NETLINK_GENERIC`.
+- The base declaration lists `allow-installation: slot-snap-type: [app, core]` but immediately follows with `deny-installation: slot-snap-type: [app]` (`docker.go:26-32`), so an app snap cannot provide the docker slot by default — only `core` (or a store-granted snap-declaration override). There is no slot-side code at all (no `AppArmorConnectedSlot`/`AppArmorPermanentSlot`/`Mount*`); it is a plain `commonInterface` (`docker.go:53-61`).
+- No use of `SnapName()`/`InstanceName()`/`ExpandSnapVariables()`/`LabelExpression()`; no hardcoded `/var/snap/<name>/` paths; no udev tagging. The only path is the fixed system daemon socket `/{,var/}run/docker.sock`.
 
-**Reasoning:** This is a socket client interface. Parallel plug instances work as concurrent Docker clients. Parallel slot instances (if app-provided) could provide different Docker daemons on different sockets without conflicts at the interface level.
+**Reasoning:** This is a client interface to a fixed Docker daemon socket. Parallel plug instances work as concurrent Docker clients with no instance-specific naming and no snapd-level collision. The slot side is out of scope for parallel app installs because the base declaration denies app-snap installation of the slot by default (and the interface contributes no slot-side policy that could collide).
 
 **Verification:** No verification has yet been done.
 
@@ -363,12 +369,12 @@ resource caveat.
 
 
 **Code analysis:**
-- Access is to both the system Podman socket and the rootless user socket.
-- The AppArmor rules are socket-path based and not instance-scoped.
-- The interface is client-side; it does not own a service name.
-- Slot is restricted to core only (slot-snap-type: [core]).
+- The connected-plug AppArmor (`podman.go:33-41`) is socket-path based and client-only: the system Podman socket `/{,var/}run/podman/podman.sock rw,` (line 38) and the rootless/user socket `owner /{,var/}run/user/[0-9]*/podman/podman.sock rw,` (line 40, keyed on the UID via `[0-9]*`, not a snap instance). No `dbus (bind)`, no `DBusPermanentSlot`.
+- Connected-plug seccomp (`podman.go:43-49`) grants `bind` and `socket AF_NETLINK - NETLINK_GENERIC`.
+- No use of `SnapName()`/`InstanceName()`/`ExpandSnapVariables()`/`LabelExpression()`; no hardcoded `/var/snap/<name>/` paths; no udev tagging; no shared memory.
+- Slot is restricted to core only (`podman.go:24-31`: `slot-snap-type: [core]`, plus `deny-connection`/`deny-auto-connection`).
 
-**Reasoning:** This is a socket client interface. Parallel plug instances work as concurrent Podman clients. The slot side is core-only, so parallel app-provided slots are not possible.
+**Reasoning:** This is a client interface to fixed Podman socket paths (system + per-UID rootless). Parallel plug instances work as concurrent Podman clients with no instance-scoped naming and no snapd-level collision. The slot side is core-only, so parallel app-provided slots are not possible.
 
 **Verification:** No verification has yet been done.
 
@@ -529,28 +535,27 @@ resource caveat.
 
 
 **Code analysis:**
-- Access is to the Linux kernel crypto API through AF_ALG and NETLINK_CRYPTO.
-- The implementation explicitly notes the API is intended for any process and requires no special privileges.
-- No instance-specific paths or service names are involved.
-- Slot is restricted to core only (slot-snap-type: [core]).
+- Access is to the Linux kernel crypto API through `AF_ALG` and `NETLINK_CRYPTO`. AppArmor (`kernel_crypto_api.go:37-47`) grants `@{PROC}/crypto r,`, `network alg seqpacket,` (for `AF_ALG`, line 42), and `network netlink dgram,`/`network netlink raw,` (for `NETLINK_CRYPTO`, lines 45-46). Seccomp (`kernel_crypto_api.go:49-54`) grants `socket AF_NETLINK - NETLINK_CRYPTO` (line 51), `bind`, `accept`.
+- Each process opens its own `AF_ALG` socket; there is no shared named object, path, or D-Bus name. No `dbus (bind)`/`DBusPermanentSlot`, no udev tagging, and no use of `SnapName()`/`InstanceName()`/`ExpandSnapVariables()`/`LabelExpression()`.
+- Slot is restricted to core only (`kernel_crypto_api.go:29-35`: `slot-snap-type: [core]`).
 
-**Reasoning:** This is a kernel API client interface. Parallel plug instances work as concurrent clients of the kernel crypto subsystem. The slot side is core-only, so parallel app-provided slots are not possible.
+**Reasoning:** This is a kernel-API client interface; each process opens its own `AF_ALG`/`NETLINK_CRYPTO` socket with no shared named object and no instance-specific path. Parallel plug instances are fully independent clients of the kernel crypto subsystem with no snapd-level collision. The slot side is core-only, so parallel app-provided slots are not possible.
 
 **Verification:** No verification has yet been done.
 
 ### avahi-control
-**Status:** Plug-side: COMPATIBLE. Slot-side: not separately classified in this entry (provider behavior out of scope here).
+**Status:** Plug-side: COMPATIBLE. Slot-side: NOT COMPATIBLE for app-provided slots (owns the singleton `org.freedesktop.Avahi` name); N/A for the implicit system slot.
 
 **Type:** D-Bus Service/Provider
 
 
 **Code analysis:**
-- The interface explicitly imports and extends `avahi-observe` behavior.
-- Plug-side rules only send to the Avahi server and manage entry groups; they do not own the Avahi bus name.
-- Slot-side rules are only applied when running as an application snap, and the code handles the system-vs-snap Avahi distinction.
-- D-Bus ownership is only relevant for a snap acting as the Avahi service.
+- The slot is app-providable (`avahi_control.go:31-40`: `allow-installation: slot-snap-type: [app, core]`, `deny-auto-connection`, `deny-connection: on-classic: false`); `ImplicitOnClassic: true` (line 113).
+- The interface imports and extends `avahi-observe` behavior. `AppArmorConnectedPlug()` (`avahi_control.go:118-137`) adds both the observe and control plug snippets. The control plug snippet (`avahi_control.go:60-102`) is `dbus (send)` to the Avahi server / entry groups (Set*, EntryGroupNew, Free/Commit/Reset, GetState/IsEmpty/UpdateServiceTxt, Add*) with `peer=(name=org.freedesktop.Avahi, label=###SLOT_SECURITY_TAGS###)`, plus one `dbus (receive)`. Sending to `name=org.freedesktop.Avahi` is client addressing, not ownership.
+- **Plug side owns no D-Bus name.** The only name ownership lives in the slot-only material inherited from avahi-observe: `dbus (bind) bus=system name="org.freedesktop.Avahi"` (`avahi_observe.go:77-79`) and `<allow own="org.freedesktop.Avahi"/>` in the D-Bus policy (`avahi_observe.go:213`). avahi-control reaches these only via `AppArmorPermanentSlot()` (line 145) and `DBusPermanentSlot()` (line 171), each guarded by `!implicitSystemPermanentSlot(slot)` (lines 142, 168) — i.e. applied only when an app snap provides the slot.
+- `AppArmorConnectedPlug()` uses `slot.LabelExpression()` (line 129) and `AppArmorConnectedSlot()` uses `plug.LabelExpression()` (line 155), both instance-aware. No `InstanceName()`/`SnapName()`/`ExpandSnapVariables()`, no hardcoded `/var/snap/<name>/` paths, no seccomp/udev.
 
-**Reasoning:** a parallel client snap using `avahi-control` should behave like any other client. A parallel provider snap would still be constrained by the singleton Avahi service name.
+**Reasoning:** A parallel client snap using `avahi-control` behaves like any other client: it only sends to / receives from the Avahi system service (no `dbus (bind)`, no `<allow own>`) with instance-aware peer labels, so the plug side is COMPATIBLE. A parallel *provider* snap is constrained by the singleton Avahi service name: when an app snap provides the slot, it binds/owns the well-known `org.freedesktop.Avahi` name (`avahi_observe.go:77-79`, `:213`), and two parallel provider instances cannot both own it — so the slot side is NOT COMPATIBLE for app providers (and N/A for the implicit system slot, which is handled outside snap confinement).
 
 **Verification:** No verification has yet been done.
 
@@ -611,16 +616,16 @@ resource caveat.
 
 
 **Code analysis:**
-- The plug accesses PipeWire sockets at `/run/user/[0-9]*/pipewire-[0-9]` for classic/system slots.
-- For app-provided slots, the plug uses instance-aware paths:
-  - `/run/user/[0-9]*/snap.<SLOT_INSTANCE_NAME>/pipewire-[0-9]` (line 50, 93: uses `slot.Snap().InstanceName()`)
-  - `/var/snap/<SLOT_INSTANCE_NAME>/common/pipewire-[0-9]` for system mode (line 52, 96: uses `slot.Snap().InstanceName()`)
-- The slot provider creates sockets at `/run/user/[0-9]*/pipewire-[0-9]` and `/run/user/[0-9]*/pipewire-[0-9]-manager` (lines 68-69).
-- No D-Bus name ownership in this interface.
-- Shared memory via `shmctl` syscall (line 56, 80) is used for audio IPC, same pattern as pulseaudio.
+- The slot is app-providable (`pipewire.go:33-42`: `allow-installation: slot-snap-type: [app, core]`, `deny-auto-connection: true`); `implicitOnClassic: true`, `implicitOnCore: false` (`pipewire.go:117-118`).
+- The base connected-plug AppArmor (`pipewire.go:44-47`) grants `owner /run/user/[0-9]*/pipewire-[0-9] rw,` for classic/system slots.
+- For app-provided slots, `AppArmorConnectedPlug()` (`pipewire.go:89-101`, gated by `!implicitSystemConnectedSlot(slot)` at line 91) uses instance-aware paths:
+  - `###SLOT_SECURITY_TAGS###` is replaced with `"snap." + slot.Snap().InstanceName()` (line 93), producing `/run/user/[0-9]*/snap.<SLOT_INSTANCE_NAME>/pipewire-[0-9]` (template line 50).
+  - `###SLOT_INSTANCE_NAME###` is replaced with `slot.Snap().InstanceName()` (line 96), producing `/var/snap/<SLOT_INSTANCE_NAME>/common/pipewire-[0-9]` for system mode (template line 52).
+- The slot provider creates sockets at `/run/user/[0-9]*/pipewire-[0-9]` and `/run/user/[0-9]*/pipewire-[0-9]-manager` (`pipewirePermanentSlotAppArmor`, lines 68-69).
+- No D-Bus name ownership (no `dbus (bind)`/`DBusPermanentSlot`). Shared memory is handled via the `shmctl` seccomp syscall (plug line 56; permanent slot line 80), not a `/dev/shm` path rule.
 
-**Reasoning:** The plug-side correctly uses `slot.Snap().InstanceName()` for instance-aware path resolution when connecting to an app-provided slot. Multiple parallel plug instances connecting to the same PipeWire server (system or snap-provided) is the normal multi-client audio pattern. The slot-side would conflict if two parallel instances tried to create sockets at the same runtime path, but that's the expected slot-side singleton pattern.
-The remaining shared SHM/socket state is client-server audio IPC, not a parallel-install collision.
+**Reasoning:** The plug-side correctly uses `slot.Snap().InstanceName()` (lines 93, 96) for instance-aware path resolution when connecting to an app-provided slot, so there is no base-snap-name hardcoding and no snapd-level collision. Multiple parallel plug instances connecting to the same PipeWire server (system or snap-provided) is the normal multi-client audio pattern, so the plug side is COMPATIBLE.
+The slot side is out of scope for this entry, but note: the permanent-slot socket names (`pipewire-0`, etc., lines 68-69) are fixed and not instance-keyed, so two parallel slot providers in the same user session would contend over the same runtime socket name — a session/host shared-resource contention, not a snapd identifier collision.
 
 **Verification:** No verification has yet been done.
 
@@ -631,83 +636,81 @@ The remaining shared SHM/socket state is client-server audio IPC, not a parallel
 
 
 **Code analysis:**
-The `cups` interface (distinct from `cups-control`) lets a provider snap expose a CUPS socket to consumers via bind-mount and path-based mediation.
+The `cups` interface (distinct from `cups-control`) lets a provider snap expose a CUPS socket to consumers via bind-mount and path-based mediation. The slot is app-only (`cups.go:48-55`: `allow-installation: slot-snap-type: [app]`, `deny-connection`/`deny-auto-connection`; `implicitOnCore: false`, `implicitOnClassic: false`), so slot-side parallel-install correctness is directly in scope.
 
-1. **Socket path resolution uses `PerspectiveSelf`** (`interfaces/builtin/cups.go:130`):
-   `validateCupsSocketDirSlotAttr()` expands the slot's `cups-socket-directory` using `ExpandSnapVariables()`, which defaults to `PerspectiveSelf` and resolves `$SNAP_COMMON` via `SnapName()` to `/var/snap/cups-provider/common/cups-socket`.
+**Plug side (the consumer):** `cupsConnectedPlugAppArmor` (`cups.go:57-78`) grants the consumer access to the CUPS socket at the fixed in-its-own-namespace path `/var/cups/cups.sock` (line 77). `MountConnectedPlug()` (`cups.go:188-206`) bind-mounts the provider's socket directory onto the plug's own `/var/cups/` (target `Dir: "/var/cups/"`, lines 201-205). Because the mount **target** is the plug's own fixed namespace path, multiple keyed consumer instances each get an identical, self-namespace target with no instance collision — the plug side is COMPATIBLE.
 
-2. **The provider snap sees namespace-remapped paths**: Inside the provider snap's mount namespace, `/var/snap/cups-provider/` is bind-mounted from the host path `/var/snap/cups-provider_foo/`. When the provider creates its socket at what it sees as `/var/snap/cups-provider/common/cups-socket`, the socket is actually created at the host path `/var/snap/cups-provider_foo/common/cups-socket`.
+**Slot side (the provider) — the bug:**
 
-3. **MountConnectedPlug uses the namespace path, not the host path** (`interfaces/builtin/cups.go:188-206`):
-   The bind mount into the consumer namespace is created from `cupsdSocketSourceDir` which is `/var/snap/cups-provider/common/cups-socket`. But this path doesn't exist on the host filesystem outside the provider's namespace—the actual socket is at `/var/snap/cups-provider_foo/common/cups-socket`.
+1. **Socket path resolution uses `PerspectiveSelf`** (`cups.go:130`):
+   `validateCupsSocketDirSlotAttr()` returns `snapInfo.ExpandSnapVariables(cupsdSocketSourceDir)`, and `ExpandSnapVariables()` defaults to `PerspectiveSelf` (`snap/info.go:809`), which resolves `$SNAP_COMMON`/`$SNAP_DATA` via the base `SnapName()` (`snap/info.go:829`) to `/var/snap/cups-provider/common/...` — NOT `InstanceName()`.
 
-4. **AppArmor rules have the same mismatch** (`interfaces/builtin/cups.go:170`):
-   Permissions are granted for `/var/snap/cups-provider/common/**` instead of `/var/snap/cups-provider_foo/common/**`.
+2. **The provider snap sees namespace-remapped paths**: Inside the provider snap's mount namespace, `/var/snap/cups-provider/` is bind-mounted from the host path `/var/snap/cups-provider_foo/`. When the provider creates its socket at what it sees as `/var/snap/cups-provider/common/...`, the socket is actually created at the host path `/var/snap/cups-provider_foo/common/...`.
 
-5. **Contrast with `content` interface**: `content` uses `PerspectiveOther` for provider path expansion (`interfaces/builtin/content.go:234`), which calls `InstanceName()` and produces the correct host path `/var/snap/cups-provider_foo/...`.
+3. **The base-name path is used as a host bind-mount source and in mount profiles** (`cups.go:188-206`, and `cups.go:179,182`):
+   `MountConnectedPlug()` creates a `MountEntry` whose **source** (`Name`) is the base-name-resolved `cupsdSocketSourceDir` (`cups.go:201-205`). `AppArmorConnectedPlug()` additionally emits this base-name path into the snap-update-ns mount profile via `emit("mount options=(rw bind) \"%s/\" -> /var/cups/,", ...)` (`cups.go:179`) and `GenWritableProfile(emit, cupsdSocketSourceDir, 1)` (`cups.go:182`). None of these resolve to the keyed host path `/var/snap/cups-provider_foo/common/...`, so the source does not exist on the host for a keyed provider.
 
-**Reasoning:** The cups interface needs to bind-mount from the **host filesystem path** where the socket actually exists, but it only knows the **namespace-internal path** that the provider sees. For parallel instances, these paths differ. The interface should use `PerspectiveOther` when expanding the slot's `$SNAP_COMMON` path to get the actual host path with the instance key.
+4. **AppArmor accessor rule has the same mismatch** (`cups.go:170`):
+   Permissions are granted for `"%s/**" mrwklix,` using the base-name dir (`/var/snap/cups-provider/common/**`) instead of `/var/snap/cups-provider_foo/common/**`.
+
+5. **Contrast with `content` interface**: `content` uses `PerspectiveOther` for provider path expansion (`content.go:234`), which calls `InstanceName()` and produces the correct host path `/var/snap/cups-provider_foo/...`.
+
+**Reasoning:** The plug/consumer side is parallel-install safe because the bind-mount target is the consumer's own fixed namespace path `/var/cups/`. The slot/provider side is not: the interface needs to bind-mount from the **host filesystem path** where the provider's socket actually exists, but it resolves that path with `PerspectiveSelf` (base `SnapName()`), so for a keyed provider instance the source path, AppArmor rule, and snap-update-ns profile all point at the unkeyed `/var/snap/cups-provider/...` which does not exist on the host. The fix is to use `PerspectiveOther`/`InstanceName()` when expanding the slot's `$SNAP_COMMON` path, exactly as `content.go:234` does.
 
 **Verification:**
 - Plug-side: passed on noble (`test-snapd-cups-consumer_foo` connected and communicated through provider socket; remained functional after removing original consumer).
 - Slot-side parallel provider: expected to fail because bind mount source path doesn't exist on host.
 
 ### serial-port
-**Status:** Plug-side: COMPATIBLE. Slot-side: N/A (system/core/gadget-provided slot; no parallel app slot providers in scope).
+**Status:** Plug-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE. Slot-side: N/A (core/gadget-provided slot; no parallel app slot providers in scope).
 
 **Type:** Hardware Device Access
 
 
 **Code analysis:**
-- Slots are provided by core or gadget snaps only (lines 41-43), not by application snaps.
-- The slot requires a `path` attribute pointing to a specific device node (e.g., `/dev/ttyUSB0`) or a udev symlink with USB vendor/product attributes.
-- AppArmor rules grant access to the specific device path from the slot (line 179: `cleanedPath`), not based on snap instance names.
-- UDev rules tag the specific device by kernel name or USB vendor/product (lines 200-210).
-- No snap-instance-specific paths are involved; the interface is purely device-path-based.
-- No D-Bus, no shared memory, no sockets that could conflict.
+- Slots are provided by core or gadget snaps only (`serial_port.go:40-43`: `slot-snap-type: [core, gadget]`), not by application snaps. The interface summary is literally "allows accessing a specific serial port" (`serial_port.go:36`).
+- The slot requires a `path` attribute pointing to a specific device node (e.g., `/dev/ttyUSB0`) or a udev symlink (`/dev/serial-port-*`) with USB vendor/product attributes (`BeforePrepareSlot()`, `serial_port.go:90-138`).
+- `AppArmorConnectedPlug()` (`serial_port.go:164-181`): with USB attrs it emits a broad approximation `/dev/tty[A-Z]*[0-9] rwk,` (line 169) that is then narrowed by udev/cgroup tagging; otherwise it emits the fixed device node from the slot's `path` via `cleanedPath := filepath.Clean(path)` (line 178) and `spec.AddSnippet(fmt.Sprintf("%s rwk,", cleanedPath))` (line 179). The path is core/gadget-authored, never snap-name-derived.
+- `UDevConnectedPlug()` (`serial_port.go:183-212`) tags the specific device via `spec.TagDevice()` at line 200 (path-only `SUBSYSTEM=="tty", KERNEL=="<dev>"`) and lines 204/207 (USB vendor/product, optional interface number). `UDevPermanentSlot()` (`serial_port.go:140-162`) emits `SYMLINK+=` rules for the slot device.
+- No use of `SnapName()`, `InstanceName()`, `ExpandSnapVariables()`, or `LabelExpression()`; no hardcoded `/var/snap/<name>/` paths; no D-Bus name ownership, shared memory, or sockets.
 
-**Reasoning:** The serial-port interface grants access to a specific physical device declared in the slot. Parallel instances of a plug snap can all connect to the same serial-port slot and access the same device. Whether this is safe depends on the application: two processes reading/writing the same serial port would interfere at the protocol level, but that's an application concern, not a snapd interface conflict. The interface itself has no instance-naming issues.
+**Reasoning:** The plug policy is device-node/USB-id based with no per-instance naming, and udev tags are instance-aware via `TagDevice`, so there is no snapd-level collision between parallel keyed instances. However, a serial-port slot pins one specific serial device (a single `path`, or one USB serial device); two parallel instances connecting the same slot contend over that one physical port. This is a shared-hardware concern at the application/protocol level, not a snapd incompatibility, so the plug side is policy-compatible but shares a single physical resource.
 
 **Verification:** No verification has yet been done.
 
 ### hidraw
-**Status:** Plug-side: COMPATIBLE. Slot-side: N/A (system/core/gadget-provided slot; no parallel app slot providers in scope).
+**Status:** Plug-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE. Slot-side: N/A (core/gadget-provided slot; no parallel app slot providers in scope).
 
 **Type:** Hardware Device Access
 
 
 **Code analysis:**
-- Slots are provided by core or gadget snaps only (lines 39-41), not by application snaps.
-- The slot requires a `path` attribute pointing to a specific hidraw device node (e.g., `/dev/hidraw0`) or a udev symlink with USB vendor/product attributes.
-- Device node pattern: `/dev/hidraw[0-9]{1,3}` (line 66).
-- Udev symlink pattern: `/dev/hidraw-[a-z0-9]+` (line 71).
-- AppArmor rules grant access to the specific device path from the slot (line 153: `cleanedPath`), or a broad pattern `/dev/hidraw[0-9]{,[0-9],[0-9][0-9]}` when using USB attributes (line 143).
-- UDev rules tag the specific device by kernel name or USB vendor/product (lines 182-187).
-- No snap-instance-specific paths are involved; the interface is purely device-path-based.
-- No D-Bus, no shared memory, no sockets.
+- Slots are provided by core or gadget snaps only (`hidraw.go:38-41`: `slot-snap-type: [core, gadget]`), not by application snaps.
+- The slot requires a `path` attribute pointing to a specific hidraw device node or a udev symlink with USB vendor/product attributes (`BeforePrepareSlot()`, `hidraw.go:74-117`).
+- Device node pattern: `^/dev/hidraw[0-9]{1,3}$` (`hidraw.go:66`). Udev symlink pattern: `^/dev/hidraw-[a-z0-9]+$` (`hidraw.go:71`).
+- `AppArmorConnectedPlug()` (`hidraw.go:139-156`): with USB attrs it emits the broad pattern `/dev/hidraw[0-9]{,[0-9],[0-9][0-9]} rw,` (line 143); otherwise the fixed node from the slot `path` via `cleanedPath := filepath.Clean(path)` (line 152) and `spec.AddSnippet(fmt.Sprintf("%s rw,", cleanedPath))` (line 153).
+- `UDevConnectedPlug()` (`hidraw.go:158-189`) tags the device via `spec.TagDevice()` at line 183 (path-only `SUBSYSTEM=="hidraw", KERNEL=="<dev>"`) and line 185 (USB vendor/product). `UDevPermanentSlot()` (`hidraw.go:119-137`) emits a `SYMLINK+=` rule.
+- No use of `SnapName()`, `InstanceName()`, `ExpandSnapVariables()`, or `LabelExpression()`; no hardcoded `/var/snap/<name>/` paths; no D-Bus, shared memory, or sockets.
 
-**Reasoning:** Like serial-port, the hidraw interface grants access to a specific physical HID device declared in the slot. The interface is device-path-based with no instance-naming involved. Parallel instances of a plug snap can all connect to the same hidraw slot and access the same device. Two processes accessing the same hidraw device would interfere at the HID protocol level, but that's an application concern, not a snapd interface conflict.
+**Reasoning:** Like serial-port, the policy is device-node/USB-id based with no per-instance naming, and udev tags are instance-aware via `TagDevice`, so there is no snapd-level collision between parallel instances. But the slot pins one specific hidraw device (a single `path`, or one USB HID device); two parallel instances connecting the same slot share that single physical device and would interfere at the HID protocol level. That is an application/hardware concern, so the plug side is policy-compatible but shares a single physical resource.
 
 **Verification:** No verification has yet been done.
 
 ### i2c
-**Status:** Plug-side: COMPATIBLE. Slot-side: N/A (system/core/gadget-provided slot; no parallel app slot providers in scope).
+**Status:** Plug-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE. Slot-side: N/A (gadget/core-provided slot; no parallel app slot providers in scope).
 
 **Type:** Hardware Device Access
 
 
 **Code analysis:**
-- Slots are provided by gadget or core snaps only (lines 39-41), not by application snaps.
-- The slot can specify either a `path` attribute (e.g., `/dev/i2c-0`) or a `sysfs-name` attribute, but not both (lines 86-93).
-- Device node pattern: `/dev/i2c-[0-9]+` (line 79).
-- Sysfs name pattern: `[a-zA-Z0-9_-]+` (line 82).
-- AppArmor rules grant access to the specific device path (line 131) or sysfs path (line 120) from the slot.
-- Parametric snippets are used for sysfs paths under `/sys/devices/platform/` (lines 133-135).
-- UDev rules tag the specific device by kernel name (line 144).
-- No snap-instance-specific paths are involved; the interface is purely device-path-based.
-- No D-Bus, no shared memory, no sockets.
+- Slots are provided by gadget or core snaps only (`i2c.go:38-41`: `slot-snap-type: [gadget, core]`), not by application snaps. The interface summary is "allows access to specific I2C controller" (`i2c.go:34`).
+- The slot can specify either a `path` attribute (e.g., `/dev/i2c-0`) or a `sysfs-name` attribute, but not both (`BeforePrepareSlot()`, `i2c.go:85-113`; mutual exclusion at lines 91-93).
+- Device node pattern: `^/dev/i2c-[0-9]+$` (`i2c.go:79`). Sysfs name pattern: `^[a-zA-Z0-9_-]+$` (`i2c.go:82`).
+- `AppArmorConnectedPlug()` (`i2c.go:115-137`): for `sysfs-name`, emits `/sys/bus/i2c/devices/<name>/** rw,` (line 120); for `path`, emits `<cleanedPath> rw,` (line 131) plus a parametric snippet for `/sys/devices/platform/{*,**.i2c}/i2c-<N>/** rw,` (lines 133-135, where `<N>` is `strings.TrimPrefix(path, "/dev/i2c-")`). All values come from slot attributes, never from a snap/instance name.
+- `UDevConnectedPlug()` (`i2c.go:139-146`) tags the device via `spec.TagDevice(KERNEL=="<dev>")` at line 144 (path-only; if only `sysfs-name` is set, it returns early and emits no udev rule).
+- No use of `SnapName()`, `InstanceName()`, `ExpandSnapVariables()`, or `LabelExpression()`; no hardcoded `/var/snap/<name>/` paths (the sysfs paths are hardware paths); no D-Bus, shared memory, or sockets.
 
-**Reasoning:** The i2c interface grants access to a specific I2C bus controller declared in the slot. The interface is device-path-based with no instance-naming involved. Parallel instances of a plug snap can all connect to the same i2c slot and access the same bus. Whether concurrent access is safe depends on the I2C devices on the bus and the application protocol; the kernel's I2C subsystem handles bus arbitration but not higher-level conflicts. The interface itself has no instance-naming issues.
+**Reasoning:** Rules are derived purely from the slot's `path`/`sysfs-name` with no per-instance naming, and udev tags are instance-aware via `TagDevice`, so there is no snapd-level collision between parallel instances. However, the slot pins a single I2C controller (one `/dev/i2c-N` node or one sysfs device), so two parallel instances connecting the same slot contend over that one shared controller. Whether concurrent access is safe depends on the bus devices and application protocol; the kernel arbitrates bus access but not higher-level conflicts. So the plug side is policy-compatible but shares a single physical controller.
 
 **Verification:** No verification has yet been done.
 
@@ -819,19 +822,19 @@ The `cups` interface (distinct from `cups-control`) lets a provider snap expose 
 **Verification:** No verification has yet been done.
 
 ### bool-file
-**Status:** Plug-side: COMPATIBLE. Slot-side: N/A (system/core/gadget-provided slot; no parallel app slot providers in scope).
+**Status:** Plug-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE. Slot-side: N/A (system/core/gadget-provided slot; no parallel app slot providers in scope).
 
 **Type:** Filesystem/Mount Interface
 
 
 **Code analysis:**
-- Slots are provided by core or gadget snaps only (lines 34-40).
-- Slot validation accepts only LED brightness and GPIO value paths (lines 76-92).
-- AppArmor rules are built from the dereferenced slot path, so the connected plug mediates the exact file the slot identifies (lines 106-125).
-- For GPIO slots, the permanent-slot rules expose export/unexport and direction handling (lines 94-103).
-- No snap-instance-specific paths are involved.
+- Slots are provided by core or gadget snaps only (`bool_file.go:34-41`: `slot-snap-type: [core, gadget]`).
+- Slot validation accepts only LED brightness and GPIO value sysfs paths (regexes at `bool_file.go:63-72`, validated in `BeforePrepareSlot()` `bool_file.go:76-92`).
+- `AppArmorConnectedPlug()` (`bool_file.go:106-125`) is built from the **dereferenced slot sysfs path** (`dereferencedPath`, lines 127-137), so the connected plug mediates the exact file the slot identifies; for GPIO slots, the permanent-slot rules expose export/unexport and direction handling (`bool_file.go:94-103`).
+- **SNAP_NAME vs INSTANCE_NAME:** the interface is gadget/sysfs-path based, not snap-name based — no `@{SNAP_NAME}`/`@{SNAP_INSTANCE_NAME}`/`SnapName()`/`InstanceName()` anywhere. No bug (no snap-name path concept here).
+- No D-Bus, no shared kernel named objects, no udev.
 
-**Reasoning:** This is a specific-file interface with path validation. Parallel installs can use the same or different hardware-backed paths based on the slot; the code doesn’t key anything off snap instance names.
+**Reasoning:** This is a specific-file interface with path validation and no snap-instance naming, so it is parallel-safe at the policy layer. However, the slot pins a single physical GPIO/LED sysfs file; two parallel plug instances connecting the same slot would each get access to that one hardware-backed file and contend over it — compatible at the snapd layer but sharing a single hardware resource.
 
 **Verification:** No verification has yet been done.
 
@@ -842,12 +845,12 @@ The `cups` interface (distinct from `cups-control`) lets a provider snap expose 
 
 
 **Code analysis:**
-- Slot is provided by core only (lines 24-29), with implicit slots on core and classic (lines 71-72).
-- AppArmor and seccomp permissions are for mount/umount of CIFS filesystems (lines 32-65).
-- The policy explicitly uses both `SNAP_NAME` and `SNAP_INSTANCE_NAME` for writable mount targets, to cover parallel installs (lines 45-56).
-- No D-Bus or sockets are involved.
+- Slot is provided by core only (`cifs_mount.go:24-30`: `slot-snap-type: [core]`), with implicit slots on core and classic (lines 71-72).
+- AppArmor and seccomp permissions are for mount/umount of CIFS filesystems (seccomp `mount`/`umount`/`umount2` at `cifs_mount.go:32-37`; `capability sys_admin` at line 43).
+- **SNAP_NAME vs INSTANCE_NAME (correct both-variant pattern):** the mount targets (`cifs_mount.go:48-49`) and umount targets (lines 55-56) use the alternation `/var/snap/{@{SNAP_NAME},@{SNAP_INSTANCE_NAME}}/...` for both `$SNAP_DATA` (`@{SNAP_REVISION}`) and `$SNAP_COMMON`. As the comments explain (lines 46-47, 53-54), `$SNAP_{DATA,COMMON}` are remapped, so `@{SNAP_NAME}` covers the in-namespace view and `@{SNAP_INSTANCE_NAME}` is allowed "for completeness" to cover the real keyed host path. Including both variants is the correct parallel-safe pattern; no bug.
+- No D-Bus or shared kernel named objects (mounts land in the snap's own writable dirs).
 
-**Reasoning:** The interface is already written to handle parallel-instance mount targets explicitly. The mount rules include both base and instance names, so there is no obvious instance collision in the code.
+**Reasoning:** The interface is already written to handle parallel-instance mount targets explicitly. The mount/umount rules include both the base (`@{SNAP_NAME}`) and instance (`@{SNAP_INSTANCE_NAME}`) variants for the snap's own `/var/snap/...` dirs, so there is no instance collision and parallel instances each mount into their own directories.
 
 **Verification:** No verification has yet been done.
 
@@ -875,13 +878,14 @@ The `cups` interface (distinct from `cups-control`) lets a provider snap expose 
 
 
 **Code analysis:**
-- Slot is provided by core only (lines 28-33), with implicit slots on core and classic except old Ubuntu 14.04 (lines 100-101).
-- AppArmor grants access to `/dev/fuse`, `sys_admin`, and mount targets under snap-specific writable directories (lines 43-92).
-- The mount rules explicitly use `SNAP_INSTANCE_NAME` for per-user home snap directories, and `SNAP_NAME`/`SNAP_INSTANCE_NAME` for system snap directories (lines 67-77).
-- UDev tags the `fuse` device (line 94).
-- No hardcoded snap-instance path conflicts are visible.
+- Slot is provided by core only (`fuse_support.go:28-34`: `slot-snap-type: [core]`), with implicit slots on core and classic except old Ubuntu 14.04 (`fuse_support.go:101`).
+- AppArmor grants `/dev/fuse rw,` (line 49), `capability sys_admin` (line 52), and `mount` seccomp (lines 36-41).
+- **SNAP_NAME vs INSTANCE_NAME (correctly differentiated):**
+  - Per-user `~/snap/...` (home) mount targets (`fuse_support.go:68-71`) use `@{SNAP_INSTANCE_NAME}` **only** (`/home/*/snap/@{SNAP_INSTANCE_NAME}/...`). The comment (line 67) explains `$SNAP_USER_{DATA,COMMON}` are **not** remapped, so the instance name is required for this host path. Using base here would be a bug; it correctly does not. ✓
+  - System `/var/snap/...` mount targets (`fuse_support.go:74-77`) use **both** `{@{SNAP_NAME},@{SNAP_INSTANCE_NAME}}` because `$SNAP_{DATA,COMMON}` are remapped (comment lines 72-73). ✓
+- UDev tags the `fuse` device (`KERNEL=="fuse"`, `fuse_support.go:94`). No D-Bus, no hardcoded base-name host path.
 
-**Reasoning:** FUSE support is deliberately instance-aware in the mount rules. The interface is one of the examples that already accounts for parallel instances via `SNAP_INSTANCE_NAME` and `SNAP_NAME`.
+**Reasoning:** FUSE support is deliberately instance-aware in the mount rules, and crucially differentiates the two cases correctly: the non-remapped per-user `~/snap/<instance>/` path uses `@{SNAP_INSTANCE_NAME}` only, while the remapped system `/var/snap/...` path allows both variants. Each instance therefore mounts into its own directories with no `SNAP_NAME`-vs-`INSTANCE_NAME` bug.
 
 **Verification:** No verification has yet been done.
 
@@ -892,12 +896,12 @@ The `cups` interface (distinct from `cups-control`) lets a provider snap expose 
 
 
 **Code analysis:**
-- Slot is provided by core only (lines 24-29), with implicit slots on core and classic (lines 85-86).
-- AppArmor and seccomp permissions are for NFS mount/umount operations (lines 32-79).
-- The policy explicitly uses both `SNAP_NAME` and `SNAP_INSTANCE_NAME` for writable mount targets, covering parallel installs (lines 45-61).
-- No D-Bus or sockets are involved.
+- Slot is provided by core only (`nfs_mount.go:24-30`: `slot-snap-type: [core]`), with implicit slots on core and classic (lines 85-86).
+- AppArmor and seccomp permissions are for NFS mount/umount operations (seccomp `mount`/`umount`/`umount2` at `nfs_mount.go:32-37`; `capability sys_admin` at line 42; `/etc/rpc` read at line 78).
+- **SNAP_NAME vs INSTANCE_NAME (correct both-variant pattern):** the mount targets (`nfs_mount.go:50-51`) and umount targets (lines 60-61) use `/var/snap/{@{SNAP_NAME},@{SNAP_INSTANCE_NAME}}/...` for both `$SNAP_DATA` (`@{SNAP_REVISION}`) and `$SNAP_COMMON`, with comments (lines 45-46, 55-56) giving the same rationale as cifs-mount (remapped paths → base variant, instance variant allowed for completeness). Both variants present; no bug.
+- No D-Bus or shared kernel named objects.
 
-**Reasoning:** Like cifs-mount, this interface is already instance-aware in its mount target rules. Parallel instances do not create a mount-path collision in the code.
+**Reasoning:** Like cifs-mount, this interface is already instance-aware in its mount target rules: both the base (`@{SNAP_NAME}`) and instance (`@{SNAP_INSTANCE_NAME}`) variants are allowed for the snap's own `/var/snap/...` dirs, so parallel instances do not create a mount-path collision.
 
 **Verification:** No verification has yet been done.
 
@@ -934,18 +938,18 @@ The `cups` interface (distinct from `cups-control`) lets a provider snap expose 
 **Verification:** No verification has yet been done.
 
 ### pkcs11
-**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE.
+**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE (the `pkcs11-socket` path is forced into the shared host `/run/p11-kit/` and is not instance-key disambiguated, so parallel slot providers collide unless the operator sets distinct socket paths).
 
 **Type:** Identity/Credentials/Secrets
 
 
 **Code analysis:**
-- The slot provides a `pkcs11-socket` attribute and must live under `/run/p11-kit` (lines 71-93).
-- `BeforePrepareSlot()` validates the path and disallows AppArmor-regex characters (lines 95-105).
-- AppArmor and Seccomp rules use the socket path as supplied by the slot (lines 107-155).
-- The interface is path-driven by the slot, not by snap instance names.
+- **Slot provider restriction:** the base declaration has only plug rules — `allow-installation: false`, `deny-auto-connection: true` (`pkcs11.go:35-39`). There is NO `slot-snap-type: core`, so the slot is **app-providable** (subject to a snap-declaration, since plug install is denied by default). `AutoConnect()` returns true (`pkcs11.go:157-160`). This makes slot-side parallel safety relevant.
+- The slot provides a `pkcs11-socket` string attribute. `getSocketPath()` (`pkcs11.go:71-93`) requires it to be a string, cleans it, and enforces `filepath.Dir(socketPath) == "/run/p11-kit"` (lines 88-90) — i.e. every slot's socket must live directly in the shared host dir `/run/p11-kit`. `BeforePrepareSlot()` (`pkcs11.go:95-105`) additionally rejects AppArmor-regex metacharacters (`ValidateNoAppArmorRegexp`, line 101).
+- The slot operates as a **server**: `pkcs11PermanentSlotSecComp` grants `bind`/`listen`/`accept`/`accept4` (`pkcs11.go:59-69`, applied at 107-110), and `AppArmorPermanentSlot()` grants `/{,var/}run/p11-kit/ rw` plus the socket `rwk` (`pkcs11.go:134-155`). `AppArmorConnectedPlug()` (`pkcs11.go:112-132`) grants the plug `rw` on the slot-specified socket plus fixed `/etc/pkcs11` and p11 tools.
+- **SNAP_NAME vs INSTANCE_NAME:** there is no `@{SNAP_NAME}`/`@{SNAP_INSTANCE_NAME}`/`SnapName()`/`InstanceName()`/`LabelExpression()` anywhere — the socket path is taken verbatim from the slot attribute. Crucially, it is **not** auto-decorated with the instance key, so two parallel instances of the same slot snap carry the same `pkcs11-socket` value from their identical snap.yaml. There is no D-Bus name ownership (it is a unix-socket server).
 
-**Reasoning:** This is a path-based socket interface where the socket path is declared by the slot, not tied to snap instance names. Parallel plug instances can connect to the same or different PKCS#11 services without conflicts. Parallel slot instances can provide different PKCS#11 sockets at different paths without conflicts.
+**Reasoning:** Plug-side is a path-based client capability: each plug instance gets `rw` to the slot-specified socket under `/run/p11-kit`, with no snap-name derivation, so parallel plug instances are COMPATIBLE. Slot-side, however, is only parallel-safe if the `pkcs11-socket` attribute differs per instance: because the path is forced into the shared host directory `/run/p11-kit` and is not instance-key disambiguated, two parallel instances of the same slot snap default to the same `/run/p11-kit/<name>` socket and both try to bind it — a real collision over a shared host resource. Hence slot-side is COMPATIBLE EXCEPT FOR SHARED RESOURCE (it is not a D-Bus-name-ownership case).
 
 **Verification:** No verification has yet been done.
 
@@ -1033,17 +1037,14 @@ The `cups` interface (distinct from `cups-control`) lets a provider snap expose 
 
 
 **Code analysis:**
-- Slot is provided by core only (lines 24-29), with implicit slots on core and classic (lines 68-69).
-- AppArmor rules grant D-Bus access to systemd-logind:
+- Slot is provided by core only (`login_session_control.go:24-30`: `slot-snap-type: [core]`), with implicit slots on core and classic (lines 68-69).
+- The connected-plug AppArmor (`login_session_control.go:32-62`) is a **system-bus** D-Bus client to systemd-logind, all with `peer=(label=unconfined)`:
   - Properties on `/org/freedesktop/login1/{seat,session}/**` (lines 37-42)
-  - Full access to `org.freedesktop.login1.Seat` interface (lines 44-48)
-  - Full access to `org.freedesktop.login1.Session` interface (lines 50-54)
+  - Full access to `org.freedesktop.login1.Seat` (lines 44-48) and `org.freedesktop.login1.Session` (lines 50-54)
   - Manager methods: ActivateSession, GetSession, GetSeat, KillSession, ListSessions, LockSession, TerminateSession, UnlockSession (lines 56-61)
-- This is a client interface to systemd-logind on the system bus.
-- No snap-instance-specific paths; access is to system-wide login/session state.
-- No D-Bus name ownership (client only).
+- **It owns no D-Bus name** — there is no `dbus (bind)`/`DBusPermanentSlot`/`<allow own>`; it is purely a client of systemd-logind. No `@{SNAP_NAME}`/`@{SNAP_INSTANCE_NAME}`/`SnapName()`/`InstanceName()`/`LabelExpression()`, no hardcoded `/var/snap/<name>/` paths, no mounts/seccomp/udev.
 
-**Reasoning:** The login-session-control interface grants D-Bus client access to systemd-logind for managing login sessions. Multiple parallel instances would all interact with the same logind service as concurrent D-Bus clients. The logind service manages concurrent access. No instance-naming issues since this is client access to system services.
+**Reasoning:** The login-session-control interface grants D-Bus client access to systemd-logind for managing login sessions. Multiple parallel instances all interact with the same logind service as concurrent clients with instance-aware AppArmor labels; the interface owns no bus name, so there is no snapd-level (instance-name) collision. Like other system-control interfaces (e.g. `time-control`, `hostname-control`), the resource it operates on — logind sessions/seats — is a system-wide singleton whose concurrent access is serialized by logind itself; this is the intended single-system-state model rather than a parallel-install incompatibility, so the plug side is COMPATIBLE.
 
 **Verification:** No verification has yet been done.
 
@@ -1054,17 +1055,15 @@ The `cups` interface (distinct from `cups-control`) lets a provider snap expose 
 
 
 **Code analysis:**
-- Slot is provided by core only (lines 24-29), with implicit slots on core and classic (lines 123-124).
+- Slot is provided by core only (`login_session_observe.go:24-30`: `slot-snap-type: [core]`), with implicit slots on core and classic (lines 123-124).
 - AppArmor rules grant:
-  - Read access to login tracking files: `/var/log/wtmp`, `/run/utmp`, `/var/log/lastlog`, `/var/log/faillog` (lines 36-43)
+  - Read access to login tracking files: `/var/log/wtmp` (line 36), `/{,var/}run/utmp` (line 37), `/var/log/lastlog` (line 40), `/var/log/faillog` (line 43)
   - Read access to systemd session files at `/run/systemd/sessions/` (lines 46-47)
-  - Execute `who`, `lastlog`, `faillog`, `loginctl` binaries (lines 35, 39, 42, 57)
-  - D-Bus read access to systemd-logind for introspection and property queries (lines 62-112)
-- This is a read-only interface for observing login session state.
-- No snap-instance-specific paths; access is to system-wide login state.
-- No D-Bus name ownership (client only).
+  - Execute `who` (via `@{SNAP_COREUTIL_DIRS}who`, line 35), `lastlog`, `faillog`, `loginctl` (lines 39, 42, 57)
+  - **System-bus** D-Bus **read-only** client access to systemd-logind for introspection, property queries, and signal receipt (`login_session_observe.go:62-112`); no `dbus (bind)`/`<allow own>`.
+- **SNAP_NAME vs INSTANCE_NAME:** the one snap variable is `@{SNAP_COREUTIL_DIRS}who` (line 35); `@{SNAP_COREUTIL_DIRS}` expands to the snap's OWN in-namespace coreutils binary directories (a self/in-namespace path used to exec the bundled `who`), so the base/self view is correct — not a host artifact and not instance-keyed. No `@{SNAP_NAME}`/`@{SNAP_INSTANCE_NAME}`/`LabelExpression()`. No bug.
 
-**Reasoning:** The login-session-observe interface grants read-only access to system login/session information. Multiple parallel instances would read the same system-wide login state, which is the intended behavior. No instance-naming issues since this is purely observational access to system state.
+**Reasoning:** The login-session-observe interface grants read-only access to system login/session information (login records plus read-only logind D-Bus queries). Multiple parallel instances read the same system-wide login state; the interface owns no D-Bus name and the one snap variable (`@{SNAP_COREUTIL_DIRS}`) is a correct self/in-namespace path, so there is no instance-name collision.
 
 **Verification:** No verification has yet been done.
 
@@ -1144,25 +1143,22 @@ PASSED on noble.
 
 
 **Code analysis:**
+- The slot is app-providable (`pulseaudio.go:35-44`: `allow-installation: slot-snap-type: [app, core]`, `deny-auto-connection: true`); `ImplicitOnClassic: true` (line 152).
 - Shared memory: `/{run,dev}/shm/pulse-shm-* mrwk,` (`pulseaudio.go:49`, also `:118`)
   grants access to PulseAudio shared memory segments. These are NOT namespaced per snap
   instance. However, this is intentional -- all PulseAudio clients share the same SHM
   segments with the server. Multiple clients is the normal operating mode.
-- **No D-Bus usage**: The pulseaudio interface does NOT use D-Bus at all. Communication
-  is exclusively via UNIX sockets (`/run/user/*/pulse/native`) and POSIX shared memory.
+- **No D-Bus usage**: The pulseaudio interface does NOT use D-Bus at all (confirmed: zero `dbus (` rules in the file). Communication
+  is exclusively via UNIX sockets (`/{,var/}run/pulse/native`, `pulseaudio.go:52`; `/run/user/[0-9]*/pulse/`) and POSIX shared memory.
   The previous audit incorrectly claimed "Global D-Bus name binding".
-- Instance-aware runtime paths: `slot.Snap().InstanceName()` at `pulseaudio.go:164` is
-  used to scope the runtime socket directory, meaning each slot provider gets its own
-  socket path.
-- Plug-side: The connected plug template uses `###SLOT_SECURITY_TAGS###` which is
-  replaced with the slot's instance name, correctly scoping which server a client talks
-  to.
+- Instance-aware runtime paths: for app-provided slots, `AppArmorConnectedPlug()` (`pulseaudio.go:157-169`, gated by `!implicitSystemConnectedSlot(slot)` at line 162) substitutes `###SLOT_SECURITY_TAGS###` with `"snap." + slot.Snap().InstanceName()` (`pulseaudio.go:164`), scoping the runtime socket directory to `/run/user/[0-9]*/snap.<SLOT_INSTANCE_NAME>/pulse/...`. Each app slot provider therefore gets its own instance-scoped socket path.
+- No use of `SnapName()`/`ExpandSnapVariables()`/`LabelExpression()`; no hardcoded `/var/snap/<name>/` paths. `UDevPermanentSlot()` tags ALSA devices (`controlC[0-9]*`, `pcmC*`, `timer`, lines 171-176).
 
 **Reasoning:** PulseAudio is designed for multiple simultaneous clients. The shared
 memory segments (`pulse-shm-*`) are created by the PA server and shared with all
 connected clients -- having two snap instances connect as clients is no different from
-having two different snaps connect. Slot-side (running multiple PA servers) would
-conflict, but that's not a parallel-install concern.
+having two different snaps connect. The plug-side uses `slot.Snap().InstanceName()` (line 164) for app-provided slots, so there is no base-snap-name hardcoding and no snapd-level collision; the plug side is COMPATIBLE. Slot-side (running multiple PA servers) would
+contend over the fixed native socket / `pulse-shm-*` SHM name, but that is shared-session/host contention, not a parallel-install identifier bug.
 
 **Previous audit errors**:
 - Claimed "Global D-Bus name binding" -- INCORRECT. No D-Bus is used.
@@ -1179,19 +1175,15 @@ PASSED on noble.
 
 
 **Code analysis:**
-- Slot-side creates sockets at `/tmp/.X11-unix/X[0-9]*`. Multiple X servers on
+- Slot-side creates sockets at `/tmp/.X11-unix/X[0-9]*` (abstract socket `@/tmp/.X11-unix/X[0-9]*`, `x11.go:72,108`). Multiple X servers on
   different display numbers (X0, X1) can coexist.
-- Plug-side accesses the slot's private tmp via bind mount. The mount path uses
-  instance-aware naming: `/tmp/snap-private-tmp/snap.INSTANCE_NAME/tmp/.X11-unix/`
-- Instance name comparison at the interface code uses `plug.Snap().InstanceName()` and
-  `slot.Snap().InstanceName()` for correct scoping.
-- `LabelExpression()` used for AppArmor peer matching uses `InstanceName()`, so
-  cross-instance connections work correctly.
+- **SNAP_NAME vs INSTANCE_NAME (correct):** when the plug connects to an app-provided slot, the plug's private-tmp bind mount source uses the **instance** name: `MountConnectedPlug()` builds `Name: "/var/lib/snapd/hostfs/tmp/snap-private-tmp/snap.%s/tmp/.X11-unix"` with `slotSnapName := slot.Snap().InstanceName()` (`x11.go:194-197`), and the matching update-ns/AppArmor rules use the same instance-keyed path (`x11.go:220-224`). This is a HOST-side path referring to the slot snap's private tmp, so using `InstanceName()` is correct. There is no `@{SNAP_NAME}`/base-name path used for any host artifact.
+- An early `if plug.Snap().InstanceName() == slot.Snap().InstanceName()` check (`x11.go:191,217`) skips the private-tmp bind when plug and slot are the same snap. For the implicit system slot, the bind source is the host `/var/lib/snapd/hostfs/tmp/.X11-unix` (`x11.go:178-179`).
+- `AppArmorConnectedPlug()` substitutes `###PLUG_SECURITY_TAGS###` with `plug.LabelExpression()` (`x11.go:234-235`), which uses `InstanceName()`, so cross-instance peer matching is correct.
 
 **Reasoning:** When a plug connects to a specific slot, the mount namespace setup
-correctly isolates the socket sharing. Parallel instances of a client snap each get their
-own mount namespace entry. Parallel instances of a server snap would use different
-display numbers.
+correctly isolates the socket sharing using the slot's **instance** name for the host-side private-tmp source (`x11.go:194-197`), and peer labels via `LabelExpression()` are instance-aware. Parallel instances of a client snap each get their own mount namespace entry. Parallel instances of a server snap would use different
+display numbers. No `SNAP_NAME`-vs-`INSTANCE_NAME` bug is present.
 
 **Verification:**
 PASSED on noble (parallel instances communicate correctly via
@@ -1207,21 +1199,18 @@ PASSED on noble (parallel instances communicate correctly via
 
 **Code analysis:**
 - Plug-side accesses `/run/user/[0-9]*/wayland-[0-9]*` sockets provided by the
-  compositor (slot). Multiple client snaps connecting to the same Wayland compositor is
-  the normal use case.
-- `plug.Snap().InstanceName()` at the interface code is used for instance-specific mount
-  namespace setup.
-- Shared memory paths in the connected slot use instance-aware naming via
-  `###PLUG_SECURITY_TAGS###` substitution.
+  compositor (slot) (`wayland.go:56,116`). Multiple client snaps connecting to the same Wayland compositor is the normal use case.
+- **SNAP_NAME vs INSTANCE_NAME (correct):** in `AppArmorConnectedSlot()` (`wayland.go:153-159`), `###PLUG_SECURITY_TAGS###` is replaced with `"snap." + plug.Snap().InstanceName()` (`wayland.go:154`) — with an explicit code comment that this "forms the snap-instance-specific subdirectory name of /run/user/*/ used for XDG_RUNTIME_DIR". This feeds the host-side per-instance paths `/run/user/[0-9]*/snap.<instance>/...-shared-*` (`wayland.go:102`) and the shared-memory path `/{dev,run}/shm/snap.<instance>.wayland.mozilla.ipc.[0-9]*` (`wayland.go:106`). Because `/run/user/.../snap.<instance>/` and these `/dev/shm` objects are HOST artifacts, using `InstanceName()` is correct. A second `###PLUG_SECURITY_TAGS###` substitution at `wayland.go:158-159` uses `plug.LabelExpression()` for the peer label (also instance-aware).
+- On the plug side, `AppArmorConnectedPlug()` substitutes `###SLOT_SECURITY_TAGS###` with `slot.LabelExpression()` (`wayland.go:144-145`). No `@{SNAP_NAME}`/base-name path is used for any host artifact.
 
 **Reasoning:** Wayland is inherently multi-client. Multiple snap instances connecting as
 clients to the same compositor is functionally identical to having multiple different
-snaps as clients. Slot-side (running multiple compositors) would require coordination
+snaps as clients. The connected-slot rules key the per-instance XDG_RUNTIME_DIR subdir and `/dev/shm` IPC objects by `plug.Snap().InstanceName()` (`wayland.go:154`), so parallel client instances are correctly isolated — no `SNAP_NAME`-vs-`INSTANCE_NAME` bug. Slot-side (running multiple compositors) would require coordination
 over socket naming but is out of scope for parallel installs of a client snap.
 
 **Previous audit errors**:
 - Claimed "NOT COMPATIBLE" due to "Shared memory" and "Global socket paths" -- INCORRECT
-  for plug-side usage.
+  for plug-side usage (the SHM objects are instance-keyed via the security tag).
 
 **Verification:**
 PASSED on ubuntu-22.04-64 (noble is disabled for this test).
@@ -1236,14 +1225,11 @@ PASSED on ubuntu-22.04-64 (noble is disabled for this test).
 
 
 **Code analysis:**
-- The connected plug AppArmor rules at `network_control.go:81-151` only use `dbus send`
-  (sending messages to `org.freedesktop.resolve1`). The interface acts as a **D-Bus
-  client**, it does NOT own/bind any D-Bus name.
-- The interface grants broad network capabilities (raw sockets, netlink, WPA supplicant
-  access, network namespace management), but these are all global system resources that
-  multiple consumers can use simultaneously.
-- No `SNAP_NAME` or `SNAP_INSTANCE_NAME` is used in the AppArmor rules -- they are
-  purely capability-based.
+- The connected-plug AppArmor D-Bus rules (`network_control.go:81-165`) are client-only: `dbus send` to `org.freedesktop.resolve1` (e.g. lines 81-129, 140-145), `dbus (receive)` of `PropertiesChanged` (lines 132-137, 148-153), and `dbus (receive, send)` to wpa_supplicant (lines 156-165). The interface acts purely as a **D-Bus client**; there is NO `dbus (bind)` and NO `DBusPermanentSlot`, so it does not own/bind any D-Bus name.
+- The interface grants broad network capabilities (`net_admin`, `net_raw`, `net_broadcast`, `setuid` at lines 169-172; `sys_admin` at line 324; raw/netlink rules; `/dev/net/tun`, `/dev/rfkill`, `/run/netns/*`), and a dynamic `network xdp,` snippet added in `AppArmorConnectedPlug()` when the parser supports it (`network_control.go:40-58`). These are all global system resources that multiple consumers can use simultaneously.
+- udev tagging is present: `KERNEL=="rfkill"` and `KERNEL=="tun"` (`network_control.go:397-400`); udev tags are instance-aware via the security tag and do not collide across instances.
+- Seccomp permits many `AF_NETLINK` families plus `bind`, `mount`, `unshare`, `setns - CLONE_NEWNET`, `bpf` (`network_control.go:357-389`).
+- No `SnapName()` or `SNAP_INSTANCE_NAME` is used in the AppArmor rules -- they are purely capability/host-resource based. Host-path mount/update-ns rules use `/var/lib/snapd/hostfs/var/lib/dhcp` and `/var/lib/dhcp` (lines 402-449), not snap-name paths.
 
 **Reasoning:** network-control grants system-level network manipulation capabilities.
 Multiple instances with network-control all get the same privileges, just like multiple
@@ -1253,7 +1239,7 @@ the operational level if they set contradictory routes).
 
 **Previous audit errors**:
 - Claimed "Global D-Bus names: Lines 88-153 bind to org.freedesktop.resolve1" --
-  INCORRECT. The interface only SENDS to resolved, it never binds/owns.
+  INCORRECT. The interface only SENDS to / RECEIVES from resolved (and wpa_supplicant); it never binds/owns a name.
 - Claimed test "failed on noble, as expected" -- INCORRECT. Test passed.
 
 **Verification:**
@@ -1268,10 +1254,11 @@ PASSED on noble.
 
 
 **Code analysis:**
-- Grants capability to bind to network ports and accept connections.
-- No D-Bus name ownership, no shared memory, no instance-specific paths.
+- Grants the capability to bind to network ports and accept connections. The connected-plug AppArmor (`network_bind.go:42-75`) is client-only: a single `dbus send` to `org.freedesktop.resolve1` (lines 50-55) plus read-only `/etc/hosts.{deny,allow}` and `@{PROC}/sys/net/...` and `@{PROC}/@{pid}/net/...`. No `dbus (bind)`, no `DBusPermanentSlot`.
+- Seccomp (`network_bind.go:78-95`) grants `accept`, `accept4`, `bind`, `listen`, and `socket AF_NETLINK - NETLINK_ROUTE`.
+- No D-Bus name ownership, no shared memory, no udev tagging, and no use of `SnapName()`/`InstanceName()`/`ExpandSnapVariables()`/`LabelExpression()`. The interface grants only the capability to bind ports; specific ports are an app-YAML concern, not encoded here.
 - Multiple instances can each bind to different ports without conflict.
-- Slot is restricted to core only (slot-snap-type: [core]).
+- Slot is restricted to core only (`network_bind.go:24-29`: `slot-snap-type: [core]`).
 
 **Reasoning:** This is a network capability interface. Parallel plug instances can each bind different ports without conflicts. The slot side is core-only, so parallel app-provided slots are not possible.
 
@@ -1289,9 +1276,11 @@ PASSED on noble.
 
 
 **Code analysis:**
-- Read-only D-Bus access to the `org.freedesktop.portal.NetworkMonitor` portal.
-- No D-Bus ownership, no writes, no shared state.
-- Multiple consumers reading network status simultaneously is the normal case.
+- The connected-plug AppArmor (`network_status.go:37-41`) is a single `dbus (send, receive)` rule on the session bus to `org.freedesktop.portal.NetworkMonitor` at `/org/freedesktop/portal/desktop`, `peer=(label=unconfined)`. This is the xdg-desktop-portal client pattern (send method calls + receive replies), NOT D-Bus name ownership: there is no `dbus (bind)` and no `DBusPermanentSlot`.
+- No writes, no shared writable state, no seccomp snippet, no udev tagging, and no use of `SnapName()`/`InstanceName()`/`ExpandSnapVariables()`/`LabelExpression()`.
+- Slot is restricted to core only (`network_status.go:24-29`: `slot-snap-type: [core]`).
+
+**Reasoning:** This is an observer/client interface to the desktop-portal NetworkMonitor. Multiple parallel instances are just additional portal clients; the interface owns no bus name and holds no instance-specific state, so there is no snapd-level collision.
 
 **Verification:**
 PASSED on noble.
@@ -1305,9 +1294,10 @@ PASSED on noble.
 
 
 **Code analysis:**
-- Read-only file access to netplan configuration (`/etc/netplan/`, `/etc/network/`)
-- Read-only D-Bus access to Netplan Info API
-- No write operations, no shared resources, no instance-specific paths
+- Read-only file access to netplan configuration: `/etc/netplan/{,**} r`, `/etc/network/{,**} r`, `/etc/systemd/network/{,**} r` (`network_setup_observe.go:56-58`) plus read-only `/run/systemd/network/...`, `/run/NetworkManager/conf.d/...`, `/run/udev/rules.d/...` (lines 60-63).
+- A single client-only `dbus (send)` to `io.netplan.Netplan` member `Info`, `peer=(label=unconfined)` (`network_setup_observe.go:69-74`). No `dbus (bind)`, no `DBusPermanentSlot`. (A busctl abstract-socket `unix (bind)` at line 54 is address-pattern based, not a snap-name resource.)
+- No write operations, no shared writable resources, no udev tagging, and no use of `SnapName()`/`InstanceName()`/`ExpandSnapVariables()`/`LabelExpression()`.
+- Slot is restricted to core only (`network_setup_observe.go:24-30`: `slot-snap-type: [core]` plus `deny-auto-connection: true`).
 
 **Verification:**
 PASSED on noble.
@@ -1394,28 +1384,26 @@ Expected failure. `org.freedesktop.DBus.Error.AccessDenied: An AppArmor
 
 
 ### avahi-observe
-**Status:** Plug-side: COMPATIBLE. Slot-side: not separately classified in this entry.
+**Status:** Plug-side: COMPATIBLE. Slot-side: NOT COMPATIBLE for app-provided slots (owns the singleton `org.freedesktop.Avahi` name); N/A for the implicit system slot.
 
 **Type:** D-Bus/IPC Client
 
 
 **Code analysis:**
+- The slot is app-providable (`avahi_observe.go:33-42`: `allow-installation: slot-snap-type: [app, core]`, `deny-auto-connection`, `deny-connection: on-classic: false`); `ImplicitOnClassic: true` (line 424).
 - The `dbus (bind) bus=system name="org.freedesktop.Avahi"` rule exists ONLY in
-  `avahiObservePermanentSlotAppArmor` (`avahi_observe.go:77`) which is applied to the
-  **slot-providing snap** (a snap running the Avahi daemon).
-- The `AppArmorPermanentSlot` function at `avahi_observe.go:447` explicitly checks
-  `implicitSystemPermanentSlot(slot)` -- when the slot is the system (core/snapd), the
-  bind rules are NOT applied (the system's own avahi-daemon handles this outside of snap
+  `avahiObservePermanentSlotAppArmor` (`avahi_observe.go:77-79`), and `<allow own="org.freedesktop.Avahi"/>` only in `avahiObservePermanentSlotDBus` (`avahi_observe.go:213`) — both applied to the **slot-providing snap** (a snap running the Avahi daemon).
+- `AppArmorPermanentSlot()` at `avahi_observe.go:447` and `DBusPermanentSlot()` at `avahi_observe.go:468` explicitly check
+  `implicitSystemPermanentSlot(slot)` (guards at lines 450, 471) -- when the slot is the system (core/snapd), the
+  bind/own rules are NOT applied (the system's own avahi-daemon handles this outside of snap
   confinement).
-- The connected PLUG rules (`avahiObserveConnectedPlugAppArmor`) only use `dbus (send)`
-  and `dbus (receive)` to communicate with `org.freedesktop.Avahi`. This is read-only
-  consumption of the Avahi service.
-- Multiple plug-side consumers simultaneously querying Avahi is the normal use case.
+- The connected PLUG rules (`avahiObserveConnectedPlugAppArmor`, `avahi_observe.go:234-413`) only use `dbus (send)`
+  and `dbus (receive)` to communicate with `org.freedesktop.Avahi`, plus socket access to `/{,var/}run/avahi-daemon/socket` (line 238). This is read-only
+  consumption of the Avahi service. `AppArmorConnectedPlug()` uses `slot.LabelExpression()` (line 440) and the connected-slot path uses `plug.LabelExpression()` (line 461), both instance-aware.
+- No `InstanceName()`/`SnapName()`/`ExpandSnapVariables()`, no hardcoded `/var/snap/<name>/` paths, no seccomp/udev.
 
-**Reasoning:** avahi-observe is a consumer interface. The "NOT COMPATIBLE" label in the
-previous audit confused the slot-side (a snap trying to run Avahi) with the plug-side
-(a snap querying Avahi). For parallel installs, the relevant question is "can two
-instances of my snap both query Avahi?" -- and the answer is yes.
+**Reasoning:** avahi-observe is a consumer interface on the plug side. The relevant question for parallel installs is "can two
+instances of my snap both query Avahi?" -- and the answer is yes (the plug rules are send/receive only, with instance-aware peer labels, and own no name), so the plug side is COMPATIBLE. The slot side is a different matter: when an app snap provides the slot it binds/owns the singleton `org.freedesktop.Avahi` name (`avahi_observe.go:77-79`, `:213`), which two parallel provider instances cannot share — so the slot side is NOT COMPATIBLE for app providers (and N/A for the implicit system slot).
 
 **Previous audit errors**:
 - Claimed "NOT COMPATIBLE" due to "Global D-Bus name: binds to org.freedesktop.Avahi" --
@@ -1433,9 +1421,13 @@ PASSED on noble.
 
 
 **Code analysis:**
-- Session bus D-Bus access to Evolution Data Server
-- Session bus allows multiple simultaneous clients
-- No ownership of bus names by the plug-side snap
+- The connected-plug AppArmor (`contacts_service.go:36-150`) is a **session-bus** D-Bus client: `#include <abstractions/dbus-session-strict>` (line 39) and `dbus (receive, send)` to Evolution Data Server AddressBook objects, all `bus=session`, `peer=(label=unconfined)` (lines 42-146). The session bus supports many simultaneous clients.
+- **It owns no D-Bus name.** No `dbus (bind)`, no `DBusPermanentSlot`, no `<allow own>`; this is a `commonInterface` with only `connectedPlugAppArmor` set (`contacts_service.go:152-159`), so there is no slot-side code at all.
+- The only filesystem rule is a read-only avatar cache: `owner @{HOME}/.cache/evolution/addressbook/[0-9a-f]*/*.jpeg r,` (line 149) — read-only and EDS-managed, not a per-instance writable DB.
+- No `InstanceName()`/`SnapName()`/`ExpandSnapVariables()`/`LabelExpression()`, no hardcoded `/var/snap/<name>/` paths, no seccomp/udev.
+- Slot is restricted to core only (`contacts_service.go:28-34`: `slot-snap-type: [core]`).
+
+**Reasoning:** This is a session-bus client to Evolution Data Server; the plug owns no bus name and the only file rule is a read-only avatar cache, so parallel instances are independent clients with no snapd-level collision. The slot side is core-only, so parallel app-provided slots are not possible.
 
 **Verification:**
 PASSED on noble.
@@ -1449,13 +1441,14 @@ PASSED on noble.
 
 
 **Code analysis:**
-- Session bus D-Bus access to `org.gnome.OnlineAccounts` (GNOME Online Accounts)
-- The plug only sends/receives on the session bus -- it does not own any bus name
-- Multiple instances reading the same per-user account data is the normal use case
-- Account state lives in `~/.config/goa-1.0/accounts.conf`, shared across all instances
+- The connected-plug AppArmor (`accounts_service.go:32-70`) is a **session-bus** D-Bus client: `#include <abstractions/dbus-session-strict>` (line 35) and `dbus (receive, send)` to `/org/gnome/OnlineAccounts` via ObjectManager/Properties/`org.gnome.OnlineAccounts.*`, all `bus=session`, `peer=(label=unconfined)` (lines 38-69).
+- **It owns no D-Bus name.** No `dbus (bind)`, no `DBusPermanentSlot`, no `<allow own>`; this is a `commonInterface` with only `connectedPlugAppArmor` set (`accounts_service.go:72-79`), so there is no slot-side code.
+- There is **no** direct file-path AppArmor rule in this interface. The `~/.config/goa-1.0/accounts.conf` account state is GNOME Online Accounts daemon state, accessed over D-Bus through the GOA service — it is not granted as a path by this interface, so parallel instances do not independently write a shared file via this interface.
+- No `InstanceName()`/`SnapName()`/`ExpandSnapVariables()`/`LabelExpression()`, no hardcoded `/var/snap/<name>/` paths, no seccomp/udev.
+- Slot is restricted to core only (`accounts_service.go:24-30`: `slot-snap-type: [core]`).
 
 **Reasoning:** GNOME Online Accounts is a per-user session service. Multiple snap
-instances are just additional D-Bus clients reading the same account list.
+instances are just additional session-bus D-Bus clients that read/modify the shared account list through the GOA daemon — the normal multi-client pattern. The plug owns no bus name and writes no per-instance file directly, so there is no snapd-level collision. The slot side is core-only, so parallel app-provided slots are not possible.
 
 **Verification:**
 PASSED on noble.
@@ -1463,13 +1456,18 @@ PASSED on noble.
 
 
 ### location-observe
-**Status:** Plug-side: COMPATIBLE. Slot-side: not separately classified in this entry (provider behavior out of scope here).
+**Status:** Plug-side: COMPATIBLE. Slot-side: NOT COMPATIBLE (app-only slot that owns singleton D-Bus names).
 
 **Type:** D-Bus/IPC Client
 
 
-Same architecture as `location-control` plug-side. A consumer observing location data
-from the system service does not conflict with other instances doing the same.
+**Code analysis:**
+- The slot is app-only (`location_observe.go:35-37`: `allow-installation: slot-snap-type: [app]`, `deny-connection`, `deny-auto-connection`).
+- Plug side is a **system-bus** D-Bus client: `dbus (send)` for Get/CreateSessionForCriteria/Start/Stop updates and `dbus (receive)` for Update*/PropertiesChanged (`location_observe.go:143-235`), with `peer=(label=###SLOT_SECURITY_TAGS###)`.
+- **The plug owns no D-Bus name** — the connected-plug D-Bus policy explicitly `<deny own="com.ubuntu.location.Service"/>` (line 251). `AppArmorConnectedPlug()` substitutes the peer with `slot.LabelExpression()` (line 284), which is instance-aware. No `InstanceName()`/`SnapName()`/`ExpandSnapVariables()` and no hardcoded `/var/snap/<name>/` paths on the plug side.
+- Slot side binds singleton names: `dbus (bind) bus=system name="com.ubuntu.location.Service"` (`location_observe.go:63-65`) and, on the connected slot, additionally `com.ubuntu.location.Service.Session` (`location_observe.go:78-80`); `DBusPermanentSlot` grants `<allow own>` for both (lines 240-241).
+
+**Reasoning:** Same architecture as `location-control` on the plug side: a consumer observing location data from the single service is a pure system-bus client that owns no name and uses instance-aware peer labels, so parallel plug instances do not conflict — plug side is COMPATIBLE. The slot side is NOT COMPATIBLE because it is app-providable and owns the singleton `com.ubuntu.location.Service` (and `...Session`) names, which two parallel providers cannot share.
 
 **Verification:** Not separately tested, but same reasoning as avahi-observe applies.
 
@@ -1482,29 +1480,30 @@ from the system service does not conflict with other instances doing the same.
 
 
 **Code analysis:**
-- Slot binds `dbus (bind) bus=session name="com.ubuntu.OnlineAccounts.Manager"`
-- Same D-Bus name uniqueness issue as location-control slot-side
+- The slot is app-only (`online_accounts_service.go:35-37`: `allow-installation: slot-snap-type: [app]`, `deny-connection`).
+- Plug side is a **session-bus** D-Bus client: `dbus (receive, send)` to `com.ubuntu.OnlineAccounts.Manager` at `/com/ubuntu/OnlineAccounts{,/**}` plus `dbus (send)` Introspect (`online_accounts_service.go:77-89`), with `peer=(label=###SLOT_SECURITY_TAGS###)`. `AppArmorConnectedPlug()` substitutes the peer with `slot.LabelExpression()` (line 115), which is instance-aware. **The plug owns no D-Bus name** (no `dbus (bind)` on the plug side); no `InstanceName()`/`SnapName()` and no hardcoded `/var/snap/<name>/` paths.
+- Slot side binds the singleton `dbus (bind) bus=session name="com.ubuntu.OnlineAccounts.Manager"` (`online_accounts_service.go:55-57`). There is no `DBusPermanentSlot` (session-bus slots get no D-Bus policy file), consistent with the `dbus` interface only emitting D-Bus policy for the system bus.
 
-**Reasoning:** Plug-side parallel consumers can work as multiple clients of the online accounts service. Slot-side parallel providers cannot both own the well-known D-Bus name `com.ubuntu.OnlineAccounts.Manager` on the session bus.
+**Reasoning:** Plug-side parallel consumers work as multiple session-bus clients of the online accounts service: the plug owns no bus name and uses instance-aware peer labels, so there is no snapd-level collision. Slot-side parallel providers cannot both own the well-known session-bus name `com.ubuntu.OnlineAccounts.Manager`, so the slot side is NOT COMPATIBLE.
 
 **Verification:** No verification has yet been done.
 
 
 
 ### autopilot-introspection
-**Status:** Plug-side: COMPATIBLE. Slot-side: N/A (system/core/gadget-provided slot; no parallel app slot providers in scope).
+**Status:** Plug-side: COMPATIBLE. Slot-side: N/A (core-only slot; no parallel app slot providers possible).
 
 **Type:** D-Bus/IPC Client
 
 
 **Code analysis:**
-- Slot is provided by core only (lines 24-29), with implicit slots on core and classic (lines 69-70).
-- AppArmor rules are session-bus only and read-oriented:
-  - Introspection of `/com/canonical/Autopilot/**` (lines 38-43)
-  - `GetVersion` and `GetState` on `/com/canonical/Autopilot/Introspection` (lines 44-55)
-- Seccomp allows only message-passing syscalls (`recvmsg`, `sendmsg`, `sendto`) (lines 57-63).
-- No snap-instance-specific paths are involved.
-- No name ownership or bind rules; this is a client-only interface.
+- Slot is provided by core only (`autopilot.go:26-28`: `slot-snap-type: [core]`), with implicit slots on core and classic (`autopilot.go:69-70`).
+- AppArmor rules (the static `connectedPlugAppArmor`) are session-bus only and **receive**-oriented:
+  - `dbus (receive)` Introspection of `/com/canonical/Autopilot/**` (`autopilot.go:38-43`)
+  - `dbus (receive)` `GetVersion` and `GetState` on `/com/canonical/Autopilot/Introspection` (`autopilot.go:44-55`)
+  - The peer is the static literal `peer=(label=unconfined)` (lines 43, 49, 55), not a `LabelExpression()` substitution.
+- Seccomp allows only message-passing syscalls (`recvmsg`, `sendmsg`, `sendto`) (`autopilot.go:57-63`).
+- **No name ownership or bind rules** — there is no `dbus (bind)` anywhere on the plug side (the app is introspected by an unconfined peer; a `dbus (receive)` rule does not constitute name ownership). This is a `commonInterface` with only static `connectedPlugAppArmor`/`connectedPlugSecComp` and no per-connection substitution; no `InstanceName()`/`SnapName()`/`LabelExpression()`, no `/var/snap/<name>/` paths.
 
 **Reasoning:** This interface is for inspecting an application's UI status over D-Bus. Multiple parallel instances are just multiple session-bus clients talking to the same service, and the policy does not depend on snap instance naming. No instance collision points are visible in the code.
 
@@ -1651,12 +1650,12 @@ This is the most well-documented incompatibility:
 
 
 **Code analysis:**
-- The connected plug talks to Unity 8 session services over the session bus, including `com.canonical.URLDispatcher` and `com.ubuntu.content.dbus.Service` (lines 45-89).
-- The URL dispatcher peer is a well-known bus name, and the content-hub-style interface is presented as a shared session service.
-- The slot side is intended to represent the desktop service provider; multiple providers would contend for the same session-bus identities.
-- No snap-instance-specific filesystem paths are involved.
+- The connected plug talks to Unity 8 session services over the **session bus**: `dbus (send)` to `com.canonical.URLDispatcher` `DispatchURL` at `/com/canonical/URLDispatcher` (`unity8.go:67-72`) and `dbus (send)`/`dbus (receive)` to `com.ubuntu.content.dbus.Service` at `/` (`unity8.go:77-88`), each with `peer=(name=<service>, label=###SLOT_SECURITY_TAGS###)`. It also reads host-global font/schema dirs (`/var/cache/fontconfig/`, `/usr/share/.../schemas/`, lines 51-59).
+- **The plug owns no D-Bus name** — there is no `dbus (bind)` anywhere in this file; naming a `peer=(name=...)` destination is client addressing, not ownership. `AppArmorConnectedPlug()` substitutes `###SLOT_SECURITY_TAGS###` with `slot.LabelExpression()` (`unity8.go:111`), which is instance-aware.
+- This interface defines ONLY `AppArmorConnectedPlug` — there is no `AppArmorPermanentSlot`/`DBusPermanentSlot`/`AppArmorConnectedSlot`, so it emits no slot-side policy and owns no well-known name itself (a provider's actual name ownership would come from other interfaces). The plug base declaration is `allow-installation: false` (`unity8.go:32-35`), so plug install needs a snap-declaration.
+- No `InstanceName()`/`SnapName()`/`ExpandSnapVariables()`, no hardcoded `/var/snap/<name>/` or `/snap/<name>/` paths (only host-global font/schema reads), no shared memory or sockets.
 
-**Reasoning:** Unity 8 is a desktop service interface built around well-known D-Bus services. Parallel clients are fine, but parallel service providers would collide on the same bus names.
+**Reasoning:** Unity 8 is a desktop service interface built around well-known D-Bus services. On the plug side it is a pure session-bus client that owns no name and uses instance-aware peer labels, so parallel plug instances each talk to the Unity8 services independently with no snapd-level collision. Slot/provider behavior is out of scope here, and this interface contributes no slot-side policy of its own.
 
 **Verification:** No verification has yet been done.
 
@@ -1770,18 +1769,19 @@ This is the most well-documented incompatibility:
 **Verification:** No verification has yet been done.
 
 ### netlink-driver
-**Status:** Plug-side: COMPATIBLE. Slot-side: N/A (system/core/gadget-provided slot; no parallel app slot providers in scope).
+**Status:** Plug-side: COMPATIBLE. Slot-side: N/A for parallel app instances (slot is declarable only by core or gadget snaps, which cannot be parallel-installed; identity is protocol-family based, not snap-name based).
 
 **Type:** Network/Netlink Interface
 
 
 **Code analysis:**
-- The slot is keyed by a numeric `family` attribute and a validated `family-name` (lines 66-100).
-- The plug must present a matching `family-name` (lines 104-107, 127-140).
-- The connected plug seccomp snippet allows `AF_NETLINK` for the declared family and `bind` (lines 109-124).
-- No snap-instance-specific paths are used; the identity is based on the protocol family name, not snap name.
+- The slot is declarable by core or gadget snaps only (`netlink_driver.go:33-40`: `slot-snap-type: [core, gadget]`, `deny-auto-connection: true`). It is registered as a plain interface WITHOUT `implicitOnCore`/`implicitOnClassic` (`netlink_driver.go:143-151`), so the slot is explicitly declared (by core/gadget), not implicit.
+- The slot is keyed by a numeric `family` (protocol number) attribute and a validated `family-name` (`BeforePrepareSlot()`, `netlink_driver.go:67-81`; `validateFamilyNameAttr()` with regexp `^[a-z]+[a-z0-9-]*[^\-]$` at lines 64, 83-102). The plug must present a matching `family-name` (`BeforePreparePlug()`, lines 104-107).
+- The connected-plug AppArmor is a static capability grant: `network netlink,` and `capability net_admin,` (`netlink_driver.go:47-56`). The connected-plug seccomp filter is scoped to the slot's numeric `family`: `socket AF_NETLINK - <family>` plus `bind` (`netlink_driver.go:109-125`).
+- `AutoConnect()` (`netlink_driver.go:127-141`) matches purely on `family-name` equality between plug and slot — it does not use snap identity.
+- No use of `SnapName()`, `InstanceName()`, `ExpandSnapVariables()`, or `LabelExpression()`; no hardcoded `/var/snap/<name>/` paths; no D-Bus; no udev tagging. The only shared kernel object is the netlink protocol family number itself, which is global per kernel.
 
-**Reasoning:** Netlink-driver is scoped to a kernel protocol family rather than to snap identity. Parallel instances are safe when they connect to the same declared family or to different families; the interface code does not create a snap-instance collision.
+**Reasoning:** Identity in this interface is the kernel netlink protocol family (the `family` number / `family-name`), not the snap name, so parallel plug instances connecting to the same family slot do not collide at the snapd level — the plug side is COMPATIBLE. The slot side cannot be provided by parallel app instances because only core or gadget snaps may declare it, and those are singletons per device (a gadget/core snap cannot be parallel-installed). The relevant contention surface — two providers declaring the same `family` number for the same global kernel protocol — is therefore not a snapd parallel-instance scenario.
 
 **Verification:** No verification has yet been done.
 
@@ -1956,34 +1956,34 @@ This is the most well-documented incompatibility:
 **Verification:** No verification has yet been done.
 
 ### gpio
-**Status:** Plug-side: COMPATIBLE. Slot-side: N/A (system/core/gadget-provided slot; no parallel app slot providers in scope).
+**Status:** Plug-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE. Slot-side: N/A (core/gadget-provided slot; no parallel app slot providers in scope).
 
 **Type:** Hardware Device Access
 
 
 **Code analysis:**
-- Slots are provided by core or gadget snaps only (lines 35-41), not by app snaps.
-- The slot is keyed by a GPIO number attribute and the code resolves the sysfs path via `evalSymlinks()` before emitting rules (lines 83-105).
-- The interface also sets up a per-slot systemd service to export/unexport the GPIO line (lines 108-122).
-- No snap-instance-specific names are used beyond the slot-supplied GPIO number.
+- Slots are provided by core or gadget snaps only (`gpio.go:38-41`: `slot-snap-type: [core, gadget]`), not by app snaps.
+- The slot is keyed by a `number` attribute (validated as `int64` in `BeforePrepareSlot()`, `gpio.go:67-81`). `AppArmorConnectedPlug()` (`gpio.go:83-106`) builds the sysfs path `path := fmt.Sprint("/sys/class/gpio/gpio", number)` (line 88), resolves it via `evalSymlinks(path)` (line 93), and emits `spec.AddSnippet(fmt.Sprintf("%s/* rwk,", dereferencedPath))` (line 104). If the GPIO does not exist it logs and returns nil without failing (lines 94-100).
+- The interface sets up a per-slot systemd service via `SystemdConnectedSlot()` (`gpio.go:108-122`) with suffix `gpio-%d` keyed on the GPIO number (line 114) to export/unexport the line (lines 118-119). The suffix is keyed on the GPIO number, not the snap/instance; the slot is core/gadget-provided so this is not an app-instance collision.
+- No udev tagging in this file. No use of `SnapName()`, `InstanceName()`, `ExpandSnapVariables()`, or `LabelExpression()`; no hardcoded `/var/snap/<name>/` paths (the `/sys/class/gpio/gpioN` path is a hardware sysfs path); no D-Bus, shared memory, or sockets.
 
-**Reasoning:** GPIO access is tied to a physical pin, not a snap instance. Parallel installs can connect to the same pin or different pins as declared by the slot; there is no instance-name collision in the interface code.
+**Reasoning:** The plug AppArmor rule is derived from the slot's GPIO number (resolved through sysfs) with no per-instance naming, so there is no snapd-level collision between parallel instances. However, the slot grants control of one specific GPIO line (a single hardware pin), and the slot-side systemd service exports/unexports that one line; two parallel instances connecting the same slot contend over that single shared pin. So the plug side is policy-compatible but shares a single physical GPIO line.
 
 **Verification:** No verification has yet been done.
 
 ### gpio-memory-control
-**Status:** Plug-side: COMPATIBLE. Slot-side: N/A (system/core/gadget-provided slot; no parallel app slot providers in scope).
+**Status:** Plug-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE. Slot-side: N/A (core-only slot; no parallel app slot providers possible).
 
 **Type:** System Control/Privileged Capability
 
 
 **Code analysis:**
-- Slot is provided by core only (lines 25-30), with implicit slots on core and classic (lines 47-48).
-- AppArmor rules grant access to `/dev/gpiomem` (line 38).
-- UDev tags the `gpiomem` device (line 41).
-- No instance-specific names, sockets, or mounts are used.
+- Slot is provided by core only (`gpio_memory_control.go:27-29`: `slot-snap-type: [core]`), with implicit slots on core and classic (`gpio_memory_control.go:47-48`).
+- This is a `commonInterface` registration with a single static AppArmor rule `/dev/gpiomem rw,` (`gpio_memory_control.go:38`, wired via `connectedPlugAppArmor` at line 50). No attributes, no snap name.
+- Static udev rule `KERNEL=="gpiomem"` (`gpio_memory_control.go:41`, wired via `connectedPlugUDev` at line 51); the udev backend attaches the instance-aware security tag.
+- No `BeforePreparePlug()`/`BeforePrepareSlot()` sanitizers. No use of `SnapName()`, `InstanceName()`, `ExpandSnapVariables()`, or `LabelExpression()`; no hardcoded `/var/snap/<name>/` paths; no D-Bus, no mounts, no sockets.
 
-**Reasoning:** This is a global GPIO memory device and the interface is just device-path based. Multiple instances can share the same access without snap-instance collisions in snapd policy.
+**Reasoning:** The single hardcoded rule `/dev/gpiomem rw,` contains no per-instance naming, so multiple keyed instances get identical, non-colliding rules and instance-aware udev tags — there is no snapd-level collision. But the interface grants access to one fixed global device (`/dev/gpiomem`, the GPIO physical memory), which is a single shared hardware resource all instances would contend over. So the plug side is policy-compatible but shares a single global device.
 
 **Verification:** No verification has yet been done.
 
@@ -2004,19 +2004,19 @@ This is the most well-documented incompatibility:
 **Verification:** No verification has yet been done.
 
 ### iio
-**Status:** Plug-side: COMPATIBLE. Slot-side: N/A (system/core/gadget-provided slot; no parallel app slot providers in scope).
+**Status:** Plug-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE. Slot-side: N/A (gadget/core-provided slot; no parallel app slot providers in scope).
 
 **Type:** Hardware Device Access
 
 
 **Code analysis:**
-- Slots are provided by core or gadget snaps only (lines 36-42).
-- Slot validation requires a device node path under `/dev/iio:deviceN` (lines 77-95).
-- AppArmor rules are generated from the specific slot path and derived device name (lines 98-133).
-- UDev tags the device by the exact `/dev/iio:deviceN` node (lines 135-141).
-- No snap-instance-specific names are used.
+- Slots are provided by gadget or core snaps only (`iio.go:38-41`: `slot-snap-type: [gadget, core]`).
+- Slot validation requires a device node path under `/dev/iio:deviceN` (`BeforePrepareSlot()`, `iio.go:78-96`; regexp `^/dev/iio:device[0-9]+$` at `iio.go:75`).
+- `AppArmorConnectedPlug()` (`iio.go:98-133`) builds rules from the slot `path`: `cleanedPath := filepath.Clean(path)` (line 104) fills `###IIO_DEVICE_PATH###` (line 105), and `deviceName := strings.TrimPrefix(path, "/dev/")` (lines 111-112) fills `###IIO_DEVICE_NAME###`. Note this "device name" is the kernel device name `iio:deviceN` from the slot path, **not** a snap name. Parametric snippets for `/sys/devices/**/iio:device<num>/** rwk,` use `deviceNum := strings.TrimPrefix(deviceName, "iio:device")` (lines 121-130).
+- `UDevConnectedPlug()` (`iio.go:135-142`) tags the device via `spec.TagDevice(KERNEL=="<dev>")` at line 140 (the exact `/dev/iio:deviceN` node).
+- No use of `SnapName()`, `InstanceName()`, `ExpandSnapVariables()`, or `LabelExpression()`; no hardcoded `/var/snap/<name>/` paths (sysfs paths are hardware paths); no D-Bus, shared memory, or sockets.
 
-**Reasoning:** The interface targets a specific IIO hardware device, not an instance-scoped resource. Parallel installs can connect to the same device or different devices without snapd-level collision.
+**Reasoning:** The `###IIO_DEVICE_NAME###` token is the kernel device name (`iio:deviceN`) derived from the slot path, not a snap/instance name, and udev tags are instance-aware via `TagDevice`, so there is no snapd-level collision between parallel instances. The slot pins one specific IIO device node, so two parallel instances connecting the same slot share that single device. So the plug side is policy-compatible but shares a single physical device.
 
 **Verification:** No verification has yet been done.
 
@@ -2176,18 +2176,19 @@ This is the most well-documented incompatibility:
 **Verification:** No verification has yet been done.
 
 ### uio
-**Status:** Plug-side: COMPATIBLE. Slot-side: N/A (system/core/gadget-provided slot; no parallel app slot providers in scope).
+**Status:** Plug-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE. Slot-side: N/A (core/gadget-provided slot; no parallel app slot providers in scope).
 
 **Type:** Hardware Device Access
 
 
 **Code analysis:**
-- Slots are provided by core or gadget snaps only.
-- Slot path validation requires `/dev/uioN` and AppArmor/UDev rules are generated from that path.
-- UIO devices are userspace-mapped hardware devices.
-- No snap-instance-specific names are involved.
+- Slots are provided by core or gadget snaps only (`uio.go:40-45`: `slot-snap-type: [core, gadget]`).
+- Slot path validation requires `/dev/uioN` via `verifySlotPathAttribute()` with `uioPattern = ^/dev/uio[0-9]+$` (`uio.go:61`, used at `BeforePrepareSlot()` `uio.go:69-72`).
+- `AppArmorConnectedPlug()` (`uio.go:74-120`) emits `<path> rw,` for the device node (line 79), a broad read rule `/sys/devices/platform/**/uio/uio[0-9]** r,` (line 105), and a per-device config rule resolved from `/sys/class/uio/<dev>/device/config` via `evalSymlinks` (lines 108-118). All path-driven.
+- `UDevConnectedPlug()` (`uio.go:122-129`) tags the device via `spec.TagDevice(SUBSYSTEM=="uio", KERNEL=="<dev>")` at line 127.
+- Note: `slot.Snap.InstanceName()` IS referenced at `uio.go:70`, but only to build the `SlotRef` used in slot-side validation error messages — it does not enter any AppArmor/udev rule and has no effect on parallel-install compatibility. No `SnapName()`/`ExpandSnapVariables()`/`LabelExpression()` is used; no hardcoded `/var/snap/<name>/` paths; no D-Bus, shared memory, or sockets.
 
-**Reasoning:** The interface is device-based. Multiple instances can share the same access path without snapd-level collision, though the hardware itself may still be shared.
+**Reasoning:** Plug AppArmor/udev rules are derived purely from the slot's `/dev/uioN` path with no per-instance naming (the lone `InstanceName()` call at `uio.go:70` is for slot-side error text only), and udev tags are instance-aware via `TagDevice`, so there is no snapd-level collision between parallel instances. But the slot pins one specific UIO device node, so two parallel instances connecting the same slot share that single userspace-mapped device. So the plug side is policy-compatible but shares a single physical device.
 
 **Verification:** No verification has yet been done.
 
@@ -2209,18 +2210,18 @@ This is the most well-documented incompatibility:
 **Verification:** No verification has yet been done.
 
 ### vcio
-**Status:** Plug-side: COMPATIBLE. Slot-side: N/A (system/core/gadget-provided slot; no parallel app slot providers in scope).
+**Status:** Plug-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE. Slot-side: N/A (core-only slot; no parallel app slot providers possible).
 
 **Type:** Hardware Device Access
 
 
 **Code analysis:**
-- Slot is provided by core only, with implicit slots on core and classic.
-- AppArmor grants access to `/dev/vcio` and related sysfs/udev metadata.
-- UDev tagging is device-based.
-- It is a single hardware mailbox interface for the VideoCore GPU.
+- Slot is provided by core only (`vcio.go:29-35`: `slot-snap-type: [core]`), implicit on core and classic (`vcio.go:59-60`).
+- AppArmor grants access to a **single fixed device node** `/dev/vcio rw,` (`vcio.go:41`), plus read-only `/sys/devices/virtual/bcm2708_vcio/vcio/**` (line 42) and udev metadata (lines 46-48). The driver is privileged and "assumes trusted input" (comment lines 26-28).
+- UDev tags `SUBSYSTEM=="bcm2708_vcio", KERNEL=="vcio"` (`vcio.go:51-53`), instance-aware via the security tag.
+- **SNAP_NAME vs INSTANCE_NAME:** no snap-name interpolation (static `commonInterface` const); no `@{SNAP_NAME}`/`@{SNAP_INSTANCE_NAME}`/`SnapName()`/`InstanceName()`. No D-Bus, no sockets, no mounts. No bug.
 
-**Reasoning:** This is a shared hardware mailbox rather than a snap-scoped resource. Parallel instances can access it as concurrent clients.
+**Reasoning:** The interface is device-path based with no snap-instance naming, so it is parallel-safe at the policy layer. However, `/dev/vcio` is a single fixed VideoCore GPU mailbox device (not a device class) — two parallel plug instances both get access to that one privileged hardware mailbox and contend over it. This is the same single-pinned-device situation as `gpio-memory-control` (`/dev/gpiomem`), so it is compatible at the snapd layer but shares a single hardware resource.
 
 **Verification:** No verification has yet been done.
 
@@ -2576,17 +2577,18 @@ This is the most well-documented incompatibility:
 **Verification:** Passed on noble. Test at `tests/main/interfaces-daemon-notify`.
 
 ### browser-support
-**Status:** Plug-side: COMPATIBLE. Slot-side: N/A (system/core-provided slot; no parallel app slot providers in scope).
+**Status:** Plug-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE. Slot-side: N/A (system/core-provided slot; no parallel app slot providers in scope).
 
 **Type:** Desktop/Graphics/Media Integration
 
 
 **Code analysis:**
-- The interface explicitly uses `@{SNAP_INSTANCE_NAME}` for snap-local runtime socket paths in the sandboxed rules (lines 62-76 in the implementation).
-- It also uses owner rules for per-user shared-memory and browser-specific state, and a session D-Bus access to RealtimeKit.
-- The policy is intentionally instance-aware for the socket path bits that need it.
+- **SNAP_NAME vs INSTANCE_NAME (correct):** the interface uses `@{SNAP_INSTANCE_NAME}` for the host-side `$XDG_RUNTIME_DIR` socket paths `/run/user/[0-9]*/snap.@{SNAP_INSTANCE_NAME}/...` (`browser_support.go:73-75`), with an explicit comment that "`$XDG_RUNTIME_DIR` is not remapped, need to use `SNAP_INSTANCE_NAME`" (`browser_support.go:72`). It also uses `@{SNAP_INSTANCE_NAME}` for peer security tags (`ptrace`/`unix peer=(label=snap.@{SNAP_INSTANCE_NAME}.**)`, `browser_support.go:230-231`). These are all HOST-side artifacts, so using the instance name is correct. The only `@{SNAP_NAME}` occurrences are inside commented-out illustrative rules (`browser_support.go:237,241`), not enforced. No bug.
+- The interface also grants `owner` rules for per-user shared memory and browser-specific state, and a **send-only** session D-Bus to RealtimeKit (`org.freedesktop.RealtimeKit1`, `browser_support.go:281-292`) — no `dbus (bind)`, so no D-Bus name ownership.
+- **Shared `/dev/shm` fixed-prefix names** (`browser_support.go:64-67,264,267`): `org.chromium.*`, `com.google.Chrome.*`, `com.microsoft.Edge.*`, `WK2SharedMemory.*`, `shmfd-*` are `owner`-matched but **not** snap-name-scoped, so two instances of the same browser snap can contend over the same `/dev/shm` object names.
+- Slot is restricted to core only (`browser_support.go:35-46`: `slot-snap-type: [core]`), implicit on core and classic.
 
-**Reasoning:** Browser support already accounts for parallel-install runtime paths with `SNAP_INSTANCE_NAME`. The remaining shared resources are user/session scoped, not snap-scoped.
+**Reasoning:** The snap-name/instance-name usage is correct (the `/run/user/.../snap.<instance>/` host paths and peer tags use `@{SNAP_INSTANCE_NAME}`), so there is no `SNAP_NAME`-vs-`INSTANCE_NAME` bug and the policy layer is parallel-safe. However, the fixed-name `/dev/shm/{org.chromium,com.google.Chrome,...}.*` segments are shared across instances (the IPC objects are not instance-keyed), so parallel instances of the same browser are not cleanly isolated — compatible at the snapd layer but sharing those user/SHM resources.
 
 **Verification:** Passed on noble. Test at `tests/main/interfaces-browser-support`.
 
@@ -2637,7 +2639,7 @@ This is the most well-documented incompatibility:
 
 **Reasoning:** Consumer snaps are parallel-install safe at the interface layer, including the document-portal mount path that is keyed by instance name. Provider snaps attempting to act as a full desktop session service hit singleton D-Bus ownership constraints.
 
-**App-level caveat (desktop file IDs):** Applications using the `desktop-file-ids` attribute to register specific desktop file IDs may encounter collisions. Snapd preserves store-approved desktop file IDs as-is instead of mangling them per instance (`wrappers/desktop.go:362-369`), and explicitly errors if the target file already belongs to another snap instance. Apps should avoid requesting fixed desktop IDs if parallel instances are intended.
+**App-level caveat (desktop file IDs):** Applications using the `desktop-file-ids` attribute to register specific desktop file IDs may encounter collisions. Snapd preserves store-approved desktop file IDs as-is instead of mangling them per instance (`MangleDesktopFileName()` is skipped for store-approved IDs around `wrappers/desktop.go:281`/`:381`), and explicitly errors if the target file already belongs to another snap instance: `cannot install %q: %q already exists for another snap` when `instanceName != info.InstanceName()` (`wrappers/desktop.go:378-379`). Apps should avoid requesting fixed desktop IDs if parallel instances are intended.
 
 **App-level caveat (desktop session integration — icon/window matching):** Even when the interface layer and desktop file generation work correctly, parallel instances can still be misrendered by the desktop shell. This is a known, observable bug.
 
@@ -2828,11 +2830,12 @@ The cache filename is typically session-specific and may look random (for exampl
 
 
 **Code analysis:**
-- The interface grants `AF_NETLINK - NETLINK_AUDIT` access and netlink-related capabilities (lines 40-60 in the implementation).
-- `BeforeConnectPlug()` checks host AppArmor parser support for `cap-audit-read`.
-- No snap-instance-specific paths are used.
+- Pure capability/syscall grant. Seccomp (`netlink_audit.go:42-43`) allows `bind` and `socket AF_NETLINK - NETLINK_AUDIT`; AppArmor (`netlink_audit.go:46-60`) grants `network netlink,`, `capability net_admin,`, `capability audit_read,`, `capability audit_write,`.
+- `BeforeConnectPlug()` (`netlink_audit.go:66-83`) probes the host AppArmor `ParserFeatures()` for `cap-audit-read` and refuses connection on systems lacking it. It performs no plug/slot attribute checks.
+- No D-Bus (no `dbus (bind)`/`DBusPermanentSlot`), no udev tagging, no hardcoded `/var/snap/<name>/` paths, and no use of `SnapName()`/`InstanceName()`/`ExpandSnapVariables()`/`LabelExpression()`. The kernel audit netlink socket is a global facility, not a snap-name-keyed resource.
+- Slot is restricted to core only (`netlink_audit.go:32-38`: `slot-snap-type: [core]`).
 
-**Reasoning:** Netlink audit is a shared kernel subsystem. Multiple instances can use it concurrently as clients of the kernel audit facility.
+**Reasoning:** This is a kernel-facility capability grant (NETLINK_AUDIT + CAP_NET_ADMIN/AUDIT_READ/AUDIT_WRITE). Multiple instances can use it concurrently as clients of the kernel audit subsystem; there is no snap-instance-specific resource and thus no snapd-level collision.
 
 **Verification:** Passed on noble. Test at `tests/main/interfaces-netlink-audit`.
 
@@ -2843,11 +2846,11 @@ The cache filename is typically session-specific and may look random (for exampl
 
 
 **Code analysis:**
-- The interface grants `AF_NETLINK - NETLINK_CONNECTOR` access and `CAP_NET_ADMIN` (lines 32-49 in the implementation).
-- The policy intentionally allows communications via all netlink connectors.
-- No snap-instance-specific paths are used.
+- Pure capability/syscall grant. Seccomp (`netlink_connector.go:37-38`) allows `bind` and `socket AF_NETLINK - NETLINK_CONNECTOR`; AppArmor (`netlink_connector.go:41-49`) grants `network netlink,` and `capability net_admin,`. The policy intentionally allows communication via all netlink connectors (comments at lines 33-36, 42-45).
+- No D-Bus, no udev tagging, no hardcoded `/var/snap/<name>/` paths, and no use of `SnapName()`/`InstanceName()`/`ExpandSnapVariables()`/`LabelExpression()`. NETLINK_CONNECTOR is a global kernel facility, not snap-name-keyed.
+- Slot is restricted to core only (`netlink_connector.go:24-30`: `slot-snap-type: [core]`).
 
-**Reasoning:** The connector is a shared kernel messaging facility. Parallel instances can use it concurrently; no snap-instance naming issue exists.
+**Reasoning:** The connector is a shared kernel messaging facility exposed as a capability grant. Parallel instances can use it concurrently; there is no snap-instance-specific resource and thus no snapd-level collision.
 
 **Verification:** Passed on noble. Test at `tests/main/interfaces-netlink-connector`.
 
@@ -2871,9 +2874,11 @@ network-manager -- a system singleton D-Bus service.
    ```
    These are globally unique. Two parallel slot instances cannot both own them.
 
-2. **D-Bus bus policy** (`bluez.go:213-242`): `DBusPermanentSlot` (line 259) emits
-   `<allow own="org.bluez"/>` etc. File names are per-instance (security tag), but
-   content grants the same name ownership to all instances.
+2. **D-Bus bus policy** (`bluez.go:213-243`): `DBusPermanentSlot` (method at line 259, guarded by `if !release.OnClassic` at lines 259-263) emits
+   `<allow own="org.bluez"/>` etc. (the `<allow own>` literals are at lines 215-217). File names are per-instance (security tag), but
+   content grants the same name ownership to all instances. Note the entire slot side
+   (permanent AppArmor/SecComp/DBus and connected-slot) is suppressed on classic via
+   `!release.OnClassic` (lines 260, 295, 302), where bluez is the host's unconfined service.
 
 3. **Connected rules ARE instance-aware** (`bluez.go:266-287`): On Core,
    `AppArmorConnectedPlug` uses `slot.LabelExpression()` (line 272) and
@@ -2923,13 +2928,16 @@ slot (no D-Bus name conflict with only one instance running).
 
 
 **Code analysis:**
-- Slots are provided by gadget snaps (lines 50-55), and the interface uses instance-aware names throughout the setup.
-- `slot.Snap().InstanceName()` and `plug.Snap().InstanceName()` are used to build `/dev/snap/gpio-chardev/<instance>/<name>` paths (lines 136-187).
-- The systemd service for the slot exports the virtual device using the slot instance name and slot name (lines 127-156).
-- UDev tagging uses an instance-aware tag (`snap_<instance>_interface_gpio_chardev_<slot>`) (lines 193-196).
-- A conflict with `gpio` is explicitly declared via `conflictingConnectedInterfaces: []string{"gpio"}` (lines 207-210).
+- Slots are provided by gadget snaps only (`gpio_chardev.go:53-54`: `slot-snap-type: [gadget]`); the interface uses instance-aware names throughout the setup.
+- **SNAP_NAME vs INSTANCE_NAME (every host-side artifact correctly uses `InstanceName()`):**
+  - The slot's systemd export service uses `snapName := slot.Snap().InstanceName()` as the `<gadget>` arg to `export-chardev`/`unexport-chardev` (`gpio_chardev.go:136`, used at 145-149).
+  - `SystemdConnectedPlug()` builds the host symlink: `target := gpio.SnapChardevPath(slot.Snap().InstanceName(), slotName)` and `symlink := gpio.SnapChardevPath(plug.Snap().InstanceName(), plugName)` (`gpio_chardev.go:160-165`), i.e. `/dev/snap/gpio-chardev/<slot-instance>/<slot-name>` and `/dev/snap/gpio-chardev/<plug-instance>/<plug-name>`. (`SnapChardevPath` joins `dirs.SnapGpioChardevDir/<instanceName>/<name>`, `gpio_chardev.go:38-40`.) These are host artifacts created outside the snap namespace, so `InstanceName()` is correct.
+  - `AppArmorConnectedPlug()` emits `/dev/snap/gpio-chardev/%s/%s rwk,` with `slot.Snap().InstanceName(), slot.Name()` (line 185) and `/dev/snap/gpio-chardev/%s/{,*} r,` with `plug.Snap().InstanceName()` (line 187).
+  - `UDevConnectedPlug()` tags with an instance-aware tag `snap_<slot-instance>_interface_gpio_chardev_<slot>` using `slot.Snap().InstanceName()` (`gpio_chardev.go:195`).
+  - There is **no `@{SNAP_NAME}`/base-name/`SnapName()` anywhere** — no bug.
+- KMod permanent slot loads `gpio-aggregator` (`gpio_chardev.go:58-60`). A conflict with `gpio` is explicitly declared via `conflictingConnectedInterfaces: []string{"gpio"}` (`gpio_chardev.go:207-210`) because both export the same kernel GPIO lines through different APIs.
 
-**Reasoning:** The interface is carefully namespaced by snap instance for both slot and plug paths, so parallel installs do not collide. The only conflict is with the legacy `gpio` interface, which is intentional and unrelated to parallel naming.
+**Reasoning:** The interface is carefully namespaced by snap **instance** for every host-side artifact — the export systemd service, the host symlink target and symlink, the AppArmor host device paths, and the udev tag all use `InstanceName()`. Parallel plug instances therefore each get their own `/dev/snap/gpio-chardev/<plug-instance>/<plug-name>` symlink and instance-distinct services, with no base-name bug and no snapd-level collision. (The underlying physical GPIO lines are a finite slot/gadget-pinned resource, but that contention is governed by the gadget side, not a plug-instance collision.) The only declared conflict is with the legacy `gpio` interface, which is intentional and unrelated to parallel naming.
 
 **Verification:** No verification has yet been done.
 
@@ -2972,12 +2980,14 @@ slot (no D-Bus name conflict with only one instance running).
 
 
 **Code analysis:**
-- The interface supports both system and app slots, and the app-slot path is fully instance-aware via `slot.LabelExpression()` and `plug.LabelExpression()` (lines 195-241).
-- Slot attributes `qcipc` and `address` are validated, and the socket address is injected directly into AppArmor/Seccomp snippets (lines 174-192, 244-263).
-- The code explicitly avoids instance-unsafe matching by separating system-slot compatibility and app-slot handling.
-- No snap-instance-specific paths are hardcoded; paths are derived from slot attributes.
+- The slot is app-providable as well as system-provided (`qualcomm_ipc_router.go:47-49`: `slot-snap-type: [app, core]`; `ImplicitOnCore`/`ImplicitOnClassic` true). There are two slot modes: a system slot (TypeOS/TypeSnapd, detected via `isConnectedSlotSystem`/`isSlotInfoSystem`, lines 160-172) and an app slot.
+- The interface is socket-based (`AF_QIPCRTR`/seqpacket `network qipcrtr`), not D-Bus. For the system slot, the connected plug gets raw `network qipcrtr` + `capability net_admin` (compat, lines 69-76). For an app slot, the connected plug gets a scoped `unix (connect,send,receive) type=seqpacket addr="<address>" peer=(label=<slot label>)` (lines 78-84).
+- **SNAP_NAME vs INSTANCE_NAME (peer labels correct):** `AppArmorConnectedPlug()` substitutes `###SLOT_SECURITY_TAGS###` with `slot.LabelExpression()` (`qualcomm_ipc_router.go:217`) and `AppArmorConnectedSlot()` substitutes `###PLUG_SECURITY_TAGS###` with `plug.LabelExpression()` (line 234); both resolve through `labelExpr` → `appSet.InstanceName()`, so peer mediation is instance-aware. The socket `address` is injected from the slot's `address` attribute (`fillSnippetSocketAddress`, lines 147-154; validated by `validateAddress`, lines 184-193) — a slot-author string, not derived from a snap name. No `@{SNAP_NAME}`/`SnapName()` misuse; no base-name bug.
+- The app slot binds its address via `unix (bind, listen) type=seqpacket addr="<address>"` in the permanent slot (`qualcomm_ipc_router.go:86-96`, 244-256). Seccomp permanent slot grants `bind`/`accept`/`accept4`/`listen` (lines 110-119, 258-264). `BeforePrepareSlot()` validates `qcipc`/`address` and requires the `qipcrtr-socket` parser feature (lines 274-319).
 
-**Reasoning:** The interface is socket-address based and already uses the snap labels correctly where needed. The code does not show a parallel-install collision surface.
+**Reasoning:** The interface is socket-address based and already uses the snap labels correctly where needed (`LabelExpression()` for both peer directions), so there is no parallel-install instance-name collision at the snapd policy layer — plug and slot are both COMPATIBLE on that basis.
+
+**App-level caveat (socket address):** The app slot binds the literal `address` attribute, which is **not** instance-keyed. If two parallel instances of the same slot-providing snap are installed, both would bind the same `AF_QIPCRTR` address and clash at the kernel-socket layer. This is a shared-resource caveat governed by the slot author's `address` value (akin to a fixed port), not a snapd-level instance-name bug; apps intending parallel slot providers must use distinct addresses.
 
 **Verification:** No verification has yet been done.
 
@@ -3010,8 +3020,9 @@ The udisks2 interface manages disk/storage services. Same singleton pattern.
    binds `dbus (bind) bus=system name="org.freedesktop.UDisks2"`. Hardcoded, not
    instance-aware.
 
-2. **D-Bus bus policy** (`udisks2.go:239-247`): `DBusPermanentSlot` (line 420) emits
-   `<allow own="org.freedesktop.UDisks2"/>`.
+2. **D-Bus bus policy** (`udisks2.go:239-247`): `DBusPermanentSlot` (method at line 420,
+   guarded by `if !implicitSystemPermanentSlot(slot)` at lines 420-425) emits
+   `<allow own="org.freedesktop.UDisks2"/>` (the `<allow own>` literal is at line 241).
 
 3. **Connected rules ARE instance-aware** (`udisks2.go:427-438`): On Core,
    `AppArmorConnectedPlug` uses `slot.LabelExpression()` (line 433).
@@ -3059,13 +3070,13 @@ The upower-observe interface provides access to the UPower power management serv
    `implicitSystemPermanentSlot()` -- only emits bus policy for app snaps (not system
    slot). Policy grants `<allow own="org.freedesktop.UPower"/>`.
 
-3. **Connected plug is system-aware** (`upower_observe.go:266-277`): Uses
-   `implicitSystemConnectedSlot()` guard -- on classic (system slot), plug uses
-   `peer=(label=unconfined)`. On Core with app slot, uses `slot.LabelExpression()`
-   (instance-aware).
+3. **Connected plug is system-aware** (`upower_observe.go:233-243`): default peer is
+   `slot.LabelExpression()` (line 235); when `implicitSystemConnectedSlot(slot)` is true
+   (the system slot, e.g. on classic), the peer is overridden to
+   `peer=(label=unconfined)` (lines 236-239). Instance-aware when connecting to an app slot.
 
-4. **Connected slot is instance-aware** (`upower_observe.go:279-287`): Uses
-   `plug.LabelExpression()` on Core.
+4. **Connected slot is instance-aware** (`upower_observe.go:266-272`): uses
+   `plug.LabelExpression()` (line 268) on Core.
 
 5. **Shared paths in permanent slot** (`upower_observe.go:49-110`): Grants access to
    `/sys/devices/**/power_supply/**`, `/run/udev/data/+power_supply:*` -- global
@@ -3307,17 +3318,18 @@ read shared content, survived removal of original plug snap.
 
 
 ### home
-**Status:** Plug-side: COMPATIBLE. Slot-side: N/A (system/core-provided slot; no parallel app slot providers in scope).
+**Status:** Plug-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE. Slot-side: N/A (system/core-provided slot; no parallel app slot providers in scope).
 
 **Type:** Filesystem/Mount Interface
 
 
 **Code analysis:**
-- AppArmor rules use `owner @{HOME}/` patterns that don't distinguish instances
-- Both instances access the same home directory files, which is the intended behavior
-- The `@{HOME}/snap/` exclusion pattern prevents access to other snaps' data, but
-  parallel instances of the same snap share data directories (by design of the parallel
-  install feature)
+- The connected-plug AppArmor (`home.go:42-110`) is built entirely from `@{HOME}` (the user's real home directory, not the snap's home — see comment at `home.go:53`); rules at lines 56, 63-76, 80-81, 85-86.
+- **SNAP_NAME vs INSTANCE_NAME:** there is no snap-name path interpolated into any enforced rule. The only occurrence of `@{SNAP_INSTANCE_NAME}` is inside a comment (`home.go:73`) explaining the `owner @{HOME}/snap/ r,` rule (line 76); the enforced rule itself has no snap name. No `SnapName()`/`InstanceName()` calls — `AppArmorConnectedPlug()` (`home.go:118-130`) just adds static snippets. No bug.
+- The `@{HOME}/snap[^/]**` exclusion (`home.go:67`) plus the dotfile exclusion chain block access to other snaps' `~/snap/` data and hidden files. No D-Bus, no shared kernel objects, no udev.
+- Slot is restricted to core only (`home.go:32-36`: `slot-snap-type: [core]`), implicit on core and classic (lines 136-137).
+
+**Reasoning:** There is no `SNAP_NAME`/`INSTANCE_NAME` path issue, so the policy layer is parallel-safe. However, both instances of the same snap (like all snaps with `home`) access the same user `$HOME` files — a shared per-user resource by design. Parallel instances can read/overwrite each other's effects on the same home files, so this is compatible at the snapd layer but shares the home directory.
 
 **Verification:**
 PASSED on noble.
@@ -3361,9 +3373,12 @@ Expected failure -- desktop file launching is incompatible with parallel
 
 
 **Code analysis:**
-- Access to CUPS socket and D-Bus for printing
-- Multiple instances can submit print jobs simultaneously
-- No global resource contention from plug side
+- The slot is app-providable (`cups_control.go:52-61`: `allow-installation: slot-snap-type: [app, core]`, `deny-auto-connection: true`); `implicitOnClassic: true`, `implicitOnCore: false`.
+- Plug-side AppArmor (`cups_control.go:106-119`) is a client: `#include <abstractions/cups-client>`, read-only `/{,var/}run/cups/printcap`, and `dbus (receive)` of `org.cups.cupsd.Notifier` signals with `peer=(label=###SLOT_SECURITY_TAGS###)`. It does NOT own a D-Bus name. `AppArmorConnectedPlug()` (`cups_control.go:150-173`) substitutes `###SLOT_SECURITY_TAGS###` with `slot.LabelExpression()` for app slots (line 163) or `{unconfined,/usr/sbin/cupsd,cupsd}` for the implicit system cupsd (line 161); `LabelExpression()` is instance-aware.
+- Slot-side (`AppArmorPermanentSlot()`, `cups_control.go:129-136`, applied only when `!implicitSystemPermanentSlot(slot)`) grants the fixed system CUPS dir `/{,var/}run/cups/ rw,` + `/{,var/}run/cups/** rwk,` and D-Bus rules that are **send/receive only**: `dbus (receive, send)` to `org.freedesktop.ColorManager` (a client of ColorManager) and `dbus (send)` of its own `org.cups.cupsd.Notifier` (`cups_control.go:77-88`). **There is no `dbus (bind)` and no `DBusPermanentSlot`/`<allow own=...>`**, so the slot does not own a well-known D-Bus name. `AppArmorConnectedSlot()` (`cups_control.go:138-148`) sends the Notifier signal to the connected plug via `plug.LabelExpression()` (instance-aware).
+- No use of `SnapName()`/`InstanceName()`/`ExpandSnapVariables()`; no hardcoded `/var/snap/<name>/` paths (the CUPS dir `/{,var/}run/cups/` is a fixed system path, not per-snap). Slot-side seccomp adds only `lsm_get_self_attr` (`cups_control.go:121-123`).
+
+**Reasoning:** Plug-side parallel instances can submit print jobs simultaneously and only **receive** Notifier signals, with instance-aware peer labels via `LabelExpression()` — no snapd-level collision. The slot side is also parallel-install safe at the policy layer because it owns no well-known D-Bus name and constructs no base-snap-name host path; its D-Bus rules are send/receive only. The only shared resource is the singular host CUPS control socket directory `/{,var/}run/cups/`, which reflects the normal single print-service model rather than a parallel-install instance bug.
 
 **Verification:**
 FAILED -- pre-existing environment issue (no CUPS printer configured).
@@ -3384,23 +3399,24 @@ The polkit interface installs policy files (`.policy`) and rule files (`.rules`)
 polkit authorization.
 
 1. **File names ARE instance-aware** (`polkit/backend.go:133,151`): Both policy and rule
-   file names use `appSet.InstanceName()`:
+   file names are built with `appSet.InstanceName()` — `polkitPolicyName(appSet.InstanceName(), nameSuffix)` (`backend.go:133`) and `polkitRuleName(appSet.InstanceName(), nameSuffix)` (`backend.go:151`). `appSet.InstanceName()` resolves to the instance-key-decorated name, so the templates (`backend.go:42-49`) produce:
    - Policy: `snap.<instance_name>.interface.<suffix>.policy`
    - Rules: `70-snap.<instance_name>.<suffix>.rules`
-   Parallel instances will NOT have file name collisions.
+   Parallel instances (`foo` vs `foo_bar`) therefore get DISTINCT file names in the shared
+   `dirs.SnapPolkitPolicyDir` / `dirs.SnapPolkitRuleDir`, so they do NOT collide. The per-snap `Setup()` sync glob is also instance-scoped (`backend.go:81,97`), so one instance's sync does not delete another's files.
 
-2. **Source file reads are instance-aware** (`polkit.go:135`): Files are read from
-   `plug.Snap().MountDir()` which is instance-specific (`/snap/<instance_name>/<rev>/`).
+2. **Source file reads are instance-aware** (`polkit.go:134`): Files are read from
+   `plug.Snap().MountDir()` which is instance-specific (`/snap/<instance_name>/<rev>/`), via the glob `meta/polkit/<plug.Name()>.*.{policy,rules}`.
 
-3. **D-Bus usage is client-only** (`polkit.go:288-299`): The interface grants permission
-   to call `CheckAuthorization` on `org.freedesktop.PolicyKit1.Authority` (the system
-   polkitd). It does NOT own any D-Bus names.
+3. **D-Bus usage is client-only** (`polkit.go:61-89`, gated at `288-299`): The interface grants permission
+   to call `{,Cancel}CheckAuthorization`/`RegisterAuthenticationAgentWithOptions` on `org.freedesktop.PolicyKit1.Authority` (the system
+   polkitd), `peer=(label=unconfined)`. It does NOT own any D-Bus name (no `dbus (bind)`/`<allow own>`).
 
 4. **Minor caveat -- action IDs in XML are not instance-scoped**: The `action-prefix`
    attribute (e.g., `org.example.foo`) is shared across all instances. Both `foo` and
    `foo_bar` would install policy files containing actions under the same prefix. Polkitd
    could see duplicate action definitions, though this is typically harmless (last file
-   wins in polkitd's evaluation).
+   wins in polkitd's evaluation). This is a polkit content overlap, not a snapd-level file collision.
 
 **Reasoning:** The interface is structurally compatible -- file names don't collide, D-Bus
 access is client-only, and the backend correctly uses `InstanceName()`. The action ID
@@ -3469,7 +3485,7 @@ PASSED on noble.
 
 
 ### personal-files
-**Status:** Plug-side: COMPATIBLE. Slot-side: N/A (system/core-provided slot; no parallel app slot providers in scope).
+**Status:** Plug-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE. Slot-side: N/A (system/core-provided slot; no parallel app slot providers in scope).
 
 **Type:** Filesystem/Mount Interface
 
@@ -3478,57 +3494,45 @@ PASSED on noble.
 The personal-files interface grants access to user-specific file paths declared in plug
 attributes. The implementation is in `common_files.go` (shared with `system-files`).
 
-1. **Paths are from plug attributes** (`common_files.go:158-161`): The `read` and
-   `write` attributes are lists of absolute paths (e.g., `$HOME/.config/foo`).
+1. **Paths are from plug attributes** (`personal_files.go`): the `read` and
+   `write` attributes are lists of absolute paths under `$HOME/` (validated by `validateSinglePathHome`, `personal_files.go:58-66`).
 
-2. **Path expansion** (`common_files.go:167-175`): Paths containing `$HOME` are
-   expanded to the literal home directory. No snap-name-specific variables (`$SNAP`,
-   `$SNAP_DATA`, etc.) are used. The paths are absolute user-space paths.
+2. **Path expansion** (`common_files.go:formatPath`, `common_files.go:60-77`): the ONLY
+   substitution is `$HOME` → `@{HOME}` with an `owner` prefix (`common_files.go:69-71`); then `{,/,/**}` is appended (line 74). **No snap-name token (`@{SNAP_NAME}`/`@{SNAP_INSTANCE_NAME}`) and no `SnapName()`/`InstanceName()` call anywhere.**
 
-3. **AppArmor rules are snap-name-agnostic** (`common_files.go:167-175`): The generated
-   AppArmor rules use the raw expanded paths directly:
-   ```go
-   spec.AddSnippet(fmt.Sprintf("\"%s\" rk,", resolvedPath))
-   ```
-   There is no reference to `SnapName()` or `InstanceName()` in the rule generation.
+3. **SNAP_NAME vs INSTANCE_NAME:** the generated AppArmor rules are snap-name-agnostic; the snap-update-ns ensure-dir machinery is keyed by the interface name (`"personal-files"`), not by snap name, and operates inside the user's own per-instance namespace. Both a base snap and its parallel instance get **identical** rules. No bug.
 
-4. **No instance-specific scoping**: Both a base snap and its parallel instance get
-   identical AppArmor rules granting access to the same paths (e.g., both get
-   `owner /home/user/.config/foo rw`).
+4. The plug base declaration is `allow-installation: false` (`personal_files.go:34-38`, super-privileged), and the slot is core-only (`personal_files.go:40-46`).
 
-**Reasoning:** personal-files grants access to user-owned paths that are completely
-outside the snap's data directories. Two parallel instances accessing the same user
-files is identical to two different snaps with the same personal-files declaration.
-No snap-name-dependent paths are involved.
+**Reasoning:** personal-files grants access to user-owned paths declared in attributes, completely
+outside the snap's own data directories. There is no `SNAP_NAME`/`INSTANCE_NAME` issue, so the policy layer is parallel-safe. However, two parallel instances accessing the same declared `$HOME/...` files is contention over shared per-user files (they can overwrite each other), so this is compatible at the snapd layer but shares those user files.
 
-**Verification:** 
+**Verification:**
 -Result: PASSED on noble. Parallel instance read/wrote same personal files,
 survived removal of original snap.
 
 
 
 ### system-files
-**Status:** Plug-side: COMPATIBLE. Slot-side: N/A (system/core-provided slot; no parallel app slot providers in scope).
+**Status:** Plug-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE. Slot-side: N/A (system/core-provided slot; no parallel app slot providers in scope).
 
 **Type:** Filesystem/Mount Interface
 
 
 **Code analysis:**
-Same implementation as personal-files (both use `commonFilesInterface` in
+Same implementation as personal-files (both embed `commonFilesInterface` in
 `common_files.go`).
 
 1. **Paths are absolute system paths** from plug attributes (e.g., `/etc/foo`,
-   `/var/lib/bar`). No snap-name variables.
+   `/var/lib/bar`); `$HOME` is forbidden (`validateSinglePathSystem`, `system_files.go:52-61`).
 
-2. **AppArmor rules are snap-name-agnostic**: Same as personal-files -- raw paths are
-   used directly in the AppArmor snippet.
+2. **Path expansion** (`common_files.go:formatPath`): because `$HOME` is forbidden, the `$HOME`→`@{HOME}` branch never fires, so paths are emitted verbatim as absolute system paths. **No snap-name interpolation whatsoever** — no `@{SNAP_NAME}`/`@{SNAP_INSTANCE_NAME}`/`SnapName()`/`InstanceName()`.
 
-3. **No instance-specific scoping**: Both instances get the same rules.
+3. **SNAP_NAME vs INSTANCE_NAME:** rules are snap-name-agnostic; both a base snap and its parallel instance get identical rules. No bug.
 
-**Reasoning:** system-files grants access to fixed system paths. No snap-name-dependent
-resources are involved. Two parallel instances can access the same system files without
-conflict at the interface level (though they could conflict at the application level if
-both write to the same file).
+4. The plug base declaration is `allow-installation: false` (`system_files.go:29-33`, super-privileged), and the slot is core-only (`system_files.go:35-41`).
+
+**Reasoning:** system-files grants access to fixed system paths declared in attributes. There is no `SNAP_NAME`/`INSTANCE_NAME` issue, so the policy layer is parallel-safe. However, two parallel instances accessing the same absolute system files is contention over a shared system resource (they can conflict if both write the same file), so this is compatible at the snapd layer but shares those system files.
 
 **Verification:** 
 - **Result:** PASSED on noble. Parallel instance read/wrote same system files,
@@ -3624,14 +3628,12 @@ snap-name-dependent resources.
 
 
 **Code analysis:**
-- D-Bus client to `io.netplan.Netplan` (send-only, `network_setup_control.go:74-87`)
-- Writes to `/etc/netplan/{,**}`, `/etc/network/{,**}`, `/etc/systemd/network/{,**}`,
-  `/run/systemd/network/*` (`network_setup_control.go:38-68`)
-- Executes `/usr/sbin/netplan`
-- System-provided implicit slot
+- D-Bus client (send-only) to `io.netplan.Netplan` (`/io/netplan/Netplan`, members Generate/Apply/Info/Config — `network_setup_control.go:74-79`) and `io.netplan.Netplan.Config` (`/io/netplan/Netplan/config/*` — lines 82-87), both `peer=(label=unconfined)`. No `dbus (bind)`, no `DBusPermanentSlot` — owns no name.
+- Writes to global host network-config paths: `/etc/netplan/{,**} rw`, `/etc/network/{,**} rw`, `/etc/systemd/network/{,**} rw` (`network_setup_control.go:55-57`), `/run/systemd/network/*-netplan-* w` (line 62; note `/run/systemd/network/{,**}` itself is read-only at line 61), `/run/NetworkManager/conf.d/*netplan*.conf* w` (line 64), and `/run/udev/rules.d/...` rw (lines 67-68). Executes `/usr/sbin/netplan` (lines 38-40) and `/usr/libexec/netplan/configure` (line 65).
+- No seccomp snippet, no udev tagging, and no use of `SnapName()`/`InstanceName()`/`ExpandSnapVariables()`/`LabelExpression()`. All write paths are global system directories, not snap-name-dependent.
+- System-provided implicit slot, core-only (`network_setup_control.go:24-30`: `slot-snap-type: [core]`).
 
-**Reasoning:** Global network configuration. No snap-name-dependent resources. All
-paths are global system directories.
+**Reasoning:** Global network configuration via a send-only D-Bus client that owns no name. No snap-name-dependent resources; all paths are global system directories. Two parallel instances writing the same global netplan config is shared-host contention at the operational level, not a snapd instance-name collision, so the plug side is parallel-install compatible.
 
 **Verification:** 
 
@@ -3646,16 +3648,14 @@ paths are global system directories.
 
 
 **Code analysis:**
-- D-Bus client to `org.freedesktop.Accounts` (send-only, `account_control.go:44-73`)
-- Writes to `/var/lib/extrausers/**`, `/var/log/faillog`, `/var/log/lastlog`
-  (`account_control.go:75-109`)
-- Executes `useradd`, `userdel`, `chpasswd` (`account_control.go:77-80`)
-- Dynamic seccomp template resolves shadow file GID at runtime -- system-global
-  constant, not snap-specific (`account_control.go:114-138`)
-- System-provided implicit slot
+- D-Bus client to `org.freedesktop.Accounts`: `dbus (send)` Introspect/Accounts/Accounts.User/Properties (`account_control.go:44-66`) plus `dbus (receive)` PropertiesChanged (lines 68-73). No `dbus (bind)`/`DBusPermanentSlot`/`<allow own>` — owns no name.
+- Writes to `/var/lib/extrausers/**` (`account_control.go:81-82`, `rwkl` incl. lock+link), plus `/var/log/{faillog,lastlog,tallylog}` (lines 107-109)
+- Executes `useradd`, `userdel`, `chpasswd` (`account_control.go:75-76`)
+- Dynamic seccomp template (`account_control.go:114-122`) substitutes `{{group}}` with the runtime-resolved GID owning `/etc/shadow` (`makeAccountControlSecCompSnippet`, lines 129-138) -- a system-global numeric GID, not snap-specific; the substituted snippet is cached and applied via `SecCompConnectedPlug()` (lines 141-152).
+- **SNAP_NAME vs INSTANCE_NAME:** no snap-name interpolation -- all paths are fixed host paths and the seccomp GID is numeric. `network netlink raw` (line 95); capabilities `audit_write`/`chown`/`fsetid` (lines 98-100). No bug.
+- System-provided implicit slot, core-only (`account_control.go:33-39`: `slot-snap-type: [core]`).
 
-**Reasoning:** Global user account management. No snap-name-dependent resources. The
-dynamic seccomp GID resolution is deterministic regardless of instance.
+**Reasoning:** Global user account management via a D-Bus client (no name ownership) plus writes to the shared `/var/lib/extrausers/` user database. No snap-name-dependent resources, and the dynamic seccomp GID resolution is deterministic regardless of instance. The extrausers DB is shared host state, but useradd/userdel use lock files (`rwkl`) and the system serializes access, so this remains compatible at the snapd layer (the same single-system-state model as the other system-control interfaces).
 
 **Verification:**
 
@@ -3689,9 +3689,11 @@ PASSED on noble.
 
 
 **Code analysis:**
-- Read-only access to `/sys/`, `/proc/`, hardware information
-- No writes, no D-Bus, no shared memory
-- Multiple processes reading hardware info simultaneously is the normal case
+- Slot is provided by core only (`hardware_observe.go:24-30`: `slot-snap-type: [core]`), implicit on core and classic (lines 162-163).
+- The connected-plug AppArmor (`hardware_observe.go:32-138`) is read-only access to hardware info: `@{PROC}/...`, `/sys/...`, `/dev/...`, `/run/udev/data/...`, plus `ixr` exec of helpers (`lsblk`, `lscpu`, `lsmem`, `lsusb`, `systemd-detect-virt`). Capabilities `sys_rawio`/`sys_admin`; `network netlink raw` (line 71). Seccomp (`hardware_observe.go:140-156`) adds `iopl`, `riscv_hwprobe`, `socket AF_NETLINK - NETLINK_GENERIC`/`NETLINK_KOBJECT_UEVENT` + `bind`.
+- **SNAP_NAME vs INSTANCE_NAME:** no snap-name interpolation; all paths are fixed host/kernel paths and the netlink sockets are unnamed/per-process. No D-Bus, no mounts, no udev tagging, no bug.
+
+**Reasoning:** Read-only hardware observer. There is no snap-name path and no shared mutable named resource (netlink sockets are per-process), so multiple parallel instances read the same hardware info with no snapd-level collision.
 
 **Verification:**
 PASSED on noble.
@@ -3722,8 +3724,11 @@ PASSED on noble.
 
 
 **Code analysis:**
-- Read-only access to `/dev/hwrng` and sysfs hw_random paths
-- Subset of hardware-random-control (read only)
+- Slot is provided by core only (`hardware_random_observe.go:24-30`: `slot-snap-type: [core]`), implicit on core and classic (lines 49-50).
+- The connected-plug AppArmor (`hardware_random_observe.go:32-41`) grants read-only `/dev/hwrng` (line 37), `/run/udev/data/c10:183` (line 38), and `/sys/devices/virtual/misc/.../hw_random/rng_{available,current}` (lines 39-40). UDev tags `KERNEL=="hw_random"` (line 43).
+- **SNAP_NAME vs INSTANCE_NAME:** no snap-name interpolation; fixed device/sysfs paths only. No D-Bus, no sockets, no mounts, no bug. This is the read-only subset of `hardware-random-control`.
+
+**Reasoning:** Read-only access to the hardware RNG device and its sysfs state. Reading `/dev/hwrng` is non-exclusive and there is no snap-name path or owned resource, so parallel instances do not collide at the snapd layer.
 
 **Verification:**
 PASSED on noble.
@@ -3883,17 +3888,17 @@ Expected failure. `mount: mount /var/tmp/test-snapd-mount-control on
 
 
 **Code analysis:**
-- Session bus D-Bus access to `org.freedesktop.secrets` (gnome-keyring)
-- The plug only sends/receives -- it does not own the keyring service name
-- Multiple clients accessing the same keyring is the normal use case
-- The `secret-tool` utility just performs operations on the user's keyring
+- The connected-plug AppArmor (`password_manager_service.go:32-82`) is a **session-bus** D-Bus client: `#include <abstractions/dbus-session-strict>` (line 37) and `dbus (receive, send)` to `/org/freedesktop/secrets` (`org.freedesktop.Secret.*`) and KWallet `/modules/kwalletd` (`org.kde.KWallet`), all `bus=session`, `peer=(label=unconfined)` (lines 54-81).
+- **It owns no D-Bus name.** No `dbus (bind)`, no `DBusPermanentSlot`, no `<allow own>`; it talks to `org.freedesktop.secrets`/KWallet as a client (addressed by object path, peer label unconfined). This is a `commonInterface` with only `connectedPlugAppArmor` set (`password_manager_service.go:85-91`), so there is no slot-side code.
+- The in-code comment (lines 42-52, 66-69) explicitly notes the secret-service/KWallet APIs do not allow AppArmor application isolation — i.e. all clients (including parallel instances) share the same secrets store at the service level. The keyring DB itself is owned/mediated by the gnome-keyring/KWallet daemon, not granted as a file path here.
+- No `InstanceName()`/`SnapName()`/`ExpandSnapVariables()`/`LabelExpression()`, no hardcoded `/var/snap/<name>/` paths, no seccomp/udev.
+- Slot is restricted to core only (`password_manager_service.go:24-30`: `slot-snap-type: [core]`).
 
-**Reasoning:** gnome-keyring is a user-session service. Multiple snap instances are just
-additional clients of the same session service, no different from multiple different
-snaps accessing the keyring.
+**Reasoning:** gnome-keyring / KWallet is a user-session service. Multiple snap instances are just
+additional session-bus clients of the same keyring; the plug owns no name and writes no per-instance file directly, so there is no snapd-level collision. (By design all clients share one secrets store — a confidentiality property of secret-service, not a parallel-install break.) The slot side is core-only, so parallel app-provided slots are not possible.
 
 **Previous audit errors**:
-- Classified as "NOT COMPATIBLE" -- INCORRECT. Test proves it works.
+- Classified as "NOT COMPATIBLE" -- INCORRECT. The interface is a session-bus client that owns no keyring service name.
 
 **Verification:**
 PASSED on noble.
@@ -3907,14 +3912,15 @@ PASSED on noble.
 
 
 **Code analysis:**
-- Session bus D-Bus access to Evolution Data Server (calendar component)
-- Same architecture as contacts-service (session bus, client-only)
-- Multiple clients accessing the same EDS calendar is normal
+- The connected-plug AppArmor (`calendar_service.go:36-131`) is a **session-bus** D-Bus client: `#include <abstractions/dbus-session-strict>` (line 39) and `dbus (receive, send)` to Evolution Data Server Calendar objects, all `bus=session`, `peer=(label=unconfined)` (lines 42-130).
+- **It owns no D-Bus name.** No `dbus (bind)`, no `DBusPermanentSlot`, no `<allow own>`; this is a `commonInterface` with only `connectedPlugAppArmor` set (`calendar_service.go:133-140`), so there is no slot-side code. Unlike contacts-service, there is no avatar-cache file rule (no `@{HOME}` rules at all).
+- No `InstanceName()`/`SnapName()`/`ExpandSnapVariables()`/`LabelExpression()`, no hardcoded `/var/snap/<name>/` paths, no seccomp/udev.
+- Slot is restricted to core only (`calendar_service.go:28-34`: `slot-snap-type: [core]`).
+
+**Reasoning:** Evolution Data Server calendar access is client-side session D-Bus use, the same architecture as contacts-service. Parallel instances are additional clients to shared user-session calendar data, with no bus-name ownership and no snap-instance naming collision in interface policy. The slot side is core-only, so parallel app-provided slots are not possible.
 
 **Previous audit errors**:
-- Classified as "NOT COMPATIBLE" -- INCORRECT. Test proves it works.
-
-**Reasoning:** Evolution Data Server calendar access is client-side session D-Bus use. Parallel instances are additional clients to shared user-session calendar data, with no snap-instance naming collision in interface policy.
+- Classified as "NOT COMPATIBLE" -- INCORRECT. There is no D-Bus name ownership in code; the interface is a session-bus client.
 
 **Verification:**
 PASSED on noble.
@@ -3925,7 +3931,12 @@ PASSED on noble.
 **Type:** Observability/Diagnostics
 
 
-Read-only access to system logs (`/var/log/`, journal). No D-Bus, no snap-name paths.
+**Code analysis:**
+- Slot is provided by core only (`log_observe.go:24-30`: `slot-snap-type: [core]`), implicit on core and classic (lines 90-91).
+- The connected-plug AppArmor (`log_observe.go:33-80`) is read access to system logs: `/var/log/**` (lines 36-37), `/dev/kmsg` (line 39), `/run/log/journal/**` (lines 42-43), host `journalctl` + systemd libs (lines 47-48). It additionally has a couple of `rw` rules on global kernel/apparmor tunables (`@{PROC}/sys/kernel/printk_ratelimit` line 56, `/sys/module/apparmor/parameters/audit` line 67) and capabilities `dac_override`/`dac_read_search` — these are system-global knobs, not per-snap resources. UDev tags `KERNEL=="kmsg"` (lines 82-84).
+- **SNAP_NAME vs INSTANCE_NAME:** no snap-name interpolation anywhere; all paths are fixed host/kernel paths (`@{PROC}` is the proc mount, not a snap-name variable). No D-Bus, no mounts, no bug.
+
+**Reasoning:** Read-only system-log observer (the handful of `rw` items are global kernel/apparmor tunables, not snap-instance resources). There is no snap-name path and no owned resource, so parallel instances do not collide at the snapd layer.
 
 **Verification:** Passed on noble. Test at `tests/main/interfaces-log-observe`.
 
@@ -3935,8 +3946,13 @@ Read-only access to system logs (`/var/log/`, journal). No D-Bus, no snap-name p
 **Type:** Network/Netlink Interface
 
 
-Read-only network status queries (D-Bus client to systemd-resolved, read /proc/sys).
-No D-Bus ownership.
+**Code analysis:**
+- Privileged read-only/observer network status. Connected-plug AppArmor (`network_observe.go`) is a D-Bus client: `dbus send` to `org.freedesktop.resolve1` (lines 58-63), `dbus receive` of `PropertiesChanged` from systemd-networkd (lines 74-86), and `dbus send` to `org.freedesktop.network1` Get/All and Manager list/describe methods (lines 89-102). No `dbus (bind)`, no `DBusPermanentSlot` — owns no name.
+- Capabilities are limited to `net_raw`+`setuid` for ping (lines 149-152); a comment at lines 38-41 explicitly refuses `net_admin` to avoid becoming network-control. Read-only `@{PROC}/sys/net/...` and `/sys/devices/**/net/** rk`.
+- Seccomp grants `bind` plus several `AF_NETLINK` families (`NETLINK_INET_DIAG`, `NETLINK_ROUTE`, `NETLINK_GENERIC`, `NETLINK_KOBJECT_UEVENT`) (`network_observe.go:177-189`).
+- No use of `SnapName()`/`InstanceName()`/`ExpandSnapVariables()`/`LabelExpression()`; no hardcoded `/var/snap/<name>/` paths; no udev tagging; no shared kernel objects.
+
+**Reasoning:** Read-only/observer network status queries (D-Bus client to systemd-resolved and systemd-networkd, read-only proc/sys, NET_RAW for ping). The interface owns no D-Bus name and has no instance-specific paths, so parallel instances are independent observers with no snapd-level collision.
 
 **Verification:** Passed on noble. Test at `tests/main/interfaces-network-observe`.
 
@@ -3946,8 +3962,13 @@ No D-Bus ownership.
 **Type:** Filesystem/Mount Interface
 
 
-Read-only access to `/proc/<pid>/mounts` and mount propagation info. No D-Bus, no
-snap-name paths.
+**Code analysis:**
+- The connected-plug AppArmor (`mount_observe.go:42-76`) is read-only `@{PROC}`/`/proc`, `/sys`, `/etc/mtab`, `/etc/fstab`, `/run/mount/utab` introspection using AppArmor macros `@{PROC}`/`@{pid}`/`@{tid}`. `mountInfoSnippet` (`mount_observe.go:82-85`) adds `owner @{PROC}/@{pid}/mountinfo` and `@{PROC}/self/mountinfo`, added via `AddPrioritizedSnippet(..., MountInfoKey, ...)` (line 119).
+- **SNAP_NAME vs INSTANCE_NAME:** there is no `@{SNAP_NAME}`/`@{SNAP_INSTANCE_NAME}`/`SnapName()`/`InstanceName()`. The one snapd path variable that appears is `@{SNAP_COREUTIL_DIRS}df ixr,` (`mount_observe.go:48`), which expands to the coreutils binary dirs **inside the snap's own runtime** (a self/in-namespace path used to execute the bundled `df`), so the base/self view is correct here. No bug.
+- Seccomp adds `quotactl`, `listmount`, `statmount` (`mount_observe.go:87-100`). No D-Bus, no shared kernel named objects.
+- Slot is restricted to core only (`mount_observe.go:33-39`: `slot-snap-type: [core]`), implicit on core and classic (lines 107-108).
+
+**Reasoning:** This is read-only introspection of the calling process's own mount/quota info; there is no snap-name host path and no shared writable/singular resource, so parallel instances are independent readers with no snapd-level collision.
 
 **Verification:** Passed on noble. Test at `tests/main/interfaces-mount-observe`.
 
@@ -3957,8 +3978,14 @@ snap-name paths.
 **Type:** Observability/Diagnostics
 
 
-Read-only access to system info (D-Bus client to hostnamed/systemd, read /proc, /boot).
-No D-Bus ownership.
+**Code analysis:**
+- Slot is provided by core only (`system_observe.go:36-42`: `slot-snap-type: [core]`), implicit on core and classic (lines 264-265).
+- The connected-plug AppArmor (`system_observe.go:44-204`, added via `AppArmorConnectedPlug()` at 225-239) is broad **read-only** system/process observation: `ptrace (read)`, `@{PROC}/**`, `/sys/fs/cgroup/...`, `/var/lib/snapd/hostfs/{etc/os-release,usr/lib/os-release}`, `/boot/config*`.
+- **D-Bus is client-only:** `dbus (send)` to `org.freedesktop.hostname1` (lines 149-161), DBus daemon ListNames/GetMachineId (164-177), and systemd1 manager property/unit queries (181-196), all `peer=(label=unconfined)`. No `dbus (bind)`/`DBusPermanentSlot`/`<allow own>` — owns no name.
+- **Read-only `/boot` bind mount:** `MountPermanentPlug()` (`system_observe.go:241-257`) and the matching update-ns rules in `AppArmorConnectedPlug()` (lines 228-237) bind the host `/var/lib/snapd/hostfs/boot` onto `/boot` read-only.
+- **SNAP_NAME vs INSTANCE_NAME:** the mount source/target are fixed host paths (`/var/lib/snapd/hostfs/boot` → `/boot`), identical for every instance; no `@{SNAP_NAME}`/`@{SNAP_INSTANCE_NAME}`/`SnapName()`/`InstanceName()`/`ExpandSnapVariables()`. No bug. Seccomp adds `lsm_get_self_attr` (line 211).
+
+**Reasoning:** Read-only system/process observation. The D-Bus access is client-side only (no name ownership), and the `/boot` bind mount uses a fixed host path identical for every instance (mounted into each snap's own private namespace), so there is no instance-name collision and no shared mutable named resource.
 
 **Verification:** Passed on noble. Test at `tests/main/interfaces-system-observe`.
 
@@ -3973,12 +4000,17 @@ Capability-based: `kill` syscall, signal sending, priority changes. No paths, no
 **Verification:** Passed on noble. Test at `tests/main/interfaces-process-control`.
 
 ### gpg-keys
-**Status:** Plug-side: COMPATIBLE. Slot-side: N/A (system/core-provided slot; no parallel app slot providers in scope).
+**Status:** Plug-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE. Slot-side: N/A (system/core-provided slot; no parallel app slot providers in scope).
 
 **Type:** Identity/Credentials/Secrets
 
 
-Read/write access to `~/.gnupg/` (user file access). No D-Bus, no snap-name paths.
+**Code analysis:**
+- The connected-plug AppArmor (`gpg_keys.go:32-56`) allows running `gpg` (line 37), reading `owner @{HOME}/.gnupg/{,**}` (line 44), `rw` on the per-uid gpg-agent socket `owner /run/user/[0-9]*/gnupg/S.*` (line 42), and **writing** `owner @{HOME}/.gnupg/random_seed wk,` (line 55). It denies `~/.gnupg/trustdb.gpg w` (line 47).
+- **SNAP_NAME vs INSTANCE_NAME:** no snap-name interpolation — `@{HOME}` and `/run/user/[0-9]*` are per-user/per-uid paths resolved at runtime, not snap-name tokens. No D-Bus, seccomp, or udev. No bug.
+- Slot is restricted to core only (`gpg_keys.go:24-30`: `slot-snap-type: [core]`).
+
+**Reasoning:** There is no snap-name path, so the policy layer is parallel-safe. However, the interface writes the shared per-user `~/.gnupg/random_seed` (`wk`, line 55) and uses the shared per-uid gpg-agent socket (line 42); two parallel instances run by the same user both mutate that single user file. So this is compatible at the snapd layer but shares per-user GnuPG state (unlike `gpg-public-keys`, which only takes transient gpg lock files).
 
 **Verification:** Passed on noble. Test at `tests/main/interfaces-gpg-keys`.
 
@@ -3993,12 +4025,18 @@ Read access to public-key and config files, plus limited lock-file writes requir
 **Verification:** Passed on noble. Test at `tests/main/interfaces-gpg-public-keys`.
 
 ### removable-media
-**Status:** Plug-side: COMPATIBLE. Slot-side: N/A (system/core-provided slot; no parallel app slot providers in scope).
+**Status:** Plug-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE. Slot-side: N/A (system/core-provided slot; no parallel app slot providers in scope).
 
 **Type:** Filesystem/Mount Interface
 
 
-Access to `/media/`, `/run/media/`, `/mnt/` mount points. No D-Bus, no snap-name paths.
+**Code analysis:**
+- The connected-plug AppArmor (`removable_media.go:32-50`) is fixed host mount-point paths only: `/run/`, `/{,run/}media/`, `/{,run/}media/*/`, `/{,run/}media/*/**`, `/mnt/`, `/mnt/**`. The `*` is a user-name wildcard (comment at `removable_media.go:42`), not a snap name.
+- **SNAP_NAME vs INSTANCE_NAME:** there is no `@{SNAP_NAME}`/`@{SNAP_INSTANCE_NAME}`/`SnapName()`/`InstanceName()` anywhere; it is a plain `commonInterface` (`removable_media.go:52-60`). No bug.
+- No D-Bus, no shared kernel objects, no udev.
+- Slot is restricted to core only (`removable_media.go:24-30`: `slot-snap-type: [core]`), implicit on core and classic (lines 56-57).
+
+**Reasoning:** No snap-name path is involved, so the policy is identical for all instances and parallel-safe at the snapd layer. The `/media`, `/run/media`, `/mnt` mount points are shared host locations, so parallel instances reading/writing the same removable media contend over that shared resource — compatible at the snapd layer but sharing the host mount points.
 
 **Verification:** Passed on noble. Test at `tests/main/interfaces-removable-media`.
 
@@ -4013,12 +4051,12 @@ Device access to `/dev/kvm`. No D-Bus, no snap-name paths.
 **Verification:** Passed on noble. Test at `tests/main/interfaces-kvm`.
 
 ### raw-usb
-**Status:** Plug-side: COMPATIBLE. Slot-side: N/A (system/core/gadget-provided slot; no parallel app slot providers in scope).
+**Status:** Plug-side: COMPATIBLE. Slot-side: N/A (core-only slot; no parallel app slot providers possible).
 
 **Type:** Hardware Device Access
 
 
-Device access to `/dev/bus/usb/`, `/sys/bus/usb/`. No D-Bus, no snap-name paths.
+Device access to a generic class of USB devices: `/dev/bus/usb/[0-9][0-9][0-9]/[0-9][0-9][0-9]` (`raw_usb.go:35`), `/dev/tty{USB,ACM}[0-9]*`, `/dev/usb/lp[0-9]*`, plus USB sysfs and `/run/udev/data/...`. UDev tags `SUBSYSTEM=="usb"`/`usbmisc`/`tty ID_BUS==usb` (`raw_usb.go:68-72`, instance-aware via security tag); seccomp adds `socket AF_NETLINK - NETLINK_KOBJECT_UEVENT` (lines 60-66). No D-Bus, no snap-name paths. Slot is core only (`raw_usb.go:27-28`: `slot-snap-type: [core]`; the doc previously said core/gadget — gadget is NOT permitted).
 
 **Verification:** Passed on noble. Test at `tests/main/interfaces-raw-usb`.
 
@@ -4043,13 +4081,13 @@ Device access to `/dev/bus/usb/`, `/sys/bus/usb/`. No D-Bus, no snap-name paths.
 **Type:** System Control/Privileged Capability
 
 **Code analysis:**
-- Slot is provided by core only (lines 30-35), with implicit slot on classic (line 107).
-- AppArmor rules are D-Bus client-only and talk to the PackageKit daemon on the system bus (lines 44-100).
-- The transaction object paths are random, numeric/hex identifiers under `/[0-9]*_[0-9a-f...]` (lines 74-100), not snap-name-derived.
-- No snap-instance-specific paths, sockets, or mount operations are present.
-- No D-Bus ownership is granted; this interface only sends and receives on the PackageKit endpoints.
+- Slot is provided by core only (`packagekit_control.go:30-36`: `slot-snap-type: [core]`), with implicit slot on classic (line 107). The plug base declaration sets `allow-installation: false` (`packagekit_control.go:24-28`), so this is super-privileged and plug installation needs a snap-declaration.
+- The connected-plug AppArmor (`packagekit_control.go:38-101`) is a **system-bus** D-Bus client (`#include <abstractions/dbus-strict>`, line 42): `dbus (receive, send)` to `/org/freedesktop/PackageKit` (PackageKit, PackageKit.Offline, DBus.Properties, Introspectable) at lines 45-72, and to transaction object paths at lines 78-100, `peer=(label=unconfined)`.
+- The transaction object paths are random, numeric/hex identifiers (`/[0-9]*_[0-9a-f]{8}`, lines 80/85/91/97), not snap-name-derived.
+- **It owns no D-Bus name.** No `dbus (bind)`, no `DBusPermanentSlot`, no `<allow own>` (and no `peer=(name=...)` — purely label-based client access). This is a `commonInterface` with only `connectedPlugAppArmor` set (`packagekit_control.go:104-111`), so there is no slot-side code.
+- No `InstanceName()`/`SnapName()`/`ExpandSnapVariables()`/`LabelExpression()`, no hardcoded `/var/snap/<name>/` paths, no mount/seccomp/udev.
 
-**Reasoning:** PackageKit is a shared system service and the interface is just a D-Bus client. Parallel instances are ordinary concurrent clients talking to the same daemon, and the transaction object paths are generated by PackageKit itself rather than by snapd. No instance-naming issue is visible.
+**Reasoning:** PackageKit is a shared system service and the interface is just a system-bus D-Bus client. Parallel instances are ordinary concurrent clients talking to the same daemon; the transaction object paths are generated by PackageKit itself (not snapd), and the interface owns no bus name, so there is no snapd-level collision. The slot side is core-only, so parallel app-provided slots are not possible.
 
 **Verification:** No verification has yet been done.
 
@@ -4059,13 +4097,13 @@ Device access to `/dev/bus/usb/`, `/sys/bus/usb/`. No D-Bus, no snap-name paths.
 **Type:** Identity/Credentials/Secrets
 
 **Code analysis:**
-- Slot is provided by core only when the helper exists, and the interface is implicitly on core/classic depending on helper availability (line 142).
-- AppArmor rules allow registering with polkitd on the system bus and talking to accounts-daemon for UI prompts (lines 47-129).
-- The helper subprofile uses `@{SNAP_INSTANCE_NAME}` in the signal peer label (line 114), which is instance-aware.
-- The helper can read `/var/lib/extrausers/shadow` and `/var/lib/extrausers/gshadow`, but those are global system auth databases, not snap-scoped paths.
-- Seccomp only adds audit-related socket/bind permissions (lines 132-136).
+- Slot is provided by core only, plug install denied: plug base declaration `allow-installation: false` (`polkit_agent.go:28-32`), slot `slot-snap-type: core` (`polkit_agent.go:34-40`). `implicitOnCore` is set only when the polkit-agent helper binary exists (`polkit_agent.go:142`); there is no `implicitOnClassic` field.
+- The connected-plug AppArmor (`polkit_agent.go:47-129`) registers with polkitd on the system bus (`dbus (receive, send)` to `org.freedesktop.PolicyKit1.Authority`, lines 48-63), receives from `org.freedesktop.PolicyKit1.AuthenticationAgent` (lines 66-69), and talks to `org.freedesktop.Accounts` for UI prompts (lines 74-93). It is a **client** — there is no `dbus (bind)`/`<allow own>`, so it owns no bus name (it registers as an agent via a method call).
+- **SNAP_NAME vs INSTANCE_NAME (correct):** the helper subprofile (`polkit_agent.go:98-129`) uses `@{SNAP_INSTANCE_NAME}` in its signal peer label — `signal (receive) set=(term) peer=snap.@{SNAP_INSTANCE_NAME}.*,` (`polkit_agent.go:114`). This allows the setuid `polkit-agent-helper-1` to receive SIGTERM from the agent process whose AppArmor label is `snap.<instance>.<app>`. Because AppArmor labels are instance-decorated, using `@{SNAP_INSTANCE_NAME}` here is correct and required (base `@{SNAP_NAME}` would not match a keyed instance's label). No bug.
+- The helper can read `/var/lib/extrausers/shadow` and `/var/lib/extrausers/gshadow` (`polkit_agent.go:106-107`), but those are global system auth databases read-only, not snap-scoped paths.
+- Seccomp adds `bind` and `socket AF_NETLINK - NETLINK_AUDIT` (`polkit_agent.go:132-136`).
 
-**Reasoning:** The interface is about acting as a polkit agent, which is a client role. The only snap-instance-specific element is the helper signal peer label, and that uses `SNAP_INSTANCE_NAME` correctly. The shared auth databases and D-Bus service are system-wide resources, so parallel instances do not create snap-instance collisions in the interface code.
+**Reasoning:** The interface is about acting as a polkit agent, which is a client role with no bus-name ownership. The only snap-instance-specific element is the helper signal peer label, which correctly uses `@{SNAP_INSTANCE_NAME}`. The shared auth databases and polkitd are system-wide resources, so parallel instances do not create snap-instance collisions in the interface code (polkit honoring one registered agent per session at runtime is an operational concern, not a snapd-level one).
 
 **Verification:** No verification has yet been done.
 
@@ -4180,13 +4218,12 @@ Device access to `/dev/bus/usb/`, `/sys/bus/usb/`. No D-Bus, no snap-name paths.
 **Type:** Snapd/Policy Management
 
 **Code analysis:**
-- Slot is provided by core only (lines 30-35), with implicit slot on classic (line 128).
-- AppArmor rules talk to `com.canonical.UbuntuAdvantage` on the system bus and query the object hierarchy with `ObjectManager`, properties, and introspection (lines 38-121).
-- The interface is clearly designed around a single daemon service with a well-known bus name.
-- No snap-instance-specific paths are used; the only filesystem access is `/etc/ubuntu-advantage/uaclient.conf` (line 43).
-- No mount or shared-memory rules are present.
+- Slot is provided by core only (`ubuntu_pro_control.go:30-36`: `slot-snap-type: [core]`), with implicit slot on classic (line 128). The plug base declaration sets `allow-installation: false` (`ubuntu_pro_control.go:24-28`).
+- The connected-plug AppArmor (`ubuntu_pro_control.go:38-122`) is a **system-bus** D-Bus client (`#include <abstractions/dbus-strict>`, line 41): `dbus (send)` for ObjectManager.GetManagedObjects, Manager Attach/Detach, Services Enable/Disable, and Introspectable (all with `peer=(name=com.canonical.UbuntuAdvantage)`), plus `dbus (receive)` of PropertiesChanged/InterfacesAdded/Removed with `peer=(label=unconfined)`.
+- **It owns no D-Bus name.** No `dbus (bind)`, no `DBusPermanentSlot`, no `<allow own>`; `com.canonical.UbuntuAdvantage` appears only as a `send` peer destination (`name=...`), which is client addressing. This is a `commonInterface` with only `connectedPlugAppArmor` set (`ubuntu_pro_control.go:124-132`), so there is no slot-side code.
+- The only filesystem access is `/etc/ubuntu-advantage/uaclient.conf r,` (line 43) — a fixed system path, read-only, not snap-name-derived. No mount or shared-memory rules; no `InstanceName()`/`SnapName()`/`ExpandSnapVariables()`/`LabelExpression()`.
 
-**Reasoning:** Ubuntu Pro control is a client interface to a shared system daemon. Parallel consumers are fine; slot provider analysis is out of scope here because slot installation is core-only.
+**Reasoning:** Ubuntu Pro control is a system-bus client interface to a single shared system daemon. Parallel instances are independent clients; the interface owns no bus name and the one file rule is a read-only system path, so there is no snapd-level collision. The slot side is core-only, so parallel app-provided slots are not possible.
 
 **Verification:** No verification has yet been done.
 
@@ -4196,12 +4233,12 @@ Device access to `/dev/bus/usb/`, `/sys/bus/usb/`. No D-Bus, no snap-name paths.
 **Type:** Desktop/Graphics/Media Integration
 
 **Code analysis:**
-- Slot is provided by core only (lines 30-35), with implicit slot on core and classic (lines 69-70).
-- AppArmor rules grant session-bus access to the portal PermissionStore object at `/org/freedesktop/impl/portal/PermissionStore` (lines 38-63).
-- The interface is client-only: it sends and receives on the portal object but does not own a bus name.
-- No snap-instance-specific paths, sockets, or mount rules are present.
+- Slot is provided by core only (`xdg_portal_permission_store.go:30-36`: `slot-snap-type: [core]`), with implicit slot on core and classic (lines 69-70). The plug base declaration sets `allow-installation: false` (`xdg_portal_permission_store.go:24-28`).
+- The connected-plug AppArmor (`xdg_portal_permission_store.go:38-63`) is a **session-bus** D-Bus client (`#include <abstractions/dbus-session-strict>`, line 41): `dbus (receive, send)` to the fixed object path `/org/freedesktop/impl/portal/PermissionStore` via `org.freedesktop.impl.portal.PermissionStore`, `DBus.Properties`, `DBus.Peer`, `DBus.Introspectable`, all `bus=session`, `peer=(label=unconfined)`.
+- **It owns no D-Bus name.** No `dbus (bind)`, no `DBusPermanentSlot`, no `<allow own>`; access is by object path with `peer=(label=unconfined)`, no `name=` ownership. This is a `commonInterface` with only `connectedPlugAppArmor` set (`xdg_portal_permission_store.go:65-74`), so there is no slot-side code.
+- No `InstanceName()`/`SnapName()`/`ExpandSnapVariables()`/`LabelExpression()`, no hardcoded `/var/snap/<name>/` paths, no mount/seccomp/udev.
 
-**Reasoning:** This is a shared portal service on the session bus. Multiple parallel instances can safely access the same PermissionStore as concurrent clients. No instance naming or global-file conflict is visible.
+**Reasoning:** This is a shared portal service on the session bus. Multiple parallel instances can safely access the same PermissionStore at a fixed object path as concurrent clients; the permission data is held by the xdg-desktop-portal daemon, and the interface owns no bus name, so there is no snapd-level collision. The slot side is core-only, so parallel app-provided slots are not possible.
 
 **Verification:** No verification has yet been done.
 
@@ -4240,13 +4277,13 @@ Device access to `/dev/bus/usb/`, `/sys/bus/usb/`. No D-Bus, no snap-name paths.
 **Type:** System Control/Privileged Capability
 
 **Code analysis:**
-- Slot is provided by core only (lines 40-45), with explicit plug-installation restriction (lines 34-38).
-- AppArmor grants access to NVMe config files, sysfs, the fabrics character device, and NVMe controller/namespace nodes (lines 48-68).
-- UDev tags NVMe and nvme-fabrics devices (lines 70-73).
-- KMod module loading hints are declared for `nvme` and `nvme-tcp` (lines 79-82).
-- No snap-instance-specific names are used.
+- Slot is provided by core only (`nvme_control.go:40-46`: `slot-snap-type: [core]`), with an explicit plug-installation restriction `allow-installation: false` (`nvme_control.go:34-38`). Note the interface sets `implicitOnClassic: true` (`nvme_control.go:88`) but has NO `implicitOnCore`, so the slot is not implicitly present on Ubuntu Core.
+- AppArmor grants access to NVMe config files `/etc/nvme/*` (lines 50-52), sysfs (lines 55-58), the fabrics character device `/dev/nvme-fabrics` (line 63), and NVMe controller/namespace nodes `/dev/nvme[0-9]*`/`/dev/nvme[0-9]*n[0-9]*` (lines 66-67).
+- UDev tags NVMe and nvme-fabrics devices (`nvme_control.go:70-73`).
+- KMod module loading hints are declared for `nvme` and `nvme-tcp` (`nvme_control.go:79-82`).
+- **SNAP_NAME vs INSTANCE_NAME:** no snap-name interpolation — all paths are fixed device/sysfs/config paths. No D-Bus. No bug.
 
-**Reasoning:** NVMe is global storage hardware and the interface is device-path based. Parallel installs can access the same controllers/namespaces from separate snaps without snapd policy collision.
+**Reasoning:** NVMe is global storage hardware and the interface is device-path based with no snap-instance naming. Parallel installs can access the same controllers/namespaces from separate snaps without snapd policy collision; the shared devices are mediated by the kernel.
 
 **Verification:** No verification has yet been done.
 
