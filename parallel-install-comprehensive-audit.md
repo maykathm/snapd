@@ -14,6 +14,135 @@
 ## Executive Summary
 
 
+## App Feature Checklist
+
+Use this checklist when auditing a snap for parallel-install issues that do not come from
+interface policy itself. The recurring pattern is simple: if the app exposes or consumes
+a host-global identity, path, socket, or bus name, then parallel instances may still
+collide even when the interface layer is otherwise safe.
+
+### 1. Desktop file IDs
+**What to look for:** `desktop-file-ids` on the `desktop` plug, or app behavior that depends on a stable upstream desktop ID.
+
+**Why it is risky:** desktop file IDs live in a global desktop namespace under snapd's desktop applications directory. If two instances want the same unmangled desktop ID, only one can own that file name.
+
+**What snapd does today:** snapd preserves store-approved desktop file IDs as-is instead of mangling them per instance, and explicitly errors if the target file already belongs to another snap instance.
+
+**Where:** `interfaces/builtin/desktop.go`, `snap/info.go`, `wrappers/desktop.go`
+
+### 2. Common IDs
+**What to look for:** `common-id` in app metadata, or any portal / desktop integration flow that resolves an app through `CommonID` rather than the instance-specific desktop prefix.
+
+**Why it is risky:** `common-id` is intentionally a shared desktop identity. It is useful for portals and application matching, but parallel instances can still appear as the same logical app to components outside snapd.
+
+**What snapd does today:** snapd validates uniqueness only within one snap's app set. It can prefer a `common-id` desktop file when resolving the app's desktop entry.
+
+**Where:** `snap/validate.go`, `snap/info.go`, `cmd/snap/cmd_routine_portal_info.go`
+
+### 3. Desktop launcher and desktop-entry lookup
+**What to look for:** flows that launch apps by desktop file ID rather than by direct wrapper path, especially if the desktop ID is derived from a base snap name rather than the full instance name.
+
+**Why it is risky:** desktop launchers and desktop-entry lookup operate in a shared desktop namespace. If the lookup format cannot represent the instance-specific desktop file name, parallel instances become unlaunchable or ambiguous.
+
+**What snapd does today:** default desktop file generation is instance-aware, but some user-session desktop-launch paths still validate or resolve desktop IDs in ways that are not compatible with `+instance` desktop prefixes.
+
+**Where:** `snap/info.go`, `usersession/userd/privileged_desktop_launcher.go`, `wrappers/desktop.go`
+
+### 4. Autostart desktop files
+**What to look for:** apps using `autostart`, especially if more than one instance could install equivalent desktop entries or if the app assumes a single session startup identity.
+
+**Why it is risky:** autostart is a shared per-user desktop-session mechanism. Incorrect mapping between desktop file and wrapper can make the wrong instance start at login.
+
+**What snapd does today:** snapd matches the autostart desktop file back to the app and then rewrites execution to the instance-specific wrapper path, which avoids many collisions but still depends on correct desktop file identity.
+
+**Where:** `usersession/autostart/autostart.go`, `wrappers/desktop.go`
+
+### 5. Well-known D-Bus names
+**What to look for:** provider slots or daemons that bind a fixed session-bus or system-bus name, or app protocols built around a fixed D-Bus service identity.
+
+**Why it is risky:** well-known D-Bus names are global singleton identities on a bus. Parallel providers cannot both own the same name, and consumers may be routed to the wrong instance if AppArmor expects a different peer label.
+
+**What snapd does today:** connected plug/slot mediation is usually instance-aware, but the bus name itself is not rewritten per instance unless the interface or application explicitly does so.
+
+**Where:** `interfaces/builtin/dbus.go`, interface-specific provider code such as `interfaces/builtin/network_manager.go`, `interfaces/builtin/bluez.go`, `interfaces/builtin/udisks2.go`, and activation handling in `wrappers/dbus.go`
+
+### 6. D-Bus activation files
+**What to look for:** services started through D-Bus activation where the activation file name is derived from the bus name.
+
+**Why it is risky:** activation files are stored in a global `.service` namespace keyed by the bus name. Two parallel providers using the same D-Bus name overwrite or contend for the same activation entry.
+
+**What snapd does today:** activation files are named `busName + ".service"`, while the internal metadata tracks the owning snap instance separately.
+
+**Where:** `wrappers/dbus.go`
+
+### 7. `daemon: dbus`, `bus-name`, and `activates-on`
+**What to look for:** services using `daemon: dbus`, explicit `bus-name`, or `activates-on` links to D-Bus slots.
+
+**Why it is risky:** these features wire the daemon lifecycle directly to global bus identity and activation semantics. They are safe only if the bus identity itself is instance-safe.
+
+**What snapd does today:** validation checks daemon scope and interface consistency, but it does not invent a per-instance bus name.
+
+**Where:** `snap/validate.go`, `wrappers/internal/service_unit_gen.go`
+
+### 8. Abstract Unix socket names
+**What to look for:** socket activation or app runtime code using abstract socket names such as `@snap.<name>...`.
+
+**Why it is risky:** abstract socket names live in a global kernel namespace. If the app reuses the same suffix across instances, the sockets collide.
+
+**What snapd does today:** validation requires the prefix to be based on the snap name, not the full instance name, so applications need their own extra discriminator if multiple instances must coexist.
+
+**Where:** `snap/validate.go`
+
+### 9. Fixed TCP/UDP listen ports
+**What to look for:** daemons with fixed `listen-stream` network ports or app logic that assumes one exclusive port per machine.
+
+**Why it is risky:** host ports are a global resource. Even if snapd policy allows both instances to run, the second bind fails if both want the same address and port.
+
+**What snapd does today:** it validates the socket syntax, not whether the chosen port can be shared between parallel instances.
+
+**Where:** `snap/validate.go`
+
+### 10. Named shared memory objects
+**What to look for:** `shared-memory` in named mode, or application code that creates fixed `/dev/shm` objects outside a private namespace.
+
+**Why it is risky:** named SHM objects are kernel-global. Two instances using the same object name are reading and writing the same resource.
+
+**What snapd does today:** named shared-memory paths are used as declared, without automatic instance prefixing. Only private mode gets per-instance namespace isolation.
+
+**Where:** `interfaces/builtin/shared_memory.go`
+
+### 11. POSIX message queue names
+**What to look for:** `posix-mq` slots using fixed queue paths like `/queue-name`, or applications that assume one global MQ name.
+
+**Why it is risky:** POSIX message queues are kernel-global objects. Matching queue names from parallel instances refer to the same queue.
+
+**What snapd does today:** queue paths are taken directly from slot attributes, while peer-label mediation remains instance-aware. That means the queue resource itself, not the peer label, becomes the collision point.
+
+**Where:** `interfaces/builtin/posix_mq.go`
+
+### 12. Session service identity surfaces such as MPRIS and notifications
+**What to look for:** app-visible names exposed to the desktop session, for example MPRIS service names or notification desktop-entry attribution.
+
+**Why it is risky:** even when these do not hard-fail like D-Bus provider collisions, they can cause the desktop to group, route, or display multiple instances as though they were one app.
+
+**What snapd does today:** some paths are explicitly instance-aware, such as MPRIS defaulting to `SNAP_INSTANCE_NAME`, while others depend on which desktop ID the caller supplies.
+
+**Where:** `interfaces/builtin/mpris.go`, `desktop/notification/fdo.go`
+
+### Quick audit rule of thumb
+
+If the feature is built around a fixed external name, ask whether that name is:
+
+- per instance
+- per user session
+- per host
+- or truly global in the kernel / bus / filesystem namespace
+
+If it is host-global or kernel-global and the application expects exclusive ownership,
+parallel installs are usually either not compatible or only compatible with a shared
+resource caveat.
+
+
 
 ---
 
@@ -435,6 +564,8 @@
 - The implementation is careful about per-snap naming, but the well-known bus name still represents a provider identity.
 
 **Reasoning:** Parallel plug instances work as independent MPRIS clients. Parallel slot instances work correctly because the D-Bus well-known name uses `SNAP_INSTANCE_NAME` by default (e.g., `org.mpris.MediaPlayer2.snap_foo` vs `org.mpris.MediaPlayer2.snap`). The interface code explicitly supports per-instance naming, preventing D-Bus name collisions between parallel provider instances.
+
+**App-level caveat:** Applications that override the default `name` attribute with a fixed value (instead of accepting the instance-aware default) will create D-Bus name collisions between parallel instances. Apps should either use the default or incorporate instance-specific identifiers if parallel instances are intended.
 
 **Verification:** No verification has yet been done.
 
@@ -1108,6 +1239,8 @@ PASSED on noble.
 - Slot is restricted to core only (slot-snap-type: [core]).
 
 **Reasoning:** This is a network capability interface. Parallel plug instances can each bind different ports without conflicts. The slot side is core-only, so parallel app-provided slots are not possible.
+
+**App-level caveat:** Applications that declare fixed `listen-stream` ports in snap.yaml or hardcode specific TCP/UDP ports in their code will encounter port conflicts if parallel instances try to bind the same port. Apps should use dynamic port allocation or configuration-based ports if parallel instances are intended.
 
 **Verification:**
 PASSED on noble.
@@ -2467,9 +2600,53 @@ This is the most well-documented incompatibility:
 - Slot-side permanent policy includes binding well-known desktop service names such as `org.gnome.Shell{,.*}` and `org.gnome.SettingsDaemon{,.*}` (`interfaces/builtin/desktop.go:567-580`).
 - Document portal behavior is instance-scoped (`$XDG_RUNTIME_DIR/doc/by-app/snap.<instance>`) and mounted into each snap namespace, which isolates parallel instances at the portal mount layer (`interfaces/builtin/desktop.go:737`, `interfaces/builtin/desktop.go:760-765`).
 
-**Reasoning:** Consumer snaps are parallel-install safe, including the document-portal mount path that is keyed by instance name. Provider snaps attempting to act as a full desktop session service hit singleton D-Bus ownership constraints.
+**Reasoning:** Consumer snaps are parallel-install safe at the interface layer, including the document-portal mount path that is keyed by instance name. Provider snaps attempting to act as a full desktop session service hit singleton D-Bus ownership constraints.
 
-**Verification:** Passed on noble for document-portal mount behavior.
+**App-level caveat (desktop file IDs):** Applications using the `desktop-file-ids` attribute to register specific desktop file IDs may encounter collisions. Snapd preserves store-approved desktop file IDs as-is instead of mangling them per instance (`wrappers/desktop.go:362-369`), and explicitly errors if the target file already belongs to another snap instance. Apps should avoid requesting fixed desktop IDs if parallel instances are intended.
+
+**App-level caveat (desktop session integration — icon/window matching):** Even when the interface layer and desktop file generation work correctly, parallel instances can still be misrendered by the desktop shell. This is a known, observable bug.
+
+*Reproduction (Firefox):*
+```
+snap set system experimental.parallel-instances=true
+snap install firefox
+snap install firefox firefox_beta
+snap refresh firefox_beta --beta
+snap run firefox        # dock button shows correct firefox icon, matches window
+snap run firefox_beta   # dock button shows a GENERIC COG icon, does not match correctly
+```
+
+*Background — two distinct instance-naming schemes are involved.* `Info.DesktopPrefix()` (`snap/info.go:975-982`) deliberately substitutes `_` with `+` because the desktop file name already uses `_` to separate `<prefix>_<appname>`:
+```go
+// snap/info.go:975-982
+func (s *Info) DesktopPrefix() string {
+    if s.InstanceKey == "" {
+        return s.SnapName()
+    }
+    return fmt.Sprintf("%s+%s", s.SnapName(), s.InstanceKey)
+}
+```
+This is why the installed files are named:
+- `/var/lib/snapd/desktop/applications/firefox_firefox.desktop` (instance `firefox`)
+- `/var/lib/snapd/desktop/applications/firefox+beta_firefox.desktop` (instance `firefox_beta`)
+
+The desktop file *names* are therefore instance-safe and do not collide. The breakage is in the desktop-entry *contents* that the shell relies on for window/icon association.
+
+*Root cause — `StartupWMClass` is not rewritten per instance.* Inspecting Firefox's installed base-instance file shows:
+```
+X-SnapInstanceName=firefox
+Icon=/snap/firefox/current/default256.png
+StartupWMClass=firefox_firefox
+```
+The `StartupWMClass` value (`firefox_firefox`) comes verbatim from the snap's own source desktop file (`/snap/firefox/current/meta/gui/firefox.desktop`). `StartupWMClass=` is in the allowlist of permitted desktop-file lines (`wrappers/desktop.go:99`) but is **passed through completely unrewritten** — there is no per-instance handling for it anywhere in `wrappers/desktop.go` or `snap/info.go`. Consequently the `firefox+beta_firefox.desktop` entry carries the **same** `StartupWMClass=firefox_firefox` as the base instance. When the `firefox_beta` window appears, the shell uses `StartupWMClass` to associate the window with a desktop entry, but the value is ambiguous (shared with the base instance), so the shell cannot bind the window to the `firefox_beta` entry. The result is a dock button that fails to resolve the correct entry/icon and falls back to a generic icon.
+
+*Icon path note.* The `Icon=${SNAP}/default256.png` source line is expanded using the instance-specific mount dir (`wrappers/desktop.go:229-232`, where `${SNAP}` becomes `s.MountDir()/../current`), so `firefox_beta` correctly gets `Icon=/snap/firefox_beta/current/default256.png`. The icon *path* is therefore correct; the visible generic-icon symptom is downstream of the failed window-to-entry association via `StartupWMClass`, not a wrong icon path. (Note: `rewriteIconLine()` at `wrappers/desktop.go:157-185` only rewrites themed `Icon=snap.<snapname>.*` references to the instance name; absolute `${SNAP}/...` paths are handled by the `${SNAP}` substitution above instead.)
+
+*Net effect:* desktop-file naming is instance-safe, but the **session-level identity** the shell uses for window matching (`StartupWMClass`) is not instance-aware, so parallel GUI instances can be visually indistinguishable or mis-iconed. This is a session-integration limitation, not an interface-policy incompatibility, which is why the plug-side status remains COMPATIBLE while this visual/UX bug is called out separately. A complete fix would require snapd (and/or the app) to emit a per-instance `StartupWMClass` and for the app's runtime WM class to match it.
+
+*Relevant code:* `snap/info.go:975-982` (DesktopPrefix `+` mangling), `wrappers/desktop.go:99` (StartupWMClass allowlisted but not rewritten), `wrappers/desktop.go:229-232` (`${SNAP}` expansion uses instance mount dir), `wrappers/desktop.go:157-185` (themed icon rewriting), `wrappers/icons.go:68-92` (themed icon file install/rename with `_`).
+
+**Verification:** Passed on noble for document-portal mount behavior. Desktop session icon/window matching for parallel instances is a known failing case (see Firefox reproduction above); not yet covered by an automated test.
 
 ### egl-driver-libs
 **Status:** Plug-side: N/A (system/core plug only on classic; parallel app plugs out of scope). Slot-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE.
