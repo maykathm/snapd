@@ -2,6 +2,7 @@
 
 import argparse
 import csv
+import re
 from pathlib import Path
 
 
@@ -35,8 +36,10 @@ def parse_interfaces(markdown_text):
             i += 1
             continue
 
+        iface_name = line[4:].strip()
         i += 1
-        status = ""
+        plug_status = ""
+        slot_status = ""
         iface_type = ""
         code_analysis_lines = []
         reasoning_lines = []
@@ -52,7 +55,11 @@ def parse_interfaces(markdown_text):
                 break
 
             if stripped.startswith("**Status:**"):
-                status = stripped[len("**Status:**") :].strip()
+                status_text = stripped[len("**Status:**") :].strip()
+                plug_match = re.search(r"Plug-side:\s*(.*?)(?:\s*\.\s*Slot-side:|$)", status_text)
+                slot_match = re.search(r"Slot-side:\s*(.*)", status_text)
+                plug_status = plug_match.group(1).strip() if plug_match else status_text
+                slot_status = slot_match.group(1).strip().rstrip(".") if slot_match else ""
                 state = None
                 i += 1
                 continue
@@ -93,7 +100,9 @@ def parse_interfaces(markdown_text):
 
         rows.append(
             {
-                "Status": status,
+                "Interface": iface_name,
+                "Plug-side status": plug_status,
+                "Slot-side status": slot_status,
                 "Type": iface_type,
                 "Code analysis": normalize_block(code_analysis_lines),
                 "Reasoning": normalize_block(reasoning_lines),
@@ -131,7 +140,7 @@ def main():
     with output_path.open("w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(
             f,
-            fieldnames=["Status", "Type", "Code analysis", "Reasoning", "Verification"],
+            fieldnames=["Interface", "Plug-side status", "Slot-side status", "Type", "Code analysis", "Reasoning", "Verification"],
         )
         writer.writeheader()
         writer.writerows(rows)

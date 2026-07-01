@@ -560,34 +560,33 @@ resource caveat.
 **Verification:** No verification has yet been done.
 
 ### fwupd
-**Status:** Plug-side: not separately classified in this entry. Slot-side: NOT COMPATIBLE.
+**Status:** Plug-side: COMPATIBLE. Slot-side: NOT COMPATIBLE.
 
 **Type:** D-Bus Service/Provider
 
 
 **Code analysis:**
-- Permanent slot rules bind `org.freedesktop.fwupd` on the system bus.
-- The slot side carries extensive privileged access to firmware, EFI variables, TPM, MEI, NVMe, USB, and systemd D-Bus control paths.
-- The plug side uses D-Bus as a client to query/stop fwupd and inspect systemd state.
-- The interface is explicitly a service interface with privileged system access.
+- The connected-plug AppArmor (`fwupd.go:262-334`) is a **system-bus** D-Bus client: `dbus (receive, send)` to the fwupd service at `path=/ interface=org.freedesktop.fwupd` and `org.freedesktop.DBus.Properties` (lines 293-303), plus send-only Introspect (lines 307-312) and read-only queries to `org.freedesktop.systemd1` (lines 314-333). The peer is `###SLOT_SECURITY_TAGS###` for the fwupd service and `unconfined` for systemd1.
+- **The plug owns no D-Bus name.** The only `dbus (bind) bus=system name="org.freedesktop.fwupd"` (line 197-199) and `<allow own="org.freedesktop.fwupd"/>` (`fwupd.go:369`) live in `fwupdPermanentSlotAppArmor`/`fwupdPermanentSlotDBus`, applied only to the slot provider and guarded by `!implicitSystemPermanentSlot(slot)` (`AppArmorPermanentSlot()` line 453, `DBusPermanentSlot()` line 431).
+- `AppArmorConnectedPlug()` substitutes `###SLOT_SECURITY_TAGS###` with `slot.LabelExpression()` on Core / `unconfined` for the implicit system slot (`fwupd.go:437-448`), so the peer label is instance-aware. Connected seccomp is just `bind` (`fwupd.go:388-392`). No `SnapName()`/`InstanceName()`/`ExpandSnapVariables()` and no hardcoded `/var/snap/<name>/` paths on the plug side.
 
-**Reasoning:** parallel instances cannot both act as the fwupd service. As a client interface, multiple instances should be fine, but the service-provider side is a hard singleton.
+**Reasoning:** As a client interface, fwupd behaves like other system-bus D-Bus consumers (`avahi-observe`, `network-manager` plug side): the plug owns no well-known name, uses instance-aware peer labels, and just sends to / receives from the fwupd service, so parallel plug instances have no snapd-level collision — plug side is COMPATIBLE. The slot side remains a hard singleton: a provider snap binds/owns `org.freedesktop.fwupd` (`fwupd.go:197-199`, `:369`), which two parallel provider instances cannot both hold, so slot side is NOT COMPATIBLE (and N/A for the implicit system slot).
 
 **Verification:** No verification has yet been done.
 
 ### maliit
-**Status:** Plug-side: not separately classified in this entry. Slot-side: NOT COMPATIBLE.
+**Status:** Plug-side: COMPATIBLE. Slot-side: NOT COMPATIBLE.
 
 **Type:** D-Bus Service/Provider
 
 
 **Code analysis:**
-- The slot binds the well-known session-bus name `org.maliit.server`.
-- After address negotiation, communication moves to a private per-client Unix socket under `@/tmp/maliit-server/dbus-*`.
-- The plug and slot both use D-Bus and per-client socket rules, but the address service itself is the singleton.
-- The code is explicitly structured around one server brokering individual client channels.
+- The slot is app-only (`maliit.go:33-40`: `allow-installation: slot-snap-type: [app]`, `deny-connection`, `deny-auto-connection`).
+- The connected-plug AppArmor (`maliit.go:97-119`) is a **session-bus** client: `dbus (send)` to the address service `org.maliit.Server.Address` at `/org/maliit/server/address` (lines 105-115), plus a peer-to-peer `unix (send, receive, connect)` to the per-client socket `@/tmp/maliit-server/dbus-*` (line 118). Both use `peer=(label=###SLOT_SECURITY_TAGS###)`.
+- **The plug owns no D-Bus name.** The only `dbus (bind) bus=session name="org.maliit.server"` (`maliit.go:64-66`) and the `unix (bind, listen, accept)` for the peer-to-peer socket (line 75) live in `maliitPermanentSlotAppArmor`, applied to the slot provider via `AppArmorPermanentSlot()` (line 153).
+- `AppArmorConnectedPlug()` substitutes `###SLOT_SECURITY_TAGS###` with `slot.LabelExpression()` (`maliit.go:140-145`), which is instance-aware. The per-client peer-to-peer socket (`@/tmp/maliit-server/dbus-*`) is negotiated at runtime and matched by peer label, not by snap name. No `InstanceName()`/`SnapName()` and no hardcoded `/var/snap/<name>/` paths on the plug side.
 
-**Reasoning:** parallel consumers are fine, but parallel providers cannot both own the Maliit server name.
+**Reasoning:** The Maliit design brokers each client onto its own private peer-to-peer socket, so on the plug side a client just talks to the address service and then to its own socket with instance-aware peer labels, owning no name — parallel plug (consumer) instances do not collide, so plug side is COMPATIBLE. The slot side binds the singleton well-known name `org.maliit.server` (`maliit.go:64-66`); two parallel provider instances cannot both own it, so slot side is NOT COMPATIBLE.
 
 **Verification:** No verification has yet been done.
 
@@ -610,7 +609,7 @@ resource caveat.
 **Verification:** No verification has yet been done.
 
 ### pipewire
-**Status:** Plug-side: COMPATIBLE. Slot-side: not separately classified in this entry (provider behavior out of scope here).
+**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE (permanent-slot socket names `pipewire-[0-9]`/`pipewire-[0-9]-manager` are fixed per user session, not instance-keyed, so two parallel providers in the same session contend over the same runtime socket name).
 
 **Type:** Daemon/Socket Client
 
@@ -623,9 +622,9 @@ resource caveat.
   - `###SLOT_INSTANCE_NAME###` is replaced with `slot.Snap().InstanceName()` (line 96), producing `/var/snap/<SLOT_INSTANCE_NAME>/common/pipewire-[0-9]` for system mode (template line 52).
 - The slot provider creates sockets at `/run/user/[0-9]*/pipewire-[0-9]` and `/run/user/[0-9]*/pipewire-[0-9]-manager` (`pipewirePermanentSlotAppArmor`, lines 68-69).
 - No D-Bus name ownership (no `dbus (bind)`/`DBusPermanentSlot`). Shared memory is handled via the `shmctl` seccomp syscall (plug line 56; permanent slot line 80), not a `/dev/shm` path rule.
-
 **Reasoning:** The plug-side correctly uses `slot.Snap().InstanceName()` (lines 93, 96) for instance-aware path resolution when connecting to an app-provided slot, so there is no base-snap-name hardcoding and no snapd-level collision. Multiple parallel plug instances connecting to the same PipeWire server (system or snap-provided) is the normal multi-client audio pattern, so the plug side is COMPATIBLE.
-The slot side is out of scope for this entry, but note: the permanent-slot socket names (`pipewire-0`, etc., lines 68-69) are fixed and not instance-keyed, so two parallel slot providers in the same user session would contend over the same runtime socket name — a session/host shared-resource contention, not a snapd identifier collision.
+
+The slot side is parallel-safe at the snapd policy layer — there is no `SNAP_NAME`-vs-`INSTANCE_NAME` bug and no D-Bus name ownership — but the permanent-slot socket names (`pipewire-0`, etc., lines 68-69) are fixed and not instance-keyed, so two parallel slot providers in the same user session would contend over the same runtime socket name. That is a session/host shared-resource contention rather than a snapd identifier collision, so the slot side is COMPATIBLE EXCEPT FOR SHARED RESOURCE.
 
 **Verification:** No verification has yet been done.
 
@@ -786,7 +785,6 @@ The `cups` interface (distinct from `cups-control`) lets a provider snap expose 
 
 **Verification:** No verification has yet been done.
 
-### microovn
 ### microovn
 **Status:** Plug-side: COMPATIBLE. Slot-side: NOT COMPATIBLE.
 
@@ -1137,7 +1135,7 @@ The `cups` interface (distinct from `cups-control`) lets a provider snap expose 
 PASSED on noble.
 
 ### pulseaudio
-**Status:** Plug-side: COMPATIBLE. Slot-side: not separately classified in this entry (provider behavior out of scope here).
+**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE (the permanent slot's native socket `/{,var/}run/pulse/native` and the `pulse-shm-*` shared-memory name are fixed, not instance-keyed, so two parallel PA-server providers contend over the same session/host resources).
 
 **Type:** Daemon/Socket Client
 
@@ -1157,8 +1155,7 @@ PASSED on noble.
 **Reasoning:** PulseAudio is designed for multiple simultaneous clients. The shared
 memory segments (`pulse-shm-*`) are created by the PA server and shared with all
 connected clients -- having two snap instances connect as clients is no different from
-having two different snaps connect. The plug-side uses `slot.Snap().InstanceName()` (line 164) for app-provided slots, so there is no base-snap-name hardcoding and no snapd-level collision; the plug side is COMPATIBLE. Slot-side (running multiple PA servers) would
-contend over the fixed native socket / `pulse-shm-*` SHM name, but that is shared-session/host contention, not a parallel-install identifier bug.
+having two different snaps connect. The plug-side uses `slot.Snap().InstanceName()` (line 164) for app-provided slots, so there is no base-snap-name hardcoding and no snapd-level collision; the plug side is COMPATIBLE. Slot-side (running multiple PA servers) is parallel-safe at the snapd policy layer, but the permanent slot's native socket `/{,var/}run/pulse/native` (`pulseaudio.go:114-115`) and the shared-memory name `pulse-shm-*` (line 118) are fixed and not instance-keyed, so two parallel PA-server providers would contend over the same session/host resources. That is shared-session/host contention, not a parallel-install identifier bug, so the slot side is COMPATIBLE EXCEPT FOR SHARED RESOURCE.
 
 **Previous audit errors**:
 - Claimed "Global D-Bus name binding" -- INCORRECT. No D-Bus is used.
@@ -1169,7 +1166,7 @@ PASSED on noble.
 
 
 ### x11
-**Status:** Plug-side: COMPATIBLE. Slot-side: not separately classified in this entry (provider behavior out of scope here).
+**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE (the permanent-slot X socket `@/tmp/.X11-unix/X[0-9]*` is keyed by display number in a global abstract-socket namespace, not by snap instance, so parallel X-server providers must coordinate distinct display numbers).
 
 **Type:** Desktop/Graphics/Media Integration
 
@@ -1182,8 +1179,9 @@ PASSED on noble.
 - `AppArmorConnectedPlug()` substitutes `###PLUG_SECURITY_TAGS###` with `plug.LabelExpression()` (`x11.go:234-235`), which uses `InstanceName()`, so cross-instance peer matching is correct.
 
 **Reasoning:** When a plug connects to a specific slot, the mount namespace setup
-correctly isolates the socket sharing using the slot's **instance** name for the host-side private-tmp source (`x11.go:194-197`), and peer labels via `LabelExpression()` are instance-aware. Parallel instances of a client snap each get their own mount namespace entry. Parallel instances of a server snap would use different
-display numbers. No `SNAP_NAME`-vs-`INSTANCE_NAME` bug is present.
+correctly isolates the socket sharing using the slot's **instance** name for the host-side private-tmp source (`x11.go:194-197`), and peer labels via `LabelExpression()` are instance-aware. Parallel instances of a client snap each get their own mount namespace entry, so the plug side is COMPATIBLE with no `SNAP_NAME`-vs-`INSTANCE_NAME` bug.
+
+The slot side is parallel-safe at the snapd policy layer (the permanent-slot rule and the connected-slot peer label are identical for each keyed instance and match by display-number pattern + `plug.LabelExpression()`), but the X server socket `@/tmp/.X11-unix/X[0-9]*` (`x11.go:70-72`) is bound by **display number** in the global abstract-socket namespace, not by snap instance. Two parallel X-server providers must therefore use different display numbers (X0, X1) to coexist — a shared X11 session-namespace resource that must be coordinated, not a snapd identifier collision. So the slot side is COMPATIBLE EXCEPT FOR SHARED RESOURCE.
 
 **Verification:**
 PASSED on noble (parallel instances communicate correctly via
@@ -1192,7 +1190,7 @@ PASSED on noble (parallel instances communicate correctly via
 
 
 ### wayland
-**Status:** Plug-side: COMPATIBLE. Slot-side: not separately classified in this entry (provider behavior out of scope here).
+**Status:** Plug-side: COMPATIBLE. Slot-side: COMPATIBLE EXCEPT FOR SHARED RESOURCE (the permanent-slot compositor socket `/run/user/[0-9]*/wayland-[0-9]*` is keyed by display number per user session, not by snap instance, so parallel compositor providers must coordinate distinct `WAYLAND_DISPLAY` numbers).
 
 **Type:** Desktop/Graphics/Media Integration
 
@@ -1205,8 +1203,9 @@ PASSED on noble (parallel instances communicate correctly via
 
 **Reasoning:** Wayland is inherently multi-client. Multiple snap instances connecting as
 clients to the same compositor is functionally identical to having multiple different
-snaps as clients. The connected-slot rules key the per-instance XDG_RUNTIME_DIR subdir and `/dev/shm` IPC objects by `plug.Snap().InstanceName()` (`wayland.go:154`), so parallel client instances are correctly isolated — no `SNAP_NAME`-vs-`INSTANCE_NAME` bug. Slot-side (running multiple compositors) would require coordination
-over socket naming but is out of scope for parallel installs of a client snap.
+snaps as clients. The connected-slot rules key the per-instance XDG_RUNTIME_DIR subdir and `/dev/shm` IPC objects by `plug.Snap().InstanceName()` (`wayland.go:154`), so parallel client instances are correctly isolated — the plug side is COMPATIBLE with no `SNAP_NAME`-vs-`INSTANCE_NAME` bug.
+
+The slot side is parallel-safe at the snapd policy layer, but the compositor's own socket `/run/user/[0-9]*/wayland-[0-9]*` (`wayland.go:56`) is created by **display number** per user session, not by snap instance. Two parallel compositor providers must therefore use different `WAYLAND_DISPLAY` numbers (`wayland-0`, `wayland-1`) to coexist — a shared per-session namespace resource that must be coordinated, not a snapd identifier collision. So the slot side is COMPATIBLE EXCEPT FOR SHARED RESOURCE.
 
 **Previous audit errors**:
 - Claimed "NOT COMPATIBLE" due to "Shared memory" and "Global socket paths" -- INCORRECT
@@ -1305,14 +1304,19 @@ PASSED on noble.
 
 
 ### network-manager
-**Status:** Plug-side: not separately classified in this entry. Slot-side: NOT COMPATIBLE.
+**Status:** Plug-side: COMPATIBLE. Slot-side: NOT COMPATIBLE.
 
 **Type:** D-Bus Service/Provider
 
 
 **Code analysis:**
-The network-manager interface is a system singleton service with multiple fatal conflicts
-for parallel installs:
+The plug side is a system-bus D-Bus **client** and is parallel-safe; the slot side is a system singleton service with multiple fatal conflicts for parallel installs.
+
+**Plug side (COMPATIBLE):**
+- The connected-plug AppArmor (`network_manager.go:311-340`) is `dbus (receive, send)` to `/org/freedesktop/NetworkManager{,/**}` and `org.freedesktop.DBus.ObjectManager`, with `peer=(label=###SLOT_SECURITY_TAGS###)`. There is no `dbus (bind)` on the plug side — it owns no name.
+- `AppArmorConnectedPlug()` substitutes `###SLOT_SECURITY_TAGS###` with `slot.LabelExpression()` on Core / `unconfined` on classic (`network_manager.go:543-560`), so the peer label is instance-aware. This is the same pure-client pattern as `avahi-observe`/`network-manager-observe`, so parallel plug instances have no snapd-level collision.
+
+**Slot side (NOT COMPATIBLE):**
 
 1. **D-Bus well-known name ownership** (`network_manager.go:196-202`): The permanent slot
    AppArmor rules hardcode `dbus (bind) bus=system name="org.freedesktop.NetworkManager"`.
@@ -1595,19 +1599,18 @@ This is the most well-documented incompatibility:
 **Verification:** No verification has yet been done.
 
 ### media-hub
-**Status:** Plug-side: not separately classified in this entry. Slot-side: NOT COMPATIBLE.
+**Status:** Plug-side: COMPATIBLE. Slot-side: NOT COMPATIBLE.
 
 **Type:** D-Bus Service/Provider
 
 
 **Code analysis:**
-- The permanent slot binds the well-known session-bus name `core.ubuntu.media.Service` (lines 64-68).
-- The slot AppArmor rules also allow request/release-name operations on the session bus and talk to unconfined clients for the service path (lines 49-99).
-- The connected slot and plug rules both key access on the security label of the opposite side, but the actual service name remains a singleton resource (lines 102-152).
-- The interface exposes session management and MPRIS-like APIs over the same well-known bus object paths.
-- No snap-instance-specific filesystem paths are used.
+- The slot is app-providable (`media_hub.go:33-41`: `allow-installation: slot-snap-type: [app, core]`, `deny-connection: on-classic: false`).
+- The connected-plug AppArmor (`media_hub.go:126-152`) is a **session-bus** client to `/core/ubuntu/media/Service{,/**}`: `dbus (receive, send)` for Properties, send-only Introspect, and `dbus (send)` to `core.ubuntu.media.Service{,.*}` for managing Player sessions. All use `peer=(label=###SLOT_SECURITY_TAGS###)`.
+- **The plug owns no D-Bus name.** The `dbus (bind) bus=session name="core.ubuntu.media.Service"` (`media_hub.go:65-67`) lives only in `mediaHubPermanentSlotAppArmor`, applied to the slot provider via `AppArmorPermanentSlot()` (line 180).
+- `AppArmorConnectedPlug()` substitutes `###SLOT_SECURITY_TAGS###` with `slot.LabelExpression()` (`media_hub.go:173-177`), which is instance-aware. No `InstanceName()`/`SnapName()` and no hardcoded `/var/snap/<name>/` paths on the plug side. The permanent slot binds the well-known session-bus name `core.ubuntu.media.Service` (lines 64-68).
 
-**Reasoning:** Media Hub is a D-Bus service provider interface. Parallel consumers are fine, but parallel providers cannot both own the same well-known service name, so the slot side is a singleton conflict.
+**Reasoning:** Media Hub is a D-Bus service provider interface. On the plug side it is a pure session-bus client that owns no name and uses instance-aware peer labels, so parallel consumers each talk to the media service independently with no snapd-level collision — plug side is COMPATIBLE. Parallel providers cannot both own the well-known session-bus name `core.ubuntu.media.Service`, so the slot side is a singleton conflict (NOT COMPATIBLE).
 
 **Verification:** No verification has yet been done.
 
@@ -1628,23 +1631,23 @@ This is the most well-documented incompatibility:
 **Verification:** No verification has yet been done.
 
 ### storage-framework-service
-**Status:** Plug-side: not separately classified in this entry. Slot-side: NOT COMPATIBLE.
+**Status:** Plug-side: COMPATIBLE. Slot-side: NOT COMPATIBLE.
 
 **Type:** D-Bus Service/Provider
 
 
 **Code analysis:**
-- The permanent slot binds `com.canonical.StorageFramework.Registry` and `com.canonical.StorageFramework.Provider.*` on the session bus (lines 55-73).
-- The slot AppArmor also writes to `/sys/kernel/security/apparmor/.access` and reads `/sys/module/apparmor/parameters/enabled` and `/proc/*/mounts` as part of policy introspection (lines 42-54).
-- Connected slot and plug rules are client-only and use label expressions for peer mediation (lines 75-109).
-- The service name is the actual singleton resource; the path patterns are not instance-scoped.
+- The slot is app-only (`storage_framework_service.go:33-40`: `allow-installation: slot-snap-type: [app]`, `deny-connection`, `deny-auto-connection`).
+- The connected-plug AppArmor (`storage_framework_service.go:93-109`) is a **session-bus** client: `dbus (receive, send)` to `com.canonical.StorageFramework.Registry` at `/com/canonical/StorageFramework/Registry` and to `com.canonical.StorageFramework.Provider.*` at `/provider/*`, both with `peer=(label=###SLOT_SECURITY_TAGS###)`.
+- **The plug owns no D-Bus name.** The `dbus (bind)` for `com.canonical.StorageFramework.Registry` and `com.canonical.StorageFramework.Provider.*` (`storage_framework_service.go:66-72`), and the privileged AppArmor-introspection paths (`/sys/kernel/security/apparmor/.access` etc., lines 51-53), live only in `storageFrameworkServicePermanentSlotAppArmor`, applied to the slot provider via `AppArmorPermanentSlot()` (line 137).
+- `AppArmorConnectedPlug()` substitutes `###SLOT_SECURITY_TAGS###` with `slot.LabelExpression()` (`storage_framework_service.go:128-134`), which is instance-aware. No `InstanceName()`/`SnapName()` and no hardcoded `/var/snap/<name>/` paths on the plug side. The service names are the actual singleton resources; the path patterns are not instance-scoped.
 
-**Reasoning:** This is a D-Bus service provider interface. Parallel consumers are fine, but parallel providers cannot both own the registry/provider bus names.
+**Reasoning:** This is a D-Bus service provider interface. On the plug side it is a pure session-bus client that owns no name and uses instance-aware peer labels, so parallel consumers are independent clients with no snapd-level collision — plug side is COMPATIBLE. Parallel providers cannot both own the registry/provider bus names, so the slot side is NOT COMPATIBLE.
 
 **Verification:** No verification has yet been done.
 
 ### unity8
-**Status:** Plug-side: COMPATIBLE. Slot-side: not separately classified in this entry (provider behavior out of scope here).
+**Status:** Plug-side: COMPATIBLE. Slot-side: N/A (the interface contributes no slot-side policy and binds no well-known name of its own; a provider's actual name ownership would come from other interfaces).
 
 **Type:** D-Bus Service/Provider
 
@@ -1655,39 +1658,39 @@ This is the most well-documented incompatibility:
 - This interface defines ONLY `AppArmorConnectedPlug` — there is no `AppArmorPermanentSlot`/`DBusPermanentSlot`/`AppArmorConnectedSlot`, so it emits no slot-side policy and owns no well-known name itself (a provider's actual name ownership would come from other interfaces). The plug base declaration is `allow-installation: false` (`unity8.go:32-35`), so plug install needs a snap-declaration.
 - No `InstanceName()`/`SnapName()`/`ExpandSnapVariables()`, no hardcoded `/var/snap/<name>/` or `/snap/<name>/` paths (only host-global font/schema reads), no shared memory or sockets.
 
-**Reasoning:** Unity 8 is a desktop service interface built around well-known D-Bus services. On the plug side it is a pure session-bus client that owns no name and uses instance-aware peer labels, so parallel plug instances each talk to the Unity8 services independently with no snapd-level collision. Slot/provider behavior is out of scope here, and this interface contributes no slot-side policy of its own.
+**Reasoning:** Unity 8 is a desktop service interface built around well-known D-Bus services. On the plug side it is a pure session-bus client that owns no name and uses instance-aware peer labels, so parallel plug instances each talk to the Unity8 services independently with no snapd-level collision. The slot side is N/A: this interface defines only `AppArmorConnectedPlug` (no `AppArmorPermanentSlot`/`DBusPermanentSlot`/`AppArmorConnectedSlot`), so it emits no slot-side policy and binds no well-known name of its own — there is no app-provided slot behavior in this interface to be compatible or not (a provider's actual name ownership would come from other interfaces).
 
 **Verification:** No verification has yet been done.
 
 ### unity8-calendar
-**Status:** Plug-side: not separately classified in this entry. Slot-side: NOT COMPATIBLE.
+**Status:** Plug-side: COMPATIBLE. Slot-side: NOT COMPATIBLE.
 
 **Type:** D-Bus Service/Provider
 
 
 **Code analysis:**
-- The permanent slot binds `org.gnome.evolution.dataserver.Calendar7`, `org.gnome.evolution.dataserver.Subprocess.Backend.Calendar*`, and `com.canonical.SyncMonitor` on the session bus (lines 33-47).
-- The slot AppArmor exposes the calendar factory/view/subprocess paths and sync-monitor endpoints to unconfined clients (lines 48-75).
-- The connected plug is client-only to the same calendar service paths (lines 77-109).
-- The service paths are fixed names and object paths, not snap-instance-scoped resources.
+- The slot is app-only (`unity8_calendar.go:24-31`: `allow-installation: slot-snap-type: [app]`, `deny-auto-connection`, `deny-connection`); the interface is built on the shared `unity8PimCommonInterface`.
+- The connected-plug AppArmor (`unity8_calendar.go:111-146` plus the common `unity8_pim_common.go:75-94`) is a **session-bus** client to the Evolution Data Server calendar objects (`/org/gnome/evolution/dataserver/Calendar*`, `/com/canonical/SyncMonitor`, `SourceManager`), all with `peer=(label=###SLOT_SECURITY_TAGS###)`.
+- **The plug owns no D-Bus name.** All `dbus (bind)` rules (`org.gnome.evolution.dataserver.Calendar7`, `...Subprocess.Backend.Calendar*`, `com.canonical.SyncMonitor` at `unity8_calendar.go:38-46`, and `...Sources5` at `unity8_pim_common.go:58-60`) live in the permanent-slot snippets, applied to the slot provider via `AppArmorPermanentSlot()` (`unity8_pim_common.go:147`).
+- `AppArmorConnectedPlug()` substitutes `###SLOT_SECURITY_TAGS###` with `slot.LabelExpression()` (`unity8_pim_common.go:131-136`), which is instance-aware, and additionally allows `unconfined` on classic (line 141) since the real EDS runs unconfined on the host. No `InstanceName()`/`SnapName()` and no hardcoded `/var/snap/<name>/` paths on the plug side. The service paths are fixed names/object paths, not snap-instance-scoped.
 
-**Reasoning:** This is a calendar service provider interface. Parallel clients are fine, but parallel providers would contend for the same well-known calendar and sync-monitor bus names.
+**Reasoning:** This is a calendar service provider interface. On the plug side it is a pure session-bus client (owns no name, instance-aware peer labels, `unconfined` fallback for the host EDS on classic), so parallel consumers are independent clients with no snapd-level collision — plug side is COMPATIBLE. Parallel providers would contend for the same well-known calendar and sync-monitor bus names, so the slot side is NOT COMPATIBLE.
 
 **Verification:** No verification has yet been done.
 
 ### unity8-contacts
-**Status:** Plug-side: not separately classified in this entry. Slot-side: NOT COMPATIBLE.
+**Status:** Plug-side: COMPATIBLE. Slot-side: NOT COMPATIBLE.
 
 **Type:** D-Bus Service/Provider
 
 
 **Code analysis:**
-- The permanent slot binds `org.gnome.evolution.dataserver.AddressBook9`, `org.gnome.evolution.dataserver.Subprocess.Backend.AddressBook*`, `com.canonical.pim`, and `com.meego.msyncd` on the session bus (lines 33-54).
-- The slot AppArmor exposes address book factory/view/subprocess paths and Canonical PIM paths to unconfined clients (lines 55-93).
-- The connected plug is client-only to the same address book service paths (lines 95-183).
-- No snap-instance-specific filesystem paths are used.
+- The slot is app-only (`unity8_contacts.go:24-31`: `allow-installation: slot-snap-type: [app]`, `deny-auto-connection`, `deny-connection`); the interface is built on the shared `unity8PimCommonInterface`.
+- The connected-plug AppArmor (`unity8_contacts.go:140-183` plus the common `unity8_pim_common.go:75-94`) is a **session-bus** client to the Evolution Data Server address-book objects (`/org/gnome/evolution/dataserver/AddressBook*`, `/com/canonical/pim/AddressBook*`, `/synchronizer{,/**}`, `SourceManager`), all with `peer=(label=###SLOT_SECURITY_TAGS###)`.
+- **The plug owns no D-Bus name.** All `dbus (bind)` rules (`org.gnome.evolution.dataserver.AddressBook9`, `...Subprocess.Backend.AddressBook*`, `com.canonical.pim`, `com.meego.msyncd` at `unity8_contacts.go:38-53`, and `...Sources5` at `unity8_pim_common.go:58-60`) live in the permanent-slot snippets, applied to the slot provider via `AppArmorPermanentSlot()` (`unity8_pim_common.go:147`).
+- `AppArmorConnectedPlug()` substitutes `###SLOT_SECURITY_TAGS###` with `slot.LabelExpression()` (`unity8_pim_common.go:131-136`), which is instance-aware, and additionally allows `unconfined` on classic (line 141) since the real EDS runs unconfined on the host. No `InstanceName()`/`SnapName()` and no hardcoded `/var/snap/<name>/` paths on the plug side.
 
-**Reasoning:** Unity 8 Contacts is another D-Bus service provider interface. Parallel consumers are fine, but parallel providers would collide on the same well-known bus names.
+**Reasoning:** Unity 8 Contacts is another D-Bus service provider interface. On the plug side it is a pure session-bus client (owns no name, instance-aware peer labels, `unconfined` fallback for the host EDS on classic), so parallel consumers are independent clients with no snapd-level collision — plug side is COMPATIBLE. Parallel providers would collide on the same well-known bus names, so the slot side is NOT COMPATIBLE.
 
 **Verification:** No verification has yet been done.
 
@@ -3093,13 +3096,19 @@ For slot-side (providing the UPower service), only one instance can operate.
 
 
 ### ofono
-**Status:** Plug-side: not separately classified in this entry. Slot-side: NOT COMPATIBLE.
+**Status:** Plug-side: COMPATIBLE. Slot-side: NOT COMPATIBLE.
 
 **Type:** D-Bus Service/Provider
 
 
 **Code analysis:**
-The ofono interface provides telephony services via the ofono daemon.
+The ofono interface provides telephony services via the ofono daemon. The plug side is a system-bus D-Bus **client** and is parallel-safe; the slot side is a system singleton.
+
+**Plug side (COMPATIBLE):**
+- The connected-plug AppArmor (`ofono.go:148-169`) is `dbus (receive, send)` to `org.ofono.*` and send-only Introspect, with `peer=(label=###SLOT_SECURITY_TAGS###)`. There is no `dbus (bind)` on the plug side — it owns no name.
+- `AppArmorConnectedPlug()` substitutes `###SLOT_SECURITY_TAGS###` with `slot.LabelExpression()` (`ofono.go:306-309`), which is instance-aware, and additionally allows `unconfined` on classic (`ofono.go:310-313`, snippet `ofono.go:171-187`) since ofono runs unconfined on the host there. No `SnapName()`/`InstanceName()` and no hardcoded `/var/snap/<name>/` paths on the plug side. This is the same pure-client pattern as `network-manager`/`modem-manager` plug sides, so parallel plug instances have no snapd-level collision.
+
+**Slot side (NOT COMPATIBLE):**
 
 1. **D-Bus name ownership** (`ofono.go:123-125`): Permanent slot AppArmor binds:
    ```
@@ -3145,13 +3154,19 @@ incompatibility is confirmed by code analysis only (D-Bus singleton `org.ofono` 
 
 
 ### modem-manager
-**Status:** Plug-side: not separately classified in this entry. Slot-side: NOT COMPATIBLE.
+**Status:** Plug-side: COMPATIBLE. Slot-side: NOT COMPATIBLE.
 
 **Type:** D-Bus Service/Provider
 
 
 **Code analysis:**
-The modem-manager interface provides cellular modem management via ModemManager.
+The modem-manager interface provides cellular modem management via ModemManager. The plug side is a system-bus D-Bus **client** and is parallel-safe; the slot side is a system singleton.
+
+**Plug side (COMPATIBLE):**
+- The connected-plug AppArmor (`modem_manager.go:184-205`) is `dbus (receive, send)` to `/org/freedesktop/ModemManager1{,/**}` and `org.freedesktop.DBus.ObjectManager`, with `peer=(label=###SLOT_SECURITY_TAGS###)`. There is no `dbus (bind)` on the plug side — it owns no name.
+- `AppArmorConnectedPlug()` substitutes `###SLOT_SECURITY_TAGS###` with `slot.LabelExpression()` (`modem_manager.go:1353-1356`), which is instance-aware, and additionally allows `unconfined` on classic (lines 1357-1360) since ModemManager runs unconfined on the host there. No `SnapName()`/`InstanceName()` and no hardcoded `/var/snap/<name>/` paths on the plug side. Same pure-client pattern as `network-manager`/`ofono` plug sides, so parallel plug instances have no snapd-level collision.
+
+**Slot side (NOT COMPATIBLE):**
 
 1. **D-Bus name ownership** (`modem_manager.go:106-108`): Permanent slot AppArmor binds:
    ```
