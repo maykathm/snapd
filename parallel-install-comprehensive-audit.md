@@ -44,9 +44,9 @@
 
 | Interface(s) | Current status impact | Root cause | Fix direction |
 | --- | --- | --- | --- |
-| `cups` (slot side) | `Slot-side: NOT COMPATIBLE` | Provider-side host path resolution uses self perspective for a cross-snap/host bind source; keyed instance host path is not resolved correctly. | Use host/other-snap perspective (`InstanceName()` / `PerspectiveOther`) when constructing host-visible source paths. |
-| `lxd`, `microceph`, `microovn` (slot side) | `Slot-side: NOT COMPATIBLE` | Hardcoded unkeyed provider socket paths (`/var/snap/<name>/...`) do not map to keyed parallel provider paths on host. | Replace hardcoded provider paths with instance-aware provider path construction (keyed host path for provider snap). |
-| `mount-control` (plug side) | `Plug-side: NOT COMPATIBLE` | Path validation/execution crosses namespace and host semantics; namespace-valid paths are not consistently valid for host mount/systemd unit execution. | Normalize/translate request paths explicitly to host-visible paths before host-side checks/execution; keep namespace-vs-host boundary explicit. |
+| `cups` (slot side) | `Slot-side: POTENTIALLY COMPATIBLE` | Provider-side host path resolution uses self perspective for a cross-snap/host bind source; keyed instance host path is not resolved correctly. | Use host/other-snap perspective (`InstanceName()` / `PerspectiveOther`) when constructing host-visible source paths. |
+| `lxd`, `microceph`, `microovn` (slot side) | `Slot-side: POTENTIALLY COMPATIBLE` | Hardcoded unkeyed provider socket paths (`/var/snap/<name>/...`) do not map to keyed parallel provider paths on host. | Replace hardcoded provider paths with instance-aware provider path construction (keyed host path for provider snap). |
+| `mount-control` (plug side) | `Plug-side: POTENTIALLY COMPATIBLE` | Path validation/execution crosses namespace and host semantics; namespace-valid paths are not consistently valid for host mount/systemd unit execution. | Normalize/translate request paths explicitly to host-visible paths before host-side checks/execution; keep namespace-vs-host boundary explicit. |
 | `shared-memory` (named mode) | `Plug-side: NOT COMPATIBLE` in named mode | Named `/dev/shm` objects are kernel-global and used as declared, with no automatic instance discriminator. | Introduce instance-aware naming convention or enforce/require private mode for parallel-safe usage. |
 | `posix-mq` (named queues) | `Plug-side: NOT COMPATIBLE` | Queue names are kernel-global and taken directly from slot attributes; same names collide across instances. | Introduce instance-aware queue naming guidance/mechanism or require unique names per instance by policy. |
 | `dbus` (provider side broadly) | Many `Slot-side: NOT COMPATIBLE` provider cases | Well-known bus name is singleton and activation file namespace is global (`busName + ".service"`). | Require per-instance bus names for parallel providers, or explicitly keep provider side singleton and document this as design constraint. |
@@ -629,7 +629,7 @@ The slot side is parallel-safe at the snapd policy layer — there is no `SNAP_N
 **Verification:** No verification has yet been done.
 
 ### cups
-**Status:** Plug-side: COMPATIBLE. Slot-side: NOT COMPATIBLE.
+**Status:** Plug-side: COMPATIBLE. Slot-side: POTENTIALLY COMPATIBLE.
 
 **Type:** Daemon/Socket Client
 
@@ -654,7 +654,7 @@ The `cups` interface (distinct from `cups-control`) lets a provider snap expose 
 
 5. **Contrast with `content` interface**: `content` uses `PerspectiveOther` for provider path expansion (`content.go:234`), which calls `InstanceName()` and produces the correct host path `/var/snap/cups-provider_foo/...`.
 
-**Reasoning:** The plug/consumer side is parallel-install safe because the bind-mount target is the consumer's own fixed namespace path `/var/cups/`. The slot/provider side is not: the interface needs to bind-mount from the **host filesystem path** where the provider's socket actually exists, but it resolves that path with `PerspectiveSelf` (base `SnapName()`), so for a keyed provider instance the source path, AppArmor rule, and snap-update-ns profile all point at the unkeyed `/var/snap/cups-provider/...` which does not exist on the host. The fix is to use `PerspectiveOther`/`InstanceName()` when expanding the slot's `$SNAP_COMMON` path, exactly as `content.go:234` does.
+**Reasoning:** The plug/consumer side is parallel-install safe because the bind-mount target is the consumer's own fixed namespace path `/var/cups/`. The current slot/provider implementation is incompatible due to a concrete path-resolution bug: it needs to bind-mount from the **host filesystem path** where the provider's socket actually exists, but it resolves that path with `PerspectiveSelf` (base `SnapName()`), so for a keyed provider instance the source path, AppArmor rule, and snap-update-ns profile all point at the unkeyed `/var/snap/cups-provider/...` which does not exist on the host. Because this is a fixable implementation defect (use `PerspectiveOther`/`InstanceName()` as in `content.go:234`), slot-side is POTENTIALLY COMPATIBLE.
 
 **Verification:**
 - Plug-side: passed on noble (`test-snapd-cups-consumer_foo` connected and communicated through provider socket; remained functional after removing original consumer).
@@ -751,7 +751,7 @@ The `cups` interface (distinct from `cups-control`) lets a provider snap expose 
 **Verification:** No verification has yet been done.
 
 ### lxd
-**Status:** Plug-side: COMPATIBLE. Slot-side: NOT COMPATIBLE.
+**Status:** Plug-side: COMPATIBLE. Slot-side: POTENTIALLY COMPATIBLE.
 
 **Type:** Daemon/Socket Client
 
@@ -764,12 +764,12 @@ The `cups` interface (distinct from `cups-control`) lets a provider snap expose 
 - No D-Bus, no shared memory.
 - This is a client interface to the LXD daemon.
 
-**Reasoning:** Parallel plug instances work as concurrent LXD clients. However, parallel slot instances CANNOT work because the socket path is hardcoded to `/var/snap/lxd/...`. A parallel instance like `lxd_test` would have its socket at `/var/snap/lxd_test/common/lxd/unix.socket`, but the interface would still generate AppArmor rules for `/var/snap/lxd/...`, preventing the connection from working.
+**Reasoning:** Parallel plug instances work as concurrent LXD clients. The current slot-side incompatibility comes from a concrete, fixable code defect: the provider socket path is hardcoded to `/var/snap/lxd/...` instead of being instance-aware. A parallel instance like `lxd_test` has its socket at `/var/snap/lxd_test/common/lxd/unix.socket`, but current policy still targets `/var/snap/lxd/...`. If the path construction is made instance-aware, slot-side would be compatible, so it is POTENTIALLY COMPATIBLE.
 
 **Verification:** No verification has yet been done.
 
 ### microceph
-**Status:** Plug-side: COMPATIBLE. Slot-side: NOT COMPATIBLE.
+**Status:** Plug-side: COMPATIBLE. Slot-side: POTENTIALLY COMPATIBLE.
 
 **Type:** Daemon/Socket Client
 
@@ -781,12 +781,12 @@ The `cups` interface (distinct from `cups-control`) lets a provider snap expose 
 - The socket path is **hardcoded** to the `microceph` snap's location, not parameterized by instance name.
 - No D-Bus, no shared memory.
 
-**Reasoning:** Parallel plug instances work as concurrent MicroCeph clients. However, parallel slot instances CANNOT work because the socket path is hardcoded to `/var/snap/microceph/...`. A parallel instance like `microceph_test` would have its socket at `/var/snap/microceph_test/common/state/control.socket`, but the interface would still generate AppArmor rules for `/var/snap/microceph/...`, preventing the connection from working.
+**Reasoning:** Parallel plug instances work as concurrent MicroCeph clients. The current slot-side incompatibility comes from a concrete, fixable code defect: the provider socket path is hardcoded to `/var/snap/microceph/...` instead of being instance-aware. A parallel instance like `microceph_test` has its socket at `/var/snap/microceph_test/common/state/control.socket`, but current policy still targets `/var/snap/microceph/...`. If the path construction is made instance-aware, slot-side would be compatible, so it is POTENTIALLY COMPATIBLE.
 
 **Verification:** No verification has yet been done.
 
 ### microovn
-**Status:** Plug-side: COMPATIBLE. Slot-side: NOT COMPATIBLE.
+**Status:** Plug-side: COMPATIBLE. Slot-side: POTENTIALLY COMPATIBLE.
 
 **Type:** Daemon/Socket Client
 
@@ -799,7 +799,7 @@ The `cups` interface (distinct from `cups-control`) lets a provider snap expose 
 - No D-Bus, no shared memory.
 - This is a client interface to the MicroOVN daemon.
 
-**Reasoning:** Parallel plug instances work as concurrent MicroOVN clients. However, parallel slot instances CANNOT work because the socket path is hardcoded to `/var/snap/microovn/...`. A parallel instance like `microovn_test` would have its socket at `/var/snap/microovn_test/common/state/control.socket`, but the interface would still generate AppArmor rules for `/var/snap/microovn/...`, preventing the connection from working.
+**Reasoning:** Parallel plug instances work as concurrent MicroOVN clients. The current slot-side incompatibility comes from a concrete, fixable code defect: the provider socket path is hardcoded to `/var/snap/microovn/...` instead of being instance-aware. A parallel instance like `microovn_test` has its socket at `/var/snap/microovn_test/common/state/control.socket`, but current policy still targets `/var/snap/microovn/...`. If the path construction is made instance-aware, slot-side would be compatible, so it is POTENTIALLY COMPATIBLE.
 
 **Verification:** No verification has yet been done.
 
@@ -2629,7 +2629,7 @@ This is the most well-documented incompatibility:
 **Verification:** Passed on noble. Covered by `tests/main/interfaces-audio-playback-record`.
 
 ### desktop
-**Status:** Plug-side: COMPATIBLE. Slot-side: NOT COMPATIBLE.
+**Status:** Plug-side: POTENTIALLY COMPATIBLE. Slot-side: NOT COMPATIBLE.
 
 **Type:** Desktop/Graphics/Media Integration
 
@@ -3860,7 +3860,7 @@ Expected failure. The `_foo` instance received `priority 7: Original message`
 
 
 ### mount-control
-**Status:** Plug-side: NOT COMPATIBLE. Slot-side: N/A (system/core-provided slot)
+**Status:** Plug-side: POTENTIALLY COMPATIBLE. Slot-side: N/A (system/core-provided slot)
 
 **Type:** Filesystem/Mount Interface
 
@@ -3885,7 +3885,7 @@ Expected failure. The `_foo` instance received `priority 7: Original message`
 
 4. **Systemd mount units operate on host paths**: The systemd mount unit created by `snapctl mount --persistent` must use the actual host filesystem path, which for a parallel instance would be `/var/snap/test-snapd-mount-control_foo/common/target1`. But the current implementation doesn't translate from namespace paths to host paths.
 
-**Reasoning:** The mount-control interface has a fundamental mismatch: it uses namespace-internal paths (via `SnapName()`) for AppArmor rules and permission checks, but direct `mount` syscalls and systemd mount units operate on host paths (which include the instance key). Parallel instances are blocked by AppArmor when using direct mounts with host paths, and `snapctl mount --persistent` would create mount units pointing to incorrect paths on the host.
+**Reasoning:** The mount-control interface currently has a namespace-vs-host path mismatch: it uses namespace-internal paths (via `SnapName()`) for AppArmor rules and permission checks, but direct `mount` syscalls and systemd mount units operate on host paths (which include the instance key). Parallel instances are therefore blocked today by AppArmor when using host paths, and `snapctl mount --persistent` can point systemd units at incorrect host paths. Because this is an implementation/translation bug rather than an inherent model limit, plug-side is POTENTIALLY COMPATIBLE if path normalization/translation is fixed.
 
 **Verification (interfaces-mount-control):**
 Expected failure. `mount: mount /var/tmp/test-snapd-mount-control on
