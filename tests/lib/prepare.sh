@@ -432,6 +432,27 @@ prepare_each_core() {
     prepare_memory_limit_override
 }
 
+clear_stale_snapd_apparmor_warning() {
+    local warnings
+
+    warnings="$(snap warnings)"
+    if printf '%s\n' "$warnings" | MATCH 'No further warnings.|No warnings.'; then
+        return
+    fi
+
+    if ! printf '%s\n' "$warnings" | MATCH 'snapd\.apparmor service is disabled'; then
+        return
+    fi
+
+    if [ "$(printf '%s\n' "$warnings" | grep -c '^warning:')" -ne 1 ]; then
+        return
+    fi
+
+    if systemctl is-enabled snapd.apparmor.service >/dev/null 2>&1; then
+        snap okay
+    fi
+}
+
 prepare_classic() {
     # Configure the proxy in the system when it is required
     setup_system_proxy
@@ -525,6 +546,7 @@ prepare_classic() {
     build_snapd_snap "$build_dir"
     snap install --dangerous "$build_dir/"snapd_*.snap
     snap wait system seed.loaded
+    clear_stale_snapd_apparmor_warning
     snap list snapd
 
     mount_dir="$(os.paths snap-mount-dir)"
