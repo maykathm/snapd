@@ -33,6 +33,7 @@ import (
 	"github.com/snapcore/snapd/osutil/sys"
 	"github.com/snapcore/snapd/osutil/user"
 	"github.com/snapcore/snapd/snap"
+	"github.com/snapcore/snapd/snap/naming"
 )
 
 // PreservedUnsafePrefix is used to escape env variables that are
@@ -119,8 +120,8 @@ func basicEnv(info *snap.Info) osutil.Environment {
 		// snap, i.e. SNAP paths point to the same locations within the
 		// mount namespace
 		"SNAP":               filepath.Join(dirs.CoreSnapMountDir, info.SnapName(), info.Revision.String()),
-		"SNAP_COMMON":        snap.CommonDataDir(info.SnapName()),
-		"SNAP_DATA":          snap.DataDir(info.SnapName(), info.Revision),
+		"SNAP_COMMON":        snap.CommonDataDir(naming.InstanceName(info.SnapName())),
+		"SNAP_DATA":          snap.DataDir(naming.InstanceName(info.SnapName()), info.Revision),
 		"SNAP_NAME":          info.SnapName(),
 		"SNAP_INSTANCE_NAME": info.InstanceName(),
 		"SNAP_INSTANCE_KEY":  info.InstanceKey,
@@ -141,8 +142,8 @@ func basicEnv(info *snap.Info) osutil.Environment {
 
 	// Add the ubuntu-save specific environment variable if
 	// the snap folder exists in the save directory.
-	if exists, isDir, err := osutil.DirExists(snap.CommonDataSaveDir(info.InstanceName())); err == nil && exists && isDir {
-		env["SNAP_SAVE_DATA"] = snap.CommonDataSaveDir(info.InstanceName())
+	if exists, isDir, err := osutil.DirExists(snap.CommonDataSaveDir(naming.InstanceName(info.InstanceName()))); err == nil && exists && isDir {
+		env["SNAP_SAVE_DATA"] = snap.CommonDataSaveDir(naming.InstanceName(info.InstanceName()))
 	} else if err != nil {
 		logger.Noticef("cannot determine existence of save data directory for snap %q: %v",
 			info.InstanceName(), err)

@@ -43,6 +43,7 @@ import (
 	"github.com/snapcore/snapd/progress"
 	"github.com/snapcore/snapd/release"
 	"github.com/snapcore/snapd/snap"
+	"github.com/snapcore/snapd/snap/naming"
 	"github.com/snapcore/snapd/snap/quota"
 	"github.com/snapcore/snapd/snap/snaptest"
 	"github.com/snapcore/snapd/systemd"
@@ -1096,7 +1097,7 @@ func (s *linkSuite) TestLinkComponentIdempotent(c *C) {
 	compRev := snap.R(-2)
 	snapName := "mysnap"
 	snapRev := snap.R(2)
-	cpi := snap.MinimalComponentContainerPlaceInfo(compName, compRev, snapName)
+	cpi := snap.MinimalComponentContainerPlaceInfo(compName, compRev, naming.InstanceName(snapName))
 	c.Assert(os.MkdirAll(cpi.MountDir(), 0755), IsNil)
 
 	err := s.be.LinkComponent(cpi, snapRev)
@@ -1112,7 +1113,7 @@ func (s *linkSuite) TestLinkComponentIdempotent(c *C) {
 	linkTarget, err := filepath.EvalSymlinks(linkPath)
 	c.Assert(err, IsNil)
 	c.Assert(linkTarget, Equals,
-		filepath.Join(snap.ComponentsBaseDir(snapName), "mnt", compName, compRev.String()))
+		filepath.Join(snap.ComponentsBaseDir(naming.InstanceName(snapName)), "mnt", compName, compRev.String()))
 }
 
 func (s *linkSuite) TestLinkComponentError(c *C) {
@@ -1120,7 +1121,7 @@ func (s *linkSuite) TestLinkComponentError(c *C) {
 	compRev := snap.R(-2)
 	snapName := "mysnap"
 	snapRev := snap.R(2)
-	cpi := snap.MinimalComponentContainerPlaceInfo(compName, compRev, snapName)
+	cpi := snap.MinimalComponentContainerPlaceInfo(compName, compRev, naming.InstanceName(snapName))
 	c.Assert(os.MkdirAll(cpi.MountDir(), 0755), IsNil)
 	// Put a regular directory in the link path
 	linkPath := filepath.Join(dirs.SnapMountDir, snapName,
@@ -1136,7 +1137,7 @@ func (s *linkSuite) TestUnlinkComponentIdempotent(c *C) {
 	compRev := snap.R(-2)
 	snapName := "mysnap"
 	snapRev := snap.R(2)
-	cpi := snap.MinimalComponentContainerPlaceInfo(compName, compRev, snapName)
+	cpi := snap.MinimalComponentContainerPlaceInfo(compName, compRev, naming.InstanceName(snapName))
 	linkPath := filepath.Join(dirs.SnapMountDir, snapName,
 		"components", snapRev.String(), compName)
 	target := filepath.Join("../mnt", compName, compRev.String())
@@ -1161,7 +1162,7 @@ func (s *linkSuite) TestUnlinkTwoComponents(c *C) {
 	compRev := snap.R(-2)
 	snapName := "mysnap"
 	snapRev := snap.R(2)
-	cpi := snap.MinimalComponentContainerPlaceInfo(compName, compRev, snapName)
+	cpi := snap.MinimalComponentContainerPlaceInfo(compName, compRev, naming.InstanceName(snapName))
 	compRevPath := filepath.Join(dirs.SnapMountDir, snapName,
 		"components", snapRev.String())
 	linkPath := filepath.Join(compRevPath, compName)
@@ -1193,7 +1194,7 @@ func (s *linkSuite) TestUnlinkComponentError(c *C) {
 	compRev := snap.R(-2)
 	snapName := "mysnap"
 	snapRev := snap.R(2)
-	cpi := snap.MinimalComponentContainerPlaceInfo(compName, compRev, snapName)
+	cpi := snap.MinimalComponentContainerPlaceInfo(compName, compRev, naming.InstanceName(snapName))
 	c.Assert(os.MkdirAll(cpi.MountDir(), 0755), IsNil)
 	// Put a regular directory inside the link path
 	insideLinkPath := filepath.Join(dirs.SnapMountDir, snapName,

@@ -2055,7 +2055,7 @@ func createKernelMounts(runWritableDataDir, kernelName string, rev snap.Revision
 	logger.Noticef("drivers tree found in %s", driversDir)
 
 	// 1. Mount unit for the kernel snap
-	cpi := snap.MinimalSnapContainerPlaceInfo(kernelName, rev)
+	cpi := snap.MinimalSnapContainerPlaceInfo(naming.InstanceName(kernelName), rev)
 	squashfsPath := filepath.Join(runWritableDataDir, dirs.StripRootDir(cpi.MountFile()))
 	// snapRoot is where we will find the /snap directory where
 	// snaps/components will be mounted
@@ -2114,7 +2114,7 @@ func createKernelModulesMountUnits(writableRootDir, snapRoot, driversDir, kernel
 	// now create the component units
 	for comp := range compSet {
 		cpi := snap.MinimalComponentContainerPlaceInfo(
-			comp.Component.ComponentName, comp.Revision, kernelName)
+			comp.Component.ComponentName, comp.Revision, naming.InstanceName(kernelName))
 		squashfsPath := filepath.Join(writableRootDir, dirs.StripRootDir(cpi.MountFile()))
 		where := filepath.Join(dirs.GlobalRootDir, snapRoot, dirs.StripRootDir(cpi.MountDir()))
 		if err := writeInitramfsMountUnit(squashfsPath, where, squashfsUnit); err != nil {
@@ -2143,7 +2143,7 @@ func getCompsFromSymlinks(symLinksDir, kernelName string, compSet map[snap.Compo
 		}
 
 		// find out component name from symlink
-		prefix := filepath.Join(snap.ComponentsBaseDir(kernelName), "mnt")
+		prefix := filepath.Join(snap.ComponentsBaseDir(naming.InstanceName(kernelName)), "mnt")
 		subdir := strings.TrimPrefix(dest, prefix+string(os.PathSeparator))
 		if subdir == dest {
 			// Possibly points to $SNAP_DATA instead of to $SNAP,
@@ -2490,7 +2490,7 @@ func setupSeedSnapdSnap(rootfsDir string, snapdSeedSnap *seed.Snap) error {
 	if si.Revision.Unset() {
 		si.Revision = snap.R(-1)
 	}
-	cpi := snap.MinimalSnapContainerPlaceInfo(si.RealName, si.Revision)
+	cpi := snap.MinimalSnapContainerPlaceInfo(naming.InstanceName(si.RealName), si.Revision)
 	destRoot := sysconfig.WritableDefaultsDir(rootfsDir)
 	logger.Debugf("writing %s mount unit to %s", si.RealName, destRoot)
 	if err := writeSnapMountUnit(destRoot, snapdSeedSnap.Path, cpi.MountDir(),

@@ -55,6 +55,7 @@ import (
 	apparmor_sandbox "github.com/snapcore/snapd/sandbox/apparmor"
 	"github.com/snapcore/snapd/sandbox/cgroup"
 	"github.com/snapcore/snapd/snap"
+	"github.com/snapcore/snapd/snap/naming"
 	"github.com/snapcore/snapd/snap/quota"
 	"github.com/snapcore/snapd/snapdenv"
 	"github.com/snapcore/snapd/snapdtool"
@@ -3483,7 +3484,7 @@ func (m *SnapManager) doClearSnapData(t *state.Task, _ *tomb.Tomb) error {
 	// (shared with remaining revisions) untouched.
 	var mountBaseDirs []string
 	if len(snapst.Sequence.Revisions) > 1 {
-		mountBaseDirs = []string{snap.DataDir(snapsup.InstanceName(), snapsup.Revision())}
+		mountBaseDirs = []string{snap.DataDir(naming.InstanceName(snapsup.InstanceName()), snapsup.Revision())}
 	}
 	const origin = "mount-control"
 	if err := m.backend.RemoveContainerMountUnits(info, nil, origin, mountBaseDirs); err != nil {

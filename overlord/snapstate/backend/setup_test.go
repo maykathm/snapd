@@ -417,19 +417,19 @@ func (s *setupSuite) TestRemoveSnapFilesDir(c *C) {
 	c.Assert(l, HasLen, 0)
 	c.Assert(osutil.FileExists(minInfo.MountDir()), Equals, false)
 	c.Assert(osutil.FileExists(minInfo.MountFile()), Equals, false)
-	c.Assert(osutil.FileExists(snap.BaseDir(minInfo.InstanceName())), Equals, true)
-	c.Assert(osutil.FileExists(snap.BaseDir(minInfo.SnapName())), Equals, true)
+	c.Assert(osutil.FileExists(snap.BaseDir(naming.InstanceName(minInfo.InstanceName()))), Equals, true)
+	c.Assert(osutil.FileExists(snap.BaseDir(naming.InstanceName(minInfo.SnapName()))), Equals, true)
 
 	// /snap/hello is kept as other instances exist
 	err = s.be.RemoveSnapDir(minInfo, true)
 	c.Assert(err, IsNil)
-	c.Assert(osutil.FileExists(snap.BaseDir(minInfo.InstanceName())), Equals, false)
-	c.Assert(osutil.FileExists(snap.BaseDir(minInfo.SnapName())), Equals, true)
+	c.Assert(osutil.FileExists(snap.BaseDir(naming.InstanceName(minInfo.InstanceName()))), Equals, false)
+	c.Assert(osutil.FileExists(snap.BaseDir(naming.InstanceName(minInfo.SnapName()))), Equals, true)
 
 	// /snap/hello is removed when there are no more instances
 	err = s.be.RemoveSnapDir(minInfo, false)
 	c.Assert(err, IsNil)
-	c.Assert(osutil.FileExists(snap.BaseDir(minInfo.SnapName())), Equals, false)
+	c.Assert(osutil.FileExists(snap.BaseDir(naming.InstanceName(minInfo.SnapName()))), Equals, false)
 }
 
 func (s *setupSuite) TestSetupComponentDoUndoSimple(c *C) {
@@ -470,7 +470,7 @@ version: 1.0
 `, snapName, compName)
 
 	compPath := snaptest.MakeTestComponent(c, componentYaml)
-	cpi := snap.MinimalComponentContainerPlaceInfo(compName, compRev, instanceName)
+	cpi := snap.MinimalComponentContainerPlaceInfo(compName, compRev, naming.InstanceName(instanceName))
 
 	installRecord, err := s.be.SetupComponent(compPath, cpi, mockDev, progress.Null)
 	c.Assert(err, IsNil)
@@ -497,7 +497,7 @@ version: 1.0
 
 func (s *setupSuite) testSetupComponentUndo(c *C, compName, snapName, instanceName string, compRev snap.Revision, installRecord *backend.InstallRecord) {
 	// undo undoes the mount unit and the instdir creation
-	cpi := snap.MinimalComponentContainerPlaceInfo(compName, compRev, instanceName)
+	cpi := snap.MinimalComponentContainerPlaceInfo(compName, compRev, naming.InstanceName(instanceName))
 
 	err := s.be.UndoSetupComponent(cpi, installRecord, mockDev,
 		backend.RemoveComponentOpts{MaybeInitramfsMounted: false}, progress.Null)
@@ -531,7 +531,7 @@ version: 1.0
 
 	compPath := snaptest.MakeTestComponent(c, componentYaml)
 
-	cpi := snap.MinimalComponentContainerPlaceInfo(compName, compRev, snapName)
+	cpi := snap.MinimalComponentContainerPlaceInfo(compName, compRev, naming.InstanceName(snapName))
 
 	r := systemd.MockSystemctl(func(cmd ...string) ([]byte, error) {
 		// mount unit start fails
@@ -559,7 +559,7 @@ func (s *setupSuite) TestSetupComponentFilesDir(c *C) {
 	compRev := snap.R(33)
 	compName := "mycomp"
 	snapInstance := "mysnap_inst"
-	cpi := snap.MinimalComponentContainerPlaceInfo(compName, compRev, snapInstance)
+	cpi := snap.MinimalComponentContainerPlaceInfo(compName, compRev, naming.InstanceName(snapInstance))
 
 	var sysdCalls [][]string
 	restore := systemd.MockSystemctl(func(cmd ...string) ([]byte, error) {
@@ -618,7 +618,7 @@ func (s *setupSuite) testSetupComponentWithInitramfsMount(c *C, writableDir stri
 	compRev := snap.R(33)
 	compName := "mycomp"
 	snapInstance := "mysnap_inst"
-	cpi := snap.MinimalComponentContainerPlaceInfo(compName, compRev, snapInstance)
+	cpi := snap.MinimalComponentContainerPlaceInfo(compName, compRev, naming.InstanceName(snapInstance))
 
 	// Simulate the initramfs mount
 	extraMount := filepath.Join(writableDir, dirs.StripRootDir(cpi.MountDir()))
@@ -673,7 +673,7 @@ func (s *setupSuite) TestSetupComponentFilesDirNotRemoved(c *C) {
 	secondCompRev := snap.R(55)
 	compName := "mycomp"
 	snapInstance := "mysnap_inst"
-	cpi := snap.MinimalComponentContainerPlaceInfo(compName, compRev, snapInstance)
+	cpi := snap.MinimalComponentContainerPlaceInfo(compName, compRev, naming.InstanceName(snapInstance))
 
 	installRecord := s.testSetupComponentDo(c, compName, "mysnap", snapInstance, compRev, snapRev)
 	s.testSetupComponentDo(c, compName, "mysnap", snapInstance, secondCompRev, snapRev)
@@ -879,12 +879,12 @@ func (s *setupSuite) testSetupAndRemoveKernelModulesComponentsWithModulesInSnapD
 	}
 
 	// Create modules and fw in SNAP_DATA
-	modsDir := filepath.Join(snap.DataDir(ksnap, kernRev), "modules")
+	modsDir := filepath.Join(snap.DataDir(naming.InstanceName(ksnap), kernRev), "modules")
 	kernModsDir := filepath.Join(modsDir, "6.5.4-3-generic")
 	c.Assert(os.MkdirAll(kernModsDir, 0755), IsNil)
 	c.Assert(os.WriteFile(filepath.Join(kernModsDir, "dynamic.ko"),
 		[]byte{}, 0644), IsNil)
-	fwDir := filepath.Join(snap.DataDir(ksnap, kernRev), "firmware")
+	fwDir := filepath.Join(snap.DataDir(naming.InstanceName(ksnap), kernRev), "firmware")
 	c.Assert(os.MkdirAll(fwDir, 0755), IsNil)
 	c.Assert(os.WriteFile(filepath.Join(fwDir, "somefw.bin"),
 		[]byte{}, 0644), IsNil)
@@ -903,14 +903,14 @@ func (s *setupSuite) testSetupAndRemoveKernelModulesComponentsWithModulesInSnapD
 	dest, err := os.Readlink(dataUpdates)
 	if withKernelYaml {
 		c.Assert(err, IsNil)
-		expected := filepath.Join(snap.DataDir(ksnap, kernRev), "modules/6.5.4-3-generic")
+		expected := filepath.Join(snap.DataDir(naming.InstanceName(ksnap), kernRev), "modules/6.5.4-3-generic")
 		c.Assert(dest, Equals, expected)
 		c.Assert(osutil.FileExists(filepath.Join(dataUpdates, "dynamic.ko")), Equals, true)
 		fwSymLink := filepath.Join(dirs.SnapdStateDir(dirs.GlobalRootDir),
 			"kernel", ksnap, kernRev.String(), "lib/firmware/updates", "somefw.bin")
 		dest, err = os.Readlink(fwSymLink)
 		c.Assert(err, IsNil)
-		expected = filepath.Join(snap.DataDir(ksnap, kernRev), "firmware", "somefw.bin")
+		expected = filepath.Join(snap.DataDir(naming.InstanceName(ksnap), kernRev), "firmware", "somefw.bin")
 		c.Assert(dest, Equals, expected)
 		c.Assert(osutil.FileExists(expected), Equals, true)
 

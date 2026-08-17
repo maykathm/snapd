@@ -17201,7 +17201,7 @@ func (s *snapmgrTestSuite) testUpdateWithComponentsRunThrough(c *C, opts updateW
 	}
 	snaptest.MockSnapInstance(c, instanceName, fmt.Sprintf("name: %s\ntype: %s\n",
 		snapName, opts.snapType), &si)
-	fi, err := os.Stat(snap.MountFile(instanceName, si.Revision))
+	fi, err := os.Stat(snap.MountFile(naming.InstanceName(instanceName), si.Revision))
 	c.Assert(err, IsNil)
 
 	refreshedDate := fi.ModTime()
@@ -17622,7 +17622,7 @@ func (s *snapmgrTestSuite) testUpdateWithComponentsRunThrough(c *C, opts updateW
 		compRev := cs.SideInfo.Revision
 		expected = append(expected, fakeOp{
 			op:   "link-component",
-			path: snap.ComponentMountDir(compName, compRev, instanceName),
+			path: snap.ComponentMountDir(compName, compRev, naming.InstanceName(instanceName)),
 		})
 	}
 
@@ -17682,7 +17682,7 @@ func (s *snapmgrTestSuite) testUpdateWithComponentsRunThrough(c *C, opts updateW
 			expected = append(expected, fakeOp{
 				op:   "storesvc-cleanup-download-artifacts",
 				sha3: "<some-hash>",
-				path: snap.MountFile(instanceName, newSnapRev),
+				path: snap.MountFile(naming.InstanceName(instanceName), newSnapRev),
 			})
 		}
 	} else {
@@ -18892,7 +18892,7 @@ components:
 	for _, cs := range expectedComponentStates {
 		expected = append(expected, fakeOp{
 			op:   "link-component",
-			path: snap.ComponentMountDir(cs.SideInfo.Component.ComponentName, cs.SideInfo.Revision, instanceName),
+			path: snap.ComponentMountDir(cs.SideInfo.Component.ComponentName, cs.SideInfo.Revision, naming.InstanceName(instanceName)),
 		})
 	}
 
@@ -19494,7 +19494,7 @@ func (s *snapmgrTestSuite) testUpdateWithComponentsRunThroughOnlyComponentUpdate
 
 	snaptest.MockSnapInstance(c, instanceName,
 		fmt.Sprintf("name: %s\ntype: %s\n", snapName, opts.snapType), &si)
-	fi, err := os.Stat(snap.MountFile(instanceName, si.Revision))
+	fi, err := os.Stat(snap.MountFile(naming.InstanceName(instanceName), si.Revision))
 	c.Assert(err, IsNil)
 
 	refreshedDate := fi.ModTime()
@@ -19678,7 +19678,7 @@ func (s *snapmgrTestSuite) testUpdateWithComponentsRunThroughOnlyComponentUpdate
 			containerFileName: filename,
 		}, {
 			op:   "unlink-component",
-			path: snap.ComponentMountDir(compName, originalCompRevisions[compName], instanceName),
+			path: snap.ComponentMountDir(compName, originalCompRevisions[compName], naming.InstanceName(instanceName)),
 		}}...)
 	}
 
@@ -19769,7 +19769,7 @@ func (s *snapmgrTestSuite) testUpdateWithComponentsRunThroughOnlyComponentUpdate
 		expected = append(expected, []fakeOp{
 			{
 				op:   "link-component",
-				path: snap.ComponentMountDir(compName, compRev, instanceName),
+				path: snap.ComponentMountDir(compName, compRev, naming.InstanceName(instanceName)),
 			},
 		}...)
 	}
