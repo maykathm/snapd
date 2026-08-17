@@ -31,6 +31,7 @@ import (
 	"github.com/snapcore/snapd/osutil"
 	"github.com/snapcore/snapd/snap"
 	"github.com/snapcore/snapd/snap/channel"
+	"github.com/snapcore/snapd/snap/naming"
 	"github.com/snapcore/snapd/snap/pack"
 	"github.com/snapcore/snapd/snap/snapdir"
 	"github.com/snapcore/snapd/snap/squashfs"
@@ -105,7 +106,7 @@ func MockComponent(c *check.C, yamlText string, info *snap.Info, csi snap.Compon
 	c.Assert(err, check.IsNil)
 
 	// Put the component.yaml on disk, in the right spot.
-	mountDir := snap.ComponentMountDir(infoForName.Component.ComponentName, csi.Revision, info.InstanceName())
+	mountDir := snap.ComponentMountDir(infoForName.Component.ComponentName, csi.Revision, naming.InstanceName(info.InstanceName()))
 	metaDir := filepath.Join(mountDir, "meta")
 	err = os.MkdirAll(metaDir, 0755)
 	c.Assert(err, check.IsNil)
@@ -121,7 +122,7 @@ func MockComponent(c *check.C, yamlText string, info *snap.Info, csi snap.Compon
 	cpi := snap.MinimalComponentContainerPlaceInfo(
 		csi.Component.ComponentName,
 		csi.Revision,
-		info.SnapName(),
+		naming.InstanceName(info.SnapName()),
 	)
 	err = os.Rename(compPath, cpi.MountFile())
 	c.Assert(err, check.IsNil)
@@ -157,8 +158,8 @@ func MockSnapCurrent(c *check.C, yamlText string, sideInfo *snap.SideInfo) *snap
 func MockComponentCurrent(c *check.C, yamlText string, info *snap.Info, csi snap.ComponentSideInfo) *snap.ComponentInfo {
 	ci := MockComponent(c, yamlText, info, csi)
 
-	mountDir := snap.ComponentMountDir(ci.Component.ComponentName, ci.Revision, info.InstanceName())
-	link := filepath.Join(snap.ComponentsBaseDir(info.InstanceName()), info.Revision.String(), ci.Component.ComponentName)
+	mountDir := snap.ComponentMountDir(ci.Component.ComponentName, ci.Revision, naming.InstanceName(info.InstanceName()))
+	link := filepath.Join(snap.ComponentsBaseDir(naming.InstanceName(info.InstanceName())), info.Revision.String(), ci.Component.ComponentName)
 	err := os.MkdirAll(filepath.Dir(link), 0755)
 	c.Assert(err, check.IsNil)
 

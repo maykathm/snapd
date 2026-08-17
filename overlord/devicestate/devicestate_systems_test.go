@@ -1576,7 +1576,7 @@ func (s *deviceMgrSystemsCreateSuite) makeSnapInState(c *C, name string, rev sna
 		cpi := snap.MinimalComponentContainerPlaceInfo(
 			comp,
 			compRev,
-			name,
+			naming.InstanceName(name),
 		)
 		err := os.Rename(compPath, cpi.MountFile())
 		c.Assert(err, IsNil)

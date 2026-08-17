@@ -318,7 +318,7 @@ func (ig *setupInfoGetter) ComponentInfo(st *state.State, cref naming.ComponentR
 	cpi := snap.MinimalComponentContainerPlaceInfo(
 		cref.ComponentName,
 		info.Revision,
-		snapInfo.InstanceName(),
+		naming.InstanceName(snapInfo.InstanceName()),
 	)
 
 	return info, cpi.MountFile(), true, nil

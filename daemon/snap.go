@@ -37,6 +37,7 @@ import (
 	"github.com/snapcore/snapd/overlord/snapstate"
 	"github.com/snapcore/snapd/overlord/state"
 	"github.com/snapcore/snapd/snap"
+	"github.com/snapcore/snapd/snap/naming"
 )
 
 var errNoSnap = errors.New("snap not installed")
@@ -308,7 +309,7 @@ func fillComponentInfo(about aboutSnap) []client.Component {
 		currentCompsSet[comp.Component.ComponentName] = true
 		csi := snapst.CurrentComponentSideInfo(comp.Component)
 		cpi := snap.MinimalComponentContainerPlaceInfo(
-			comp.Component.ComponentName, csi.Revision, localSnap.InstanceName())
+			comp.Component.ComponentName, csi.Revision, naming.InstanceName(localSnap.InstanceName()))
 		compSz, err := snap.ComponentSize(cpi)
 		if err != nil {
 			logger.Noticef("cannot get size of %s: %v", comp.Component, err)

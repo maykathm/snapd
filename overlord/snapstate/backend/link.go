@@ -34,6 +34,7 @@ import (
 	"github.com/snapcore/snapd/progress"
 	"github.com/snapcore/snapd/sandbox/cgroup"
 	"github.com/snapcore/snapd/snap"
+	"github.com/snapcore/snapd/snap/naming"
 	"github.com/snapcore/snapd/timings"
 	"github.com/snapcore/snapd/wrappers"
 )
@@ -77,7 +78,7 @@ func createSharedSnapDirForParallelInstance(s snap.PlaceInfo) error {
 	_, key := snap.SplitInstanceName(s.InstanceName())
 
 	if key != "" {
-		err := os.MkdirAll(snap.BaseDir(s.SnapName()), 0755)
+		err := os.MkdirAll(snap.BaseDir(naming.InstanceName(s.SnapName())), 0755)
 		if err != nil && !os.IsExist(err) {
 			return err
 		}
@@ -91,7 +92,7 @@ func removeSharedSnapDirForParallelInstance(s snap.PlaceInfo) {
 	if instanceKey != "" {
 		// failure to remove is ok, there may be revisions of the
 		// instance-less snap installed in the system
-		os.Remove(snap.BaseDir(s.SnapName()))
+		os.Remove(snap.BaseDir(naming.InstanceName(s.SnapName())))
 	}
 }
 

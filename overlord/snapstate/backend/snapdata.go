@@ -31,6 +31,7 @@ import (
 	"github.com/snapcore/snapd/logger"
 	"github.com/snapcore/snapd/osutil"
 	"github.com/snapcore/snapd/snap"
+	"github.com/snapcore/snapd/snap/naming"
 )
 
 // RemoveSnapData removes the data for the given version of the given snap.
@@ -60,7 +61,7 @@ func (b Backend) RemoveSnapSaveData(snapInfo *snap.Info, dev snap.Device) error 
 		return nil
 	}
 
-	saveDir := snap.CommonDataSaveDir(snapInfo.InstanceName())
+	saveDir := snap.CommonDataSaveDir(naming.InstanceName(snapInfo.InstanceName()))
 	if exists, isDir, err := osutil.DirExists(saveDir); err == nil && !(exists && isDir) {
 		return nil
 	} else if err != nil {
@@ -165,7 +166,7 @@ func snapBaseDataDirs(snapName string, opts *dirs.SnapDirOptions) ([]string, err
 	// collect the directories, homes first
 	var found []string
 
-	for _, entry := range snap.BaseDataHomeDirs(snapName, opts) {
+	for _, entry := range snap.BaseDataHomeDirs(naming.InstanceName(snapName), opts) {
 		entryPaths, err := filepath.Glob(entry)
 		if err != nil {
 			return nil, err
@@ -174,9 +175,9 @@ func snapBaseDataDirs(snapName string, opts *dirs.SnapDirOptions) ([]string, err
 	}
 
 	// then the /root user (including GlobalRootDir for tests)
-	found = append(found, snap.UserSnapDir(filepath.Join(dirs.GlobalRootDir, "/root/"), snapName, opts))
+	found = append(found, snap.UserSnapDir(filepath.Join(dirs.GlobalRootDir, "/root/"), naming.InstanceName(snapName), opts))
 	// then system data
-	found = append(found, snap.BaseDataDir(snapName))
+	found = append(found, snap.BaseDataDir(naming.InstanceName(snapName)))
 
 	return found, nil
 }

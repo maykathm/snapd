@@ -44,6 +44,7 @@ import (
 	"github.com/snapcore/snapd/randutil"
 	"github.com/snapcore/snapd/snap"
 	"github.com/snapcore/snapd/snap/integrity"
+	"github.com/snapcore/snapd/snap/naming"
 	"github.com/snapcore/snapd/snap/snapfile"
 	"github.com/snapcore/snapd/store"
 	"github.com/snapcore/snapd/store/storetest"
@@ -1722,7 +1723,7 @@ func (f *fakeSnappyBackend) RemoveSnapCommonData(info *snap.Info, opts *dirs.Sna
 func (f *fakeSnappyBackend) RemoveSnapSaveData(info *snap.Info, _ snap.Device) error {
 	op := &fakeOp{
 		op:   "remove-snap-save-data",
-		path: snap.CommonDataSaveDir(info.InstanceName()),
+		path: snap.CommonDataSaveDir(naming.InstanceName(info.InstanceName())),
 	}
 	f.appendOp(op)
 	return f.maybeErr(op)
@@ -1732,7 +1733,7 @@ func (f *fakeSnappyBackend) RemoveSnapDataDir(info *snap.Info, otherInstances bo
 	op := &fakeOp{
 		op:             "remove-snap-data-dir",
 		name:           info.InstanceName(),
-		path:           snap.BaseDataDir(info.InstanceName()),
+		path:           snap.BaseDataDir(naming.InstanceName(info.InstanceName())),
 		otherInstances: otherInstances,
 	}
 	f.appendOp(op)
@@ -1774,7 +1775,7 @@ func (f *fakeSnappyBackend) RemoveSnapDir(s snap.PlaceInfo, otherInstances bool)
 	op := &fakeOp{
 		op:             "remove-snap-dir",
 		name:           s.InstanceName(),
-		path:           snap.BaseDir(s.InstanceName()),
+		path:           snap.BaseDir(naming.InstanceName(s.InstanceName())),
 		otherInstances: otherInstances,
 	}
 	f.appendOp(op)

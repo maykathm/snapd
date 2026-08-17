@@ -4885,7 +4885,7 @@ type: snapd
 			snapstate.FinishRestartOptions{FinishRestartDefault: true}), IsNil)
 		c.Check(generateWrappersCalled, Equals, tc.expectedWrappersCall, Commentf("#%d: %v", i, tc))
 
-		c.Assert(os.RemoveAll(filepath.Join(snap.BaseDir(snapInfo.SnapName()), "current")), IsNil)
+		c.Assert(os.RemoveAll(filepath.Join(snap.BaseDir(naming.InstanceName(snapInfo.SnapName())), "current")), IsNil)
 	}
 }
 

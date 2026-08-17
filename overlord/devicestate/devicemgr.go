@@ -61,6 +61,7 @@ import (
 	"github.com/snapcore/snapd/secboot/keys"
 	"github.com/snapcore/snapd/seed"
 	"github.com/snapcore/snapd/snap"
+	"github.com/snapcore/snapd/snap/naming"
 	"github.com/snapcore/snapd/snap/snapfile"
 	"github.com/snapcore/snapd/snapdenv"
 	"github.com/snapcore/snapd/strutil"
@@ -506,7 +507,7 @@ func (m *DeviceManager) ensureUbuntuSaveSnapFolders() error {
 	}
 
 	for _, s := range snaps {
-		saveDir := snap.CommonDataSaveDir(s.InstanceName())
+		saveDir := snap.CommonDataSaveDir(naming.InstanceName(s.InstanceName()))
 		if err := os.MkdirAll(saveDir, 0755); err != nil {
 			return err
 		}
