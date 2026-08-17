@@ -772,7 +772,7 @@ func (r *remodeler) installedRevisionUpdateGoal(
 		cpi := snap.MinimalComponentContainerPlaceInfo(
 			cs.SideInfo.Component.ComponentName,
 			cs.SideInfo.Revision,
-			snapst.InstanceName(),
+			naming.InstanceName(snapst.InstanceName()),
 		)
 
 		comps = append(comps, snapstate.PathComponent{
@@ -791,7 +791,7 @@ func (r *remodeler) installedRevisionUpdateGoal(
 
 	return snapstatePathUpdateGoal(snapstate.PathSnap{
 		InstanceName: sn.name,
-		Path:         snap.MountFile(sn.name, constraints.Revision),
+		Path:         snap.MountFile(naming.InstanceName(sn.name), constraints.Revision),
 		SideInfo:     &sideInfo,
 		Components:   comps,
 		RevOpts: snapstate.RevisionOptions{

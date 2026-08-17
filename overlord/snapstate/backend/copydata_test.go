@@ -38,6 +38,7 @@ import (
 	"github.com/snapcore/snapd/overlord/snapstate/backend"
 	"github.com/snapcore/snapd/progress"
 	"github.com/snapcore/snapd/snap"
+	"github.com/snapcore/snapd/snap/naming"
 	"github.com/snapcore/snapd/snap/snaptest"
 	"github.com/snapcore/snapd/testutil"
 )
@@ -1143,7 +1144,7 @@ func (s *copydataSuite) TestInitSnapUserHome(c *C) {
 	c.Assert(err, IsNil)
 
 	opts := &dirs.SnapDirOptions{HiddenSnapDataDir: true}
-	revDir := snap.UserDataDir(usr.HomeDir, snapName, rev, opts)
+	revDir := snap.UserDataDir(usr.HomeDir, naming.InstanceName(snapName), rev, opts)
 	c.Assert(os.MkdirAll(revDir, 0700), IsNil)
 
 	filePath := filepath.Join(revDir, "file")
@@ -1194,7 +1195,7 @@ func (s *copydataSuite) TestInitExposedHomeIgnoreXDGDirs(c *C) {
 	c.Assert(err, IsNil)
 
 	opts := &dirs.SnapDirOptions{HiddenSnapDataDir: true}
-	revDir := snap.UserDataDir(homeDir, snapName, rev, opts)
+	revDir := snap.UserDataDir(homeDir, naming.InstanceName(snapName), rev, opts)
 
 	cachePath := filepath.Join(revDir, ".cache")
 	c.Assert(os.MkdirAll(cachePath, 0700), IsNil)
@@ -1501,7 +1502,7 @@ func (s *copydataSuite) TestInitXDGDirsAlreadyExist(c *C) {
 	c.Assert(err, IsNil)
 
 	opts := &dirs.SnapDirOptions{HiddenSnapDataDir: true}
-	revDir := snap.UserDataDir(homeDir, snapName, rev, opts)
+	revDir := snap.UserDataDir(homeDir, naming.InstanceName(snapName), rev, opts)
 
 	var srcDirs []string
 	mkDir := func(dirs ...string) {
@@ -1543,7 +1544,7 @@ func (s *copydataSuite) TestInitXDGDirsCreateNew(c *C) {
 	c.Assert(err, IsNil)
 
 	opts := &dirs.SnapDirOptions{HiddenSnapDataDir: true}
-	revDir := snap.UserDataDir(homeDir, snapName, rev, opts)
+	revDir := snap.UserDataDir(homeDir, naming.InstanceName(snapName), rev, opts)
 
 	info := &snap.Info{SideInfo: snap.SideInfo{Revision: rev, RealName: snapName}}
 	c.Assert(s.be.InitXDGDirs(info), IsNil)
@@ -1574,7 +1575,7 @@ func (s *copydataSuite) TestInitXDGDirsFailAlreadyExists(c *C) {
 	c.Assert(err, IsNil)
 
 	opts := &dirs.SnapDirOptions{HiddenSnapDataDir: true}
-	revDir := snap.UserDataDir(homeDir, snapName, rev, opts)
+	revDir := snap.UserDataDir(homeDir, naming.InstanceName(snapName), rev, opts)
 	dst := filepath.Join(revDir, "xdg-config")
 	src := filepath.Join(revDir, ".config")
 	c.Assert(os.MkdirAll(dst, 0700), IsNil)

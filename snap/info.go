@@ -147,15 +147,15 @@ type PlaceInfo interface {
 
 // MinimalPlaceInfo returns a PlaceInfo with just the location information for a
 // snap of the given instance name and revision.
-func MinimalPlaceInfo(instanceName string, revision Revision) PlaceInfo {
-	storeName, instanceKey := SplitInstanceName(instanceName)
+func MinimalPlaceInfo(instanceName naming.InstanceName, revision Revision) PlaceInfo {
+	storeName, instanceKey := SplitInstanceName(instanceName.String())
 	return &Info{SideInfo: SideInfo{RealName: storeName, Revision: revision}, InstanceKey: instanceKey}
 }
 
 // MinimalSnapContainerPlaceInfo returns a ContainerPlaceInfo with just the location
 // information for a snap of the given instance name and revision.
-func MinimalSnapContainerPlaceInfo(instanceName string, revision Revision) ContainerPlaceInfo {
-	storeName, instanceKey := SplitInstanceName(instanceName)
+func MinimalSnapContainerPlaceInfo(instanceName naming.InstanceName, revision Revision) ContainerPlaceInfo {
+	storeName, instanceKey := SplitInstanceName(instanceName.String())
 	return &Info{SideInfo: SideInfo{RealName: storeName, Revision: revision}, InstanceKey: instanceKey}
 }
 
@@ -189,32 +189,32 @@ func ParsePlaceInfoFromSnapFileName(sn string) (PlaceInfo, error) {
 }
 
 // BaseDir returns the system level directory of given snap.
-func BaseDir(name string) string {
-	return filepath.Join(dirs.SnapMountDir, name)
+func BaseDir(name naming.InstanceName) string {
+	return filepath.Join(dirs.SnapMountDir, name.String())
 }
 
 // MountDir returns the base directory where it gets mounted of the snap with
 // the given name and revision.
-func MountDir(name string, revision Revision) string {
+func MountDir(name naming.InstanceName, revision Revision) string {
 	return filepath.Join(BaseDir(name), revision.String())
 }
 
 // ComponentMountDir returns the directory where a component gets mounted, which
 // will be of the form:
 // /snaps/<snap_instance>/components/mnt/<component_name>/<component_revision>
-func ComponentMountDir(componentName string, compRevision Revision, snapInstance string) string {
+func ComponentMountDir(componentName string, compRevision Revision, snapInstance naming.InstanceName) string {
 	return filepath.Join(ComponentsBaseDir(snapInstance), "mnt", componentName, compRevision.String())
 }
 
 // MountFile returns the path where the snap file that is mounted is installed,
 // using the default blob directory (dirs.SnapBlobDir).
-func MountFile(name string, revision Revision) string {
+func MountFile(name naming.InstanceName, revision Revision) string {
 	return MountFileInDir(dirs.SnapBlobDir, name, revision)
 }
 
 // MountFileInDir returns the path where the snap file that is mounted is
 // installed in a given directory.
-func MountFileInDir(dir, name string, revision Revision) string {
+func MountFileInDir(dir string, name naming.InstanceName, revision Revision) string {
 	return filepath.Join(dir, fmt.Sprintf("%s_%s.snap", name, revision))
 }
 
@@ -250,27 +250,26 @@ func NoneSecurityTag(snapName, uniqueName string) string {
 }
 
 // BaseDataDir returns the base directory for snap data locations.
-func BaseDataDir(name string) string {
-	return filepath.Join(dirs.SnapDataDir, name)
+func BaseDataDir(name naming.InstanceName) string {
+	return filepath.Join(dirs.SnapDataDir, name.String())
 }
 
 // DataDir returns the data directory for given snap name and revision. The name
-// can be
-// either a snap name or snap instance name.
-func DataDir(name string, revision Revision) string {
+// can be either a snap name or snap instance name.
+func DataDir(name naming.InstanceName, revision Revision) string {
 	return filepath.Join(BaseDataDir(name), revision.String())
 }
 
 // CommonDataSaveDir returns a core-specific save directory meant to provide access
 // to a per-snap storage that is preserved across factory reset.
-func CommonDataSaveDir(name string) string {
-	return filepath.Join(dirs.SnapDataSaveDir, name)
+func CommonDataSaveDir(name naming.InstanceName) string {
+	return filepath.Join(dirs.SnapDataSaveDir, name.String())
 }
 
 // CommonDataDir returns the common data directory for given snap name. The name
 // can be either a snap name or snap instance name.
-func CommonDataDir(name string) string {
-	return filepath.Join(dirs.SnapDataDir, name, "common")
+func CommonDataDir(name naming.InstanceName) string {
+	return filepath.Join(dirs.SnapDataDir, name.String(), "common")
 }
 
 // SequenceFile returns the path to the sequence file for the given snap name.
@@ -280,14 +279,14 @@ func SequenceFile(name string) string {
 
 // HooksDir returns the directory containing the snap's hooks for given snap
 // name. The name can be either a snap name or snap instance name.
-func HooksDir(name string, revision Revision) string {
+func HooksDir(name naming.InstanceName, revision Revision) string {
 	return filepath.Join(MountDir(name, revision), "meta", "hooks")
 }
 
 // ComponentHooksDir returns the directory containing the component's hooks for
 // the given component hook name. The provided snap name can be either a snap
 // name or snap instance name.
-func ComponentHooksDir(componentName string, compRevision Revision, snapInstance string) string {
+func ComponentHooksDir(componentName string, compRevision Revision, snapInstance naming.InstanceName) string {
 	return filepath.Join(ComponentMountDir(componentName, compRevision, snapInstance), "meta", "hooks")
 }
 
@@ -305,30 +304,30 @@ func snapDataDir(opts *dirs.SnapDirOptions) string {
 
 // BaseDataHomeDirs returns the per user base data directories of the snap across multiple
 // home directories.
-func BaseDataHomeDirs(name string, opts *dirs.SnapDirOptions) []string {
+func BaseDataHomeDirs(name naming.InstanceName, opts *dirs.SnapDirOptions) []string {
 	var dataHomeGlob []string
 	for _, glob := range dirs.DataHomeGlobs(opts) {
-		dataHomeGlob = append(dataHomeGlob, filepath.Join(glob, name))
+		dataHomeGlob = append(dataHomeGlob, filepath.Join(glob, name.String()))
 	}
 	return dataHomeGlob
 }
 
 // UserDataDir returns the user-specific data directory for given snap name. The
 // name can be either a snap name or snap instance name.
-func UserDataDir(home string, name string, revision Revision, opts *dirs.SnapDirOptions) string {
-	return filepath.Join(home, snapDataDir(opts), name, revision.String())
+func UserDataDir(home string, name naming.InstanceName, revision Revision, opts *dirs.SnapDirOptions) string {
+	return filepath.Join(home, snapDataDir(opts), name.String(), revision.String())
 }
 
 // UserCommonDataDir returns the user-specific common data directory for given
 // snap name. The name can be either a snap name or snap instance name.
-func UserCommonDataDir(home string, name string, opts *dirs.SnapDirOptions) string {
-	return filepath.Join(home, snapDataDir(opts), name, "common")
+func UserCommonDataDir(home string, name naming.InstanceName, opts *dirs.SnapDirOptions) string {
+	return filepath.Join(home, snapDataDir(opts), name.String(), "common")
 }
 
 // UserSnapDir returns the user-specific directory for given
 // snap name. The name can be either a snap name or snap instance name.
-func UserSnapDir(home string, name string, opts *dirs.SnapDirOptions) string {
-	return filepath.Join(home, snapDataDir(opts), name)
+func UserSnapDir(home string, name naming.InstanceName, opts *dirs.SnapDirOptions) string {
+	return filepath.Join(home, snapDataDir(opts), name.String())
 }
 
 // UserExposedHomeDir returns the snap's directory in the exposed home dir.
@@ -338,7 +337,7 @@ func UserExposedHomeDir(home string, snapName string) string {
 
 // UserXdgRuntimeDir returns the user-specific XDG_RUNTIME_DIR directory for
 // given snap name. The name can be either a snap name or snap instance name.
-func UserXdgRuntimeDir(euid sys.UserID, name string) string {
+func UserXdgRuntimeDir(euid sys.UserID, name naming.InstanceName) string {
 	return filepath.Join(dirs.XdgRuntimeDirBase, fmt.Sprintf("%d/snap.%s", euid, name))
 }
 
@@ -697,12 +696,12 @@ func (s *Info) Type() Type {
 
 // MountDir returns the base directory of the snap where it gets mounted.
 func (s *Info) MountDir() string {
-	return MountDir(s.InstanceName(), s.Revision)
+	return MountDir(naming.InstanceName(s.InstanceName()), s.Revision)
 }
 
 // MountFile returns the path where the snap file that is mounted is installed.
 func (s *Info) MountFile() string {
-	return MountFile(s.InstanceName(), s.Revision)
+	return MountFile(naming.InstanceName(s.InstanceName()), s.Revision)
 }
 
 // MountDescription returns the mount unit Description field.
@@ -712,23 +711,23 @@ func (s *Info) MountDescription() string {
 
 // HooksDir returns the directory containing the snap's hooks.
 func (s *Info) HooksDir() string {
-	return HooksDir(s.InstanceName(), s.Revision)
+	return HooksDir(naming.InstanceName(s.InstanceName()), s.Revision)
 }
 
 // DataDir returns the data directory of the snap.
 func (s *Info) DataDir() string {
-	return DataDir(s.InstanceName(), s.Revision)
+	return DataDir(naming.InstanceName(s.InstanceName()), s.Revision)
 }
 
 // UserDataDir returns the user-specific data directory of the snap.
 func (s *Info) UserDataDir(home string, opts *dirs.SnapDirOptions) string {
-	return UserDataDir(home, s.InstanceName(), s.Revision, opts)
+	return UserDataDir(home, naming.InstanceName(s.InstanceName()), s.Revision, opts)
 }
 
 // UserCommonDataDir returns the user-specific data directory common across
 // revision of the snap.
 func (s *Info) UserCommonDataDir(home string, opts *dirs.SnapDirOptions) string {
-	return UserCommonDataDir(home, s.InstanceName(), opts)
+	return UserCommonDataDir(home, naming.InstanceName(s.InstanceName()), opts)
 }
 
 // UserExposedHomeDir returns the new upper-case snap directory in the user home.
@@ -738,12 +737,12 @@ func (s *Info) UserExposedHomeDir(home string) string {
 
 // CommonDataDir returns the data directory common across revisions of the snap.
 func (s *Info) CommonDataDir() string {
-	return CommonDataDir(s.InstanceName())
+	return CommonDataDir(naming.InstanceName(s.InstanceName()))
 }
 
 // CommonDataSaveDir returns the save data directory common across revisions of the snap.
 func (s *Info) CommonDataSaveDir() string {
-	return CommonDataSaveDir(s.InstanceName())
+	return CommonDataSaveDir(naming.InstanceName(s.InstanceName()))
 }
 
 // DataHomeDirs returns the per user data directories of the snap across multiple
@@ -769,7 +768,7 @@ func (s *Info) CommonDataHomeDirs(opts *dirs.SnapDirOptions) []string {
 // UserXdgRuntimeDir returns the XDG_RUNTIME_DIR directory of the snap for a
 // particular user.
 func (s *Info) UserXdgRuntimeDir(euid sys.UserID) string {
-	return UserXdgRuntimeDir(euid, s.InstanceName())
+	return UserXdgRuntimeDir(euid, naming.InstanceName(s.InstanceName()))
 }
 
 // XdgRuntimeDirs returns the XDG_RUNTIME_DIR directories for all users of the
@@ -842,9 +841,9 @@ func (s *Info) ExpandSnapVariablesSetSnapMountDir(path, snapMountDir string, exp
 		case "SNAP":
 			return filepath.Join(snapMountDir, name, s.Revision.String())
 		case "SNAP_DATA":
-			return DataDir(name, s.Revision)
+			return DataDir(naming.InstanceName(name), s.Revision)
 		case "SNAP_COMMON":
-			return CommonDataDir(name)
+			return CommonDataDir(naming.InstanceName(name))
 		}
 		return ""
 	})
@@ -1750,7 +1749,7 @@ var SanitizePlugsSlots = sanitizePlugsSlotsUnimpl
 // ReadInfo reads the snap information for the installed snap with the given
 // name and given side-info.
 func ReadInfo(name string, si *SideInfo) (*Info, error) {
-	return ReadInfoFromMountPoint(name, MountDir(name, si.Revision), MountFile(name, si.Revision), si)
+	return ReadInfoFromMountPoint(name, MountDir(naming.InstanceName(name), si.Revision), MountFile(naming.InstanceName(name), si.Revision), si)
 }
 
 // ReadInfoFromMountPoint reads the snap information for a mounted
@@ -1832,7 +1831,7 @@ func ReadCurrentComponentInfo(component string, info *Info) (*ComponentInfo, err
 	// TODO: creating this here is a bit of a hack, since we aren't actually
 	// able to set the revision of the component. we create it so that we can
 	// use ComponentLinkPath, which doesn't use the revision.
-	cpi := MinimalComponentContainerPlaceInfo(component, Revision{}, info.InstanceName())
+	cpi := MinimalComponentContainerPlaceInfo(component, Revision{}, naming.InstanceName(info.InstanceName()))
 	link := ComponentLinkPath(cpi, info.Revision)
 
 	linkSource, err := os.Readlink(link)

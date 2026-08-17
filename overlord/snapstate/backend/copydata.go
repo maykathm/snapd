@@ -31,6 +31,7 @@ import (
 	"github.com/snapcore/snapd/osutil/user"
 	"github.com/snapcore/snapd/progress"
 	"github.com/snapcore/snapd/snap"
+	"github.com/snapcore/snapd/snap/naming"
 	"github.com/snapcore/snapd/strutil"
 )
 
@@ -57,7 +58,7 @@ func (b Backend) CopySnapData(newSnap, oldSnap *snap.Info, opts *dirs.SnapDirOpt
 
 	// Make sure the base data directory exists for instance snaps
 	if newSnap.InstanceKey != "" {
-		err := os.MkdirAll(snap.BaseDataDir(newSnap.SnapName()), 0755)
+		err := os.MkdirAll(snap.BaseDataDir(naming.InstanceName(newSnap.SnapName())), 0755)
 		if err != nil && !os.IsExist(err) {
 			return err
 		}
@@ -122,7 +123,7 @@ func (b Backend) SetupSnapSaveData(info *snap.Info, dev snap.Device, meter progr
 		return nil
 	}
 
-	saveDir := snap.CommonDataSaveDir(info.InstanceName())
+	saveDir := snap.CommonDataSaveDir(naming.InstanceName(info.InstanceName()))
 	return os.MkdirAll(saveDir, 0755)
 }
 
@@ -182,7 +183,7 @@ func (b Backend) HideSnapData(snapName string) error {
 		}
 
 		// nothing to migrate
-		oldSnapDir := snap.UserSnapDir(usr.HomeDir, snapName, nil)
+		oldSnapDir := snap.UserSnapDir(usr.HomeDir, naming.InstanceName(snapName), nil)
 		if _, err := os.Stat(oldSnapDir); errors.Is(err, os.ErrNotExist) {
 			continue
 		} else if err != nil {
@@ -195,7 +196,7 @@ func (b Backend) HideSnapData(snapName string) error {
 			return fmt.Errorf("cannot create snap dir %q: %w", hiddenSnapDir, err)
 		}
 
-		newSnapDir := snap.UserSnapDir(usr.HomeDir, snapName, hiddenDirOpts)
+		newSnapDir := snap.UserSnapDir(usr.HomeDir, naming.InstanceName(snapName), hiddenDirOpts)
 		if exists, _, err := osutil.DirExists(newSnapDir); err != nil {
 			return err
 		} else if exists {
@@ -246,7 +247,7 @@ func (b Backend) UndoHideSnapData(snapName string) error {
 		}
 
 		// skip it if wasn't migrated
-		hiddenSnapDir := snap.UserSnapDir(usr.HomeDir, snapName, hiddenDirOpts)
+		hiddenSnapDir := snap.UserSnapDir(usr.HomeDir, naming.InstanceName(snapName), hiddenDirOpts)
 		if _, err := os.Stat(hiddenSnapDir); err != nil {
 			if !errors.Is(err, os.ErrNotExist) {
 				handle(fmt.Errorf("cannot read files in %q: %w", hiddenSnapDir, err))
@@ -261,7 +262,7 @@ func (b Backend) UndoHideSnapData(snapName string) error {
 			continue
 		}
 
-		exposedSnapDir := snap.UserSnapDir(usr.HomeDir, snapName, nil)
+		exposedSnapDir := snap.UserSnapDir(usr.HomeDir, naming.InstanceName(snapName), nil)
 		if err := osutil.AtomicRename(hiddenSnapDir, exposedSnapDir); err != nil {
 			handle(fmt.Errorf("cannot move %q to %q: %w", hiddenSnapDir, exposedSnapDir, err))
 			continue
@@ -349,7 +350,7 @@ func (b Backend) InitExposedSnapHome(snapName string, rev snap.Revision, opts *d
 
 		undoInfo.Created = append(undoInfo.Created, newUserHome)
 
-		userData := snap.UserDataDir(usr.HomeDir, snapName, rev, opts)
+		userData := snap.UserDataDir(usr.HomeDir, naming.InstanceName(snapName), rev, opts)
 		files, err := os.ReadDir(userData)
 		if err != nil {
 			if errors.Is(err, os.ErrNotExist) {

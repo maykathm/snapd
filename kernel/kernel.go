@@ -27,6 +27,7 @@ import (
 
 	"github.com/snapcore/snapd/logger"
 	"github.com/snapcore/snapd/snap"
+	"github.com/snapcore/snapd/snap/naming"
 	"github.com/snapcore/snapd/strutil"
 	"gopkg.in/yaml.v2"
 )
@@ -54,7 +55,7 @@ type Info struct {
 func (ki *Info) DynamicModulesDir(kSnapName string, ksnapRev snap.Revision) string {
 	switch ki.DynamicModules {
 	case "$SNAP_DATA", "${SNAP_DATA}":
-		return snap.DataDir(kSnapName, ksnapRev)
+		return snap.DataDir(naming.InstanceName(kSnapName), ksnapRev)
 	case "":
 	default:
 		logger.Noticef("internal error: bad dynamic-modules: %s", ki.DynamicModules)

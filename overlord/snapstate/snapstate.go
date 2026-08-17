@@ -4230,10 +4230,10 @@ func downloadsToKeep(st *state.State) (map[string]bool, error) {
 	// keep revisions in snap's sequence
 	for snapName, snapst := range snapStates {
 		for _, rss := range snapst.Sequence.Revisions {
-			keepBlob(snap.MountFile(snapName, rss.Snap.Revision))
+			keepBlob(snap.MountFile(naming.InstanceName(snapName), rss.Snap.Revision))
 			for _, comp := range rss.Components {
 				cpi := snap.MinimalComponentContainerPlaceInfo(comp.SideInfo.Component.ComponentName,
-					comp.SideInfo.Revision, snapName)
+					comp.SideInfo.Revision, naming.InstanceName(snapName))
 				keepBlob(cpi.MountFile())
 			}
 		}
@@ -4241,7 +4241,7 @@ func downloadsToKeep(st *state.State) (map[string]bool, error) {
 
 	// keep revisions in refresh hints
 	for snapName, hint := range refreshHints {
-		keepBlob(snap.MountFile(snapName, hint.Revision()))
+		keepBlob(snap.MountFile(naming.InstanceName(snapName), hint.Revision()))
 	}
 
 	// keep revisions pointed to by a download task in an ongoing change
@@ -4268,7 +4268,7 @@ func downloadsToKeep(st *state.State) (map[string]bool, error) {
 				// download task runs, which may, or may not have run already.
 				if compsup.CompPath == "" {
 					cpi := snap.MinimalComponentContainerPlaceInfo(compsup.ComponentName(),
-						compsup.Revision(), snapsup.InstanceName())
+						compsup.Revision(), naming.InstanceName(snapsup.InstanceName()))
 					keepBlob(cpi.MountFile())
 				} else {
 					keepBlob(compsup.CompPath)
@@ -4416,7 +4416,7 @@ func unmountSnap(snapst *SnapState) error {
 			cpi := snap.MinimalComponentContainerPlaceInfo(
 				compName,
 				c.SideInfo.Revision,
-				snapst.InstanceName(),
+				naming.InstanceName(snapst.InstanceName()),
 			)
 
 			mountDir := cpi.MountDir()
@@ -4434,7 +4434,7 @@ func unmountSnap(snapst *SnapState) error {
 			}
 		}
 
-		mountDir := snap.MountDir(snapst.InstanceName(), rev.Snap.Revision)
+		mountDir := snap.MountDir(naming.InstanceName(snapst.InstanceName()), rev.Snap.Revision)
 		logger.Debugf("unmounting snap %s at %s", snapst.InstanceName(), mountDir)
 		if _, err := exec.Command("umount", "-d", "-l", mountDir).CombinedOutput(); err != nil {
 			return err

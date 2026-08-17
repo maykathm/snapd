@@ -53,6 +53,7 @@ import (
 	"github.com/snapcore/snapd/sandbox/cgroup"
 	"github.com/snapcore/snapd/sandbox/selinux"
 	"github.com/snapcore/snapd/snap"
+	"github.com/snapcore/snapd/snap/naming"
 	"github.com/snapcore/snapd/snap/snapenv"
 	"github.com/snapcore/snapd/snapdtool"
 	"github.com/snapcore/snapd/strutil"
@@ -499,7 +500,7 @@ func createUserDataDirs(info *snap.Info, opts *dirs.SnapDirOptions) error {
 		// namespace, namely /home/joe/snap/foo_bar ->
 		// /home/joe/snap/foo, make sure that the mount point exists and
 		// is owned by the user
-		snapUserDir := snap.UserSnapDir(usr.HomeDir, info.SnapName(), opts)
+		snapUserDir := snap.UserSnapDir(usr.HomeDir, naming.InstanceName(info.SnapName()), opts)
 		createDirs = append(createDirs, snapUserDir)
 	}
 	for _, d := range createDirs {

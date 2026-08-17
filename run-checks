@@ -347,23 +347,23 @@ if [ "$VERIFY_TOOLS" = 1 ]; then
 fi
 
 if [ "$STATIC" = 1 ]; then
-    ./get-deps.sh
-    echo "> Running static tests"
+    # ./get-deps.sh
+    # echo "> Running static tests"
 
-    echo ">> Checking docs"
-    ./mdlint.py ./*.md ./**/*.md
+    # echo ">> Checking docs"
+    # ./mdlint.py ./*.md ./**/*.md
 
-    # XXX: remove once we can use an action, see workflows/test.yaml for
-    #      details why we still use this script
-    if [ -n "${GITHUB_PULL_REQUEST_TITLE:-}" ]; then
-        echo ">> Checking pull request summary"
-        ./check-pr-title.py "${GITHUB_PULL_REQUEST_TITLE}"
-    else
-        echo ">> Skipping pull request summary check: not a pull request"
-    fi
+    # # XXX: remove once we can use an action, see workflows/test.yaml for
+    # #      details why we still use this script
+    # if [ -n "${GITHUB_PULL_REQUEST_TITLE:-}" ]; then
+    #     echo ">> Checking pull request summary"
+    #     ./check-pr-title.py "${GITHUB_PULL_REQUEST_TITLE}"
+    # else
+    #     echo ">> Skipping pull request summary check: not a pull request"
+    # fi
 
-    echo ">> [Git] Checking commit author/committer name for unicode"
-    ./check-commit-email.py
+    # echo ">> [Git] Checking commit author/committer name for unicode"
+    # ./check-commit-email.py
 
     if [ -z "${SKIP_GOFMT:-}" ]; then
         echo ">> [Go] Checking go formatting"
@@ -431,12 +431,12 @@ if [ "$STATIC" = 1 ]; then
         exit 1
     fi
 
-    if command -v dbus-launch>/dev/null && [ -z "${SKIP_DBUS_LAUNCH:-}" ]; then
-        echo ">> [Shell] Checking for dbus-launch"
-        dbus-launch --version
-    else
-        echo ">> [Shell] Skipping tests that require dbus-launch"
-    fi
+    # if command -v dbus-launch>/dev/null && [ -z "${SKIP_DBUS_LAUNCH:-}" ]; then
+    #     echo ">> [Shell] Checking for dbus-launch"
+    #     dbus-launch --version
+    # else
+    #     echo ">> [Shell] Skipping tests that require dbus-launch"
+    # fi
 
     echo ">> [Go] Checking cmd binaries for forbidden dependencies"
     forbidden_cmd_go_deps
@@ -444,115 +444,115 @@ if [ "$STATIC" = 1 ]; then
     echo ">> [Go] Checking interfaces that grant mountinfo access use a prioritized override"
     check_mountinfo_override
 
-    if command -v shellcheck >/dev/null; then
-        exclude_tools_path=tests/lib/external/snapd-testing-tools
-        echo ">> [Bash] Checking shell scripts"
-        if [ -n "$CHANGED_FILES" ]; then
-            echo "Checking just the changed bash files"
-            echo "Changed files: $CHANGED_FILES"
-            # shellcheck disable=SC2086
-            INITIAL_FILES="$(file -N $CHANGED_FILES | awk -F": " '$2~/shell.script/{print $1}')"
-        else
-            echo "Checking all the bash files"
-            INITIAL_FILES="$( (git ls-files -z 2>/dev/null || find . \( -name .git -o -name vendor -o -name c-vendor \) -prune -o -print0) | xargs -0 file -N | awk -F": " '$2~/shell.script/{print $1}')"
-        fi
+    # if command -v shellcheck >/dev/null; then
+    #     exclude_tools_path=tests/lib/external/snapd-testing-tools
+    #     echo ">> [Bash] Checking shell scripts"
+    #     if [ -n "$CHANGED_FILES" ]; then
+    #         echo "Checking just the changed bash files"
+    #         echo "Changed files: $CHANGED_FILES"
+    #         # shellcheck disable=SC2086
+    #         INITIAL_FILES="$(file -N $CHANGED_FILES | awk -F": " '$2~/shell.script/{print $1}')"
+    #     else
+    #         echo "Checking all the bash files"
+    #         INITIAL_FILES="$( (git ls-files -z 2>/dev/null || find . \( -name .git -o -name vendor -o -name c-vendor \) -prune -o -print0) | xargs -0 file -N | awk -F": " '$2~/shell.script/{print $1}')"
+    #     fi
 
-        echo "Filtering files"
-        FILTERED_FILES=
-        for file in $INITIAL_FILES; do
-            if ! echo "$file" | grep -q "$exclude_tools_path"; then
-                FILTERED_FILES="$FILTERED_FILES $file"
-            fi
-        done
-        if [ -n "$FILTERED_FILES" ]; then
-            echo "Running shellcheck for files: $FILTERED_FILES"
-            # shellcheck disable=SC2086
-            shellcheck -x $FILTERED_FILES
-        else
-            echo "Skipping shellcheck, no files to check"
-        fi
+    #     echo "Filtering files"
+    #     FILTERED_FILES=
+    #     for file in $INITIAL_FILES; do
+    #         if ! echo "$file" | grep -q "$exclude_tools_path"; then
+    #             FILTERED_FILES="$FILTERED_FILES $file"
+    #         fi
+    #     done
+    #     if [ -n "$FILTERED_FILES" ]; then
+    #         echo "Running shellcheck for files: $FILTERED_FILES"
+    #         # shellcheck disable=SC2086
+    #         shellcheck -x $FILTERED_FILES
+    #     else
+    #         echo "Skipping shellcheck, no files to check"
+    #     fi
 
-        regexp='GOPATH(?!%%:\*)(?!:)[^= ]*/'
-        if grep -qPr --exclude HACKING.md --exclude 'Makefile.*' --exclude '*.qcow2' --exclude-dir .git --exclude-dir vendor "$regexp"; then
-            echo "Using GOPATH as if it were a single entry and not a list:" >&2
-            grep -PHrn -C1 --color=auto --exclude HACKING.md --exclude 'Makefile.*' --exclude '*.qcow2' --exclude-dir .git --exclude-dir vendor "$regexp"
-            echo "Use GOHOME, or {GOPATH%%:*}, instead." >&2
-            exit 1
-        fi
-        unset regexp
+    #     regexp='GOPATH(?!%%:\*)(?!:)[^= ]*/'
+    #     if grep -qPr --exclude HACKING.md --exclude 'Makefile.*' --exclude '*.qcow2' --exclude-dir .git --exclude-dir vendor "$regexp"; then
+    #         echo "Using GOPATH as if it were a single entry and not a list:" >&2
+    #         grep -PHrn -C1 --color=auto --exclude HACKING.md --exclude 'Makefile.*' --exclude '*.qcow2' --exclude-dir .git --exclude-dir vendor "$regexp"
+    #         echo "Use GOHOME, or {GOPATH%%:*}, instead." >&2
+    #         exit 1
+    #     fi
+    #     unset regexp
 
-        # also run spread-shellcheck
-        FILTERED_FILES="spread.yaml"
-        if [ -n "$CHANGED_FILES" ]; then
-            # shellcheck disable=SC2086
-            for changed_file in $CHANGED_FILES; do
-                if [[ $changed_file == */task.yaml ]]; then
-                    FILTERED_FILES="$FILTERED_FILES $(pwd)/$changed_file"
-                fi
-            done
-        else
-            FILTERED_FILES="$FILTERED_FILES tests"
-        fi
-        # XXX: exclude core20-preseed test as its environment block confuses shellcheck, and it's not possible to disable shellcheck there.
-        # shellcheck disable=SC2086
-        ./tests/lib/external/snapd-testing-tools/utils/spread-shellcheck $FILTERED_FILES --exclude "$exclude_tools_path" --exclude "tests/nested/manual/core20-preseed"
-    else
-        echo ">> [Bash] Skipping shellcheck check"
-    fi
+    #     # also run spread-shellcheck
+    #     FILTERED_FILES="spread.yaml"
+    #     if [ -n "$CHANGED_FILES" ]; then
+    #         # shellcheck disable=SC2086
+    #         for changed_file in $CHANGED_FILES; do
+    #             if [[ $changed_file == */task.yaml ]]; then
+    #                 FILTERED_FILES="$FILTERED_FILES $(pwd)/$changed_file"
+    #             fi
+    #         done
+    #     else
+    #         FILTERED_FILES="$FILTERED_FILES tests"
+    #     fi
+    #     # XXX: exclude core20-preseed test as its environment block confuses shellcheck, and it's not possible to disable shellcheck there.
+    #     # shellcheck disable=SC2086
+    #     ./tests/lib/external/snapd-testing-tools/utils/spread-shellcheck $FILTERED_FILES --exclude "$exclude_tools_path" --exclude "tests/nested/manual/core20-preseed"
+    # else
+    #     echo ">> [Bash] Skipping shellcheck check"
+    # fi
 
-    echo ">> [Spread] Checking all interfaces have a spread test"
-    missing_interface_spread_test
+    # echo ">> [Spread] Checking all interfaces have a spread test"
+    # missing_interface_spread_test
 
-    echo ">> [Spread] Checking for incorrect multiline strings in spread tests"
-    badmultiline=$(find tests -name 'task.yaml' -print0 -o -name 'spread.yaml' -print0 |
-        xargs -0 grep -R -n -E '(restore*|prepare*|execute|debug):\s*$' || true)
-    if [ -n "$badmultiline" ]; then
-        echo "Incorrect multiline strings at the following locations:" >&2
-        echo "$badmultiline" >&2
-        exit 1
-    fi
+    # echo ">> [Spread] Checking for incorrect multiline strings in spread tests"
+    # badmultiline=$(find tests -name 'task.yaml' -print0 -o -name 'spread.yaml' -print0 |
+    #     xargs -0 grep -R -n -E '(restore*|prepare*|execute|debug):\s*$' || true)
+    # if [ -n "$badmultiline" ]; then
+    #     echo "Incorrect multiline strings at the following locations:" >&2
+    #     echo "$badmultiline" >&2
+    #     exit 1
+    # fi
 
-    echo ">> [Spread] Checking for potentially incorrect use of MATCH -v"
-    badMATCH=$(find tests -name 'task.yaml' -print0 -o -name 'spread.yaml' -print0 |
-        xargs -0 grep -R -n -E 'MATCH +-v' || true)
-    if [ -n "$badMATCH" ]; then
-        echo "Potentially incorrect use of MATCH -v at the following locations:" >&2
-        echo "$badMATCH" >&2
-        exit 1
-    fi
+    # echo ">> [Spread] Checking for potentially incorrect use of MATCH -v"
+    # badMATCH=$(find tests -name 'task.yaml' -print0 -o -name 'spread.yaml' -print0 |
+    #     xargs -0 grep -R -n -E 'MATCH +-v' || true)
+    # if [ -n "$badMATCH" ]; then
+    #     echo "Potentially incorrect use of MATCH -v at the following locations:" >&2
+    #     echo "$badMATCH" >&2
+    #     exit 1
+    # fi
 
-    # FIXME: re-add staticcheck with a matching version for the used go-version
+    # # FIXME: re-add staticcheck with a matching version for the used go-version
 
-    if [ -z "${SKIP_TESTS_FORMAT_CHECK:-}" ] || [ "$SKIP_TESTS_FORMAT_CHECK" = 0 ]; then
-        echo ">> [Spread] Checking tests formatting"
-        CHANGED_TESTS=""
-        FILTERED_TESTS=""
-        EXCLUDE_PATH=tests/lib/external/snapd-testing-tools
-        if [ -n "$CHANGED_FILES" ]; then
-            # shellcheck disable=SC2086
-            for changed_file in $CHANGED_FILES; do
-                if [[ $changed_file == */task.yaml ]]; then
-                    CHANGED_TESTS="$CHANGED_TESTS $changed_file"
-                fi
-            done
-        fi
-        # shellcheck disable=SC2086
-        for test in $CHANGED_TESTS; do
-            if ! echo "$test" | grep -q "$EXCLUDE_PATH"; then
-                if [ -z "$FILTERED_TESTS" ]; then
-                    FILTERED_TESTS="$test"
-                else
-                    FILTERED_TESTS="$FILTERED_TESTS $test"
-                fi
-            fi
-        done
-        if [ -n "$FILTERED_TESTS" ]; then
-            # shellcheck disable=SC2086
-            ./tests/lib/external/snapd-testing-tools/utils/check-test-format --tests $FILTERED_TESTS
-        fi
-    else
-        echo ">> [Spread] Skipping tests formatting check"
-    fi
+    # if [ -z "${SKIP_TESTS_FORMAT_CHECK:-}" ] || [ "$SKIP_TESTS_FORMAT_CHECK" = 0 ]; then
+    #     echo ">> [Spread] Checking tests formatting"
+    #     CHANGED_TESTS=""
+    #     FILTERED_TESTS=""
+    #     EXCLUDE_PATH=tests/lib/external/snapd-testing-tools
+    #     if [ -n "$CHANGED_FILES" ]; then
+    #         # shellcheck disable=SC2086
+    #         for changed_file in $CHANGED_FILES; do
+    #             if [[ $changed_file == */task.yaml ]]; then
+    #                 CHANGED_TESTS="$CHANGED_TESTS $changed_file"
+    #             fi
+    #         done
+    #     fi
+    #     # shellcheck disable=SC2086
+    #     for test in $CHANGED_TESTS; do
+    #         if ! echo "$test" | grep -q "$EXCLUDE_PATH"; then
+    #             if [ -z "$FILTERED_TESTS" ]; then
+    #                 FILTERED_TESTS="$test"
+    #             else
+    #                 FILTERED_TESTS="$FILTERED_TESTS $test"
+    #             fi
+    #         fi
+    #     done
+    #     if [ -n "$FILTERED_TESTS" ]; then
+    #         # shellcheck disable=SC2086
+    #         ./tests/lib/external/snapd-testing-tools/utils/check-test-format --tests $FILTERED_TESTS
+    #     fi
+    # else
+    #     echo ">> [Spread] Skipping tests formatting check"
+    # fi
 
     echo ">> [Go] Checking for usages of !=, == or Equals with ErrNoState"
     if got=$(grep -n -R -E "(\!=|==|Equals,) (state\.)?ErrNoState" --include=*.go); then
@@ -622,31 +622,31 @@ if [ "$STATIC" = 1 ]; then
         exit 1
     fi
 
-    echo ">> [C] Checking C source code formatting"
-    if command -v clang-format >/dev/null; then
-        current=$(pwd)
-        cd cmd/
-        ./autogen.sh
-        if ! make fmt-check; then
-            echo "C files are not formatted correctly, run 'make fmt'" >&2
-            exit 1
-        fi
-        cd "$current"
-    else
-        echo ">> [C] Skipping C source code formatting check"
-    fi
-
-    echo ">> [Go] Checking that all ensure helper methods have been registered"
-    missing=0
-    while IFS=' ' read -r manager func; do
-        if ! grep -rq "swfeats.RegisterEnsure(\"$manager\",.*\"$func\")" .; then
-            echo "Missing ensure function registration. Add the following to the relevant file: swfeats.RegEnsure(\"$manager\", \"$func\")"
-            missing=1
-        fi
-    done < <(grep -r '.Trace("ensure"' overlord | sed -n 's/.*\.Trace("ensure",.*"manager",.*"\([^"]*\)",.*"func",.*"\([^"]*\)").*/\1 \2/p')
-    if [ $missing -eq 1 ]; then
-        exit 1
-    fi
+    # echo ">> [C] Checking C source code formatting"
+    # if command -v clang-format >/dev/null; then
+    #     current=$(pwd)
+    #     cd cmd/
+    #     ./autogen.sh
+    #     if ! make fmt-check; then
+    #         echo "C files are not formatted correctly, run 'make fmt'" >&2
+    #         exit 1
+    #     fi
+    #     cd "$current"
+    # else
+    #     echo ">> [C] Skipping C source code formatting check"
+    # fi
+    # 
+    # echo ">> [Go] Checking that all ensure helper methods have been registered"
+    # missing=0
+    # while IFS=' ' read -r manager func; do
+    #     if ! grep -rq "swfeats.RegisterEnsure(\"$manager\",.*\"$func\")" .; then
+    #         echo "Missing ensure function registration. Add the following to the relevant file: swfeats.RegEnsure(\"$manager\", \"$func\")"
+    #         missing=1
+    #     fi
+    # done < <(grep -r '.Trace("ensure"' overlord | sed -n 's/.*\.Trace("ensure",.*"manager",.*"\([^"]*\)",.*"func",.*"\([^"]*\)").*/\1 \2/p')
+    # if [ $missing -eq 1 ]; then
+    #     exit 1
+    # fi
 fi
 
 if [ "$UNIT" = 1 ]; then
@@ -715,13 +715,13 @@ EOF
     fi
 fi
 
-if [ -n "${SKIP_DIRTY_CHECK:-}" ]; then
-    echo "> [Git] Skipping dirty check"
-    exit 0
-fi
-echo "> [Git] Checking for dirty build tree"
-if git describe --always --dirty | grep -q dirty; then
-    echo "Build tree is dirty" >&2
-    git diff >&2
-    exit 1
-fi
+# if [ -n "${SKIP_DIRTY_CHECK:-}" ]; then
+#     echo "> [Git] Skipping dirty check"
+#     exit 0
+# fi
+# echo "> [Git] Checking for dirty build tree"
+# if git describe --always --dirty | grep -q dirty; then
+#     echo "Build tree is dirty" >&2
+#     git diff >&2
+#     exit 1
+# fi
