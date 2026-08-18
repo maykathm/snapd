@@ -113,13 +113,17 @@ snap names where instance names are required. SplitSnapApp now returns
 the typed InstanceName, requiring .String() at string boundaries.
 ```
 
-### Patch 4 — `interfaces` internals
-Type `SnapAppSet.InstanceName()` return value and internal repo/connection helpers. Leave persisted `PlugRef.Snap` / `SlotRef.Snap` as `string` (JSON); convert at those boundaries with `.String()`.
+### ✅ Patch 4 — `interfaces.SnapAppSet.InstanceName()` typed return
+**Status: COMPLETED**
 
-**Files to modify:**
-- `interfaces/snap_app_set.go` - type `InstanceName()` return
-- `interfaces/repo.go` - internal connection helpers
-- `interfaces/core.go` - boundaries with `PlugRef`/`SlotRef`
+Typed `SnapAppSet.InstanceName()` to return `naming.InstanceName`. Updated all call sites in `interfaces` package backends (apparmor, dbus, kmod, mount, polkit, seccomp, systemd, udev, plus configfiles, ldconfig, symlinks) to use `.String()` for map keys and string operations.
+
+Left persisted `PlugRef.Snap` / `SlotRef.Snap` as `string` (JSON fields); convert at boundaries with `.String()` / cast.
+
+**Files modified:**
+- `interfaces/snap_app_set.go` - typed `InstanceName()` return
+- `interfaces/builtin/*_backend.go` - 26 call sites fixed with `.String()`
+
 
 ### Patch 5 — `overlord/snapstate` internals
 Type returns of `SnapSetup.SnapName()/InstanceName()` and `SnapState.InstanceName()` (unchecked casts; persisted `SideInfo.RealName` / `InstanceKey` stay strings). Then local install/check/conflict/prereq/alias helpers.
@@ -189,15 +193,15 @@ Once callers are typed, remove or deprecate `snap.InstanceName`, `snap.InstanceS
 
 ## Current Status
 
-**Completed:** Patches 1-3
-**Next:** Patch 4 (`interfaces` internals)
+**Completed:** Patches 1-4 (types, filesystem helpers, security tags, interfaces typed returns)
+**Next:** Patch 5 (`overlord/snapstate` accessors)
 
 **Progress tracking:**
 - [x] Patch 1: Types + helpers + tests
 - [x] Patch 2: Leaf filesystem path helpers
 - [x] Patch 3: Snap/app + security-tag helpers
-- [ ] Patch 4: `interfaces` internals
-- [ ] Patch 5: `overlord/snapstate` internals
+- [x] Patch 4: `interfaces.SnapAppSet.InstanceName()` typed return
+- [ ] Patch 5: `overlord/snapstate` accessors (`SnapSetup`, `SnapState`)
 - [ ] Patches 6-10: Remaining managers
 - [ ] Patch N: Central `PlaceInfo` interface
 - [ ] Patch N+1: Boundary constructor conversions
