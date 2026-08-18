@@ -209,16 +209,16 @@ func (snapsup *SnapSetup) Revision() snap.Revision {
 }
 
 func (snapsup *SnapSetup) containerInfo() snap.ContainerPlaceInfo {
-	return snap.MinimalSnapContainerPlaceInfo(naming.InstanceName(snapsup.InstanceName()), snapsup.Revision())
+	return snap.MinimalSnapContainerPlaceInfo(naming.InstanceName(snapsup.InstanceName().String()), snapsup.Revision())
 }
 
 func (snapsup *SnapSetup) placeInfo() snap.PlaceInfo {
-	return snap.MinimalPlaceInfo(naming.InstanceName(snapsup.InstanceName()), snapsup.Revision())
+	return snap.MinimalPlaceInfo(naming.InstanceName(snapsup.InstanceName().String()), snapsup.Revision())
 }
 
 // MountDir returns the path to the directory where this snap would be mounted.
 func (snapsup *SnapSetup) MountDir() string {
-	return snap.MountDir(naming.InstanceName(snapsup.InstanceName()), snapsup.Revision())
+	return snap.MountDir(naming.InstanceName(snapsup.InstanceName().String()), snapsup.Revision())
 }
 
 // BlobPath returns the path to the snap/squashfs file that backs the snap that
@@ -229,7 +229,7 @@ func (snapsup *SnapSetup) BlobPath() string {
 	if blobDir == "" {
 		blobDir = dirs.SnapBlobDir
 	}
-	return snap.MountFileInDir(blobDir, naming.InstanceName(snapsup.InstanceName()), snapsup.Revision())
+	return snap.MountFileInDir(blobDir, naming.InstanceName(snapsup.InstanceName().String()), snapsup.Revision())
 }
 
 // ComponentSetup holds the necessary component details to perform
@@ -1051,7 +1051,7 @@ func affectsRunningHooks(cand *state.Task, running []*state.Task) (block bool) {
 		}
 
 		// this snap has a hook running, retry later
-		if candSnap == hooksup.Snap {
+		if candSnap.String() == hooksup.Snap {
 			return true
 		}
 
@@ -1062,7 +1062,7 @@ func affectsRunningHooks(cand *state.Task, running []*state.Task) (block bool) {
 		}
 
 		// this is a base for a snap with a hook running, retry later
-		if candSnap == hookSnapst.Base {
+		if candSnap.String() == hookSnapst.Base {
 			return true
 		}
 	}
