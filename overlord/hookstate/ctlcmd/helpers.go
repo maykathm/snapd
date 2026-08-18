@@ -427,7 +427,7 @@ func maybePatchServiceNames(snapInstance string, serviceNames []string) (
 		}
 
 		svcSnapInstanceName, svcApp := snap.SplitSnapApp(svcN)
-		svcSnapName, svcSnapInstanceKey := snap.SplitInstanceName(svcSnapInstanceName)
+		svcSnapName, svcSnapInstanceKey := snap.SplitInstanceName(svcSnapInstanceName.String())
 
 		if svcSnapName == snapName {
 			// only apply patching if the snap name matches
@@ -435,7 +435,7 @@ func maybePatchServiceNames(snapInstance string, serviceNames []string) (
 			if svcSnapInstanceKey == "" {
 				// snap name used in the full service name does not include instance
 				// key, needs patching
-				updatedServiceNames = append(updatedServiceNames, snap.JoinSnapApp(snapInstance, svcApp))
+				updatedServiceNames = append(updatedServiceNames, snap.JoinSnapApp(naming.InstanceName(snapInstance), svcApp))
 				patched = true
 				continue
 			}

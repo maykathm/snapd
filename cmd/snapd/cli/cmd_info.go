@@ -40,6 +40,7 @@ import (
 	"github.com/snapcore/snapd/i18n"
 	"github.com/snapcore/snapd/osutil"
 	"github.com/snapcore/snapd/snap"
+	"github.com/snapcore/snapd/snap/naming"
 	"github.com/snapcore/snapd/snap/snapfile"
 	"github.com/snapcore/snapd/snap/squashfs"
 	"github.com/snapcore/snapd/strutil"
@@ -492,7 +493,7 @@ func (iw *infoWriter) maybePrintCommands() {
 			continue
 		}
 
-		cmdStr := snap.JoinSnapApp(iw.theSnap.Name, app.Name)
+		cmdStr := snap.JoinSnapApp(naming.InstanceName(iw.theSnap.Name), app.Name)
 		commands = append(commands, cmdStr)
 	}
 	if len(commands) == 0 {
@@ -527,7 +528,7 @@ func (iw *infoWriter) maybePrintServices() {
 		} else {
 			enabled = "disabled"
 		}
-		services = append(services, fmt.Sprintf("  %s:\t%s, %s, %s", snap.JoinSnapApp(iw.theSnap.Name, app.Name), app.Daemon, enabled, active))
+		services = append(services, fmt.Sprintf("  %s:\t%s, %s, %s", snap.JoinSnapApp(naming.InstanceName(iw.theSnap.Name), app.Name), app.Daemon, enabled, active))
 	}
 	if len(services) == 0 {
 		return

@@ -47,6 +47,7 @@ import (
 	"github.com/snapcore/snapd/interfaces"
 	"github.com/snapcore/snapd/osutil"
 	"github.com/snapcore/snapd/snap"
+	"github.com/snapcore/snapd/snap/naming"
 	"github.com/snapcore/snapd/timings"
 )
 
@@ -186,7 +187,7 @@ func deriveContent(spec *Specification, appSet *interfaces.SnapAppSet) (map[stri
 		buffer.WriteString(module)
 		buffer.WriteRune('\n')
 	}
-	content[fmt.Sprintf("%s.conf", snap.SecurityTag(appSet.InstanceName()))] = &osutil.MemoryFileState{
+	content[fmt.Sprintf("%s.conf", snap.SecurityTag(naming.InstanceName(appSet.InstanceName())))] = &osutil.MemoryFileState{
 		Content: buffer.Bytes(),
 		Mode:    0644,
 	}
@@ -210,7 +211,7 @@ func prepareModprobeDirContents(spec *Specification, appSet *interfaces.SnapAppS
 		contents.WriteString(fmt.Sprintf("options %s %s\n", module, options))
 	}
 
-	fileName := fmt.Sprintf("%s.conf", snap.SecurityTag(appSet.InstanceName()))
+	fileName := fmt.Sprintf("%s.conf", snap.SecurityTag(naming.InstanceName(appSet.InstanceName())))
 	return map[string]osutil.FileState{
 		fileName: &osutil.MemoryFileState{
 			Content: []byte(contents.String()),

@@ -352,7 +352,7 @@ func namesToSnapNames(inst *servicestate.Instruction) []string {
 	seen := make(map[string]struct{}, len(inst.Names))
 	for _, snapOrSnapDotApp := range inst.Names {
 		snapName, _ := snap.SplitSnapApp(snapOrSnapDotApp)
-		seen[snapName] = struct{}{}
+		seen[snapName.String()] = struct{}{}
 	}
 	names := make([]string, 0, len(seen))
 	for k := range seen {

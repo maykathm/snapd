@@ -38,6 +38,7 @@ import (
 	"github.com/snapcore/snapd/osutil"
 	"github.com/snapcore/snapd/sandbox/cgroup"
 	"github.com/snapcore/snapd/snap"
+	"github.com/snapcore/snapd/snap/naming"
 	"github.com/snapcore/snapd/systemd"
 	"github.com/snapcore/snapd/timings"
 )
@@ -89,7 +90,7 @@ func (b *Backend) Prepare(_ *interfaces.SnapAppSet) error {
 
 // snapRulesFileName returns the path of the snap udev rules file.
 func snapRulesFilePath(snapName string) string {
-	rulesFileName := fmt.Sprintf("70-%s.rules", snap.SecurityTag(snapName))
+	rulesFileName := fmt.Sprintf("70-%s.rules", snap.SecurityTag(naming.InstanceName(snapName)))
 	return filepath.Join(dirs.SnapUdevRulesDir, rulesFileName)
 }
 
@@ -118,7 +119,7 @@ func (b *Backend) Setup(appSet *interfaces.SnapAppSet, opts interfaces.Confineme
 	}
 
 	rulesFilePath := snapRulesFilePath(snapName)
-	selfManageDeviceCgroupPath := cgroup.SnapDeviceFile(snap.SecurityTag(snapName))
+	selfManageDeviceCgroupPath := cgroup.SnapDeviceFile(snap.SecurityTag(naming.InstanceName(snapName)))
 
 	needReload := false
 	// content is always empty whenever the snap controls device
@@ -211,7 +212,7 @@ func (b *Backend) Setup(appSet *interfaces.SnapAppSet, opts interfaces.Confineme
 // If the method fails it should be re-tried (with a sensible strategy) by the caller.
 func (b *Backend) Remove(snapName string) error {
 	rulesFilePath := snapRulesFilePath(snapName)
-	selfManageDeviceCgroupPath := cgroup.SnapDeviceFile(snap.SecurityTag(snapName))
+	selfManageDeviceCgroupPath := cgroup.SnapDeviceFile(snap.SecurityTag(naming.InstanceName(snapName)))
 
 	// If file doesn't exist we avoid reloading the udev rules when we return here
 	needReload := false

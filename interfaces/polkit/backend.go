@@ -35,17 +35,18 @@ import (
 	"github.com/snapcore/snapd/interfaces"
 	"github.com/snapcore/snapd/osutil"
 	"github.com/snapcore/snapd/snap"
+	"github.com/snapcore/snapd/snap/naming"
 	"github.com/snapcore/snapd/strutil"
 	"github.com/snapcore/snapd/timings"
 )
 
 func polkitPolicyName(snapName, nameSuffix string) string {
-	return snap.ScopedSecurityTag(snapName, "interface", nameSuffix) + ".policy"
+	return snap.ScopedSecurityTag(naming.InstanceName(snapName), "interface", nameSuffix) + ".policy"
 }
 
 func polkitRuleName(snapName, nameSuffix string) string {
 	// 70-<security-tag>.<file-name>.rules
-	return fmt.Sprintf("70-%s.%s.rules", snap.SecurityTag(snapName), nameSuffix)
+	return fmt.Sprintf("70-%s.%s.rules", snap.SecurityTag(naming.InstanceName(snapName)), nameSuffix)
 }
 
 // Backend is responsible for maintaining polkitd policy files.
