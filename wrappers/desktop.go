@@ -34,6 +34,7 @@ import (
 	"github.com/snapcore/snapd/logger"
 	"github.com/snapcore/snapd/osutil"
 	"github.com/snapcore/snapd/snap"
+	"github.com/snapcore/snapd/snap/naming"
 )
 
 // From the freedesktop Desktop Entry Specification¹,
@@ -115,7 +116,7 @@ func detectAppAndRewriteExecLine(s *snap.Info, desktopFile, line string) (appInf
 			// wrapper uses s.InstanceName(), with the instance key
 			// set the command will be 'snap_foo.app' instead of
 			// 'snap.app', need to account for that
-			validCmd = snap.JoinSnapApp(s.SnapName(), app.Name)
+			validCmd = snap.JoinSnapApp(naming.InstanceName(s.SnapName()), app.Name)
 		}
 		// check the prefix to allow %flag style args
 		// this is ok because desktop files are not run through sh

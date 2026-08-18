@@ -685,7 +685,7 @@ func decodeCatalog(resp *http.Response, names io.Writer, db SnapAdder) error {
 			commands = append(commands, alias.Name)
 		}
 		for _, app := range v.Apps {
-			commands = append(commands, snap.JoinSnapApp(v.Name, app))
+			commands = append(commands, snap.JoinSnapApp(naming.InstanceName(v.Name), app))
 		}
 
 		if err := db.AddSnap(v.Name, v.Version, v.Summary, commands); err != nil {

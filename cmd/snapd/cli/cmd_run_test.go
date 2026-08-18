@@ -44,6 +44,7 @@ import (
 	"github.com/snapcore/snapd/sandbox/cgroup"
 	"github.com/snapcore/snapd/sandbox/selinux"
 	"github.com/snapcore/snapd/snap"
+	"github.com/snapcore/snapd/snap/naming"
 	"github.com/snapcore/snapd/snap/snaptest"
 	"github.com/snapcore/snapd/testtime"
 	"github.com/snapcore/snapd/testutil"
@@ -3036,7 +3037,7 @@ func (s *RunSuite) TestSnapRunTrackingFailureCore26SelfManagedAllowed(c *check.C
 	cgroupOptsData, err := cgroupOpts.MarshalText()
 	c.Assert(err, check.IsNil)
 	c.Assert(os.MkdirAll(dirs.SnapCgroupPolicyDir, 0755), check.IsNil)
-	c.Assert(os.WriteFile(cgroup.SnapDeviceFile(snap.SecurityTag(info.InstanceName())),
+	c.Assert(os.WriteFile(cgroup.SnapDeviceFile(snap.SecurityTag(naming.InstanceName(info.InstanceName()))),
 		cgroupOptsData, 0644), check.IsNil)
 
 	// redirect exec
@@ -3094,7 +3095,7 @@ func (s *RunSuite) TestSnapRunTrackingFailureCore26NonStrictOnlyFails(c *check.C
 	cgroupOptsData, err := cgroupOpts.MarshalText()
 	c.Assert(err, check.IsNil)
 	c.Assert(os.MkdirAll(dirs.SnapCgroupPolicyDir, 0755), check.IsNil)
-	c.Assert(os.WriteFile(cgroup.SnapDeviceFile(snap.SecurityTag(info.InstanceName())),
+	c.Assert(os.WriteFile(cgroup.SnapDeviceFile(snap.SecurityTag(naming.InstanceName(info.InstanceName()))),
 		cgroupOptsData, 0644), check.IsNil)
 
 	// redirect exec

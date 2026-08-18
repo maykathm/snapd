@@ -349,7 +349,7 @@ func getChanges(c *Command, r *http.Request, user *auth.UserState) Response {
 				// the snap-names in service-control changes
 				// could have included <snap>.<app>
 				snapName, _ := snap.SplitSnapApp(name)
-				if snapName == wantedName {
+				if snapName.String() == wantedName {
 					return true
 				}
 			}

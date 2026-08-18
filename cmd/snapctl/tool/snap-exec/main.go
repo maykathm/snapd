@@ -184,7 +184,7 @@ func execApp(snapTarget, revision, command string, args []string) error {
 	}
 
 	snapName, appName := snap.SplitSnapApp(snapTarget)
-	info, err := snap.ReadInfo(snapName, &snap.SideInfo{
+	info, err := snap.ReadInfo(snapName.String(), &snap.SideInfo{
 		Revision: rev,
 	})
 	if err != nil {
