@@ -219,33 +219,33 @@ func MountFileInDir(dir string, name naming.InstanceName, revision Revision) str
 }
 
 // ScopedSecurityTag returns the snap-specific, scope specific, security tag.
-func ScopedSecurityTag(snapName, scopeName, suffix string) string {
+func ScopedSecurityTag(snapName naming.InstanceName, scopeName, suffix string) string {
 	return fmt.Sprintf("snap.%s.%s.%s", snapName, scopeName, suffix)
 }
 
 // SecurityTag returns the snap-specific security tag.
-func SecurityTag(snapName string) string {
+func SecurityTag(snapName naming.InstanceName) string {
 	return fmt.Sprintf("snap.%s", snapName)
 }
 
 // AppSecurityTag returns the application-specific security tag.
-func AppSecurityTag(snapName, appName string) string {
+func AppSecurityTag(snapName naming.InstanceName, appName string) string {
 	return fmt.Sprintf("%s.%s", SecurityTag(snapName), appName)
 }
 
 // ComponentSecurityTag returns a snap component's hook-specific security tag.
-func ComponentHookSecurityTag(snapInstance, componentName, hookName string) string {
-	return ScopedSecurityTag(fmt.Sprintf("%s+%s", snapInstance, componentName), "hook", hookName)
+func ComponentHookSecurityTag(snapInstance naming.InstanceName, componentName, hookName string) string {
+	return ScopedSecurityTag(naming.InstanceName(fmt.Sprintf("%s+%s", snapInstance, componentName)), "hook", hookName)
 }
 
 // HookSecurityTag returns the hook-specific security tag.
-func HookSecurityTag(snapName, hookName string) string {
+func HookSecurityTag(snapName naming.InstanceName, hookName string) string {
 	return ScopedSecurityTag(snapName, "hook", hookName)
 }
 
 // NoneSecurityTag returns the security tag for interfaces that
 // are not associated to an app or hook in the snap.
-func NoneSecurityTag(snapName, uniqueName string) string {
+func NoneSecurityTag(snapName naming.InstanceName, uniqueName string) string {
 	return ScopedSecurityTag(snapName, "none", uniqueName)
 }
 
@@ -1499,7 +1499,7 @@ func (timer *TimerInfo) File() string {
 }
 
 func (app *AppInfo) String() string {
-	return JoinSnapApp(app.Snap.InstanceName(), app.Name)
+	return JoinSnapApp(naming.InstanceName(app.Snap.InstanceName()), app.Name)
 }
 
 // SecurityTag returns application-specific security tag.
@@ -1507,7 +1507,7 @@ func (app *AppInfo) String() string {
 // Security tags are used by various security subsystems as "profile names" and
 // sometimes also as a part of the file name.
 func (app *AppInfo) SecurityTag() string {
-	return AppSecurityTag(app.Snap.InstanceName(), app.Name)
+	return AppSecurityTag(naming.InstanceName(app.Snap.InstanceName()), app.Name)
 }
 
 // DesktopFile returns the path to the installed optional desktop file for the
@@ -1564,17 +1564,17 @@ func (app *AppInfo) fallbackDesktopFile() string {
 
 // WrapperPath returns the path to wrapper invoking the app binary.
 func (app *AppInfo) WrapperPath() string {
-	return filepath.Join(dirs.SnapBinariesDir, JoinSnapApp(app.Snap.InstanceName(), app.Name))
+	return filepath.Join(dirs.SnapBinariesDir, JoinSnapApp(naming.InstanceName(app.Snap.InstanceName()), app.Name))
 }
 
 // CompleterPath returns the path to the completer snippet for the app binary.
 func (app *AppInfo) CompleterPath() string {
-	return filepath.Join(dirs.CompletersDir, JoinSnapApp(app.Snap.InstanceName(), app.Name))
+	return filepath.Join(dirs.CompletersDir, JoinSnapApp(naming.InstanceName(app.Snap.InstanceName()), app.Name))
 }
 
 // CompleterPath returns the legacy path to the completer snippet for the app binary.
 func (app *AppInfo) LegacyCompleterPath() string {
-	return filepath.Join(dirs.LegacyCompletersDir, JoinSnapApp(app.Snap.InstanceName(), app.Name))
+	return filepath.Join(dirs.LegacyCompletersDir, JoinSnapApp(naming.InstanceName(app.Snap.InstanceName()), app.Name))
 }
 
 func (app *AppInfo) launcherCommand(command string) string {
@@ -1655,12 +1655,12 @@ func (app *AppInfo) EnvChain() []osutil.ExpandableEnv {
 // sometimes also as a part of the file name.
 func (hook *HookInfo) SecurityTag() string {
 	if hook.Component != nil {
-		return HookSecurityTag(SnapComponentName(
+		return HookSecurityTag(naming.InstanceName(SnapComponentName(
 			hook.Snap.InstanceName(),
 			hook.Component.Name,
-		), hook.Name)
+		)), hook.Name)
 	}
-	return HookSecurityTag(hook.Snap.InstanceName(), hook.Name)
+	return HookSecurityTag(naming.InstanceName(hook.Snap.InstanceName()), hook.Name)
 }
 
 // EnvChain returns the chain of environment overrides, possibly with
@@ -1906,18 +1906,18 @@ func InstallDate(name string) time.Time {
 
 // SplitSnapApp will split a string of the form `snap.app` into the `snap` and
 // the `app` part. It also deals with the special case of snapName == appName.
-func SplitSnapApp(snapApp string) (snap, app string) {
+func SplitSnapApp(snapApp string) (snap naming.InstanceName, app string) {
 	l := strings.SplitN(snapApp, ".", 2)
 	if len(l) < 2 {
-		return l[0], InstanceSnap(l[0])
+		return naming.InstanceName(l[0]), InstanceSnap(l[0])
 	}
-	return l[0], l[1]
+	return naming.InstanceName(l[0]), l[1]
 }
 
 // JoinSnapApp produces a full application wrapper name from the `snap` and the
 // `app` part. It also deals with the special case of snapName == appName.
-func JoinSnapApp(snap, app string) string {
-	storeName, instanceKey := SplitInstanceName(snap)
+func JoinSnapApp(snap naming.InstanceName, app string) string {
+	storeName, instanceKey := SplitInstanceName(snap.String())
 	if storeName == app {
 		return InstanceName(app, instanceKey)
 	}

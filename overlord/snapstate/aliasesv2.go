@@ -31,6 +31,7 @@ import (
 	"github.com/snapcore/snapd/overlord/state"
 	"github.com/snapcore/snapd/overlord/swfeats"
 	"github.com/snapcore/snapd/snap"
+	"github.com/snapcore/snapd/snap/naming"
 	"github.com/snapcore/snapd/strutil"
 )
 
@@ -115,7 +116,7 @@ func applyAliasesChange(snapName string, prevAutoDisabled bool, prevAliases map[
 		if effTgt := prevTargets.Effective(prevAutoDisabled); effTgt != "" {
 			remove = append(remove, &backend.Alias{
 				Name:   alias,
-				Target: snap.JoinSnapApp(snapName, effTgt),
+				Target: snap.JoinSnapApp(naming.InstanceName(snapName), effTgt),
 			})
 		}
 	}
@@ -129,13 +130,13 @@ func applyAliasesChange(snapName string, prevAutoDisabled bool, prevAliases map[
 		if prevTgt != "" {
 			remove = append(remove, &backend.Alias{
 				Name:   alias,
-				Target: snap.JoinSnapApp(snapName, prevTgt),
+				Target: snap.JoinSnapApp(naming.InstanceName(snapName), prevTgt),
 			})
 		}
 		if newTgt != "" {
 			add = append(add, &backend.Alias{
 				Name:   alias,
-				Target: snap.JoinSnapApp(snapName, newTgt),
+				Target: snap.JoinSnapApp(naming.InstanceName(snapName), newTgt),
 			})
 		}
 	}

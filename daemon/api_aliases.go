@@ -31,6 +31,7 @@ import (
 	"github.com/snapcore/snapd/overlord/state"
 	"github.com/snapcore/snapd/overlord/swfeats"
 	"github.com/snapcore/snapd/snap"
+	"github.com/snapcore/snapd/snap/naming"
 )
 
 var (
@@ -172,7 +173,7 @@ func getAliases(c *Command, r *http.Request, user *auth.UserState) Response {
 					status = "manual"
 				}
 				aliasStatus.Status = status
-				aliasStatus.Command = snap.JoinSnapApp(snapName, tgt)
+				aliasStatus.Command = snap.JoinSnapApp(naming.InstanceName(snapName), tgt)
 				snapAliases[alias] = aliasStatus
 			}
 		}
