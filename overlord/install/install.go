@@ -188,7 +188,7 @@ func BuildKernelBootInfo(kernInfo *snap.Info, compSeedInfos []ComponentSeedInfo,
 		ci := compSeedInfo.Info
 		if ci.Type == snap.KernelModulesComponent {
 			cpi := snap.MinimalComponentContainerPlaceInfo(ci.Component.ComponentName,
-				ci.Revision, naming.InstanceName(kernInfo.SnapName()))
+				ci.Revision, naming.InstanceName(kernInfo.SnapName().String()))
 			modulesComps = append(modulesComps, gadgetInstall.KernelModulesComponentInfo{
 				Name:       ci.Component.ComponentName,
 				Revision:   ci.Revision,
@@ -202,7 +202,7 @@ func BuildKernelBootInfo(kernInfo *snap.Info, compSeedInfos []ComponentSeedInfo,
 	}
 
 	kSnapInfo := &gadgetInstall.KernelSnapInfo{
-		Name:             kernInfo.SnapName(),
+		Name:             kernInfo.SnapName().String(),
 		Revision:         kernInfo.Revision,
 		MountPoint:       kernMntPoint,
 		IsCore:           opts.IsCore,
@@ -937,10 +937,10 @@ func writeTimesyncdClock(srcRootDir, dstRootDir string) error {
 func comparePreseedAndSeedSnaps(seedSnap *seed.Snap, preseedSnap *asserts.PreseedSnap) error {
 	if preseedSnap.Revision != seedSnap.SideInfo.Revision.N {
 		rev := snap.Revision{N: preseedSnap.Revision}
-		return fmt.Errorf("snap %q has wrong revision %s (expected: %s)", seedSnap.SnapName(), seedSnap.SideInfo.Revision, rev)
+		return fmt.Errorf("snap %q has wrong revision %s (expected: %s)", seedSnap.SnapName().String(), seedSnap.SideInfo.Revision, rev)
 	}
 	if preseedSnap.SnapID != seedSnap.SideInfo.SnapID {
-		return fmt.Errorf("snap %q has wrong snap id %q (expected: %q)", seedSnap.SnapName(), seedSnap.SideInfo.SnapID, preseedSnap.SnapID)
+		return fmt.Errorf("snap %q has wrong snap id %q (expected: %q)", seedSnap.SnapName().String(), seedSnap.SideInfo.SnapID, preseedSnap.SnapID)
 	}
 
 	expectedComps := make(map[string]asserts.PreseedComponent, len(preseedSnap.Components))
@@ -967,7 +967,7 @@ func comparePreseedAndSeedSnaps(seedSnap *seed.Snap, preseedSnap *asserts.Presee
 	if len(expectedComps) != 0 {
 		missing := make([]string, 0, len(expectedComps))
 		for name := range expectedComps {
-			missing = append(missing, naming.NewComponentRef(seedSnap.SnapName(), name).String())
+			missing = append(missing, naming.NewComponentRef(seedSnap.SnapName().String(), name).String())
 		}
 		return fmt.Errorf("seed is missing components expected by preseed assertion: %s", strutil.Quoted(missing))
 	}
@@ -1023,9 +1023,9 @@ func ApplyPreseededData(preseedSeed seed.PreseedCapable, writableDir string) err
 	}
 
 	checkSnap := func(ssnap *seed.Snap) error {
-		ps, ok := preseedSnaps[ssnap.SnapName()]
+		ps, ok := preseedSnaps[ssnap.SnapName().String()]
 		if !ok {
-			return fmt.Errorf("snap %q not present in the preseed assertion", ssnap.SnapName())
+			return fmt.Errorf("snap %q not present in the preseed assertion", ssnap.SnapName().String())
 		}
 		return comparePreseedAndSeedSnaps(ssnap, ps)
 	}

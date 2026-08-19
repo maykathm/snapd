@@ -1084,7 +1084,7 @@ func (s *snapmgrTestSuite) testInstallComponents(c *C, opts testInstallComponent
 	}
 
 	s.fakeStore.snapResourcesFn = func(info *snap.Info) []store.SnapResourceResult {
-		c.Assert(info.InstanceName(), DeepEquals, snapName)
+		c.Assert(info.InstanceName().String(), DeepEquals, snapName)
 		var results []store.SnapResourceResult
 		for _, compName := range components {
 			results = append(results, store.SnapResourceResult{
@@ -1394,7 +1394,7 @@ func (s *snapmgrTestSuite) testInstallComponentsWithValidationSets(c *C, compNam
 	})
 
 	s.fakeStore.snapResourcesFn = func(info *snap.Info) []store.SnapResourceResult {
-		c.Assert(info.InstanceName(), DeepEquals, snapName)
+		c.Assert(info.InstanceName().String(), DeepEquals, snapName)
 		var results []store.SnapResourceResult
 		for compName, compType := range compNamesToType {
 			results = append(results, store.SnapResourceResult{

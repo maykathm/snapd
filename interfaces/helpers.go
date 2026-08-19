@@ -44,11 +44,11 @@ func SetupMany(repo *Repository, backend SecurityBackend, appSets []*SnapAppSet,
 			snapInfo := set.Info()
 			snapName := snapInfo.InstanceName()
 			// Compute confinement options
-			opts := confinementOpts(snapName)
-			sctx := setupCtx(snapName)
+			opts := confinementOpts(snapName.String())
+			sctx := setupCtx(snapName.String())
 
 			// Refresh security of this snap and backend
-			timings.Run(tm, "setup-security-backend", fmt.Sprintf("setup security backend %q for snap %q", backend.Name(), snapInfo.InstanceName()), func(nesttm timings.Measurer) {
+			timings.Run(tm, "setup-security-backend", fmt.Sprintf("setup security backend %q for snap %q", backend.Name(), snapInfo.InstanceName().String()), func(nesttm timings.Measurer) {
 				if err := backend.Setup(set, opts, sctx, repo, nesttm); err != nil {
 					errors = append(errors, err)
 				}

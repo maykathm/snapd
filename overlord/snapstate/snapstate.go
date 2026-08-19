@@ -112,6 +112,11 @@ func (ins installSnapInfo) DownloadSize() int64 {
 	return ins.DownloadInfo.Size
 }
 
+// InstanceName returns the instance name as a string for minimalInstallInfo interface.
+func (ins installSnapInfo) InstanceName() string {
+	return ins.Info.InstanceName().String()
+}
+
 // SnapBase returns the base snap of the snap.
 func (ins installSnapInfo) SnapBase() string {
 	return ins.Base
@@ -375,7 +380,7 @@ func FinishRestart(task *state.Task, snapsup *SnapSetup, opts FinishRestartOptio
 			return err
 		}
 
-		if snapsup.InstanceName().String() != current.SnapName() || snapsup.SideInfo.Revision != current.SnapRevision() {
+		if snapsup.InstanceName().String() != current.SnapName().String() || snapsup.SideInfo.Revision != current.SnapRevision() {
 			// TODO: make sure this revision gets ignored for
 			//       automatic refreshes
 			return fmt.Errorf("cannot finish %s installation, there was a rollback across reboot", snapsup.InstanceName().String())
@@ -922,7 +927,7 @@ func validatedInfoFromPathAndSideInfo(instanceName string, path string, si *snap
 	}
 
 	snapName, instanceKey := snap.SplitInstanceName(instanceName)
-	if info.SnapName() != snapName {
+	if info.SnapName().String() != snapName {
 		return nil, fmt.Errorf("cannot install snap %q: instance name prefix does not match snap name: %s != %s", instanceName, snapName, info.SnapName())
 	}
 	info.InstanceKey = instanceKey
@@ -1021,7 +1026,7 @@ func InstallMany(st *state.State, names []string, revOpts []*RevisionOptions, us
 
 	installed := make([]string, 0, len(infos))
 	for _, info := range infos {
-		installed = append(installed, info.InstanceName())
+		installed = append(installed, info.InstanceName().String())
 	}
 
 	return installed, tss, err
@@ -2321,15 +2326,15 @@ func autoRefreshPhase1(ctx context.Context, st *state.State, forGatingSnap strin
 	fromChange := ""
 	for _, t := range plan.targets {
 		name := t.info.InstanceName()
-		if _, ok := hints[name]; !ok {
+		if _, ok := hints[name.String()]; !ok {
 			// filtered out by refreshHintsFromCandidates
 			continue
 		}
 
-		if err := checkChangeConflictIgnoringOneChange(st, name, &t.snapst, ConflictOptions{FromChange: fromChange}); err != nil {
+		if err := checkChangeConflictIgnoringOneChange(st, name.String(), &t.snapst, ConflictOptions{FromChange: fromChange}); err != nil {
 			logger.Noticef("cannot refresh snap %q: %v", name, err)
 		} else {
-			updates = append(updates, name)
+			updates = append(updates, name.String())
 		}
 	}
 
@@ -2747,7 +2752,7 @@ func addLinkNewBaseOrKernelTasks(st *state.State, snapst SnapState, ts *state.Ta
 
 	// Switching to a new model base may require regenerating the managed
 	// certificate database.
-	if shouldScheduleUpdateCertDBForRefresh(info.InstanceName(), info.Type(), deviceCtx) {
+	if shouldScheduleUpdateCertDBForRefresh(info.InstanceName().String(), info.Type(), deviceCtx) {
 		updateCertDB := st.NewTask("update-cert-db", i18n.G("Update certificate database"))
 		add(updateCertDB)
 	}

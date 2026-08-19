@@ -2161,7 +2161,7 @@ func (m *InterfaceManager) doHotplugConnect(task *state.Task, _ *tomb.Tomb) erro
 	}
 
 	instanceName := slot.Snap.InstanceName()
-	candidates := m.repo.AutoConnectCandidatePlugs(instanceName, slot.Name, autochecker.check)
+	candidates := m.repo.AutoConnectCandidatePlugs(instanceName.String(), slot.Name, autochecker.check)
 
 	newconns := make(map[string]*interfaces.ConnRef, len(candidates))
 	// Auto-connect the plugs
@@ -2260,7 +2260,7 @@ func (m *InterfaceManager) doHotplugRemoveSlot(task *state.Task, _ *tomb.Tomb) e
 		return fmt.Errorf("internal error: cannot determine slots: %v", err)
 	}
 	if slot != nil {
-		if err := m.repo.RemoveSlot(slot.Snap.InstanceName(), slot.Name); err != nil {
+		if err := m.repo.RemoveSlot(slot.Snap.InstanceName().String(), slot.Name); err != nil {
 			return fmt.Errorf("cannot remove hotplug slot: %v", err)
 		}
 	}
@@ -2412,7 +2412,7 @@ func (m *InterfaceManager) doHotplugAddSlot(task *state.Task, _ *tomb.Tomb) erro
 	}
 
 	// New slot.
-	slotName := hotplugSlotName(hotplugKey, systemSnap.InstanceName(), proposedSlot.Name, iface.Name(), &devinfo, m.repo, stateSlots)
+	slotName := hotplugSlotName(hotplugKey, systemSnap.InstanceName().String(), proposedSlot.Name, iface.Name(), &devinfo, m.repo, stateSlots)
 	newSlot := &snap.SlotInfo{
 		Name:       slotName,
 		Label:      proposedSlot.Label,

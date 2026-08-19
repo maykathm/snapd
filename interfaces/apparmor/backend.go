@@ -243,11 +243,11 @@ func snapConfineFromSnapProfile(info *snap.Info) (dir, glob string, content map[
 	//   /snap/core/111/usr/lib/snapd/snap-confine
 	// becomes
 	//   snap-confine.core.111
-	patchedProfileName := snapConfineProfileName(info.InstanceName(), info.Revision)
+	patchedProfileName := snapConfineProfileName(info.InstanceName().String(), info.Revision)
 	// remove other generated profiles, which is only relevant for the
 	// 'core' snap on classic system where we reexec, on core systems the
 	// profile is already a part of the rootfs snap
-	patchedProfileGlob := fmt.Sprintf("snap-confine.%s.*", info.InstanceName())
+	patchedProfileGlob := fmt.Sprintf("snap-confine.%s.*", info.InstanceName().String())
 
 	if info.Type() == snap.TypeSnapd {
 		// with the snapd snap, things are a little different, the
@@ -454,7 +454,7 @@ func (b *Backend) prepareProfiles(appSet *interfaces.SnapAppSet, opts interfaces
 		return nil, fmt.Errorf("cannot create directory for apparmor profiles %q: %s", dir, err)
 	}
 
-	globs := profileGlobs(snapInfo.InstanceName())
+	globs := profileGlobs(snapInfo.InstanceName().String())
 
 	changed, removedPaths, errEnsure := osutil.EnsureDirStateGlobs(dir, globs, content)
 	// XXX: in the old code this error was reported late, after doing load/removeCached.
@@ -510,7 +510,7 @@ func (b *Backend) Setup(appSet *interfaces.SnapAppSet, opts interfaces.Confineme
 	if b.preseed {
 		aaFlags |= apparmor_sandbox.SkipKernelLoad
 	}
-	timings.Run(tm, "load-profiles[changed]", fmt.Sprintf("load changed security profiles of snap %q", snapInfo.InstanceName()), func(nesttm timings.Measurer) {
+	timings.Run(tm, "load-profiles[changed]", fmt.Sprintf("load changed security profiles of snap %q", snapInfo.InstanceName().String()), func(nesttm timings.Measurer) {
 		errReloadChanged = loadProfiles(prof.changed, apparmor_sandbox.CacheDir, aaFlags)
 	})
 
@@ -522,7 +522,7 @@ func (b *Backend) Setup(appSet *interfaces.SnapAppSet, opts interfaces.Confineme
 	if b.preseed {
 		aaFlags |= apparmor_sandbox.SkipKernelLoad
 	}
-	timings.Run(tm, "load-profiles[unchanged]", fmt.Sprintf("load unchanged security profiles of snap %q", snapInfo.InstanceName()), func(nesttm timings.Measurer) {
+	timings.Run(tm, "load-profiles[unchanged]", fmt.Sprintf("load unchanged security profiles of snap %q", snapInfo.InstanceName().String()), func(nesttm timings.Measurer) {
 		errReloadOther = loadProfiles(prof.unchanged, apparmor_sandbox.CacheDir, aaFlags)
 	})
 	errRemoveCached := removeCachedProfiles(prof.removed, apparmor_sandbox.CacheDir)
@@ -709,7 +709,7 @@ func addUpdateNSProfile(snapInfo *snap.Info, snippets string, content map[string
 	policy := templatePattern.ReplaceAllStringFunc(updateNSTemplate, func(placeholder string) string {
 		switch placeholder {
 		case "###SNAP_INSTANCE_NAME###":
-			return snapInfo.InstanceName()
+			return snapInfo.InstanceName().String()
 		case "###SNIPPETS###":
 			if overlayRoot, _ := isRootWritableOverlay(); overlayRoot != "" {
 				snippets += strings.Replace(apparmor_sandbox.OverlayRootSnippet, "###UPPERDIR###", overlayRoot, -1)
@@ -732,7 +732,7 @@ func addUpdateNSProfile(snapInfo *snap.Info, snippets string, content map[string
 	})
 
 	// Ensure that the snap-update-ns profile is on disk.
-	profileName := nsProfile(snapInfo.InstanceName())
+	profileName := nsProfile(snapInfo.InstanceName().String())
 	content[profileName] = &osutil.MemoryFileState{
 		Content: []byte(policy),
 		Mode:    0644,
@@ -862,7 +862,7 @@ func (b *Backend) addContent(securityTag string, snapInfo *snap.Info, cmdName st
 				// initial seed change and continue on. This code will be
 				// removed/adapted before it is merged to the main branch,
 				// it is only meant to exist on the security release branch.
-				msg := fmt.Sprintf("neither snapd nor core snap available while preparing apparmor profile for devmode snap %s, panicking to restart snapd to continue seeding", snapInfo.InstanceName())
+				msg := fmt.Sprintf("neither snapd nor core snap available while preparing apparmor profile for devmode snap %s, panicking to restart snapd to continue seeding", snapInfo.InstanceName().String())
 				panic(msg)
 			}
 

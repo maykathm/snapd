@@ -92,7 +92,7 @@ func (e *SnapNotClassicError) Error() string {
 // compatible with the given *snap.Info
 func validateFlagsForInfo(info *snap.Info, snapst *SnapState, flags Flags) error {
 	if flags.Classic && !info.NeedsClassic() {
-		return &SnapNotClassicError{Snap: info.InstanceName()}
+		return &SnapNotClassicError{Snap: info.InstanceName().String()}
 	}
 
 	switch c := info.Confinement; c {
@@ -105,11 +105,11 @@ func validateFlagsForInfo(info *snap.Info, snapst *SnapState, flags Flags) error
 			return nil
 		}
 		return &SnapNeedsDevModeError{
-			Snap: info.InstanceName(),
+			Snap: info.InstanceName().String(),
 		}
 	case snap.ClassicConfinement:
 		if !release.OnClassic {
-			return &SnapNeedsClassicSystemError{Snap: info.InstanceName()}
+			return &SnapNeedsClassicSystemError{Snap: info.InstanceName().String()}
 		}
 
 		if flags.Classic {
@@ -121,7 +121,7 @@ func validateFlagsForInfo(info *snap.Info, snapst *SnapState, flags Flags) error
 		}
 
 		return &SnapNeedsClassicError{
-			Snap: info.InstanceName(),
+			Snap: info.InstanceName().String(),
 		}
 	default:
 		return fmt.Errorf("unknown confinement %q", c)
@@ -138,7 +138,7 @@ func validateInfoAndFlags(info *snap.Info, snapst *SnapState, flags Flags) error
 
 	// verify we have a valid architecture
 	if !arch.IsSupportedArchitecture(info.Architectures) {
-		return fmt.Errorf("snap %q supported architectures (%s) are incompatible with this system (%s)", info.InstanceName(), strings.Join(info.Architectures, ", "), arch.DpkgArchitecture())
+		return fmt.Errorf("snap %q supported architectures (%s) are incompatible with this system (%s)", info.InstanceName().String(), strings.Join(info.Architectures, ", "), arch.DpkgArchitecture())
 	}
 
 	// check assumes
@@ -149,7 +149,7 @@ func validateInfoAndFlags(info *snap.Info, snapst *SnapState, flags Flags) error
 		if errors.As(err, &isaErr) {
 			askToRefreshSnapd = ""
 		}
-		return fmt.Errorf("snap %q assumes %w%s", info.InstanceName(), err, askToRefreshSnapd)
+		return fmt.Errorf("snap %q assumes %w%s", info.InstanceName().String(), err, askToRefreshSnapd)
 	}
 
 	// check and create system-usernames
@@ -203,8 +203,8 @@ func checkSnap(st *state.State, snapFilePath, instanceName string, si *snap.Side
 		}
 	}
 
-	if snapName != s.SnapName() {
-		return fmt.Errorf("cannot install snap %q using instance name %q", s.SnapName(), instanceName)
+	if snapName != s.SnapName().String() {
+		return fmt.Errorf("cannot install snap %q using instance name %q", s.SnapName().String(), instanceName)
 	}
 
 	return nil
@@ -233,8 +233,8 @@ func checkSnapdName(st *state.State, snapInfo, curInfo *snap.Info, _ snap.Contai
 		// not a relevant check
 		return nil
 	}
-	if snapInfo.InstanceName() != "snapd" {
-		return fmt.Errorf(`cannot install snap %q of type "snapd" with a name other than "snapd"`, snapInfo.InstanceName())
+	if snapInfo.InstanceName().String() != "snapd" {
+		return fmt.Errorf(`cannot install snap %q of type "snapd" with a name other than "snapd"`, snapInfo.InstanceName().String())
 	}
 
 	return nil
@@ -264,13 +264,13 @@ func checkCoreName(st *state.State, snapInfo, curInfo *snap.Info, _ snap.Contain
 	// transition we will end up with not connected interface
 	// connections in the "core" snap. But the transition will
 	// kick in automatically quickly so an extra flag is overkill.
-	if snapInfo.InstanceName() == "core" && core.InstanceName() == "ubuntu-core" {
+	if snapInfo.InstanceName().String() == "core" && core.InstanceName() == "ubuntu-core" {
 		return nil
 	}
 
 	// but generally do not allow to have two cores installed
-	if core.InstanceName() != snapInfo.InstanceName() {
-		return fmt.Errorf("cannot install core snap %q when core snap %q is already present", snapInfo.InstanceName(), core.InstanceName())
+	if core.InstanceName().String() != snapInfo.InstanceName().String() {
+		return fmt.Errorf("cannot install core snap %q when core snap %q is already present", snapInfo.InstanceName().String(), core.InstanceName())
 	}
 
 	return nil
@@ -305,11 +305,11 @@ func checkGadgetOrKernel(st *state.State, snapInfo, curInfo *snap.Info, snapf sn
 	if errors.Is(err, state.ErrNoState) {
 		// check if we are in the remodel case
 		if deviceCtx != nil && deviceCtx.ForRemodeling() {
-			if whichName(deviceCtx.Model()) == snapInfo.InstanceName() {
+			if whichName(deviceCtx.Model()) == snapInfo.InstanceName().String() {
 				return nil
 			}
 		}
-		return fmt.Errorf("internal error: no state for %s snap %q", kind, snapInfo.InstanceName())
+		return fmt.Errorf("internal error: no state for %s snap %q", kind, snapInfo.InstanceName().String())
 	}
 	if err != nil {
 		return fmt.Errorf("cannot find original %s snap: %v", kind, err)
@@ -327,7 +327,7 @@ func checkGadgetOrKernel(st *state.State, snapInfo, curInfo *snap.Info, snapf sn
 		return fmt.Errorf("cannot replace %s snap with a different one", kind)
 	}
 
-	if currentSnap.InstanceName() != snapInfo.InstanceName() {
+	if currentSnap.InstanceName().String() != snapInfo.InstanceName().String() {
 		return fmt.Errorf("cannot replace %s snap with a different one", kind)
 	}
 
@@ -379,7 +379,7 @@ func checkEpochs(_ *state.State, snapInfo, curInfo *snap.Info, _ snap.Container,
 		desc = fmt.Sprintf("new revision %s", snapInfo.SideInfo.Revision)
 	}
 
-	return fmt.Errorf("cannot refresh %q to %s with epoch %s, because it can't read the current epoch of %s", snapInfo.InstanceName(), desc, snapInfo.Epoch, curInfo.Epoch)
+	return fmt.Errorf("cannot refresh %q to %s with epoch %s, because it can't read the current epoch of %s", snapInfo.InstanceName().String(), desc, snapInfo.Epoch, curInfo.Epoch)
 }
 
 // check that the snap installed in the system (via snapst) can be
@@ -541,7 +541,7 @@ func checkDesktopFileIDsConflicts(st *state.State, info *snap.Info) error {
 		return err
 	}
 	for instanceName, snapst := range stateMap {
-		if instanceName == info.InstanceName() {
+		if instanceName == info.InstanceName().String() {
 			continue
 		}
 
@@ -556,7 +556,7 @@ func checkDesktopFileIDsConflicts(st *state.State, info *snap.Info) error {
 		}
 		for _, desktopFileID := range desktopFileIDs {
 			if strutil.ListContains(otherDesktopFileIDs, desktopFileID) {
-				return fmt.Errorf("snap %q requesting desktop-file-id %q conflicts with snap %q use", info.InstanceName(), desktopFileID, instanceName)
+				return fmt.Errorf("snap %q requesting desktop-file-id %q conflicts with snap %q use", info.InstanceName().String(), desktopFileID, instanceName)
 			}
 		}
 	}

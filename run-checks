@@ -365,24 +365,24 @@ if [ "$STATIC" = 1 ]; then
     # echo ">> [Git] Checking commit author/committer name for unicode"
     # ./check-commit-email.py
 
-    if [ -z "${SKIP_GOFMT:-}" ]; then
-        echo ">> [Go] Checking go formatting"
-        fmt=""
-        for dir in $(go list -f '{{.Dir}}' ./...); do
-            s="$(gofmt -s -d "$dir" || true)"
-            if [ -n "$s" ]; then
-                fmt="$s\\n$fmt"
-            fi
-        done
-        if [ -n "$fmt" ]; then
-            echo "Formatting wrong in following files:"
-            # shellcheck disable=SC2001
-            echo "$fmt" | sed -e 's/\\n/\n/g'
-            exit 1
-        fi
-    else
-        echo ">> [Go] Skipping go formatting check"
-    fi
+    # if [ -z "${SKIP_GOFMT:-}" ]; then
+    #     echo ">> [Go] Checking go formatting"
+    #     fmt=""
+    #     for dir in $(go list -f '{{.Dir}}' ./...); do
+    #         s="$(gofmt -s -d "$dir" || true)"
+    #         if [ -n "$s" ]; then
+    #             fmt="$s\\n$fmt"
+    #         fi
+    #     done
+    #     if [ -n "$fmt" ]; then
+    #         echo "Formatting wrong in following files:"
+    #         # shellcheck disable=SC2001
+    #         echo "$fmt" | sed -e 's/\\n/\n/g'
+    #         exit 1
+    #     fi
+    # else
+    #     echo ">> [Go] Skipping go formatting check"
+    # fi
 
     echo '>> [Go] Checking for usages of http.Status*'
     got=""

@@ -174,7 +174,7 @@ version: 1.0`
 		data, err := sf.ReadFile("canary")
 		c.Assert(err, IsNil)
 		c.Assert(data, DeepEquals, []byte("canary"))
-		c.Assert(s.InstanceName(), Equals, "foo")
+		c.Assert(s.InstanceName().String(), Equals, "foo")
 		c.Assert(s.SnapID, Equals, "snap-id")
 		checkCbCalled = true
 		return nil
@@ -923,8 +923,8 @@ version: 1.0`
 	checkCbCalled := false
 	checkCb := func(st *state.State, s, cur *snap.Info, sf snap.Container, flags snapstate.Flags, deviceCtx snapstate.DeviceContext) error {
 		c.Assert(sf, NotNil)
-		c.Assert(s.InstanceName(), Equals, "foo_instance")
-		c.Assert(s.SnapName(), Equals, "foo")
+		c.Assert(s.InstanceName().String(), Equals, "foo_instance")
+		c.Assert(s.SnapName().String(), Equals, "foo")
 		c.Assert(s.SnapID, Equals, "snap-id")
 		checkCbCalled = true
 		return nil
@@ -1278,7 +1278,7 @@ func (s *checkSnapSuite) testCheckSnapSystemUsernamesCallsCommon(c *C, expectedU
 		mockUserAdd := testutil.MockCommand(c, "useradd", "")
 		defer mockUserAdd.Restore()
 
-		err = snapstate.CheckSnap(s.st, "snap-path", info.SnapName(), nil, nil, snapstate.Flags{}, nil)
+		err = snapstate.CheckSnap(s.st, "snap-path", info.SnapName().String(), nil, nil, snapstate.Flags{}, nil)
 		c.Assert(err, IsNil)
 		if classic {
 			c.Check(mockGroupAdd.Calls(), DeepEquals, [][]string{

@@ -560,7 +560,7 @@ func (s *snapmgrTestSuite) TestInstallWithDeviceContext(c *C) {
 	c.Assert(s.state.TaskCount(), Equals, len(ts.Tasks()))
 
 	c.Assert(prqt.infos, HasLen, 1)
-	c.Check(prqt.infos[0].SnapName(), Equals, "some-snap")
+	c.Check(prqt.infos[0].SnapName().String(), Equals, "some-snap")
 	c.Check(prqt.missingProviderContentTagsCalls, Equals, 1)
 }
 
@@ -6983,7 +6983,7 @@ func (s *snapmgrTestSuite) testInstallComponentsRunThrough(c *C, opts testInstal
 	}
 
 	s.fakeStore.snapResourcesFn = func(info *snap.Info) []store.SnapResourceResult {
-		c.Assert(info.InstanceName(), DeepEquals, instanceName)
+		c.Assert(info.InstanceName().String(), DeepEquals, instanceName)
 		var results []store.SnapResourceResult
 		for _, cs := range componentStates {
 			results = append(results, store.SnapResourceResult{
@@ -7011,7 +7011,7 @@ func (s *snapmgrTestSuite) testInstallComponentsRunThrough(c *C, opts testInstal
 	})
 	c.Assert(err, IsNil)
 
-	c.Check(info.InstanceName(), Equals, instanceName)
+	c.Check(info.InstanceName().String(), Equals, instanceName)
 	c.Check(info.Channel, Equals, channel)
 	c.Check(info.Revision, Equals, snapRevision)
 
@@ -7516,7 +7516,7 @@ components:
 		},
 	})
 	c.Assert(err, IsNil)
-	c.Check(info.InstanceName(), Equals, instanceName)
+	c.Check(info.InstanceName().String(), Equals, instanceName)
 	c.Check(info.Revision, Equals, si.Revision)
 
 	chg.AddAll(ts)
@@ -7963,7 +7963,7 @@ func (s *validationSetsSuite) testInstallComponentsValidationSets(c *C, opts tes
 	defer restore()
 
 	s.fakeStore.snapResourcesFn = func(info *snap.Info) []store.SnapResourceResult {
-		c.Assert(info.InstanceName(), DeepEquals, snapName)
+		c.Assert(info.InstanceName().String(), DeepEquals, snapName)
 		return []store.SnapResourceResult{
 			{
 				DownloadInfo: snap.DownloadInfo{
@@ -8148,7 +8148,7 @@ func (s *validationSetsSuite) testUpdateComponentsValidationSets(c *C, opts test
 	defer restore()
 
 	s.fakeStore.snapResourcesFn = func(info *snap.Info) []store.SnapResourceResult {
-		c.Assert(info.InstanceName(), DeepEquals, instanceName)
+		c.Assert(info.InstanceName().String(), DeepEquals, instanceName)
 		results := make([]store.SnapResourceResult, 0, len(opts.comps))
 		for _, c := range opts.comps {
 			results = append(results, store.SnapResourceResult{

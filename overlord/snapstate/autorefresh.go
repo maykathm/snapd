@@ -827,7 +827,7 @@ func inhibitRefresh(st *state.State, snapst *SnapState, snapsup *SnapSetup, info
 		// reset to nil on successful refresh.
 		snapst.RefreshInhibitedTime = &now
 		busyErr.timeRemaining = (maxInhibitionDurationValue - now.Sub(*snapst.RefreshInhibitedTime)).Truncate(time.Second)
-		Set(st, info.InstanceName(), snapst)
+		Set(st, info.InstanceName().String(), snapst)
 	case now.Sub(*snapst.RefreshInhibitedTime) < maxInhibitionDurationValue:
 		// If we are still in the allowed window then just return the error but
 		// don't change the snap state again.

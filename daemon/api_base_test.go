@@ -628,11 +628,11 @@ func (s *apiBaseSuite) mockSnap(c *check.C, yamlText string) *snap.Info {
 	defer st.Unlock()
 
 	// Put a side info into the state
-	snapstate.Set(st, snapInfo.InstanceName(), &snapstate.SnapState{
+	snapstate.Set(st, snapInfo.InstanceName().String(), &snapstate.SnapState{
 		Active: true,
 		Sequence: snapstatetest.NewSequenceFromSnapSideInfos([]*snap.SideInfo{
 			{
-				RealName: snapInfo.SnapName(),
+				RealName: snapInfo.SnapName().String(),
 				Revision: snapInfo.Revision,
 				SnapID:   "ididid",
 			},
@@ -679,7 +679,7 @@ version: %s
 		dir, rev := filepath.Split(snapInfo.MountDir())
 		c.Assert(os.Symlink(rev, dir+"current"), check.IsNil)
 	}
-	c.Assert(snapInfo.InstanceName(), check.Equals, instanceName)
+	c.Assert(snapInfo.InstanceName().String(), check.Equals, instanceName)
 
 	c.Assert(os.MkdirAll(snapInfo.DataDir(), 0755), check.IsNil)
 	metadir := filepath.Join(snapInfo.MountDir(), "meta")

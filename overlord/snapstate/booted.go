@@ -67,16 +67,16 @@ func UpdateBootRevisions(st *state.State) error {
 		if err != nil {
 			return fmt.Errorf(errorPrefix+"%s", err)
 		}
-		info, err := CurrentInfo(st, actual.SnapName())
+		info, err := CurrentInfo(st, actual.SnapName().String())
 		if err != nil {
-			logger.Noticef("cannot get info for %q: %s", actual.SnapName(), err)
+			logger.Noticef("cannot get info for %q: %s", actual.SnapName().String(), err)
 			continue
 		}
 		if actual.SnapRevision() != info.SideInfo.Revision {
 			// FIXME: check that there is no task
 			//        for this already in progress
 			const noRestartBoundaries = false
-			installTS, err := revertToRevisionTaskSet(st, actual.SnapName(), actual.SnapRevision(), Flags{}, "", noRestartBoundaries)
+			installTS, err := revertToRevisionTaskSet(st, actual.SnapName().String(), actual.SnapRevision(), Flags{}, "", noRestartBoundaries)
 			if err != nil {
 				return err
 			}

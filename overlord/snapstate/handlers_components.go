@@ -547,12 +547,12 @@ func (m *SnapManager) doUnlinkCurrentComponent(t *state.Task, _ *tomb.Tomb) (err
 
 	// Remove current component for the current snap
 	if err := m.unlinkComponent(
-		t, snapSt, snapInfo.InstanceName(), snapInfo.Revision, cref); err != nil {
+		t, snapSt, snapInfo.InstanceName().String(), snapInfo.Revision, cref); err != nil {
 		return err
 	}
 
 	// Finally, write the state
-	Set(st, snapInfo.InstanceName(), snapSt)
+	Set(st, snapInfo.InstanceName().String(), snapSt)
 	// Make sure we won't be rerun
 	t.SetStatus(state.DoneStatus)
 
@@ -630,7 +630,7 @@ func (m *SnapManager) undoUnlinkCurrentComponent(t *state.Task, _ *tomb.Tomb) (e
 	}
 
 	if err := m.relinkComponent(
-		t, snapSt, snapInfo.InstanceName(), snapInfo.Revision); err != nil {
+		t, snapSt, snapInfo.InstanceName().String(), snapInfo.Revision); err != nil {
 		return err
 	}
 

@@ -89,7 +89,7 @@ func componentEnv(info *snap.Info, component *snap.ComponentInfo) osutil.Environ
 		// to set SNAP in basicEnv, see comment there for more details
 		"SNAP_COMPONENT": filepath.Join(
 			dirs.CoreSnapMountDir,
-			info.SnapName(),
+			info.SnapName().String(),
 			"components",
 			"mnt",
 			component.Component.ComponentName,
@@ -119,11 +119,11 @@ func basicEnv(info *snap.Info) osutil.Environment {
 		// environment of each snap instance appear as if it's the only
 		// snap, i.e. SNAP paths point to the same locations within the
 		// mount namespace
-		"SNAP":               filepath.Join(dirs.CoreSnapMountDir, info.SnapName(), info.Revision.String()),
+		"SNAP":               filepath.Join(dirs.CoreSnapMountDir, info.SnapName().String(), info.Revision.String()),
 		"SNAP_COMMON":        snap.CommonDataDir(naming.InstanceName(info.SnapName())),
 		"SNAP_DATA":          snap.DataDir(naming.InstanceName(info.SnapName()), info.Revision),
-		"SNAP_NAME":          info.SnapName(),
-		"SNAP_INSTANCE_NAME": info.InstanceName(),
+		"SNAP_NAME":          info.SnapName().String(),
+		"SNAP_INSTANCE_NAME": info.InstanceName().String(),
 		"SNAP_INSTANCE_KEY":  info.InstanceKey,
 		"SNAP_VERSION":       info.Version,
 		"SNAP_REVISION":      info.Revision.String(),
@@ -136,7 +136,7 @@ func basicEnv(info *snap.Info) osutil.Environment {
 	}
 
 	if len(info.Components) > 0 {
-		env["SNAP_COMPONENTS"] = filepath.Join(dirs.CoreSnapMountDir, info.SnapName(),
+		env["SNAP_COMPONENTS"] = filepath.Join(dirs.CoreSnapMountDir, info.SnapName().String(),
 			"components", info.Revision.String())
 	}
 

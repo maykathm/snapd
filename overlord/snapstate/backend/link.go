@@ -75,7 +75,7 @@ type LinkContext struct {
 }
 
 func createSharedSnapDirForParallelInstance(s snap.PlaceInfo) error {
-	_, key := snap.SplitInstanceName(s.InstanceName())
+	_, key := snap.SplitInstanceName(s.InstanceName().String())
 
 	if key != "" {
 		err := os.MkdirAll(snap.BaseDir(naming.InstanceName(s.SnapName())), 0755)
@@ -87,7 +87,7 @@ func createSharedSnapDirForParallelInstance(s snap.PlaceInfo) error {
 }
 
 func removeSharedSnapDirForParallelInstance(s snap.PlaceInfo) {
-	_, instanceKey := snap.SplitInstanceName(s.InstanceName())
+	_, instanceKey := snap.SplitInstanceName(s.InstanceName().String())
 
 	if instanceKey != "" {
 		// failure to remove is ok, there may be revisions of the
@@ -176,13 +176,13 @@ func (b Backend) LinkSnap(info *snap.Info, dev snap.Device, linkCtx LinkContext,
 	}
 
 	if info.Revision.Unset() {
-		return fmt.Errorf("cannot link snap %q with unset revision", info.InstanceName())
+		return fmt.Errorf("cannot link snap %q with unset revision", info.InstanceName().String())
 	}
 
 	osutil.MaybeInjectFault("link-snap")
 
 	var err error
-	timings.Run(tm, "generate-wrappers", fmt.Sprintf("generate wrappers for snap %s", info.InstanceName()), func(timings.Measurer) {
+	timings.Run(tm, "generate-wrappers", fmt.Sprintf("generate wrappers for snap %s", info.InstanceName().String()), func(timings.Measurer) {
 		err = b.generateWrappers(info, linkCtx)
 	})
 	if err != nil {
@@ -192,7 +192,7 @@ func (b Backend) LinkSnap(info *snap.Info, dev snap.Device, linkCtx LinkContext,
 		if e == nil {
 			return
 		}
-		timings.Run(tm, "remove-wrappers", fmt.Sprintf("remove wrappers of snap %s", info.InstanceName()), func(timings.Measurer) {
+		timings.Run(tm, "remove-wrappers", fmt.Sprintf("remove wrappers of snap %s", info.InstanceName().String()), func(timings.Measurer) {
 			removeGeneratedWrappers(info, linkCtx, progress.Null)
 		})
 	}()
@@ -218,7 +218,7 @@ func (b Backend) LinkSnap(info *snap.Info, dev snap.Device, linkCtx LinkContext,
 	// somehow clean up whatever updateCurrentSymlinks did
 
 	// Stop inhibiting application startup by removing the inhibitor file.
-	if err := runinhibit.Unlock(info.InstanceName(), linkCtx.StateUnlocker); err != nil {
+	if err := runinhibit.Unlock(info.InstanceName().String(), linkCtx.StateUnlocker); err != nil {
 		return err
 	}
 
@@ -334,28 +334,28 @@ func removeGeneratedWrappers(s *snap.Info, linkCtx LinkContext, meter progress.M
 	if !linkCtx.SkipBinaries {
 		err1 = wrappers.RemoveSnapBinaries(s)
 		if err1 != nil {
-			logger.Noticef("Cannot remove binaries for %q: %v", s.InstanceName(), err1)
+			logger.Noticef("Cannot remove binaries for %q: %v", s.InstanceName().String(), err1)
 		}
 
 		err2 = wrappers.RemoveSnapDesktopFiles(s)
 		if err2 != nil {
-			logger.Noticef("Cannot remove desktop files for %q: %v", s.InstanceName(), err2)
+			logger.Noticef("Cannot remove desktop files for %q: %v", s.InstanceName().String(), err2)
 		}
 
 		err3 = wrappers.RemoveSnapIcons(s)
 		if err3 != nil {
-			logger.Noticef("Cannot remove desktop icons for %q: %v", s.InstanceName(), err3)
+			logger.Noticef("Cannot remove desktop icons for %q: %v", s.InstanceName().String(), err3)
 		}
 	}
 
 	err4 := wrappers.RemoveSnapDBusActivationFiles(s)
 	if err4 != nil {
-		logger.Noticef("Cannot remove D-Bus activation for %q: %v", s.InstanceName(), err4)
+		logger.Noticef("Cannot remove D-Bus activation for %q: %v", s.InstanceName().String(), err4)
 	}
 
 	err5 := wrappers.RemoveSnapServices(s, meter)
 	if err5 != nil {
-		logger.Noticef("Cannot remove services for %q: %v", s.InstanceName(), err5)
+		logger.Noticef("Cannot remove services for %q: %v", s.InstanceName().String(), err5)
 	}
 
 	return firstErr(err1, err2, err3, err4, err5)
@@ -398,7 +398,7 @@ func (b Backend) UnlinkSnap(info *snap.Info, linkCtx LinkContext, meter progress
 		}
 		// inhibit startup of new programs
 		inhibitInfo := runinhibit.InhibitInfo{Previous: info.SnapRevision()}
-		err0 = runinhibit.LockWithHint(info.InstanceName(), hint, inhibitInfo, linkCtx.StateUnlocker)
+		err0 = runinhibit.LockWithHint(info.InstanceName().String(), hint, inhibitInfo, linkCtx.StateUnlocker)
 	}
 
 	// remove generated services, binaries etc
