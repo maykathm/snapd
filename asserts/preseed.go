@@ -116,7 +116,7 @@ func checkPreseedSnap(snap map[string]any) (*PreseedSnap, error) {
 	if err != nil {
 		return nil, err
 	}
-	if err := naming.ValidateSnap(name); err != nil {
+	if _, err := naming.ParseSnapName(name); err != nil {
 		return nil, fmt.Errorf("invalid snap name %q", name)
 	}
 
@@ -202,7 +202,7 @@ func checkPreseedComponent(comp map[string]any, snapRevision int) (PreseedCompon
 		return PreseedComponent{}, err
 	}
 
-	if err := naming.ValidateSnap(name); err != nil {
+	if _, err := naming.ParseSnapName(name); err != nil {
 		return PreseedComponent{}, err
 	}
 	what := fmt.Sprintf("of component %q", name)

@@ -30,6 +30,7 @@ import (
 	"github.com/snapcore/snapd/logger"
 	"github.com/snapcore/snapd/osutil"
 	"github.com/snapcore/snapd/snap"
+	"github.com/snapcore/snapd/snap/naming"
 )
 
 // Repository stores all known snappy plugs and slots and ifaces.
@@ -422,7 +423,7 @@ func (r *Repository) AddSlot(slot *snap.SlotInfo) error {
 	snapName := slot.Snap.InstanceName()
 
 	// Reject snaps with invalid names
-	if err := snap.ValidateInstanceName(snapName.String()); err != nil {
+	if _, err := naming.ParseInstanceName(snapName.String()); err != nil {
 		return err
 	}
 	// Reject slots with invalid names

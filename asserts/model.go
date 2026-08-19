@@ -222,7 +222,7 @@ func checkModelSnap(snap map[string]any, modelBase string, grade ModelGrade, mod
 	if err != nil {
 		return nil, err
 	}
-	if err := naming.ValidateSnap(name); err != nil {
+	if _, err := naming.ParseSnapName(name); err != nil {
 		return nil, fmt.Errorf("invalid snap name %q", name)
 	}
 
@@ -353,7 +353,7 @@ func checkComponentsForMaps(m map[string]any, validModes []string, what string) 
 	res := make(map[string]ModelComponent, len(comps))
 	for name, comp := range comps {
 		// Name of component follows the same rules as snap components
-		if err := naming.ValidateSnap(name); err != nil {
+		if _, err := naming.ParseSnapName(name); err != nil {
 			return nil, fmt.Errorf("invalid component name %s", name)
 		}
 
@@ -447,7 +447,7 @@ func checkSnapWithTrack(headers map[string]any, which string) (*ModelSnap, error
 }
 
 func validateSnapName(name string, headerName string) error {
-	if err := naming.ValidateSnap(name); err != nil {
+	if _, err := naming.ParseSnapName(name); err != nil {
 		return fmt.Errorf("invalid snap name in %q header: %s", headerName, name)
 	}
 	return nil

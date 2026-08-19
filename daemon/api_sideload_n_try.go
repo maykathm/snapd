@@ -521,11 +521,12 @@ func multiPathInstallMessage(sli *sideloadedInfo) string {
 }
 
 func sideloadSnap(_ context.Context, st *state.State, upload *uploadedContainer, flags sideloadFlags) (*state.Change, *apiError) {
-	var instanceName string
+	var instanceName naming.InstanceName
 	if upload.instanceName != "" {
 		// caller has specified desired instance name
-		instanceName = upload.instanceName
-		if err := snap.ValidateInstanceName(instanceName); err != nil {
+		var err error
+		instanceName, err = naming.ParseInstanceName(upload.instanceName)
+		if err != nil {
 			return nil, BadRequest(err.Error())
 		}
 	}
@@ -565,12 +566,12 @@ func sideloadSnap(_ context.Context, st *state.State, upload *uploadedContainer,
 	}
 
 	if instanceName != "" {
-		requestedSnapName := snap.InstanceSnap(instanceName)
-		if requestedSnapName != info.RealName {
+		requestedSnapName := instanceName.SnapName()
+		if requestedSnapName != info.SnapName() {
 			return nil, BadRequest(fmt.Sprintf("instance name %q does not match snap name %q", instanceName, info.RealName))
 		}
 	} else {
-		instanceName = info.RealName
+		instanceName = info.InstanceName()
 	}
 
 	var tset *state.TaskSet
@@ -579,7 +580,7 @@ func sideloadSnap(_ context.Context, st *state.State, upload *uploadedContainer,
 	message := fmt.Sprintf("%q snap", instanceName)
 	if compInfo == nil {
 		// TODO pass per request context
-		tset, err = snapstateInstallPath(st, &info.SideInfo, upload.tmpPath, instanceName, "", flags.Flags, nil)
+		tset, err = snapstateInstallPath(st, &info.SideInfo, upload.tmpPath, instanceName.String(), "", flags.Flags, nil)
 		changeType = installSnapChangeKind
 	} else {
 		// It is a component
@@ -596,18 +597,18 @@ func sideloadSnap(_ context.Context, st *state.State, upload *uploadedContainer,
 	}
 
 	msg := fmt.Sprintf(i18n.G("Install %s from file %q"), message, upload.filename)
-	chg := newChange(st, changeType, msg, []*state.TaskSet{tset}, []string{instanceName})
+	chg := newChange(st, changeType, msg, []*state.TaskSet{tset}, []string{instanceName.String()})
 	apiData := map[string]any{}
 	if compInfo == nil {
 		apiData = map[string]any{
-			"snap-name":  instanceName,
-			"snap-names": []string{instanceName},
+			"snap-name":  instanceName.String(),
+			"snap-names": []string{instanceName.String()},
 		}
 	} else {
 		// Installing only a component, so snap name is inside components entry
 		// (snap-name would be included if installing snap+components)
 		apiData["components"] = map[string][]string{
-			instanceName: {compInfo.Component.ComponentName},
+			instanceName.String(): {compInfo.Component.ComponentName},
 		}
 	}
 	chg.Set("api-data", apiData)

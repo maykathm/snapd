@@ -164,7 +164,7 @@ func assembleRepair(assert assertionBase) (Assertion, error) {
 
 	// validate that all base snap names are valid snap names
 	for _, b := range bases {
-		if err := naming.ValidateSnap(b); err != nil {
+		if _, err := naming.ParseSnapName(b); err != nil {
 			return nil, fmt.Errorf("invalid snap name %q in \"bases\"", b)
 		}
 	}

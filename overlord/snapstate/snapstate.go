@@ -798,7 +798,7 @@ func downloadTasks(
 		revOpts.ValidationSets = snapasserts.NewValidationSets()
 	}
 
-	if err := snap.ValidateInstanceName(name); err != nil {
+	if _, err := naming.ParseInstanceName(name); err != nil {
 		return nil, nil, fmt.Errorf("invalid instance name: %v", err)
 	}
 
@@ -3581,7 +3581,7 @@ func validateSnapNames(names []string) error {
 	var invalidNames []string
 
 	for _, name := range names {
-		if err := snap.ValidateInstanceName(name); err != nil {
+		if _, err := naming.ParseInstanceName(name); err != nil {
 			invalidNames = append(invalidNames, name)
 		}
 	}

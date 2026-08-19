@@ -102,7 +102,7 @@ func checkValidationSetSnap(snap map[string]any) (*ValidationSetSnap, error) {
 	if err != nil {
 		return nil, err
 	}
-	if err := naming.ValidateSnap(snapName); err != nil {
+	if _, err := naming.ParseSnapName(snapName); err != nil {
 		return nil, fmt.Errorf("invalid snap name %q", snapName)
 	}
 

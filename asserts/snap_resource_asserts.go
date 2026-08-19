@@ -150,7 +150,7 @@ func checkResourceName(headers map[string]any) error {
 		return err
 	}
 	// same format as snap names
-	if err := naming.ValidateSnap(resName); err != nil {
+	if _, err := naming.ParseSnapName(resName); err != nil {
 		return fmt.Errorf("invalid resource name %q", resName)
 	}
 	return nil

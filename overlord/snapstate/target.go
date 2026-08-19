@@ -759,7 +759,7 @@ func (s *storeInstallGoal) validateAndPrune(st *state.State, installedSnaps map[
 	uninstalled := s.snaps[:0]
 	var alreadyInstalled []string
 	for _, sn := range s.snaps {
-		if err := snap.ValidateInstanceName(sn.InstanceName); err != nil {
+		if _, err := naming.ParseInstanceName(sn.InstanceName); err != nil {
 			return fmt.Errorf("invalid instance name: %v", err)
 		}
 
@@ -1618,7 +1618,7 @@ func targetFromPathSnap(update PathSnap, snapst SnapState, opts Options) (target
 		}
 	}
 
-	if err := snap.ValidateInstanceName(update.InstanceName); err != nil {
+	if _, err := naming.ParseInstanceName(update.InstanceName); err != nil {
 		return target{}, fmt.Errorf("invalid instance name: %v", err)
 	}
 

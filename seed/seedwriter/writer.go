@@ -473,7 +473,7 @@ func (w *Writer) SetOptionsSnaps(optSnaps []*OptionsSnap) error {
 				// be specific about this error
 				return fmt.Errorf("cannot use snap %q, parallel snap instances are unsupported", snapName)
 			}
-			if err := naming.ValidateSnap(snapName); err != nil {
+			if _, err := naming.ParseSnapName(snapName); err != nil {
 				return err
 			}
 
