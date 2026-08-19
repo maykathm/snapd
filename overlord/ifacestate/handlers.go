@@ -47,6 +47,7 @@ import (
 	"github.com/snapcore/snapd/overlord/snapstate"
 	"github.com/snapcore/snapd/overlord/state"
 	"github.com/snapcore/snapd/snap"
+	"github.com/snapcore/snapd/snap/naming"
 	"github.com/snapcore/snapd/snap/quota"
 	"github.com/snapcore/snapd/strutil"
 	"github.com/snapcore/snapd/timings"
@@ -336,10 +337,10 @@ func setPendingProfilesSideInfo(st *state.State, instanceName string, appSet *in
 }
 
 // triggeringSnap is the snap name of a snap that triggered the side effect.
-type triggeringSnap string
+type triggeringSnap = naming.InstanceName
 
 // affectedSnap is the name of a snap that is affected.
-type affectedSnap string
+type affectedSnap = naming.InstanceName
 
 // delayedEffectsForSnaps captures all affected snaps and delayed side effects for
 // each security backend for each snap.
@@ -2729,7 +2730,7 @@ func (m *InterfaceManager) doApplyDelayedSnapSecurityBackendEffects(task *state.
 		return err
 	}
 
-	instanceName := string(effectsData.AffectedSnapInstance)
+	instanceName := effectsData.AffectedSnapInstance.String()
 	delayed := effectsData.Effects
 	logger.Debugf("delayed update for snap %v, effects %v", instanceName, delayed)
 

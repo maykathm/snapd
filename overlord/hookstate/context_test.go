@@ -32,6 +32,7 @@ import (
 	"github.com/snapcore/snapd/logger"
 	"github.com/snapcore/snapd/overlord/state"
 	"github.com/snapcore/snapd/snap"
+	"github.com/snapcore/snapd/snap/naming"
 	"github.com/snapcore/snapd/snap/snaptest"
 )
 
@@ -73,7 +74,7 @@ func (s *contextSuite) SetUpTest(c *C) {
 
 func (s *contextSuite) TestHookSetup(c *C) {
 	c.Check(s.context.HookName(), Equals, "test-hook")
-	c.Check(s.context.InstanceName(), Equals, "test-snap")
+	c.Check(s.context.InstanceName(), Equals, naming.InstanceName("test-snap"))
 	c.Check(s.context.IsSnapHook(), Equals, true)
 	c.Check(s.context.IsComponentHook(), Equals, false)
 

@@ -159,17 +159,56 @@ Type returns of `SnapSetup.SnapName()/InstanceName()` and `SnapState.InstanceNam
 - Test assertions comparing typed values with string literals required wrapping
 - Changes rippled across 6 different overlord managers due to cross-package usage
 
-### Patches 6–10 — Remaining managers, one island per patch
-Order: `hookstate`, `ifacestate`, `snapshotstate`, `devicestate`, `servicestate`. Each compiles its own package; no unrelated managers touched.
+### Patch 6 — `overlord/hookstate` accessor (`Context.InstanceName()`) - COMPLETED
 
-**Note:** Patch 5 already touched many managers due to `SnapSetup`/`SnapState` being used everywhere. Patches 6-10 may be smaller or unnecessary depending on what local accessors exist in those managers.
+Type `hookstate.Context.InstanceName()` to return `naming.InstanceName`. Update all call sites across hookstate and dependent packages.
 
-**For each manager patch:**
-- Type any local accessors that return instance names
-- Convert local helper functions
-- Update call sites within the package
+**Status: COMPLETED**
 
-This approach avoids accumulating double-wraps by typing accessors island-by-island rather than deferring all to Patch N.
+**Files modified (46 total):**
+
+**Core change:**
+- `overlord/hookstate/context.go` - typed `Context.InstanceName()` return + import
+
+**Call site updates (29 non-test files):**
+- `overlord/hookstate/hooks.go` - 15 `.String()` additions
+- `overlord/hookstate/ctlcmd/*.go` - 16 files updated:
+  - fail.go, get.go, helpers.go, install.go, is_connected.go, kmod.go
+  - model.go, mount.go, refresh.go, remove.go, services.go, set.go, umount.go, unset.go
+- `overlord/configstate/hooks.go` - 6 `.String()` additions + import
+- `overlord/confdbstate/confdbstate.go` - 1 `.String()` addition
+- `overlord/healthstate/healthstate.go` - 1 `.String()` addition
+
+**Test file updates (16 test files):**
+- `overlord/hookstate/*_test.go` - 3 files (context_test.go, hookstate_test.go, hooks_test.go) + import
+- `overlord/configstate/configstate_test.go` - 2 assertions + import
+- `overlord/devicestate/*_test.go` - 3 files (firstboot_test.go, firstboot_preseed_test.go, devicestate_test.go) - 4 assertions + imports
+- `overlord/servicestate/quota_handlers_test.go` - 4 assertions + import
+- `overlord/snapstate/*_test.go` - 7 files + imports:
+  - aliasesv2_test.go, autorefresh_test.go, handlers_link_test.go, handlers_rerefresh_test.go
+  - handlers_test.go, snapstate_install_test.go, snapstate_update_test.go, target_test.go
+- `overlord/snapstate/agentnotify/agentnotify_test.go` - 1 assertion + import
+
+**Key patterns:**
+- ~250+ call sites updated with `.String()` for string boundaries
+- ~70 test assertions fixed with `naming.InstanceName()` or `naming.SnapName()` wrappers
+- Cross-package ripple: hookstate, ctlcmd, configstate, confdbstate, healthstate, devicestate, servicestate, snapstate
+
+**Commit message:**
+```
+overlord/hookstate: type Context.InstanceName() with naming.InstanceName
+
+Type Context.InstanceName() to return naming.InstanceName for compile-time
+protection against passing snap names where instance names are expected.
+Update all call sites across hookstate, ctlcmd, and dependent overlord
+packages to use .String() at string boundaries. Fix test assertions to
+compare typed values with naming.InstanceName() wrappers.
+```
+
+### Patches 7-10 — Remaining managers
+Order: `ifacestate`, `snapshotstate`, `devicestate`, `servicestate`. Each compiles its own package; no unrelated managers touched.
+
+**Note:** Patch 6 already touched many managers since `Context.InstanceName()` is used across overlord. Patches 7-10 may be smaller or unnecessary depending on what local accessors exist in those managers.
 
 ### Patch N — Central `PlaceInfo` interface return types (single big-ripple patch)
 Change `PlaceInfo.SnapName()/InstanceName()` interface methods to typed returns. This is the one truly cross-cutting change.
@@ -218,8 +257,8 @@ Once callers are typed, remove or deprecate `snap.InstanceName`, `snap.InstanceS
 
 ## Current Status
 
-**Completed:** Patches 1-5 (types, filesystem helpers, security tags, interfaces, snapstate accessors)
-**Next:** Patches 6-10 (remaining managers)
+**Completed:** Patches 1-6 (types, filesystem helpers, security tags, interfaces, snapstate accessors, hookstate accessor)
+**Next:** Patches 7-10 (remaining managers - if any local accessors exist)
 
 **Progress tracking:**
 - [x] Patch 1: Types + helpers + tests
@@ -230,7 +269,8 @@ Once callers are typed, remove or deprecate `snap.InstanceName`, `snap.InstanceS
   - [x] 5a: Type accessors + fix autorefresh, component, conflict (66 lines)
   - [x] 5b: Fix all call sites across overlord managers (730 lines, 24 files)
   - [x] 5c: Fix test files (130 lines, 13 test files)
-- [ ] Patches 6-10: Remaining managers (hookstate, ifacestate, snapshotstate, devicestate, servicestate)
+- [x] Patch 6: `overlord/hookstate` accessor (`Context.InstanceName()`) - 46 files, ~250 call sites, ~70 test fixes
+- [ ] Patches 7-10: Remaining managers (ifacestate, snapshotstate, devicestate, servicestate) - if needed
 - [ ] Patch N: Central `PlaceInfo` interface
 - [ ] Patch N+1: Boundary constructor conversions
 - [ ] Patch N+2: Deprecate old string helpers

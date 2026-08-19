@@ -63,7 +63,7 @@ func (h *configureHandler) Before() error {
 			return err
 		}
 
-		patch, err = snapstate.ConfigDefaults(st, deviceCtx, instanceName)
+		patch, err = snapstate.ConfigDefaults(st, deviceCtx, instanceName.String())
 		if err != nil && !errors.Is(err, state.ErrNoState) {
 			return err
 		}
@@ -71,7 +71,7 @@ func (h *configureHandler) Before() error {
 		// hook, for other snaps double check that the hook is present
 		if len(patch) != 0 && instanceName != "core" {
 			// TODO: helper on context?
-			info, err := snapstate.CurrentInfo(st, instanceName)
+			info, err := snapstate.CurrentInfo(st, instanceName.String())
 			if err != nil {
 				return err
 			}
@@ -90,7 +90,7 @@ func (h *configureHandler) Before() error {
 		}
 	}
 
-	if err := config.Patch(tr, instanceName, patch); err != nil {
+	if err := config.Patch(tr, instanceName.String(), patch); err != nil {
 		return err
 	}
 
@@ -127,7 +127,7 @@ func (h *defaultConfigureHandler) Before() error {
 
 	instanceName := h.context.InstanceName()
 	st := h.context.State()
-	info, err := snapstate.CurrentInfo(st, instanceName)
+	info, err := snapstate.CurrentInfo(st, instanceName.String())
 	if err != nil {
 		return err
 	}
@@ -148,12 +148,12 @@ func (h *defaultConfigureHandler) Before() error {
 			return err
 		}
 
-		patch, err := snapstate.ConfigDefaults(st, deviceCtx, instanceName)
+		patch, err := snapstate.ConfigDefaults(st, deviceCtx, instanceName.String())
 		if err != nil && !errors.Is(err, state.ErrNoState) {
 			return err
 		}
 
-		if err := config.Patch(tr, instanceName, patch); err != nil {
+		if err := config.Patch(tr, instanceName.String(), patch); err != nil {
 			return err
 		}
 	}
