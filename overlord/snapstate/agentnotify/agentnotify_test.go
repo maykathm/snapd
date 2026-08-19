@@ -30,6 +30,7 @@ import (
 	"github.com/snapcore/snapd/overlord/snapstate/snapstatetest"
 	"github.com/snapcore/snapd/overlord/state"
 	"github.com/snapcore/snapd/snap"
+	"github.com/snapcore/snapd/snap/naming"
 	userclient "github.com/snapcore/snapd/usersession/client"
 )
 
@@ -51,7 +52,7 @@ func (s *agentNotifySuite) TestNotifyAgentOnLinkChange(c *C) {
 
 	var callCount int
 	r := agentnotify.MockMaybeSendClientFinishRefreshNotification(func(st *state.State, snapsup *snapstate.SnapSetup) {
-		c.Check(snapsup.InstanceName(), Equals, "some-snap")
+		c.Check(snapsup.InstanceName(), Equals, naming.InstanceName("some-snap"))
 		callCount++
 	})
 	defer r()

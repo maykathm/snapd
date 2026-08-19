@@ -47,6 +47,7 @@ import (
 	"github.com/snapcore/snapd/overlord/state"
 	"github.com/snapcore/snapd/release"
 	"github.com/snapcore/snapd/snap"
+	"github.com/snapcore/snapd/snap/naming"
 	"github.com/snapcore/snapd/store"
 	"github.com/snapcore/snapd/store/storetest"
 	"github.com/snapcore/snapd/testutil"
@@ -1168,7 +1169,7 @@ func checkPreDownloadChange(c *C, chg *state.Change, name string, rev snap.Revis
 
 	var snapsup snapstate.SnapSetup
 	c.Assert(task.Get("snap-setup", &snapsup), IsNil)
-	c.Assert(snapsup.InstanceName(), Equals, name)
+	c.Assert(snapsup.InstanceName(), Equals, naming.InstanceName(name))
 	c.Assert(snapsup.Revision(), Equals, rev)
 
 	var refreshInfo userclient.PendingSnapRefreshInfo

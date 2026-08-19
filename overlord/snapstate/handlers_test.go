@@ -35,6 +35,7 @@ import (
 	"github.com/snapcore/snapd/overlord/snapstate/snapstatetest"
 	"github.com/snapcore/snapd/overlord/state"
 	"github.com/snapcore/snapd/snap"
+	"github.com/snapcore/snapd/snap/naming"
 	"github.com/snapcore/snapd/testutil"
 )
 
@@ -395,7 +396,7 @@ func (s *handlersSuite) TestAddLinkParticipant(c *C) {
 	lp := &testLinkParticipant{
 		linkageChanged: func(st *state.State, snapsup *snapstate.SnapSetup) error {
 			c.Assert(st, NotNil)
-			c.Check(snapsup.InstanceName(), Equals, "snap-name")
+			c.Check(snapsup.InstanceName(), Equals, naming.InstanceName("snap-name"))
 			return nil
 		},
 	}

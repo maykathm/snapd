@@ -6542,8 +6542,8 @@ func (s *snapmgrTestSuite) TestParallelInstanceUpdateMany(c *C) {
 	snapsupInstance, err = snapstate.TaskSnapSetup(tts[1].Tasks()[0])
 	c.Assert(err, IsNil)
 
-	c.Assert(snapsup.InstanceName(), Equals, "some-snap")
-	c.Assert(snapsupInstance.InstanceName(), Equals, "some-snap_instance")
+	c.Assert(snapsup.InstanceName(), Equals, naming.InstanceName("some-snap"))
+	c.Assert(snapsupInstance.InstanceName(), Equals, naming.InstanceName("some-snap_instance"))
 
 	verifyUpdateTasks(c, snap.TypeApp, 0, 3, tts[0])
 	verifyUpdateTasks(c, snap.TypeApp, 0, 1, tts[1])
@@ -8861,7 +8861,7 @@ func (s *snapmgrTestSuite) TestUpdatePrerequisiteBackwardsCompat(c *C) {
 	var snapsup snapstate.SnapSetup
 	err = earlyPrereq.Get("snap-setup", &snapsup)
 	c.Assert(err, IsNil)
-	c.Assert(snapsup.InstanceName(), Equals, "outdated-consumer")
+	c.Assert(snapsup.InstanceName(), Equals, naming.InstanceName("outdated-consumer"))
 	snapsup.PrereqContentAttrs = nil
 	earlyPrereq.Set("snap-setup", &snapsup)
 
@@ -20381,7 +20381,7 @@ func (s *snapmgrTestSuite) TestUpdateWithGoalSeedRefreshPrerequisitesUpdatesMode
 
 	providerSnapSetup, err := snapstate.TaskSnapSetup(providerSnapSetupTask)
 	c.Assert(err, IsNil)
-	c.Check(providerSnapSetup.InstanceName(), Equals, "content-provider")
+	c.Check(providerSnapSetup.InstanceName(), Equals, naming.InstanceName("content-provider"))
 	c.Check(observed.prerequisites, testutil.DeepUnsortedMatches, []snapstate.SeedRefreshCandidate{{
 		InstanceName:     providerSnapSetup.InstanceName().String(),
 		SnapSetupTaskIDs: []string{providerSnapSetupTask.ID()},
@@ -20561,13 +20561,13 @@ func (s *snapmgrTestSuite) TestUpdateWithGoalSeedRefreshRecursivePrerequisitesBe
 	c.Assert(providerSnapSetupTask, NotNil)
 	providerSnapsup, err := snapstate.TaskSnapSetup(providerSnapSetupTask)
 	c.Assert(err, IsNil)
-	c.Check(providerSnapsup.InstanceName(), Equals, "content-provider")
+	c.Check(providerSnapsup.InstanceName(), Equals, naming.InstanceName("content-provider"))
 
 	nestedSnapSetupTask := s.state.Task(observed.prerequisites[1].SnapSetupTaskIDs[0])
 	c.Assert(nestedSnapSetupTask, NotNil)
 	nestedSnapsup, err := snapstate.TaskSnapSetup(nestedSnapSetupTask)
 	c.Assert(err, IsNil)
-	c.Check(nestedSnapsup.InstanceName(), Equals, "nested-provider")
+	c.Check(nestedSnapsup.InstanceName(), Equals, naming.InstanceName("nested-provider"))
 
 	// both prerequisite task sets are observed, but only content-provider is
 	// seed-relevant. nested-provider is intentionally outside the seed refresh.
@@ -21920,7 +21920,7 @@ func (s *snapmgrTestSuite) TestInstallPathSeedRefreshRunThrough(c *C) {
 	c.Assert(err, IsNil)
 	snapsup, err := snapstate.TaskSnapSetup(setupTask)
 	c.Assert(err, IsNil)
-	c.Check(snapsup.InstanceName(), Equals, "kernel")
+	c.Check(snapsup.InstanceName(), Equals, naming.InstanceName("kernel"))
 	c.Check(snapsup.Revision(), Equals, newSideInfo.Revision)
 	c.Check(snapsup.SnapPath, Equals, path)
 

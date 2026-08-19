@@ -1230,7 +1230,7 @@ epoch: 1
 	c.Assert(err, IsNil)
 	snapsup, err := snapstate.TaskSnapSetup(setupTask)
 	c.Assert(err, IsNil)
-	c.Check(snapsup.InstanceName(), Equals, snapName)
+	c.Check(snapsup.InstanceName(), Equals, naming.InstanceName(snapName))
 	c.Check(snapsup.Revision(), Equals, rev)
 	c.Check(snapsup.SnapPath, Equals, snapPath)
 	c.Check(snapsup.Channel, Equals, trackedChannel)

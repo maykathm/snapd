@@ -31,6 +31,7 @@ import (
 	"github.com/snapcore/snapd/overlord/snapstate/snapstatetest"
 	"github.com/snapcore/snapd/overlord/state"
 	"github.com/snapcore/snapd/snap"
+	"github.com/snapcore/snapd/snap/naming"
 	"github.com/snapcore/snapd/snap/snaptest"
 	"github.com/snapcore/snapd/testutil"
 )
@@ -564,7 +565,7 @@ func (s *snapmgrTestSuite) TestAliasTasks(c *C) {
 	err = tasks[0].Get("snap-setup", &snapsup)
 	c.Assert(err, IsNil)
 	c.Check(snapsup.InstanceKey, Equals, "instance")
-	c.Check(snapsup.InstanceName(), Equals, "some-snap_instance")
+	c.Check(snapsup.InstanceName(), Equals, naming.InstanceName("some-snap_instance"))
 }
 
 type changedAlias struct {
