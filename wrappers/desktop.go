@@ -113,10 +113,10 @@ func detectAppAndRewriteExecLine(s *snap.Info, desktopFile, line string) (appInf
 		wrapper := app.WrapperPath()
 		validCmd := filepath.Base(wrapper)
 		if s.InstanceKey != "" {
-			// wrapper uses s.InstanceName(), with the instance key
+			// wrapper uses s.InstanceName().String(), with the instance key
 			// set the command will be 'snap_foo.app' instead of
 			// 'snap.app', need to account for that
-			validCmd = snap.JoinSnapApp(naming.InstanceName(s.SnapName()), app.Name)
+			validCmd = snap.JoinSnapApp(naming.InstanceName(s.SnapName().String()), app.Name)
 		}
 		// check the prefix to allow %flag style args
 		// this is ok because desktop files are not run through sh
@@ -136,7 +136,7 @@ func detectAppAndRewriteExecLine(s *snap.Info, desktopFile, line string) (appInf
 		}
 	}
 
-	logger.Noticef("cannot use line %q for desktop file %q (snap %s)", line, desktopFile, s.InstanceName())
+	logger.Noticef("cannot use line %q for desktop file %q (snap %s)", line, desktopFile, s.InstanceName().String())
 	// The Exec= line in the desktop file is invalid. Instead of failing
 	// hard we rewrite the Exec= line. The convention is that the desktop
 	// file has the same name as the application we can use this fact here.
@@ -171,9 +171,9 @@ func rewriteIconLine(s *snap.Info, line string) (string, error) {
 
 	// If the icon is prefixed with "snap.${SNAP_NAME}.", rewrite
 	// to the instance name.
-	snapIconPrefix := fmt.Sprintf("snap.%s.", s.SnapName())
+	snapIconPrefix := fmt.Sprintf("snap.%s.", s.SnapName().String())
 	if strings.HasPrefix(icon, snapIconPrefix) {
-		return fmt.Sprintf("Icon=snap.%s.%s", s.InstanceName(), icon[len(snapIconPrefix):]), nil
+		return fmt.Sprintf("Icon=snap.%s.%s", s.InstanceName().String(), icon[len(snapIconPrefix):]), nil
 	}
 
 	// If the icon has any other "snap." prefix, treat this as an error.
@@ -238,7 +238,7 @@ func sanitizeDesktopFile(s *snap.Info, desktopFile string, rawcontent []byte) []
 
 		// insert snap name
 		if bytes.Equal(bline, []byte("[Desktop Entry]")) {
-			newContent.Write([]byte("X-SnapInstanceName=" + s.InstanceName() + "\n"))
+			newContent.Write([]byte("X-SnapInstanceName=" + s.InstanceName().String() + "\n"))
 		}
 	}
 
@@ -284,7 +284,7 @@ func deriveDesktopFilesContent(s *snap.Info) (map[string]osutil.FileState, error
 			return nil, err
 		}
 		if _, exists := content[base]; exists {
-			logger.Noticef("error: identified %q as a duplicate file name %q after mangling in snap %q", filepath.Base(df), base, s.InstanceName())
+			logger.Noticef("error: identified %q as a duplicate file name %q after mangling in snap %q", filepath.Base(df), base, s.InstanceName().String())
 			continue
 		}
 		fileContent, err := os.ReadFile(df)
@@ -376,10 +376,10 @@ func EnsureSnapDesktopFiles(snaps []*snap.Info) error {
 		addGlobPatternAndConflictCheck := func(base, instanceName string) error {
 			// Check if a target desktop file belongs to another snap
 			_, hasTarget := content[base]
-			if hasTarget && instanceName != info.InstanceName() {
+			if hasTarget && instanceName != info.InstanceName().String() {
 				return fmt.Errorf("cannot install %q: %q already exists for another snap", base, filepath.Join(dirs.SnapDesktopFilesDir, base))
 			}
-			if instanceName == info.InstanceName() && !hasTarget && !hasDesktopPrefix(info, base) {
+			if instanceName == info.InstanceName().String() && !hasTarget && !hasDesktopPrefix(info, base) {
 				// An unmangled desktop file exists for the snap, add to glob
 				// patterns for removal
 				desktopFilesGlobs = append(desktopFilesGlobs, base)
@@ -415,7 +415,7 @@ func RemoveSnapDesktopFiles(s *snap.Info) error {
 	desktopFilesGlobs := []string{fmt.Sprintf("%s_*.desktop", s.DesktopPrefix())}
 
 	addGlobPattern := func(base, instanceName string) error {
-		if instanceName == s.InstanceName() && !hasDesktopPrefix(s, base) {
+		if instanceName == s.InstanceName().String() && !hasDesktopPrefix(s, base) {
 			// An unmangled desktop file exists for the snap, add to glob
 			// patterns for removal
 			desktopFilesGlobs = append(desktopFilesGlobs, base)

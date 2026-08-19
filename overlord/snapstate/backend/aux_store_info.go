@@ -62,10 +62,10 @@ func RetrieveAuxStoreInfo(info *snap.Info) error {
 	var aux AuxStoreInfo
 	dec := json.NewDecoder(f)
 	if err := dec.Decode(&aux); err != nil {
-		return fmt.Errorf("cannot decode auxiliary store info for snap %q: %v", info.InstanceName(), err)
+		return fmt.Errorf("cannot decode auxiliary store info for snap %q: %v", info.InstanceName().String(), err)
 	}
 	if dec.More() {
-		return fmt.Errorf("cannot decode auxiliary store info for snap %q: spurious content after document body", info.InstanceName())
+		return fmt.Errorf("cannot decode auxiliary store info for snap %q: spurious content after document body", info.InstanceName().String())
 	}
 
 	info.Media = aux.Media

@@ -56,10 +56,10 @@ func InstallComponents(
 	}
 
 	var snapst SnapState
-	err := Get(st, info.InstanceName(), &snapst)
+	err := Get(st, info.InstanceName().String(), &snapst)
 	if err != nil {
 		if errors.Is(err, state.ErrNoState) {
-			return nil, &snap.NotInstalledError{Snap: info.InstanceName()}
+			return nil, &snap.NotInstalledError{Snap: info.InstanceName().String()}
 		}
 		return nil, err
 	}
@@ -70,13 +70,13 @@ func InstallComponents(
 		// new components at the same time when resolving validation sets
 		var alreadyInstalled []string
 		for _, comp := range names {
-			if snapst.CurrentComponentSideInfo(naming.NewComponentRef(info.SnapName(), comp)) != nil {
+			if snapst.CurrentComponentSideInfo(naming.NewComponentRef(info.SnapName().String(), comp)) != nil {
 				alreadyInstalled = append(alreadyInstalled, comp)
 			}
 		}
 
 		if len(alreadyInstalled) > 0 {
-			return nil, snap.NewAlreadyInstalledComponentsError(info.SnapName(), alreadyInstalled)
+			return nil, snap.NewAlreadyInstalledComponentsError(info.SnapName().String(), alreadyInstalled)
 		}
 	}
 
@@ -105,7 +105,7 @@ func InstallComponents(
 		comps[comp.ComponentName()] = comp.Revision()
 	}
 
-	if err := checkComponentsPresenceAndRevision(info.SnapName(), comps, pres, "install"); err != nil {
+	if err := checkComponentsPresenceAndRevision(info.SnapName().String(), comps, pres, "install"); err != nil {
 		return nil, err
 	}
 
@@ -133,13 +133,13 @@ func InstallComponents(
 	}
 
 	setupSecurity := st.NewTask("setup-profiles",
-		fmt.Sprintf(i18n.G("Setup snap %q (%s) security profiles"), info.InstanceName(), info.Revision))
+		fmt.Sprintf(i18n.G("Setup snap %q (%s) security profiles"), info.InstanceName().String(), info.Revision))
 	setupSecurity.Set("snap-setup", snapsup)
 
 	var kmodSetup *state.Task
 	if requiresKmodSetup(&snapst, compsups) {
 		kmodSetup = st.NewTask("prepare-kernel-modules-components", fmt.Sprintf(
-			i18n.G("Prepare kernel-modules components for %q%s"), info.InstanceName(), info.Revision,
+			i18n.G("Prepare kernel-modules components for %q%s"), info.InstanceName().String(), info.Revision,
 		))
 		kmodSetup.Set("snap-setup-task", setupSecurity.ID())
 	}
@@ -291,10 +291,10 @@ func InstallComponentPath(st *state.State, csi *snap.ComponentSideInfo, info *sn
 
 	var snapst SnapState
 	// owner snap must be already installed
-	err := Get(st, info.InstanceName(), &snapst)
+	err := Get(st, info.InstanceName().String(), &snapst)
 	if err != nil {
 		if errors.Is(err, state.ErrNoState) {
-			return nil, &snap.NotInstalledError{Snap: info.InstanceName()}
+			return nil, &snap.NotInstalledError{Snap: info.InstanceName().String()}
 		}
 		return nil, err
 	}
@@ -775,7 +775,7 @@ func RemoveComponents(st *state.State, snapName string, compName []string, opts 
 		if compst == nil {
 			return nil, &snap.ComponentNotInstalledError{
 				NotInstalledError: snap.NotInstalledError{
-					Snap: info.InstanceName(),
+					Snap: info.InstanceName().String(),
 					Rev:  info.Revision,
 				},
 				Component: comp,
@@ -797,7 +797,7 @@ func RemoveComponents(st *state.State, snapName string, compName []string, opts 
 }
 
 func removeComponentTasks(st *state.State, snapst *SnapState, compst *sequence.ComponentState, info *snap.Info, setupSecurity *state.Task, copts ConflictOptions) (*state.TaskSet, error) {
-	instName := info.InstanceName()
+	instName := info.InstanceName().String()
 
 	// For the moment we consider the same conflicts as if the component
 	// was actually the snap.

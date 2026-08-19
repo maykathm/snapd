@@ -1168,7 +1168,7 @@ func (m *SnapManager) doUnlinkCurrentSnap(t *state.Task, _ *tomb.Tomb) (retErr e
 		}
 		skipBinaries := reason == unlinkCurrentSnapReasonRefresh && refreshAppAwarenessEnabled && experimentalRefreshAppAwarenessUX
 
-		otherInstances, err := hasOtherInstances(st, oldInfo.InstanceName())
+		otherInstances, err := hasOtherInstances(st, oldInfo.InstanceName().String())
 		if err != nil {
 			return err
 		}
@@ -1953,7 +1953,7 @@ func (m *SnapManager) doLinkSnap(t *state.Task, _ *tomb.Tomb) (retErr error) {
 		return err
 	}
 
-	otherInstances, err := hasOtherInstances(st, newInfo.InstanceName())
+	otherInstances, err := hasOtherInstances(st, newInfo.InstanceName().String())
 	if err != nil {
 		return err
 	}
@@ -3311,7 +3311,7 @@ func (m *SnapManager) doUnlinkSnap(t *state.Task, _ *tomb.Tomb) (retErr error) {
 		return err
 	}
 
-	otherInstances, err := hasOtherInstances(st, info.InstanceName())
+	otherInstances, err := hasOtherInstances(st, info.InstanceName().String())
 	if err != nil {
 		return err
 	}
@@ -3398,7 +3398,7 @@ func (m *SnapManager) undoUnlinkSnap(t *state.Task, _ *tomb.Tomb) error {
 	snapst.Active = true
 	Set(st, snapsup.InstanceName().String(), snapst)
 
-	otherInstances, err := hasOtherInstances(st, info.InstanceName())
+	otherInstances, err := hasOtherInstances(st, info.InstanceName().String())
 	if err != nil {
 		return err
 	}
@@ -5187,7 +5187,7 @@ func (m *SnapManager) doDiscardOldKernelSnapSetup(t *state.Task, _ *tomb.Tomb) e
 			fmt.Sprintf("discard previous kernel snap set-up %q", currInfo.InstanceName()),
 			func(timings.Measurer) {
 				err = m.backend.RemoveKernelSnapSetup(
-					currInfo.InstanceName(), prevKernelRev, pm)
+					currInfo.InstanceName().String(), prevKernelRev, pm)
 			})
 		st.Lock()
 		if err != nil {
@@ -5236,7 +5236,7 @@ func (m *SnapManager) undoDiscardOldKernelSnapSetup(t *state.Task, _ *tomb.Tomb)
 			fmt.Sprintf("undo cleanup of previous kernel snap %q", currInfo.InstanceName()),
 			func(timings.Measurer) {
 				err = m.backend.SetupKernelSnap(
-					currInfo.InstanceName(), prevKernelRev, pm)
+					currInfo.InstanceName().String(), prevKernelRev, pm)
 			})
 		st.Lock()
 		if err != nil {

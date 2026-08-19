@@ -161,8 +161,8 @@ func (iface *gpioChardevInterface) SystemdConnectedPlug(spec *systemd.Specificat
 	plugName := plug.Name()
 	plugSnapName := plug.Snap().InstanceName()
 
-	target := gpio.SnapChardevPath(slotSnapName, slotName)
-	symlink := gpio.SnapChardevPath(plugSnapName, plugName)
+	target := gpio.SnapChardevPath(slotSnapName.String(), slotName)
+	symlink := gpio.SnapChardevPath(plugSnapName.String(), plugName)
 
 	// Create symlink pointing to exported virtual slot device.
 	serviceSuffix := fmt.Sprintf("gpio-chardev-%s", plugName)
@@ -184,7 +184,7 @@ func (iface *gpioChardevInterface) AppArmorConnectedPlug(spec *apparmor.Specific
 	// Allow access to exported virtual slot device.
 	snippet += fmt.Sprintf("/dev/snap/gpio-chardev/%s/%s rwk,\n", slotSnapName, slot.Name())
 	// Allow access to plug-side symlink to exported virtual slot device.
-	snippet += fmt.Sprintf("/dev/snap/gpio-chardev/%s/{,*} r,\n", plugSnapName)
+	snippet += fmt.Sprintf("/dev/snap/gpio-chardev/%s/{,*} r,\n", plugSnapName.String())
 	spec.AddSnippet(snippet)
 
 	return nil

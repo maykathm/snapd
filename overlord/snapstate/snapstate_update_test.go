@@ -4422,7 +4422,7 @@ func (s *snapmgrTestSuite) TestUpdateManyPartialFailureCheckRerefreshDone(c *C) 
 		defer t.State().Unlock()
 		snapsup, err := snapstate.TaskSnapSetup(t)
 		c.Assert(err, IsNil)
-		if snapsup.SnapName() == "some-snap" {
+		if snapsup.SnapName().String() == "some-snap" {
 			someSnapValidation = true
 			return fmt.Errorf("boom")
 		}
@@ -4994,7 +4994,7 @@ func (s *snapmgrTestSuite) TestUpdateWithDeviceContextSameRevisionSwitchesChanne
 	c.Check(ts.Tasks()[0].Kind(), Equals, "switch-snap-channel")
 
 	c.Assert(prqt.infos, HasLen, 1)
-	c.Check(prqt.infos[0].SnapName(), Equals, "some-snap")
+	c.Check(prqt.infos[0].SnapName().String(), Equals, "some-snap")
 	c.Check(prqt.missingProviderContentTagsCalls, Equals, 1)
 }
 
@@ -5037,7 +5037,7 @@ func (s *snapmgrTestSuite) TestUpdateWithDeviceContext(c *C) {
 	c.Check(validateCalled, Equals, true)
 
 	c.Assert(prqt.infos, HasLen, 1)
-	c.Check(prqt.infos[0].SnapName(), Equals, "some-snap")
+	c.Check(prqt.infos[0].SnapName().String(), Equals, "some-snap")
 	c.Check(prqt.missingProviderContentTagsCalls, Equals, 1)
 }
 
@@ -5087,7 +5087,7 @@ epoch: 1*
 	verifyUpdateTasks(c, snap.TypeApp, doesReRefresh|localSnap|mockDelayedEffects, 0, ts)
 	c.Assert(s.state.TaskCount(), Equals, len(ts.Tasks()))
 	c.Assert(prqt.infos, HasLen, 1)
-	c.Check(prqt.infos[0].SnapName(), Equals, "some-snap")
+	c.Check(prqt.infos[0].SnapName().String(), Equals, "some-snap")
 	c.Check(prqt.missingProviderContentTagsCalls, Equals, 1)
 }
 
@@ -5846,7 +5846,7 @@ func (s *snapmgrTestSuite) TestUpdateManyFailureDoesntUndoSnapdRefresh(c *C) {
 					doneDownloads++
 					c.Check(t.Status(), Equals, state.DoneStatus)
 				default:
-					c.Errorf("unexpected snap %s", sup.SnapName())
+					c.Errorf("unexpected snap %s", sup.SnapName().String())
 				}
 			}
 		}
@@ -6131,7 +6131,7 @@ func (s *snapmgrTestSuite) TestUpdateManyOneSwitchesChannelWithAutoAlias(c *C) {
 
 	n := 0
 	snapstate.AutoAliases = func(st *state.State, info *snap.Info) (map[string]string, error) {
-		if info.InstanceName() == "alias-snap" {
+		if info.InstanceName().String() == "alias-snap" {
 			if n > 0 {
 				return map[string]string{
 					"alias1": "cmd1",
@@ -6463,7 +6463,7 @@ func (s *snapmgrTestSuite) TestUpdateManyValidateRefreshes(c *C) {
 	validateRefreshes := func(st *state.State, refreshes []*snap.Info, ignoreValidation map[string]bool, userID int, deviceCtx snapstate.DeviceContext) ([]*snap.Info, error) {
 		validateCalled = true
 		c.Check(refreshes, HasLen, 1)
-		c.Check(refreshes[0].InstanceName(), Equals, "some-snap")
+		c.Check(refreshes[0].InstanceName().String(), Equals, "some-snap")
 		c.Check(refreshes[0].SnapID, Equals, "some-snap-id")
 		c.Check(refreshes[0].Revision, Equals, snap.R(11))
 		c.Check(ignoreValidation, HasLen, 0)
@@ -6534,7 +6534,7 @@ func (s *snapmgrTestSuite) TestParallelInstanceUpdateMany(c *C) {
 	// ensure stable ordering of task sets list
 	snapsup, err = snapstate.TaskSnapSetup(tts[0].Tasks()[0])
 	c.Assert(err, IsNil)
-	if snapsup.InstanceName() != "some-snap" {
+	if snapsup.InstanceName().String() != "some-snap" {
 		tts[0], tts[1] = tts[1], tts[0]
 		snapsup, err = snapstate.TaskSnapSetup(tts[0].Tasks()[0])
 		c.Assert(err, IsNil)
@@ -6585,8 +6585,8 @@ func (s *snapmgrTestSuite) TestParallelInstanceUpdateManyValidateRefreshes(c *C)
 			instanceIdx = 1
 			someIdx = 0
 		}
-		c.Check(refreshes[someIdx].InstanceName(), Equals, "some-snap")
-		c.Check(refreshes[instanceIdx].InstanceName(), Equals, "some-snap_instance")
+		c.Check(refreshes[someIdx].InstanceName().String(), Equals, "some-snap")
+		c.Check(refreshes[instanceIdx].InstanceName().String(), Equals, "some-snap_instance")
 		c.Check(refreshes[0].SnapID, Equals, "some-snap-id")
 		c.Check(refreshes[0].Revision, Equals, snap.R(11))
 		c.Check(refreshes[1].SnapID, Equals, "some-snap-id")
@@ -7273,7 +7273,7 @@ func (s *snapmgrTestSuite) TestEmptyUpdateWithChannelChangeAndAutoAlias(c *C) {
 
 	n := 0
 	snapstate.AutoAliases = func(st *state.State, info *snap.Info) (map[string]string, error) {
-		if info.InstanceName() == "alias-snap" {
+		if info.InstanceName().String() == "alias-snap" {
 			if n > 0 {
 				return map[string]string{
 					"alias1": "cmd1",
@@ -8793,14 +8793,14 @@ func (s *validationSetsSuite) TestUpdateManyValidationSetsPartialFailureRevertTa
 		if t.Kind() == "link-snap" {
 			sup, err := snapstate.TaskSnapSetup(t)
 			c.Assert(err, IsNil)
-			if sup.SnapName() == "some-snap" && t.Status() == state.DoneStatus {
+			if sup.SnapName().String() == "some-snap" && t.Status() == state.DoneStatus {
 				c.Assert(t.Status(), Equals, state.DoneStatus)
 			}
 			// some-other-snap failed to refresh
-			if sup.SnapName() == "some-other-snap" {
+			if sup.SnapName().String() == "some-other-snap" {
 				c.Assert(t.Status(), Equals, state.ErrorStatus)
 			}
-			seenLinkSnap[fmt.Sprintf("%s:%s", sup.SnapName(), sup.Revision())]++
+			seenLinkSnap[fmt.Sprintf("%s:%s", sup.SnapName().String(), sup.Revision())]++
 		}
 	}
 
@@ -11435,7 +11435,7 @@ func (s *snapmgrTestSuite) TestUpdateBaseAndSnapdOrder(c *C) {
 			if tsk.Kind() == "link-snap" {
 				snapsup, err := snapstate.TaskSnapSetup(tsk)
 				c.Assert(err, IsNil)
-				if snapsup.InstanceName() == "snapd" {
+				if snapsup.InstanceName().String() == "snapd" {
 					snapdTs = ts
 				} else {
 					baseTs = ts
@@ -12217,7 +12217,7 @@ func (s *snapmgrTestSuite) TestAutoRefreshRefreshInhibitNoticeRecordedOnPreDownl
 	s.state.Unlock()
 
 	s.fakeStore.snapResourcesFn = func(info *snap.Info) []store.SnapResourceResult {
-		c.Assert(info.InstanceName(), Equals, "some-snap")
+		c.Assert(info.InstanceName().String(), Equals, "some-snap")
 		return []store.SnapResourceResult{
 			{
 				Name:      "standard-component",
@@ -12688,7 +12688,7 @@ func (s *snapmgrTestSuite) TestDownloadTaskWaitsForPreDownload(c *C) {
 func (s *snapmgrTestSuite) TestPreDownloadTaskContinuesAutoRefreshIfSoftCheckOk(c *C) {
 	var softChecked bool
 	restore := snapstate.MockRefreshAppsCheck(func(info *snap.Info) error {
-		c.Assert(info.InstanceName(), Equals, "foo")
+		c.Assert(info.InstanceName().String(), Equals, "foo")
 		softChecked = true
 		return nil
 	})
@@ -12818,7 +12818,7 @@ func (s *snapmgrTestSuite) TestDownloadTaskMonitorsSnapStoppedAndNotifiesOnSoftC
 	var softChecked bool
 	inhibited := true
 	restore := snapstate.MockRefreshAppsCheck(func(info *snap.Info) error {
-		c.Assert(info.InstanceName(), Equals, "foo")
+		c.Assert(info.InstanceName().String(), Equals, "foo")
 		softChecked = true
 		if inhibited {
 			return snapstate.NewBusySnapError(info, []int{123}, nil, nil)
@@ -12922,7 +12922,7 @@ func (s *snapmgrTestSuite) TestDownloadTaskMonitorsRepeated(c *C) {
 	var softChecked bool
 	inhibited := true
 	restore := snapstate.MockRefreshAppsCheck(func(info *snap.Info) error {
-		c.Assert(info.InstanceName(), Equals, "foo")
+		c.Assert(info.InstanceName().String(), Equals, "foo")
 		softChecked = true
 		if inhibited {
 			return snapstate.NewBusySnapError(info, []int{123}, nil, nil)
@@ -13035,7 +13035,7 @@ func (s *snapmgrTestSuite) TestUnlinkMonitorSnapOnHardCheckFailure(c *C) {
 	var check int
 	restore = snapstate.MockRefreshAppsCheck(func(info *snap.Info) error {
 		check++
-		c.Check(info.InstanceName(), Equals, "some-snap")
+		c.Check(info.InstanceName().String(), Equals, "some-snap")
 
 		switch check {
 		case 1:
@@ -13137,9 +13137,9 @@ func (s *snapmgrTestSuite) TestRefreshForcedOnRefreshInhibitionTimeout(c *C) {
 
 	check := make(map[string]int, 2)
 	restore = snapstate.MockRefreshAppsCheck(func(info *snap.Info) error {
-		check[info.InstanceName()]++
+		check[info.InstanceName().String()]++
 
-		switch check[info.InstanceName()] {
+		switch check[info.InstanceName().String()] {
 		case 1:
 			return nil
 		case 2:
@@ -13466,7 +13466,7 @@ func (s *snapmgrTestSuite) TestPreDownloadWithIgnoreRunningRefresh(c *C) {
 	defer restore()
 
 	restore = snapstate.MockRefreshAppsCheck(func(info *snap.Info) error {
-		c.Assert(info.InstanceName(), Equals, "some-snap")
+		c.Assert(info.InstanceName().String(), Equals, "some-snap")
 		return snapstate.NewBusySnapError(info, []int{123}, nil, nil)
 	})
 	defer restore()
@@ -13562,7 +13562,7 @@ func (s *snapmgrTestSuite) TestPreDownloadCleansSnapDownloads(c *C) {
 	defer restore()
 
 	restore = snapstate.MockRefreshAppsCheck(func(info *snap.Info) error {
-		c.Assert(info.InstanceName(), Equals, "some-snap")
+		c.Assert(info.InstanceName().String(), Equals, "some-snap")
 		return snapstate.NewBusySnapError(info, []int{123}, nil, nil)
 	})
 	defer restore()
@@ -14304,7 +14304,7 @@ func (s *snapmgrTestSuite) TestUpdateManyFilteredForSnapsNotInOldHints(c *C) {
 	filter := func(info *snap.Info, s *snapstate.SnapState) bool {
 		filterCalled++
 		c.Check(info, NotNil)
-		c.Check(info.InstanceName(), Equals, "some-snap")
+		c.Check(info.InstanceName().String(), Equals, "some-snap")
 		c.Check(s, NotNil)
 		return true
 	}
@@ -16129,7 +16129,7 @@ func (s *snapmgrTestSuite) TestUpdateWithComponentsBackToPrevRevision(c *C) {
 	}
 
 	s.fakeStore.snapResourcesFn = func(info *snap.Info) []store.SnapResourceResult {
-		c.Assert(info.InstanceName(), DeepEquals, snapName)
+		c.Assert(info.InstanceName().String(), DeepEquals, snapName)
 		var results []store.SnapResourceResult
 		for i, compName := range availableComponents {
 			results = append(results, store.SnapResourceResult{
@@ -16527,7 +16527,7 @@ func (s *snapmgrTestSuite) testUpdateWithComponentsBackToPrevRevisionAlreadyPres
 	}
 
 	s.fakeStore.snapResourcesFn = func(info *snap.Info) []store.SnapResourceResult {
-		c.Assert(info.InstanceName(), DeepEquals, snapName)
+		c.Assert(info.InstanceName().String(), DeepEquals, snapName)
 		var results []store.SnapResourceResult
 		for i, compName := range components {
 			results = append(results, store.SnapResourceResult{
@@ -16705,7 +16705,7 @@ func (s *snapmgrTestSuite) TestUpdateWithComponentsBackToPrevRevisionAddComponen
 	components := []string{"kernel-modules-component"}
 
 	s.fakeStore.snapResourcesFn = func(info *snap.Info) []store.SnapResourceResult {
-		c.Assert(info.InstanceName(), DeepEquals, snapName)
+		c.Assert(info.InstanceName().String(), DeepEquals, snapName)
 		var results []store.SnapResourceResult
 		for i, compName := range components {
 			results = append(results, store.SnapResourceResult{
@@ -17173,7 +17173,7 @@ func (s *snapmgrTestSuite) testUpdateWithComponentsRunThrough(c *C, opts updateW
 	}
 
 	s.fakeStore.snapResourcesFn = func(info *snap.Info) []store.SnapResourceResult {
-		c.Assert(info.InstanceName(), DeepEquals, instanceName)
+		c.Assert(info.InstanceName().String(), DeepEquals, instanceName)
 		var results []store.SnapResourceResult
 		for _, compName := range opts.postRefreshComponents {
 			results = append(results, store.SnapResourceResult{
@@ -17857,7 +17857,7 @@ func (s *snapmgrTestSuite) testUpdateWithComponentsRunThroughShareComponents(c *
 	}
 
 	s.fakeStore.snapResourcesFn = func(info *snap.Info) []store.SnapResourceResult {
-		c.Assert(info.InstanceName(), DeepEquals, snapName)
+		c.Assert(info.InstanceName().String(), DeepEquals, snapName)
 		var results []store.SnapResourceResult
 		for _, compName := range components {
 			results = append(results, store.SnapResourceResult{
@@ -18340,7 +18340,7 @@ func (s *snapmgrTestSuite) TestRefreshCandidates(c *C) {
 	candidates, err := snapstate.RefreshCandidates(s.state, nil)
 	c.Assert(err, IsNil)
 	c.Assert(candidates, HasLen, 1)
-	c.Check(candidates[0].InstanceName(), Equals, "some-snap")
+	c.Check(candidates[0].InstanceName().String(), Equals, "some-snap")
 }
 
 func (s *snapmgrTestSuite) TestUpdateTasksWithComponentsRemoved(c *C) {
@@ -19465,7 +19465,7 @@ func (s *snapmgrTestSuite) testUpdateWithComponentsRunThroughOnlyComponentUpdate
 	}
 
 	s.fakeStore.snapResourcesFn = func(info *snap.Info) []store.SnapResourceResult {
-		c.Assert(info.InstanceName(), DeepEquals, instanceName)
+		c.Assert(info.InstanceName().String(), DeepEquals, instanceName)
 		var results []store.SnapResourceResult
 		for _, compName := range opts.components {
 			results = append(results, store.SnapResourceResult{
@@ -20330,7 +20330,7 @@ func (s *snapmgrTestSuite) TestUpdateWithGoalSeedRefreshPrerequisitesUpdatesMode
 
 	ifacerepo.Replace(s.state, interfaces.NewRepository())
 	s.fakeStore.mutateSnapInfo = func(info *snap.Info) error {
-		if info.InstanceName() != "some-app" {
+		if info.InstanceName().String() != "some-app" {
 			return nil
 		}
 
@@ -20418,7 +20418,7 @@ func (s *snapmgrTestSuite) testUpdateWithGoalSeedRefreshLatePrerequisiteFailure(
 
 	ifacerepo.Replace(s.state, interfaces.NewRepository())
 	s.fakeStore.mutateSnapInfo = func(info *snap.Info) error {
-		if info.InstanceName() != "some-app" {
+		if info.InstanceName().String() != "some-app" {
 			return nil
 		}
 
@@ -20592,7 +20592,7 @@ func (s *snapmgrTestSuite) TestUpdateWithGoalSeedRefreshRecursivePrerequisitesBe
 
 		snapsup, err := snapstate.TaskSnapSetup(task)
 		c.Assert(err, IsNil)
-		if snapsup.InstanceName() == "nested-provider" {
+		if snapsup.InstanceName().String() == "nested-provider" {
 			nestedPrereq = task
 			break
 		}
@@ -20639,7 +20639,7 @@ func (s *snapmgrTestSuite) TestUpdateWithGoalSeedRefreshPrerequisitesCreatedFirs
 
 	ifacerepo.Replace(s.state, interfaces.NewRepository())
 	s.fakeStore.mutateSnapInfo = func(info *snap.Info) error {
-		if info.InstanceName() != "some-app" {
+		if info.InstanceName().String() != "some-app" {
 			return nil
 		}
 
@@ -20760,7 +20760,7 @@ func (s *snapmgrTestSuite) TestUpdateWithGoalSeedRefreshPrerequisitesCreatedFirs
 
 	ifacerepo.Replace(s.state, interfaces.NewRepository())
 	s.fakeStore.mutateSnapInfo = func(info *snap.Info) error {
-		if info.InstanceName() != "some-app" {
+		if info.InstanceName().String() != "some-app" {
 			return nil
 		}
 
@@ -20861,7 +20861,7 @@ func (s *snapmgrTestSuite) TestUpdateWithGoalSeedRefreshPrerequisitesDoNotMergeW
 
 	ifacerepo.Replace(s.state, interfaces.NewRepository())
 	s.fakeStore.mutateSnapInfo = func(info *snap.Info) error {
-		if info.InstanceName() != "some-app" {
+		if info.InstanceName().String() != "some-app" {
 			return nil
 		}
 
@@ -21015,7 +21015,7 @@ func (s *snapmgrTestSuite) TestUpdateWithGoalSeedRefreshAllowsRequestedModelCont
 
 	ifacerepo.Replace(s.state, interfaces.NewRepository())
 	s.fakeStore.mutateSnapInfo = func(info *snap.Info) error {
-		if info.InstanceName() != "some-app" {
+		if info.InstanceName().String() != "some-app" {
 			return nil
 		}
 
@@ -22057,7 +22057,7 @@ func (s *snapmgrTestSuite) TestUpdateWithGoalSeedRefreshNoEssentialsWithAddition
 	)
 
 	s.fakeStore.snapResourcesFn = func(info *snap.Info) []store.SnapResourceResult {
-		if info.InstanceName() != "some-app" {
+		if info.InstanceName().String() != "some-app" {
 			return nil
 		}
 

@@ -174,18 +174,18 @@ func appInfosFor(st *state.State, names []string, opts appInfoOptions) ([]*snap.
 			}
 		}
 
-		if len(apps) == 0 && requested[snapName] {
+		if len(apps) == 0 && requested[snapName.String()] {
 			return nil, AppNotFound("snap %q has no %ss", snapName, opts)
 		}
 
-		includeAll := len(requested) == 0 || requested[snapName]
+		includeAll := len(requested) == 0 || requested[snapName.String()]
 		if includeAll {
 			// want all services in a snap
-			found[snapName] = true
+			found[snapName.String()] = true
 		}
 
 		for _, app := range apps {
-			appName := snapName + "." + app.Name
+			appName := snapName.String() + "." + app.Name
 			if includeAll || requested[appName] {
 				appInfos = append(appInfos, app)
 				found[appName] = true

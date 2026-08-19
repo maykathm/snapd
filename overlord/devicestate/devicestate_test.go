@@ -457,7 +457,7 @@ func (s *deviceMgrBaseSuite) setupSnapResourceRevision(c *C, file string, comp, 
 }
 
 func (s *deviceMgrBaseSuite) setupSnapDecl(c *C, info *snap.Info, publisherID string) {
-	s.setupSnapDeclForNameAndID(c, info.SnapName(), info.SnapID, publisherID)
+	s.setupSnapDeclForNameAndID(c, info.SnapName().String(), info.SnapID, publisherID)
 }
 
 func (s *deviceMgrBaseSuite) setupSnapRevisionForFileAndID(c *C, file, snapID, publisherID string, revision snap.Revision) {
@@ -1263,8 +1263,8 @@ func makeMockRepoWithConnectedSnaps(c *C, st *state.State, info11, core11 *snap.
 	c.Assert(err, IsNil)
 
 	_, err = repo.Connect(&interfaces.ConnRef{
-		PlugRef: interfaces.PlugRef{Snap: info11.InstanceName(), Name: ifname},
-		SlotRef: interfaces.SlotRef{Snap: core11.InstanceName(), Name: ifname},
+		PlugRef: interfaces.PlugRef{Snap: info11.InstanceName().String(), Name: ifname},
+		SlotRef: interfaces.SlotRef{Snap: core11.InstanceName().String(), Name: ifname},
 	}, nil, nil, nil, nil, nil)
 	c.Assert(err, IsNil)
 	conns, err := repo.Connected("snap-with-snapd-control", "snapd-control")

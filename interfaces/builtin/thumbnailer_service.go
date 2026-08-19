@@ -129,11 +129,11 @@ func (iface *thumbnailerServiceInterface) AppArmorConnectedSlot(spec *apparmor.S
 	old := "###PLUG_SNAP_NAME###"
 	// parallel-installs: PLUG_SNAP_NAME is used in the context of dbus
 	// mediation rules, need to use the actual instance name
-	new := plug.Snap().InstanceName()
-	snippet = strings.Replace(snippet, old, new, -1)
+	newInst := plug.Snap().InstanceName().String()
+	snippet = strings.Replace(snippet, old, newInst, -1)
 
 	old = "###PLUG_SECURITY_TAGS###"
-	new = plug.LabelExpression()
+	new := plug.LabelExpression()
 	snippet = strings.Replace(snippet, old, new, -1)
 	spec.AddSnippet(snippet)
 	return nil

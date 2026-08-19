@@ -301,7 +301,7 @@ func (s *baseMgrsSuite) SetUpTest(c *C) {
 	s.automaticSnapshots = nil
 	r := snapshotstate.MockBackendSave(func(_ context.Context, id uint64, si *snap.Info, cfg map[string]any, usernames []string,
 		options *snap.SnapshotOptions, _ *dirs.SnapDirOptions) (*client.Snapshot, error) {
-		s.automaticSnapshots = append(s.automaticSnapshots, automaticSnapshotCall{InstanceName: si.InstanceName(), SnapConfig: cfg, Usernames: usernames, Options: options})
+		s.automaticSnapshots = append(s.automaticSnapshots, automaticSnapshotCall{InstanceName: si.InstanceName().String(), SnapConfig: cfg, Usernames: usernames, Options: options})
 		return nil, nil
 	})
 	s.AddCleanup(r)
@@ -650,11 +650,11 @@ func (ms *baseMgrsSuite) mockInstalledSnapWithRevAndFiles(c *C, snapYaml string,
 
 	info := snaptest.MockSnapWithFiles(c, snapYaml, &snap.SideInfo{Revision: rev}, files)
 	si := &snap.SideInfo{
-		RealName: info.SnapName(),
-		SnapID:   fakeSnapID(info.SnapName()),
+		RealName: info.SnapName().String(),
+		SnapID:   fakeSnapID(info.SnapName().String()),
 		Revision: info.Revision,
 	}
-	snapstate.Set(st, info.InstanceName(), &snapstate.SnapState{
+	snapstate.Set(st, info.InstanceName().String(), &snapstate.SnapState{
 		Active:   true,
 		Sequence: snapstatetest.NewSequenceFromSnapSideInfos([]*snap.SideInfo{si}),
 		Current:  info.Revision,
@@ -1107,7 +1107,7 @@ func (s *baseMgrsSuite) makeStoreTestSnapWithFiles(c *C, snapYaml string, revno 
 	snapDigest, size, err := asserts.SnapFileSHA3_384(snapPath)
 	c.Assert(err, IsNil)
 
-	s.makeStoreSnapRevision(c, info.SnapName(), revno, snapDigest, size)
+	s.makeStoreSnapRevision(c, info.SnapName().String(), revno, snapDigest, size)
 
 	return snapPath, snapDigest
 }
@@ -1201,7 +1201,7 @@ func (s *baseMgrsSuite) mockStore(c *C) *httptest.Server {
 			panic(err)
 		}
 
-		name := info.SnapName()
+		name := info.SnapName().String()
 
 		hit := strings.Replace(hitTemplate, "@URL@", baseURL.String()+"/api/v1/snaps/download/"+name+"/"+revno, -1)
 		hit = strings.Replace(hit, "@NAME@", name, -1)
@@ -1464,7 +1464,7 @@ func (s *baseMgrsSuite) serveSnap(snapPath, revno string) {
 	if err != nil {
 		panic(err)
 	}
-	name := info.SnapName()
+	name := info.SnapName().String()
 	s.serveIDtoName[fakeSnapID(name)] = name
 
 	if oldPath := s.serveSnapPath[name]; oldPath != "" {
@@ -3246,7 +3246,7 @@ func (s *mgrsSuite) installLocalTestSnap(c *C, snapYamlContent string) *snap.Inf
 	c.Assert(err, IsNil)
 
 	// store current state
-	snapName := info.InstanceName()
+	snapName := info.InstanceName().String()
 	var snapst snapstate.SnapState
 	snapstate.Get(st, snapName, &snapst)
 
@@ -6113,16 +6113,16 @@ func (ms *mgrsSuite) TestRefreshSimplePrevRev(c *C) {
 	info := snaptest.MockSnapWithFiles(c, snapYaml, &snap.SideInfo{Revision: snap.R(1)}, nil)
 	snaptest.MockSnapWithFiles(c, snapYaml, &snap.SideInfo{Revision: snap.R(2)}, nil)
 	si1 := &snap.SideInfo{
-		RealName: info.SnapName(),
-		SnapID:   fakeSnapID(info.SnapName()),
+		RealName: info.SnapName().String(),
+		SnapID:   fakeSnapID(info.SnapName().String()),
 		Revision: snap.R(1),
 	}
 	si2 := &snap.SideInfo{
-		RealName: info.SnapName(),
-		SnapID:   fakeSnapID(info.SnapName()),
+		RealName: info.SnapName().String(),
+		SnapID:   fakeSnapID(info.SnapName().String()),
 		Revision: snap.R(2),
 	}
-	snapstate.Set(st, info.InstanceName(), &snapstate.SnapState{
+	snapstate.Set(st, info.InstanceName().String(), &snapstate.SnapState{
 		Active:   true,
 		Sequence: snapstatetest.NewSequenceFromSnapSideInfos([]*snap.SideInfo{si1, si2}),
 		Current:  snap.R(2),
@@ -6216,16 +6216,16 @@ func (ms *mgrsSuite) TestRefreshSimpleRevertToLocalFromLocalFile(c *C) {
 	info := snaptest.MockSnapWithFiles(c, snapYaml, &snap.SideInfo{Revision: snap.R(1)}, nil)
 	snaptest.MockSnapWithFiles(c, snapYaml, &snap.SideInfo{Revision: snap.R(2)}, nil)
 	si1 := &snap.SideInfo{
-		RealName: info.SnapName(),
-		SnapID:   fakeSnapID(info.SnapName()),
+		RealName: info.SnapName().String(),
+		SnapID:   fakeSnapID(info.SnapName().String()),
 		Revision: snap.R(1),
 	}
 	si2 := &snap.SideInfo{
-		RealName: info.SnapName(),
-		SnapID:   fakeSnapID(info.SnapName()),
+		RealName: info.SnapName().String(),
+		SnapID:   fakeSnapID(info.SnapName().String()),
 		Revision: snap.R(2),
 	}
-	snapstate.Set(st, info.InstanceName(), &snapstate.SnapState{
+	snapstate.Set(st, info.InstanceName().String(), &snapstate.SnapState{
 		Active:   true,
 		Sequence: snapstatetest.NewSequenceFromSnapSideInfos([]*snap.SideInfo{si1, si2}),
 		Current:  snap.R(2),
@@ -8476,7 +8476,7 @@ func (s *mgrsSuiteCore) TestRemodelUC20DifferentGadgetChannel(c *C) {
 func verifyModelEssentialSnapHasContent(c *C, sd seed.Seed, name string, file, content string) {
 	for _, ms := range sd.EssentialSnaps() {
 		c.Logf("mode snap %q %v", ms.SnapName(), ms.Path)
-		if ms.SnapName() == name {
+		if ms.SnapName().String() == name {
 			sf, err := snapfile.Open(ms.Path)
 			c.Assert(err, IsNil)
 			d, err := sf.ReadFile(file)
@@ -12009,7 +12009,7 @@ func (s *mgrsSuiteCore) TestUpdateKernelBaseSingleRebootKernelUndo(c *C) {
 		if tsk.Kind() == "link-snap" {
 			snapsup, err := snapstate.TaskSnapSetup(tsk)
 			c.Assert(err, IsNil)
-			if snapsup.SnapName() == "some-snap" {
+			if snapsup.SnapName().String() == "some-snap" {
 				// some-snap is only installed after base and
 				// kernel, since we aborted at that stage, it
 				// will be in the held status
@@ -12545,7 +12545,7 @@ base: core20
 		if tsk.Kind() == "link-snap" {
 			snapsup, err := snapstate.TaskSnapSetup(tsk)
 			c.Assert(err, IsNil)
-			if snapsup.InstanceName() == "snapd" {
+			if snapsup.InstanceName().String() == "snapd" {
 				c.Assert(tsk.Status(), Equals, state.DoneStatus)
 			}
 		}
@@ -12663,7 +12663,7 @@ waitLoop:
 		if tsk.Kind() == "link-snap" {
 			snapsup, err := snapstate.TaskSnapSetup(tsk)
 			c.Assert(err, IsNil)
-			if snapsup.InstanceName() == "snapd" {
+			if snapsup.InstanceName().String() == "snapd" {
 				c.Assert(tsk.Status(), Equals, state.DoneStatus)
 			}
 		}
@@ -13694,7 +13694,7 @@ volumes:
 	for _, ts := range tasksets {
 		tasks := ts.Tasks()
 		snapsup, err := snapstate.TaskSnapSetup(tasks[0])
-		if err == nil && snapsup.SnapName() == "pi" {
+		if err == nil && snapsup.SnapName().String() == "pi" {
 			// trigger an error as last operation of gadget refresh
 			last := tasks[len(tasks)-1]
 			tError.WaitFor(last)
@@ -13847,7 +13847,7 @@ volumes:
 		tasks := ts.Tasks()
 
 		snapsup, err := snapstate.TaskSnapSetup(tasks[0])
-		if err == nil && snapsup.SnapName() == "pi-kernel" {
+		if err == nil && snapsup.SnapName().String() == "pi-kernel" {
 			// trigger an error as last operation of gadget refresh
 			last := tasks[len(tasks)-1]
 			tError.WaitFor(last)
@@ -14755,8 +14755,8 @@ func makeMockRepoWithConnectedSnaps(c *C, repo *interfaces.Repository, info11, c
 	c.Assert(err, IsNil)
 
 	_, err = repo.Connect(&interfaces.ConnRef{
-		PlugRef: interfaces.PlugRef{Snap: info11.InstanceName(), Name: ifname},
-		SlotRef: interfaces.SlotRef{Snap: core11.InstanceName(), Name: ifname},
+		PlugRef: interfaces.PlugRef{Snap: info11.InstanceName().String(), Name: ifname},
+		SlotRef: interfaces.SlotRef{Snap: core11.InstanceName().String(), Name: ifname},
 	}, nil, nil, nil, nil, nil)
 	c.Assert(err, IsNil)
 	conns, err := repo.Connected(info11.RealName, ifname)

@@ -1174,10 +1174,10 @@ func (s *hookManagerSuite) TestHookTasksForDifferentSnapsRunConcurrently(c *C) {
 		testSnap2HookCalls++
 	})
 	s.manager.Register(regexp.MustCompile("prepare-device"), func(context *hookstate.Context) hookstate.Handler {
-		if context.InstanceName() == naming.InstanceName("test-snap-1") {
+		if context.InstanceName().String() == naming.InstanceName("test-snap-1").String() {
 			return mockHandler1
 		}
-		if context.InstanceName() == naming.InstanceName("test-snap-2") {
+		if context.InstanceName().String() == naming.InstanceName("test-snap-2").String() {
 			return mockHandler2
 		}
 		c.Fatalf("unknown snap: %s", context.InstanceName())

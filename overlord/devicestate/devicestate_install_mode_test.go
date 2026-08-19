@@ -1332,7 +1332,7 @@ func (fs *fakeSeed) ModeSnaps(mode string) ([]*seed.Snap, error) {
 
 func (fs *fakeSeed) ModeSnap(snapName, mode string) (*seed.Snap, error) {
 	for _, sn := range fs.essentialSnaps {
-		if sn.SnapName() == snapName {
+		if sn.SnapName().String() == snapName {
 			return sn, nil
 		}
 	}

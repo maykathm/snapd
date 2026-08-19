@@ -99,7 +99,7 @@ func (pol *policy16) checkBase(info *snap.Info, modes []string, availableByMode 
 	if info.Base == "" {
 		if info.Type() == snap.TypeGadget || info.Type() == snap.TypeApp {
 			// remember to make sure we have core installed
-			pol.needsCore = append(pol.needsCore, info.SnapName())
+			pol.needsCore = append(pol.needsCore, info.SnapName().String())
 		}
 		return nil
 	}
@@ -110,11 +110,11 @@ func (pol *policy16) checkBase(info *snap.Info, modes []string, availableByMode 
 
 	if info.Base == "core16" {
 		// check at the end
-		pol.needsCore16 = append(pol.needsCore16, info.SnapName())
+		pol.needsCore16 = append(pol.needsCore16, info.SnapName().String())
 		return nil
 	}
 
-	return fmt.Errorf("cannot add snap %q without also adding its base %q explicitly", info.SnapName(), info.Base)
+	return fmt.Errorf("cannot add snap %q without also adding its base %q explicitly", info.SnapName().String(), info.Base)
 }
 
 func (pol *policy16) needsImplicitSnaps(availableByMode map[string]*naming.SnapSet) (bool, error) {
@@ -178,9 +178,9 @@ func (pol *policy16) isSystemSnapCandidate(sn *SeedSnap) bool {
 	}
 	if pol.model.Classic() {
 		if pol.snapdUsedOnClassic {
-			return sn.SnapName() == "snapd"
+			return sn.SnapName().String() == "snapd"
 		} else {
-			return sn.SnapName() == "core"
+			return sn.SnapName().String() == "core"
 		}
 	}
 	return false
@@ -288,7 +288,7 @@ func (tr *tree16) writeMeta(snapsFromModel []*SeedSnap, extraSnaps []*SeedSnap) 
 			channel = ""
 		}
 		seedYaml.Snaps[i] = &internal.Snap16{
-			Name:    info.SnapName(),
+			Name:    info.SnapName().String(),
 			SnapID:  info.SnapID, // cross-ref
 			Channel: channel,
 			File:    filepath.Base(sn.Path),

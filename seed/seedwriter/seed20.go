@@ -110,7 +110,7 @@ func (pol *policy20) checkBase(info *snap.Info, modes []string, availableByMode 
 	}
 
 	whichBase := fmt.Sprintf("its base %q", base)
-	return fmt.Errorf("cannot add snap %q without also adding %s explicitly%s", info.SnapName(), whichBase, errorMsgForModesSuffix(modes))
+	return fmt.Errorf("cannot add snap %q without also adding %s explicitly%s", info.SnapName().String(), whichBase, errorMsgForModesSuffix(modes))
 }
 
 func (pol *policy20) checkAvailable(snapRef naming.SnapRef, modes []string, availableByMode map[string]*naming.SnapSet) bool {
@@ -258,7 +258,7 @@ func (tr *tree20) localSnapPath(sn *SeedSnap) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return filepath.Join(sysSnapsDir, fmt.Sprintf("%s_%s.snap", sn.SnapName(), sn.Info.Version)), nil
+	return filepath.Join(sysSnapsDir, fmt.Sprintf("%s_%s.snap", sn.SnapName().String(), sn.Info.Version)), nil
 }
 
 func (tr *tree20) localComponentPath(sc *SeedComponent, snapVersion string) (string, error) {
@@ -451,7 +451,7 @@ func (tr *tree20) writeMeta(snapsFromModel []*SeedSnap, extraSnaps []*SeedSnap) 
 		}
 
 		optionsSnaps = append(optionsSnaps, &internal.Snap20{
-			Name: sn.SnapName(),
+			Name: sn.SnapName().String(),
 			// even if unasserted != "" SnapID is useful
 			// to cross-ref the model entry
 			SnapID:     sn.modelSnap.ID(),
@@ -470,7 +470,7 @@ func (tr *tree20) writeMeta(snapsFromModel []*SeedSnap, extraSnaps []*SeedSnap) 
 		}
 
 		optionsSnaps = append(optionsSnaps, &internal.Snap20{
-			Name:       sn.SnapName(),
+			Name:       sn.SnapName().String(),
 			SnapID:     sn.Info.ID(),
 			Unasserted: unasserted,
 			Channel:    channel,

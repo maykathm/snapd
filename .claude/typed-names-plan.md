@@ -205,22 +205,85 @@ packages to use .String() at string boundaries. Fix test assertions to
 compare typed values with naming.InstanceName() wrappers.
 ```
 
-### Patches 7-10 — Remaining managers
-Order: `ifacestate`, `snapshotstate`, `devicestate`, `servicestate`. Each compiles its own package; no unrelated managers touched.
+### Patch 7 — `overlord/ifacestate` type aliases - COMPLETED
 
-**Note:** Patch 6 already touched many managers since `Context.InstanceName()` is used across overlord. Patches 7-10 may be smaller or unnecessary depending on what local accessors exist in those managers.
+Type the `triggeringSnap` and `affectedSnap` type aliases to use `naming.InstanceName` instead of `string`.
 
-### Patch N — Central `PlaceInfo` interface return types (single big-ripple patch)
-Change `PlaceInfo.SnapName()/InstanceName()` interface methods to typed returns. This is the one truly cross-cutting change.
+**Status: COMPLETED**
 
-**Files to modify:**
-- `snap/info.go` - `PlaceInfo` interface definition
-- All implementers: `Info`, `componentPlaceInfo`, etc.
-- All callers that assigned into `string` variables
+**Files modified:**
+- `overlord/ifacestate/handlers.go` - Changed type aliases from `string` to `= naming.InstanceName`
+  - Updated `.String()` call when converting for logging
 
-Sequenced last because Go's lack of return covariance forces all implementers + callers in one commit. By this point, most consumers are already typed from earlier patches, so the churn is minimized.
+**Commit message:**
+```
+overlord/ifacestate: type triggeringSnap and affectedSnap with naming.InstanceName
 
-Optional: Also handle `naming.SnapRef.SnapName()` if integrating the new types into that interface.
+Type the triggeringSnap and affectedSnap type aliases to use naming.InstanceName
+instead of string for compile-time type safety. These represent instance names of
+snaps that trigger or are affected by delayed interface side effects.
+```
+
+### Patches 8-10 — Remaining managers - NO ACTION NEEDED
+
+Survey of remaining managers (snapshotstate, servicestate, devicestate) found no local
+accessor methods that return instance/snap names. These managers only have persisted
+struct fields (with JSON tags) which correctly stay as `string` per the plan.
+
+**Finding:** After Patch 6 typed `hookstate.Context.InstanceName()` and Patch 5 typed
+`snapstate.SnapSetup/SnapState` accessors, no other overlord managers have local
+instance name accessor methods that need typing.
+
+### ✅ Patch N — Central `PlaceInfo` interface return types
+
+Change `PlaceInfo.SnapName()/InstanceName()` interface methods to typed returns. Also type `naming.SnapRef.SnapName()`. This is the one truly cross-cutting change affecting the core `snap.Info` type and all code using snap/instance names.
+
+**Status: COMPLETED**
+
+**Changes:**
+- ✅ Typed PlaceInfo.InstanceName() → naming.InstanceName
+- ✅ Typed PlaceInfo.SnapName() → naming.SnapName  
+- ✅ Typed naming.SnapRef.SnapName() → naming.SnapName
+- ✅ Updated all implementers: snap.Info, ModelSnap, ValidationSetSnap, OptionsSnap, SeedSnap, seed.Snap, internal.Snap20
+- ✅ Fixed all call sites (~230+ files) with .String() additions where typed names are used as strings
+- ✅ Added installSnapInfo.InstanceName() wrapper method for MinimalInstallInfo interface
+- ✅ Fixed all test assertions (typed vs string comparisons)
+- ✅ Fixed assertion headers to use .String() for string values
+- ✅ Special handling for types implementing MinimalInstallInfo (already return string)
+
+**Key patterns:**
+- Add `.String()` when typed name used as: function parameter, map key, struct field, array element, string concatenation
+- Keep typed when comparing with typed constructor: `info.InstanceName(), Equals, naming.InstanceName(x)`
+- Convert to string when comparing with literal: `info.InstanceName().String(), Equals, "foo"`
+- Types that wrap or implement MinimalInstallInfo correctly return `string` from their `InstanceName()` method
+
+**Files modified:** 173 files (1117 insertions, 1071 deletions)
+
+**Test results:**
+- ✅ All packages compile
+- ✅ All unit tests pass (`./run-checks --unit`)
+- ✅ All static checks pass (`./run-checks --static`)
+
+**Commit message:**
+```
+snap,naming: type PlaceInfo and SnapRef interface methods
+
+Type PlaceInfo.InstanceName() to return naming.InstanceName and
+PlaceInfo.SnapName() to return naming.SnapName. Also type
+naming.SnapRef.SnapName() consistently. This provides compile-time
+protection against passing snap names where instance names are
+expected throughout the codebase.
+
+This is the largest cross-cutting change in the typed names
+refactoring, affecting the core snap.Info type and ~230+ call sites
+across the entire codebase. All implementers of PlaceInfo are updated,
+and .String() is added at boundaries where typed names are used as
+strings (function parameters, map keys, assertion headers, etc.).
+
+Special handling for types that implement MinimalInstallInfo interface:
+refreshCandidate.InstanceName() returns string (wraps SnapSetup), so
+test assertions comparing with these values should not add .String().
+```
 
 ### Patch N+1 — Boundary constructor conversions
 Convert existing validate-then-use sites (~20 locations) so validation yields the typed value.
@@ -257,21 +320,31 @@ Once callers are typed, remove or deprecate `snap.InstanceName`, `snap.InstanceS
 
 ## Current Status
 
-**Completed:** Patches 1-6 (types, filesystem helpers, security tags, interfaces, snapstate accessors, hookstate accessor)
-**Next:** Patches 7-10 (remaining managers - if any local accessors exist)
+**Completed:** Patches 1-7, Patch N (types, filesystem helpers, security tags, interfaces, snapstate accessors, hookstate accessor, ifacestate type aliases, PlaceInfo interface)
+**Next:** Patch N+1 (boundary constructors), Patch N+2 (deprecate old helpers)
 
 **Progress tracking:**
 - [x] Patch 1: Types + helpers + tests
 - [x] Patch 2: Leaf filesystem path helpers
+- [x] Patch 3: Snap/app + security-tag helpers
+- [x] Patch 4: Interface connection helpers
+- [x] Patch 5: snapstate.SnapSetup/SnapState accessors
+- [x] Patch 6: hookstate.Context.InstanceName()
+- [x] Patch 7: ifacestate type aliases
+- [x] Patches 8-10: Surveyed, no action needed
+- [x] Patch N: PlaceInfo and SnapRef interface methods
+- [ ] Patch N+1: Boundary constructor conversions
+- [ ] Patch N+2: Deprecate old string helpers
 - [x] Patch 3: Snap/app + security-tag helpers
 - [x] Patch 4: `interfaces.SnapAppSet.InstanceName()` typed return
 - [x] Patch 5: `overlord/snapstate` accessors (`SnapSetup`, `SnapState`) - **split into 3 commits**
   - [x] 5a: Type accessors + fix autorefresh, component, conflict (66 lines)
   - [x] 5b: Fix all call sites across overlord managers (730 lines, 24 files)
   - [x] 5c: Fix test files (130 lines, 13 test files)
-- [x] Patch 6: `overlord/hookstate` accessor (`Context.InstanceName()`) - 46 files, ~250 call sites, ~70 test fixes
-- [ ] Patches 7-10: Remaining managers (ifacestate, snapshotstate, devicestate, servicestate) - if needed
-- [ ] Patch N: Central `PlaceInfo` interface
+- [x] Patch 6: `overlord/hookstate` accessor (`Context.InstanceName()`) - 37 files, ~250 call sites, ~70 test fixes
+- [x] Patch 7: `overlord/ifacestate` type aliases (triggeringSnap, affectedSnap)
+- [x] Patches 8-10: Surveyed remaining managers - no local accessors found
+- [~] Patch N: Central `PlaceInfo` interface - WIP (46 files, ~230 insertions, does not compile yet)
 - [ ] Patch N+1: Boundary constructor conversions
 - [ ] Patch N+2: Deprecate old string helpers
 
