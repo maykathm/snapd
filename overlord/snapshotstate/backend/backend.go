@@ -45,7 +45,6 @@ import (
 	"github.com/snapcore/snapd/logger"
 	"github.com/snapcore/snapd/osutil"
 	"github.com/snapcore/snapd/snap"
-	"github.com/snapcore/snapd/snap/naming"
 	"github.com/snapcore/snapd/snapdenv"
 	"github.com/snapcore/snapd/strutil"
 )
@@ -368,7 +367,7 @@ func Save(ctx context.Context, id uint64, si *snap.Info, cfg map[string]any, use
 	w := zip.NewWriter(aw)
 	defer w.Close() // note this does not close the file descriptor (that's done by hand on the atomic writer, above)
 	savingUserData := false
-	baseDataDir := snap.BaseDataDir(naming.InstanceName(si.InstanceName()))
+	baseDataDir := snap.BaseDataDir(si.InstanceName())
 	if err := addSnapDirToZip(ctx, snapshot, w, "root", archiveName, baseDataDir, savingUserData, snapshotOptions.Exclude); err != nil {
 		return nil, err
 	}

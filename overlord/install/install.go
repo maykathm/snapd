@@ -185,13 +185,13 @@ func BuildKernelBootInfo(kernInfo *snap.Info, compSeedInfos []ComponentSeedInfo,
 	bootKMods := make([]boot.BootableKModsComponents, 0, len(compSeedInfos))
 	modulesComps := make([]gadgetInstall.KernelModulesComponentInfo, 0, len(compSeedInfos))
 	for _, compSeedInfo := range compSeedInfos {
-		ci := compSeedInfo.Info
-		if ci.Type == snap.KernelModulesComponent {
-			cpi := snap.MinimalComponentContainerPlaceInfo(ci.Component.ComponentName,
-				ci.Revision, naming.InstanceName(kernInfo.SnapName().String()))
-			modulesComps = append(modulesComps, gadgetInstall.KernelModulesComponentInfo{
-				Name:       ci.Component.ComponentName,
-				Revision:   ci.Revision,
+	ci := compSeedInfo.Info
+	if ci.Type == snap.KernelModulesComponent {
+		cpi := snap.MinimalComponentContainerPlaceInfo(ci.Component.ComponentName,
+			ci.Revision, naming.InstanceName(kernInfo.SnapName()))
+		modulesComps = append(modulesComps, gadgetInstall.KernelModulesComponentInfo{
+			Name:       ci.Component.ComponentName,
+			Revision:   ci.Revision,
 				MountPoint: mntPtForComps[ci.FullName()],
 			})
 			bootKMods = append(bootKMods, boot.BootableKModsComponents{

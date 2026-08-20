@@ -113,11 +113,11 @@ func detectAppAndRewriteExecLine(s *snap.Info, desktopFile, line string) (appInf
 		wrapper := app.WrapperPath()
 		validCmd := filepath.Base(wrapper)
 		if s.InstanceKey != "" {
-			// wrapper uses s.InstanceName().String(), with the instance key
-			// set the command will be 'snap_foo.app' instead of
-			// 'snap.app', need to account for that
-			validCmd = snap.JoinSnapApp(naming.InstanceName(s.SnapName().String()), app.Name)
-		}
+		// wrapper uses s.InstanceName().String(), with the instance key
+		// set the command will be 'snap_foo.app' instead of
+		// 'snap.app', need to account for that
+		validCmd = snap.JoinSnapApp(naming.InstanceName(s.SnapName()), app.Name)
+	}
 		// check the prefix to allow %flag style args
 		// this is ok because desktop files are not run through sh
 		// so we don't have to worry about the arguments too much

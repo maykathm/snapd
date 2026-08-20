@@ -61,7 +61,7 @@ func (b Backend) RemoveSnapSaveData(snapInfo *snap.Info, dev snap.Device) error 
 		return nil
 	}
 
-	saveDir := snap.CommonDataSaveDir(naming.InstanceName(snapInfo.InstanceName()))
+	saveDir := snap.CommonDataSaveDir(snapInfo.InstanceName())
 	if exists, isDir, err := osutil.DirExists(saveDir); err == nil && !(exists && isDir) {
 		return nil
 	} else if err != nil {

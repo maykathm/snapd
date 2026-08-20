@@ -1844,7 +1844,7 @@ func (x *cmdRun) runSnapConfine(info *snap.Info, runner runnable, beforeExec fun
 				// For apps using core26+, fail hard unless they don't rely on
 				// cgroup for device control and have the self-managed=true
 				// setting.
-				snapTag := snap.SecurityTag(naming.InstanceName(runner.info.InstanceName()))
+				snapTag := snap.SecurityTag(runner.info.InstanceName())
 				opts, err2 := cgroup.LoadSnapDeviceCgroupOptions(snapTag)
 				if err2 != nil {
 					logger.Noticef("cannot load snap device cgroup options: %s", err2)

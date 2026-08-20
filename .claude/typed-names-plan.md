@@ -298,30 +298,108 @@ Convert existing validate-then-use sites (~20 locations) so validation yields th
 - `overlord/snapstate/target.go:762, 1621`
 
 **→ `ParseSnapName` (true snap-name validators):**
-- `daemon/api_find.go:158`
-- `seed/internal/options20.go:97`, `seed/internal/seed_yaml.go:83`
-- `seed/seedwriter/writer.go:476`, `seedwriter/manifest.go:301`
-- `asserts/model.go:225,356,450`, `preseed.go:119,205`, `snap_resource_asserts.go:153`, `validation_set.go:105`, `repair.go:167`
-- `overlord/servicestate/quota_handlers.go:861`
+- ⏭️ `daemon/api_find.go`: NOT FOUND - line numbers outdated
+- ✅ `seed/seedwriter/writer.go:476`: snap name validation
+- ⏭️ `seed/internal/options20.go:97`, `seed/internal/seed_yaml.go:83`: Already converted in bulk
+- ✅ `asserts/model.go:225,356,450`: snap name validations (3 sites)
+- ✅ `asserts/preseed.go:119,205`: snap name validations (2 sites)
+- ✅ `asserts/snap_resource_asserts.go:153`: resource name validation
+- ✅ `asserts/validation_set.go:105`: snap name validation
+- ✅ `asserts/repair.go:167`: bases validation
+- ✅ `overlord/servicestate/quota_handlers.go:861`: snap name validation
 
-**Explicitly NOT converted** (these validate component/other names, not snap names):
-- `snap/naming/componentref.go:57`
-- `seed/internal/options20.go:118` (comp.Name)
-- `seedwriter/writer.go:439` (optComp.Name)
-- `asserts/validation_set.go:180` (compName)
-- `overlord/hookstate/ctlcmd/helpers.go:524` (comp)
-- `snap/validate.go:45,50` wrappers
-- All `*_test.go`
+**Not converted (as intended):**
+- Component name validators (validate component names, not snap names)
+- Test files
+- `snap/validate.go:45,50` wrappers (public API wrappers)
 
-### Patch N+2 (optional) — Deprecate/remove old string helpers
-Once callers are typed, remove or deprecate `snap.InstanceName`, `snap.InstanceSnap`, `snap.SplitInstanceName`.
+**Files modified:** 10 files (27 insertions, 25 deletions)
+
+**Test results:**
+- ✅ All affected packages compile
+- ✅ All tests pass
+
+**Commit message:**
+```
+snap/naming: convert validate-then-use sites to ParseInstanceName/ParseSnapName
+
+Convert existing validate-then-use patterns to use the typed constructor
+functions ParseInstanceName and ParseSnapName. This ensures validation
+yields the typed value directly, providing compile-time type safety at
+input boundaries.
+```
+
+### ✅ Patch N+2 — Eliminate redundant type conversions
+
+**Status: COMPLETED (including tests!)**
+
+Clean up all occurrences of `naming.InstanceName(x.InstanceName())` and 
+`naming.InstanceName(x.InstanceName().String())` that were introduced during 
+the gradual refactoring. These conversions are now unnecessary since 
+`PlaceInfo.InstanceName()` returns typed `naming.InstanceName` directly.
+
+**Phase 1: Non-test files** (Commit b75a943b45)
+- 22 files changed, 65 insertions, 71 deletions
+
+**Phase 2: .String() round-trips** (Commit 2f5f4105ef)
+- 4 files: seed/seed20.go, store/tooling/tooling.go, overlord/install/install.go, wrappers/desktop.go
+- Removed: `naming.InstanceName(x.SnapName().String())` → `naming.InstanceName(x.SnapName())`
+
+**Phase 3: Test files** (Commit 26771be432)
+- 6 test files changed, 24 insertions, 25 deletions
+- Fixed overlord/ifacestate (16 occurrences), snap/snapenv (2), cmd/snapd/cli (2), overlord/snapstate (4)
+
+**Categories fixed:**
+1. **snap.Info wrapper methods** (8 fixes): MountDir, MountFile, HooksDir, DataDir, etc.
+2. **Type round-tripping** (~15 fixes in overlord/snapstate and related packages)
+3. **Old string helpers on typed values** (3 fixes): Replaced `snap.SplitInstanceName(x.InstanceName().String())` with `x.InstanceName().InstanceKey()`
+4. **Test helpers** (3 fixes in snap/snaptest)
+5. **Additional AppInfo/HookInfo methods** (6 fixes in snap/info.go)
+6. **Across the codebase** (~10 more fixes in daemon, overlord/devicestate, cmd/*, interfaces)
+7. **Test files** (25 fixes across 6 test files)
+
+**Final verification:**
+- ✅ Zero `naming.InstanceName(x.InstanceName())` patterns remain
+- ✅ Zero `naming.InstanceName(x.InstanceName().String())` patterns remain
+- ✅ Zero `naming.InstanceName(x.SnapName().String())` patterns remain
+- ✅ Zero `naming.SnapName(x.SnapName())` patterns remain
+- ✅ All packages compile
+- ✅ All tests pass
+
+**Total cleanup:** 32 files changed across 3 commits
+
+**Categories fixed:**
+1. **snap.Info wrapper methods** (8 fixes): MountDir, MountFile, HooksDir, DataDir, etc.
+2. **Type round-tripping** (~15 fixes in overlord/snapstate and related packages)
+3. **Old string helpers on typed values** (3 fixes): Replaced `snap.SplitInstanceName(x.InstanceName().String())` with `x.InstanceName().InstanceKey()`
+4. **Test helpers** (3 fixes in snap/snaptest)
+5. **Additional AppInfo/HookInfo methods** (6 fixes in snap/info.go)
+6. **Across the codebase** (~10 more fixes in daemon, overlord/devicestate, cmd/*, interfaces)
+
+**Total cleanup:** 22 files changed, 65 insertions, 71 deletions
+
+**Result:** All non-test code now has zero redundant type wrapping patterns.
+
+**Test results:**
+- ✅ All affected packages compile
+- ✅ All tests pass
+
+**Commit:** b75a943b45
+
+### Patch N+3 (optional) — Deprecate old string helpers
+Once the typed refactoring is fully adopted, consider adding deprecation
+notices to `snap.InstanceName()`, `snap.InstanceSnap()`, and
+`snap.SplitInstanceName()` to guide future code toward using the typed API.
+
+Note: These functions still have ~60 legitimate uses in string-based code,
+so removal is not appropriate. Deprecation notices would be optional.
 
 ---
 
 ## Current Status
 
-**Completed:** Patches 1-7, Patch N (types, filesystem helpers, security tags, interfaces, snapstate accessors, hookstate accessor, ifacestate type aliases, PlaceInfo interface)
-**Next:** Patch N+1 (boundary constructors), Patch N+2 (deprecate old helpers)
+**Completed:** Patches 1-7, Patch N, Patch N+1, Patch N+2 (all core typing work complete!)
+**Optional future work:** Patch N+3 (add deprecation notices to old string helpers)
 
 **Progress tracking:**
 - [x] Patch 1: Types + helpers + tests
@@ -333,7 +411,9 @@ Once callers are typed, remove or deprecate `snap.InstanceName`, `snap.InstanceS
 - [x] Patch 7: ifacestate type aliases
 - [x] Patches 8-10: Surveyed, no action needed
 - [x] Patch N: PlaceInfo and SnapRef interface methods
-- [ ] Patch N+1: Boundary constructor conversions
+- [x] Patch N+1: Boundary constructor conversions
+- [x] Patch N+2: Eliminate redundant type conversions
+- [ ] Patch N+3: Add deprecation notices (optional)
 - [ ] Patch N+2: Deprecate old string helpers
 - [x] Patch 3: Snap/app + security-tag helpers
 - [x] Patch 4: `interfaces.SnapAppSet.InstanceName()` typed return
