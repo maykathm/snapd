@@ -1915,8 +1915,8 @@ func (s *infoSuite) TestInstanceSnapName(c *C) {
 	c.Check(snap.InstanceSnap("foo_bar"), Equals, "foo")
 	c.Check(snap.InstanceSnap("foo"), Equals, "foo")
 
-	c.Check(snap.InstanceName("foo", "bar"), Equals, "foo_bar")
-	c.Check(snap.InstanceName("foo", ""), Equals, "foo")
+	c.Check(snap.InstanceName("foo", "bar"), Equals, naming.InstanceName("foo_bar"))
+	c.Check(snap.InstanceName("foo", ""), Equals, naming.InstanceName("foo"))
 }
 
 func (s *infoSuite) TestInstanceNameInSnapInfo(c *C) {

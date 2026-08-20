@@ -524,7 +524,7 @@ func (s *snapmgrTestSuite) TestInstallComponentPathForParallelInstall(c *C) {
 	defer s.state.Unlock()
 
 	// The instance is already installed to make sure it is checked
-	instanceName := snap.InstanceName(snapName, snapKey)
+	instanceName := snap.InstanceName(snapName, snapKey).String()
 	ssi := &snap.SideInfo{RealName: snapName, Revision: snapRev}
 	snapstate.Set(s.state, instanceName, &snapstate.SnapState{
 		Active: true,
