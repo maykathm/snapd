@@ -414,9 +414,9 @@ func antialias(snapApp string, args []string) (string, []string) {
 
 func getSnapInfo(snapName string, revision snap.Revision) (info *snap.Info, err error) {
 	if revision.Unset() {
-		info, err = snap.ReadCurrentInfo(snapName)
+		info, err = snap.ReadCurrentInfo(naming.InstanceName(snapName))
 	} else {
-		info, err = snap.ReadInfo(snapName, &snap.SideInfo{
+		info, err = snap.ReadInfo(naming.InstanceName(snapName), &snap.SideInfo{
 			Revision: revision,
 		})
 	}

@@ -625,7 +625,7 @@ var AutomaticSnapshot func(st *state.State, instanceName string) (ts *state.Task
 var AutomaticSnapshotExpiration func(st *state.State) (time.Duration, error)
 var EstimateSnapshotSize func(st *state.State, instanceName string, users []string) (uint64, error)
 
-func readInfo(name string, si *snap.SideInfo, flags int) (*snap.Info, error) {
+func readInfo(name naming.InstanceName, si *snap.SideInfo, flags int) (*snap.Info, error) {
 	info, err := snapReadInfo(name, si)
 	if err != nil && flags&errorOnBroken != 0 {
 		return nil, err
@@ -634,9 +634,9 @@ func readInfo(name string, si *snap.SideInfo, flags int) (*snap.Info, error) {
 		logger.Noticef("cannot read snap info of snap %q at revision %s: %s", name, si.Revision, err)
 	}
 	if bse, ok := err.(snap.BrokenSnapError); ok {
-		_, instanceKey := snap.SplitInstanceName(name)
+		_, instanceKey := snap.SplitInstanceName(name.String())
 		info = &snap.Info{
-			SuggestedName: name,
+			SuggestedName: name.String(),
 			Broken:        bse.Broken(),
 			InstanceKey:   instanceKey,
 		}
@@ -672,7 +672,7 @@ func (snapst *SnapState) CurrentInfo() (*snap.Info, error) {
 		return nil, ErrNoCurrent
 	}
 
-	name := snap.InstanceName(cur.RealName, snapst.InstanceKey).String()
+	name := snap.InstanceName(cur.RealName, snapst.InstanceKey)
 	return readInfo(name, cur, withAuxStoreInfo)
 }
 
@@ -710,7 +710,7 @@ func (snapst *SnapState) ComponentInfosForRevision(rev snap.Revision) ([]*snap.C
 
 	revState := snapst.Sequence.Revisions[index]
 
-	instanceName := snap.InstanceName(revState.Snap.RealName, snapst.InstanceKey).String()
+	instanceName := snap.InstanceName(revState.Snap.RealName, snapst.InstanceKey)
 	si, err := readInfo(instanceName, revState.Snap, withAuxStoreInfo)
 	if err != nil {
 		return nil, err

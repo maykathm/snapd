@@ -740,7 +740,7 @@ func (m *SnapManager) doPrepareKernelModulesComponents(t *state.Task, _ *tomb.To
 		// configuration has been already written but DoneStatus in the state
 		// has not.
 		cand := sequence.NewRevisionSideState(snapsup.SideInfo, nil)
-		newInfo, err = readInfo(snapsup.InstanceName().String(), cand.Snap, 0)
+		newInfo, err = readInfo(snapsup.InstanceName(), cand.Snap, 0)
 		if err != nil {
 			return err
 		}

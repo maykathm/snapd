@@ -871,7 +871,7 @@ func (m *SnapManager) doMountSnap(t *state.Task, _ *tomb.Tomb) error {
 	// double check that the snap is mounted
 	var readInfoErr error
 	for i := 0; i < 10; i++ {
-		_, readInfoErr = readInfo(snapsup.InstanceName().String(), snapsup.SideInfo, errorOnBroken)
+		_, readInfoErr = readInfo(snapsup.InstanceName(), snapsup.SideInfo, errorOnBroken)
 		if readInfoErr == nil {
 			logger.Debugf("snap %q (%v) available at %q", snapsup.InstanceName().String(), snapsup.Revision(), snapsup.placeInfo().MountDir())
 			break
@@ -1204,7 +1204,7 @@ func (m *SnapManager) doUnlinkCurrentSnap(t *state.Task, _ *tomb.Tomb) (retErr e
 			return err
 		}
 
-		newInfo, err := readInfo(snapsup.InstanceName().String(), snapsup.SideInfo, errorOnBroken)
+		newInfo, err := readInfo(snapsup.InstanceName(), snapsup.SideInfo, errorOnBroken)
 		if err != nil {
 			return err
 		}
@@ -1367,7 +1367,7 @@ func (m *SnapManager) doCopySnapData(t *state.Task, _ *tomb.Tomb) (err error) {
 		return err
 	}
 
-	newInfo, err := readInfo(snapsup.InstanceName().String(), snapsup.SideInfo, errorOnBroken)
+	newInfo, err := readInfo(snapsup.InstanceName(), snapsup.SideInfo, errorOnBroken)
 	if err != nil {
 		return err
 	}
@@ -1511,7 +1511,7 @@ func (m *SnapManager) undoCopySnapData(t *state.Task, _ *tomb.Tomb) error {
 		return err
 	}
 
-	newInfo, err := readInfo(snapsup.InstanceName().String(), snapsup.SideInfo, 0)
+	newInfo, err := readInfo(snapsup.InstanceName(), snapsup.SideInfo, 0)
 	if err != nil {
 		return err
 	}
@@ -1925,7 +1925,7 @@ func (m *SnapManager) doLinkSnap(t *state.Task, _ *tomb.Tomb) (retErr error) {
 	// migration related ops
 	setMigrationFlagsInState(snapst, snapsup)
 
-	newInfo, err := readInfo(snapsup.InstanceName().String(), cand.Snap, 0)
+	newInfo, err := readInfo(snapsup.InstanceName(), cand.Snap, 0)
 	if err != nil {
 		return err
 	}
@@ -2608,7 +2608,7 @@ func (m *SnapManager) undoLinkSnap(t *state.Task, _ *tomb.Tomb) error {
 		snapst.Base = oldInfo.Base
 	}
 
-	newInfo, err := readInfo(snapsup.InstanceName().String(), snapsup.SideInfo, 0)
+	newInfo, err := readInfo(snapsup.InstanceName(), snapsup.SideInfo, 0)
 	if err != nil {
 		return err
 	}
@@ -3057,7 +3057,7 @@ func (m *SnapManager) stopSnapServices(t *state.Task, _ *tomb.Tomb) (retErr erro
 		// if we're refreshing, compute the set of removed services so we stop
 		// them regardless of their "stop-mode"
 		snapName := snapsup.InstanceName()
-		newInfo, err := readInfo(snapName.String(), snapsup.SideInfo, errorOnBroken)
+		newInfo, err := readInfo(snapName, snapsup.SideInfo, errorOnBroken)
 		if err != nil {
 			return err
 		}

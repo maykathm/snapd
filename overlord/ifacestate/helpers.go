@@ -43,6 +43,7 @@ import (
 	"github.com/snapcore/snapd/overlord/snapstate"
 	"github.com/snapcore/snapd/overlord/state"
 	"github.com/snapcore/snapd/snap"
+	"github.com/snapcore/snapd/snap/naming"
 	"github.com/snapcore/snapd/systemd"
 	"github.com/snapcore/snapd/timings"
 )
@@ -1332,7 +1333,7 @@ func snapsWithSecurityProfiles(st *state.State) ([]*interfaces.SnapAppSet, error
 				// profiles removed (already)
 				continue
 			}
-			snapInfo, err := snap.ReadInfo(instanceName, si)
+			snapInfo, err := snap.ReadInfo(naming.InstanceName(instanceName), si)
 			if err != nil {
 				logger.Noticef("cannot retrieve info for snap %q: %s", instanceName, err)
 				continue
@@ -1393,7 +1394,7 @@ func snapsWithSecurityProfiles(st *state.State) ([]*interfaces.SnapAppSet, error
 		}
 
 		seen[instanceName.String()] = true
-		snapInfo, err := snap.ReadInfo(instanceName.String(), snapsup.SideInfo)
+		snapInfo, err := snap.ReadInfo(instanceName, snapsup.SideInfo)
 		if err != nil {
 			logger.Noticef("cannot retrieve info for snap %q: %s", instanceName, err)
 			continue
