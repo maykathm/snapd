@@ -147,15 +147,15 @@ type PlaceInfo interface {
 
 // MinimalPlaceInfo returns a PlaceInfo with just the location information for a
 // snap of the given instance name and revision.
-func MinimalPlaceInfo(instanceName string, revision Revision) PlaceInfo {
-	storeName, instanceKey := SplitInstanceName(instanceName)
+func MinimalPlaceInfo(instanceName naming.InstanceName, revision Revision) PlaceInfo {
+	storeName, instanceKey := SplitInstanceName(instanceName.String())
 	return &Info{SideInfo: SideInfo{RealName: storeName, Revision: revision}, InstanceKey: instanceKey}
 }
 
 // MinimalSnapContainerPlaceInfo returns a ContainerPlaceInfo with just the location
 // information for a snap of the given instance name and revision.
-func MinimalSnapContainerPlaceInfo(instanceName string, revision Revision) ContainerPlaceInfo {
-	storeName, instanceKey := SplitInstanceName(instanceName)
+func MinimalSnapContainerPlaceInfo(instanceName naming.InstanceName, revision Revision) ContainerPlaceInfo {
+	storeName, instanceKey := SplitInstanceName(instanceName.String())
 	return &Info{SideInfo: SideInfo{RealName: storeName, Revision: revision}, InstanceKey: instanceKey}
 }
 
@@ -202,7 +202,7 @@ func MountDir(name string, revision Revision) string {
 // ComponentMountDir returns the directory where a component gets mounted, which
 // will be of the form:
 // /snaps/<snap_instance>/components/mnt/<component_name>/<component_revision>
-func ComponentMountDir(componentName string, compRevision Revision, snapInstance string) string {
+func ComponentMountDir(componentName string, compRevision Revision, snapInstance naming.InstanceName) string {
 	return filepath.Join(ComponentsBaseDir(snapInstance), "mnt", componentName, compRevision.String())
 }
 
@@ -214,38 +214,38 @@ func MountFile(name string, revision Revision) string {
 
 // MountFileInDir returns the path where the snap file that is mounted is
 // installed in a given directory.
-func MountFileInDir(dir, name string, revision Revision) string {
+func MountFileInDir(dir string, name string, revision Revision) string {
 	return filepath.Join(dir, fmt.Sprintf("%s_%s.snap", name, revision))
 }
 
 // ScopedSecurityTag returns the snap-specific, scope specific, security tag.
-func ScopedSecurityTag(snapName, scopeName, suffix string) string {
+func ScopedSecurityTag(snapName naming.InstanceName, scopeName, suffix string) string {
 	return fmt.Sprintf("snap.%s.%s.%s", snapName, scopeName, suffix)
 }
 
 // SecurityTag returns the snap-specific security tag.
-func SecurityTag(snapName string) string {
+func SecurityTag(snapName naming.InstanceName) string {
 	return fmt.Sprintf("snap.%s", snapName)
 }
 
 // AppSecurityTag returns the application-specific security tag.
-func AppSecurityTag(snapName, appName string) string {
+func AppSecurityTag(snapName naming.InstanceName, appName string) string {
 	return fmt.Sprintf("%s.%s", SecurityTag(snapName), appName)
 }
 
 // ComponentSecurityTag returns a snap component's hook-specific security tag.
-func ComponentHookSecurityTag(snapInstance, componentName, hookName string) string {
-	return ScopedSecurityTag(fmt.Sprintf("%s+%s", snapInstance, componentName), "hook", hookName)
+func ComponentHookSecurityTag(snapInstance naming.InstanceName, componentName, hookName string) string {
+	return ScopedSecurityTag(naming.InstanceName(fmt.Sprintf("%s+%s", snapInstance, componentName)), "hook", hookName)
 }
 
 // HookSecurityTag returns the hook-specific security tag.
-func HookSecurityTag(snapName, hookName string) string {
+func HookSecurityTag(snapName naming.InstanceName, hookName string) string {
 	return ScopedSecurityTag(snapName, "hook", hookName)
 }
 
 // NoneSecurityTag returns the security tag for interfaces that
 // are not associated to an app or hook in the snap.
-func NoneSecurityTag(snapName, uniqueName string) string {
+func NoneSecurityTag(snapName naming.InstanceName, uniqueName string) string {
 	return ScopedSecurityTag(snapName, "none", uniqueName)
 }
 
@@ -255,8 +255,7 @@ func BaseDataDir(name string) string {
 }
 
 // DataDir returns the data directory for given snap name and revision. The name
-// can be
-// either a snap name or snap instance name.
+// can be either a snap name or snap instance name.
 func DataDir(name string, revision Revision) string {
 	return filepath.Join(BaseDataDir(name), revision.String())
 }
@@ -287,7 +286,7 @@ func HooksDir(name string, revision Revision) string {
 // ComponentHooksDir returns the directory containing the component's hooks for
 // the given component hook name. The provided snap name can be either a snap
 // name or snap instance name.
-func ComponentHooksDir(componentName string, compRevision Revision, snapInstance string) string {
+func ComponentHooksDir(componentName string, compRevision Revision, snapInstance naming.InstanceName) string {
 	return filepath.Join(ComponentMountDir(componentName, compRevision, snapInstance), "meta", "hooks")
 }
 
@@ -1500,7 +1499,7 @@ func (timer *TimerInfo) File() string {
 }
 
 func (app *AppInfo) String() string {
-	return JoinSnapApp(app.Snap.InstanceName(), app.Name)
+	return JoinSnapApp(naming.InstanceName(app.Snap.InstanceName()), app.Name)
 }
 
 // SecurityTag returns application-specific security tag.
@@ -1508,7 +1507,7 @@ func (app *AppInfo) String() string {
 // Security tags are used by various security subsystems as "profile names" and
 // sometimes also as a part of the file name.
 func (app *AppInfo) SecurityTag() string {
-	return AppSecurityTag(app.Snap.InstanceName(), app.Name)
+	return AppSecurityTag(naming.InstanceName(app.Snap.InstanceName()), app.Name)
 }
 
 // DesktopFile returns the path to the installed optional desktop file for the
@@ -1565,17 +1564,17 @@ func (app *AppInfo) fallbackDesktopFile() string {
 
 // WrapperPath returns the path to wrapper invoking the app binary.
 func (app *AppInfo) WrapperPath() string {
-	return filepath.Join(dirs.SnapBinariesDir, JoinSnapApp(app.Snap.InstanceName(), app.Name))
+	return filepath.Join(dirs.SnapBinariesDir, JoinSnapApp(naming.InstanceName(app.Snap.InstanceName()), app.Name))
 }
 
 // CompleterPath returns the path to the completer snippet for the app binary.
 func (app *AppInfo) CompleterPath() string {
-	return filepath.Join(dirs.CompletersDir, JoinSnapApp(app.Snap.InstanceName(), app.Name))
+	return filepath.Join(dirs.CompletersDir, JoinSnapApp(naming.InstanceName(app.Snap.InstanceName()), app.Name))
 }
 
 // CompleterPath returns the legacy path to the completer snippet for the app binary.
 func (app *AppInfo) LegacyCompleterPath() string {
-	return filepath.Join(dirs.LegacyCompletersDir, JoinSnapApp(app.Snap.InstanceName(), app.Name))
+	return filepath.Join(dirs.LegacyCompletersDir, JoinSnapApp(naming.InstanceName(app.Snap.InstanceName()), app.Name))
 }
 
 func (app *AppInfo) launcherCommand(command string) string {
@@ -1656,12 +1655,12 @@ func (app *AppInfo) EnvChain() []osutil.ExpandableEnv {
 // sometimes also as a part of the file name.
 func (hook *HookInfo) SecurityTag() string {
 	if hook.Component != nil {
-		return HookSecurityTag(SnapComponentName(
+		return HookSecurityTag(naming.InstanceName(SnapComponentName(
 			hook.Snap.InstanceName(),
 			hook.Component.Name,
-		), hook.Name)
+		)), hook.Name)
 	}
-	return HookSecurityTag(hook.Snap.InstanceName(), hook.Name)
+	return HookSecurityTag(naming.InstanceName(hook.Snap.InstanceName()), hook.Name)
 }
 
 // EnvChain returns the chain of environment overrides, possibly with
@@ -1832,7 +1831,7 @@ func ReadCurrentComponentInfo(component string, info *Info) (*ComponentInfo, err
 	// TODO: creating this here is a bit of a hack, since we aren't actually
 	// able to set the revision of the component. we create it so that we can
 	// use ComponentLinkPath, which doesn't use the revision.
-	cpi := MinimalComponentContainerPlaceInfo(component, Revision{}, info.InstanceName())
+	cpi := MinimalComponentContainerPlaceInfo(component, Revision{}, naming.InstanceName(info.InstanceName()))
 	link := ComponentLinkPath(cpi, info.Revision)
 
 	linkSource, err := os.Readlink(link)
@@ -1907,18 +1906,18 @@ func InstallDate(name string) time.Time {
 
 // SplitSnapApp will split a string of the form `snap.app` into the `snap` and
 // the `app` part. It also deals with the special case of snapName == appName.
-func SplitSnapApp(snapApp string) (snap, app string) {
+func SplitSnapApp(snapApp string) (snap naming.InstanceName, app string) {
 	l := strings.SplitN(snapApp, ".", 2)
 	if len(l) < 2 {
-		return l[0], InstanceSnap(l[0])
+		return naming.InstanceName(l[0]), InstanceSnap(l[0])
 	}
-	return l[0], l[1]
+	return naming.InstanceName(l[0]), l[1]
 }
 
 // JoinSnapApp produces a full application wrapper name from the `snap` and the
 // `app` part. It also deals with the special case of snapName == appName.
-func JoinSnapApp(snap, app string) string {
-	storeName, instanceKey := SplitInstanceName(snap)
+func JoinSnapApp(snap naming.InstanceName, app string) string {
+	storeName, instanceKey := SplitInstanceName(snap.String())
 	if storeName == app {
 		return InstanceName(app, instanceKey)
 	}

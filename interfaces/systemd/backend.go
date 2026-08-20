@@ -31,12 +31,13 @@ import (
 	"github.com/snapcore/snapd/logger"
 	"github.com/snapcore/snapd/osutil"
 	"github.com/snapcore/snapd/snap"
+	"github.com/snapcore/snapd/snap/naming"
 	sysd "github.com/snapcore/snapd/systemd"
 	"github.com/snapcore/snapd/timings"
 )
 
 func serviceName(snapName, distinctServiceSuffix string) string {
-	return snap.ScopedSecurityTag(snapName, "interface", distinctServiceSuffix) + ".service"
+	return snap.ScopedSecurityTag(naming.InstanceName(snapName), "interface", distinctServiceSuffix) + ".service"
 }
 
 // Backend is responsible for maintaining special systemd units.

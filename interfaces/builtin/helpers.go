@@ -34,6 +34,7 @@ import (
 	"github.com/snapcore/snapd/interfaces/symlinks"
 	"github.com/snapcore/snapd/osutil"
 	"github.com/snapcore/snapd/snap"
+	"github.com/snapcore/snapd/snap/naming"
 	"github.com/snapcore/snapd/systemd"
 )
 
@@ -254,7 +255,7 @@ func symlinksForSourceDir(
 		instance := slot.Snap().InstanceName()
 		splitNum := 3
 		compSuffix := ""
-		if strings.HasPrefix(pathDirIdx.path, snap.ComponentsBaseDir(instance)) {
+		if strings.HasPrefix(pathDirIdx.path, snap.ComponentsBaseDir(naming.InstanceName(instance))) {
 			splitNum = 6
 			compSuffix = "+"
 		}

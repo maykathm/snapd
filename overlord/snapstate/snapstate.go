@@ -4233,7 +4233,7 @@ func downloadsToKeep(st *state.State) (map[string]bool, error) {
 			keepBlob(snap.MountFile(snapName, rss.Snap.Revision))
 			for _, comp := range rss.Components {
 				cpi := snap.MinimalComponentContainerPlaceInfo(comp.SideInfo.Component.ComponentName,
-					comp.SideInfo.Revision, snapName)
+					comp.SideInfo.Revision, naming.InstanceName(snapName))
 				keepBlob(cpi.MountFile())
 			}
 		}
@@ -4268,7 +4268,7 @@ func downloadsToKeep(st *state.State) (map[string]bool, error) {
 				// download task runs, which may, or may not have run already.
 				if compsup.CompPath == "" {
 					cpi := snap.MinimalComponentContainerPlaceInfo(compsup.ComponentName(),
-						compsup.Revision(), snapsup.InstanceName())
+						compsup.Revision(), naming.InstanceName(snapsup.InstanceName()))
 					keepBlob(cpi.MountFile())
 				} else {
 					keepBlob(compsup.CompPath)
@@ -4416,7 +4416,7 @@ func unmountSnap(snapst *SnapState) error {
 			cpi := snap.MinimalComponentContainerPlaceInfo(
 				compName,
 				c.SideInfo.Revision,
-				snapst.InstanceName(),
+				naming.InstanceName(snapst.InstanceName()),
 			)
 
 			mountDir := cpi.MountDir()

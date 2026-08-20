@@ -4170,7 +4170,7 @@ func aliasesTrace(t *state.Task, added, removed []*backend.Alias) error {
 	for _, a := range added {
 		snap, app := snap.SplitSnapApp(a.Target)
 		curAdded = append(curAdded, &changedAlias{
-			Snap:  snap,
+			Snap:  snap.String(),
 			App:   app,
 			Alias: a.Name,
 		})
@@ -4181,7 +4181,7 @@ func aliasesTrace(t *state.Task, added, removed []*backend.Alias) error {
 	for _, a := range removed {
 		snap, app := snap.SplitSnapApp(a.Target)
 		curRemoved = append(curRemoved, &changedAlias{
-			Snap:  snap,
+			Snap:  snap.String(),
 			App:   app,
 			Alias: a.Name,
 		})

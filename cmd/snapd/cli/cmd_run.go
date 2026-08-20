@@ -53,6 +53,7 @@ import (
 	"github.com/snapcore/snapd/sandbox/cgroup"
 	"github.com/snapcore/snapd/sandbox/selinux"
 	"github.com/snapcore/snapd/snap"
+	"github.com/snapcore/snapd/snap/naming"
 	"github.com/snapcore/snapd/snap/snapenv"
 	"github.com/snapcore/snapd/snapdtool"
 	"github.com/snapcore/snapd/strutil"
@@ -595,10 +596,10 @@ func checkSnapRunInhibitionConflict(app *snap.AppInfo) error {
 		return err
 	}
 	if hint == runinhibit.HintInhibitedForRemove {
-		return fmt.Errorf(i18n.G("cannot run %q, snap is being removed"), snap.JoinSnapApp(snapName, app.Name))
+		return fmt.Errorf(i18n.G("cannot run %q, snap is being removed"), snap.JoinSnapApp(naming.InstanceName(snapName), app.Name))
 	}
 	if hint == runinhibit.HintInhibitedForDisable {
-		return fmt.Errorf(i18n.G("cannot run %q, snap is disabled"), snap.JoinSnapApp(snapName, app.Name))
+		return fmt.Errorf(i18n.G("cannot run %q, snap is disabled"), snap.JoinSnapApp(naming.InstanceName(snapName), app.Name))
 	}
 
 	if app.IsService() {
@@ -634,7 +635,7 @@ func (x *cmdRun) snapRunApp(snapApp string, args []string) error {
 			return fmt.Errorf("race condition detected, snap-run can only retry once")
 		}
 
-		info, app, hintFlock, err := waitWhileInhibited(context.Background(), x.client, snapName, appName)
+		info, app, hintFlock, err := waitWhileInhibited(context.Background(), x.client, snapName.String(), appName)
 		if errors.Is(err, errInhibitedForRemove) {
 			return fmt.Errorf(i18n.G("cannot run %q, snap is being removed"), snapApp)
 		}
@@ -1843,7 +1844,7 @@ func (x *cmdRun) runSnapConfine(info *snap.Info, runner runnable, beforeExec fun
 				// For apps using core26+, fail hard unless they don't rely on
 				// cgroup for device control and have the self-managed=true
 				// setting.
-				snapTag := snap.SecurityTag(runner.info.InstanceName())
+				snapTag := snap.SecurityTag(naming.InstanceName(runner.info.InstanceName()))
 				opts, err2 := cgroup.LoadSnapDeviceCgroupOptions(snapTag)
 				if err2 != nil {
 					logger.Noticef("cannot load snap device cgroup options: %s", err2)

@@ -29,6 +29,7 @@ import (
 	"github.com/snapcore/snapd/client"
 	"github.com/snapcore/snapd/i18n"
 	"github.com/snapcore/snapd/snap"
+	"github.com/snapcore/snapd/snap/naming"
 )
 
 type cmdAlias struct {
@@ -67,7 +68,7 @@ func (x *cmdAlias) Execute(args []string) error {
 	snapName, appName := snap.SplitSnapApp(string(x.Positionals.SnapApp))
 	alias := x.Positionals.Alias
 
-	id, err := x.client.Alias(snapName, appName, alias)
+	id, err := x.client.Alias(snapName.String(), appName, alias)
 	if err != nil {
 		return err
 	}
@@ -113,6 +114,6 @@ func printChangedAliases(w io.Writer, label string, changed []*changedAlias) {
 	fmt.Fprintf(w, "%s:\n", label)
 	for _, a := range changed {
 		// TRANSLATORS: the first %s is a snap command (e.g. "hello-world.echo"), the second is the alias
-		fmt.Fprintf(w, i18n.G("\t- %s as %s\n"), snap.JoinSnapApp(a.Snap, a.App), a.Alias)
+		fmt.Fprintf(w, i18n.G("\t- %s as %s\n"), snap.JoinSnapApp(naming.InstanceName(a.Snap), a.App), a.Alias)
 	}
 }

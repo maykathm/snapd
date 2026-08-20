@@ -772,7 +772,7 @@ func (r *remodeler) installedRevisionUpdateGoal(
 		cpi := snap.MinimalComponentContainerPlaceInfo(
 			cs.SideInfo.Component.ComponentName,
 			cs.SideInfo.Revision,
-			snapst.InstanceName(),
+			naming.InstanceName(snapst.InstanceName()),
 		)
 
 		comps = append(comps, snapstate.PathComponent{

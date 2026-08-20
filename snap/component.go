@@ -110,8 +110,8 @@ func (csi *ComponentSideInfo) Equal(other *ComponentSideInfo) bool {
 
 // ComponentBaseDir returns where components are to be found for the
 // snap with name instanceName.
-func ComponentsBaseDir(instanceName string) string {
-	return filepath.Join(BaseDir(instanceName), "components")
+func ComponentsBaseDir(instanceName naming.InstanceName) string {
+	return filepath.Join(BaseDir(instanceName.String()), "components")
 }
 
 // componentPlaceInfo holds information about where to put a component in the
@@ -130,11 +130,11 @@ var _ ContainerPlaceInfo = (*componentPlaceInfo)(nil)
 // MinimalComponentContainerPlaceInfo returns a ContainerPlaceInfo with just
 // the location information for a component of the given name and revision that
 // is used by a snapInstance.
-func MinimalComponentContainerPlaceInfo(compName string, compRev Revision, snapInstance string) ContainerPlaceInfo {
+func MinimalComponentContainerPlaceInfo(compName string, compRev Revision, snapInstance naming.InstanceName) ContainerPlaceInfo {
 	return &componentPlaceInfo{
 		compName:     compName,
 		compRevision: compRev,
-		snapInstance: snapInstance,
+		snapInstance: snapInstance.String(),
 	}
 }
 
@@ -152,7 +152,7 @@ func (c *componentPlaceInfo) Filename() string {
 // will be of the form:
 // /snaps/<snap_instance>/components/mnt/<component_name>/<component_revision>
 func (c *componentPlaceInfo) MountDir() string {
-	return ComponentMountDir(c.compName, c.compRevision, c.snapInstance)
+	return ComponentMountDir(c.compName, c.compRevision, naming.InstanceName(c.snapInstance))
 }
 
 // MountFile returns the path of the file to be mounted for a component,
@@ -189,7 +189,7 @@ func (c *componentPlaceInfo) DmVerityDigest() (string, error) {
 // may need to change how the parameters are initialized.
 func ComponentLinkPath(cpi ContainerPlaceInfo, snapRev Revision) string {
 	instanceName, compName, _ := strings.Cut(cpi.ContainerName(), "+")
-	compBase := ComponentsBaseDir(instanceName)
+	compBase := ComponentsBaseDir(naming.InstanceName(instanceName))
 	return filepath.Join(compBase, snapRev.String(), compName)
 }
 

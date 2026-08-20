@@ -470,7 +470,7 @@ version: 1.0
 `, snapName, compName)
 
 	compPath := snaptest.MakeTestComponent(c, componentYaml)
-	cpi := snap.MinimalComponentContainerPlaceInfo(compName, compRev, instanceName)
+	cpi := snap.MinimalComponentContainerPlaceInfo(compName, compRev, naming.InstanceName(instanceName))
 
 	installRecord, err := s.be.SetupComponent(compPath, cpi, mockDev, progress.Null)
 	c.Assert(err, IsNil)
@@ -497,7 +497,7 @@ version: 1.0
 
 func (s *setupSuite) testSetupComponentUndo(c *C, compName, snapName, instanceName string, compRev snap.Revision, installRecord *backend.InstallRecord) {
 	// undo undoes the mount unit and the instdir creation
-	cpi := snap.MinimalComponentContainerPlaceInfo(compName, compRev, instanceName)
+	cpi := snap.MinimalComponentContainerPlaceInfo(compName, compRev, naming.InstanceName(instanceName))
 
 	err := s.be.UndoSetupComponent(cpi, installRecord, mockDev,
 		backend.RemoveComponentOpts{MaybeInitramfsMounted: false}, progress.Null)
@@ -531,7 +531,7 @@ version: 1.0
 
 	compPath := snaptest.MakeTestComponent(c, componentYaml)
 
-	cpi := snap.MinimalComponentContainerPlaceInfo(compName, compRev, snapName)
+	cpi := snap.MinimalComponentContainerPlaceInfo(compName, compRev, naming.InstanceName(snapName))
 
 	r := systemd.MockSystemctl(func(cmd ...string) ([]byte, error) {
 		// mount unit start fails
@@ -559,7 +559,7 @@ func (s *setupSuite) TestSetupComponentFilesDir(c *C) {
 	compRev := snap.R(33)
 	compName := "mycomp"
 	snapInstance := "mysnap_inst"
-	cpi := snap.MinimalComponentContainerPlaceInfo(compName, compRev, snapInstance)
+	cpi := snap.MinimalComponentContainerPlaceInfo(compName, compRev, naming.InstanceName(snapInstance))
 
 	var sysdCalls [][]string
 	restore := systemd.MockSystemctl(func(cmd ...string) ([]byte, error) {
@@ -618,7 +618,7 @@ func (s *setupSuite) testSetupComponentWithInitramfsMount(c *C, writableDir stri
 	compRev := snap.R(33)
 	compName := "mycomp"
 	snapInstance := "mysnap_inst"
-	cpi := snap.MinimalComponentContainerPlaceInfo(compName, compRev, snapInstance)
+	cpi := snap.MinimalComponentContainerPlaceInfo(compName, compRev, naming.InstanceName(snapInstance))
 
 	// Simulate the initramfs mount
 	extraMount := filepath.Join(writableDir, dirs.StripRootDir(cpi.MountDir()))
@@ -673,7 +673,7 @@ func (s *setupSuite) TestSetupComponentFilesDirNotRemoved(c *C) {
 	secondCompRev := snap.R(55)
 	compName := "mycomp"
 	snapInstance := "mysnap_inst"
-	cpi := snap.MinimalComponentContainerPlaceInfo(compName, compRev, snapInstance)
+	cpi := snap.MinimalComponentContainerPlaceInfo(compName, compRev, naming.InstanceName(snapInstance))
 
 	installRecord := s.testSetupComponentDo(c, compName, "mysnap", snapInstance, compRev, snapRev)
 	s.testSetupComponentDo(c, compName, "mysnap", snapInstance, secondCompRev, snapRev)

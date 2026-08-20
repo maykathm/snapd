@@ -10,6 +10,7 @@ import (
 	"github.com/snapcore/snapd/dirs"
 	"github.com/snapcore/snapd/logger"
 	"github.com/snapcore/snapd/snap"
+	"github.com/snapcore/snapd/snap/naming"
 )
 
 // SnapAppSet is a helper that provides information about executable elements of
@@ -107,7 +108,7 @@ func (a *SnapAppSet) ExpandSliceSnapVariablesWithOrder(paths []string) []Expande
 				continue
 			}
 			cpi := snap.MinimalComponentContainerPlaceInfo(
-				ci.Component.ComponentName, ci.Revision, a.info.SnapName())
+				ci.Component.ComponentName, ci.Revision, naming.InstanceName(a.info.SnapName()))
 			expandedDirs = append(expandedDirs, ExpandedDirWithIdx{Path: filepath.Clean(
 				filepath.Join(cpi.MountDir(), compAndPath[1])),
 				Idx: idx,

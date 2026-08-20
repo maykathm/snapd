@@ -6816,7 +6816,7 @@ func undoOps(instanceName string, snapType snap.Type, newSequence, prevSequence 
 		csi := newComponents[i].SideInfo
 		ops = append(ops, fakeOp{
 			op:   "unlink-component",
-			path: snap.ComponentMountDir(csi.Component.ComponentName, csi.Revision, instanceName),
+			path: snap.ComponentMountDir(csi.Component.ComponentName, csi.Revision, naming.InstanceName(instanceName)),
 		})
 	}
 
@@ -6900,7 +6900,7 @@ func undoOps(instanceName string, snapType snap.Type, newSequence, prevSequence 
 		if snapRevision == prevRevision {
 			ops = append(ops, []fakeOp{{
 				op:   "link-component",
-				path: snap.ComponentMountDir(compName, oldCS.SideInfo.Revision, instanceName),
+				path: snap.ComponentMountDir(compName, oldCS.SideInfo.Revision, naming.InstanceName(instanceName)),
 			}}...)
 		}
 
@@ -7021,7 +7021,7 @@ func (s *snapmgrTestSuite) testInstallComponentsRunThrough(c *C, opts testInstal
 		for _, cs := range componentStates {
 			compName := cs.SideInfo.Component.ComponentName
 			compRev := cs.SideInfo.Revision
-			if compMntDir == snap.ComponentMountDir(compName, compRev, instanceName) {
+			if compMntDir == snap.ComponentMountDir(compName, compRev, naming.InstanceName(instanceName)) {
 				return &snap.ComponentInfo{}, nil
 			}
 		}
@@ -7201,7 +7201,7 @@ func (s *snapmgrTestSuite) testInstallComponentsRunThrough(c *C, opts testInstal
 		compRev := cs.SideInfo.Revision
 		expected = append(expected, []fakeOp{{
 			op:   "link-component",
-			path: snap.ComponentMountDir(compName, compRev, instanceName),
+			path: snap.ComponentMountDir(compName, compRev, naming.InstanceName(instanceName)),
 		}}...)
 	}
 
@@ -7460,7 +7460,7 @@ version: 1.0
 		compMntDir string, snapInfo *snap.Info, csi *snap.ComponentSideInfo,
 	) (*snap.ComponentInfo, error) {
 		for _, compName := range opts.components {
-			if compMntDir == snap.ComponentMountDir(compName, compRevs[compName], instanceName) {
+			if compMntDir == snap.ComponentMountDir(compName, compRevs[compName], naming.InstanceName(instanceName)) {
 				return &snap.ComponentInfo{}, nil
 			}
 		}
@@ -7626,7 +7626,7 @@ components:
 	for _, compName := range opts.components {
 		expected = append(expected, fakeOp{
 			op:   "link-component",
-			path: snap.ComponentMountDir(compName, compRevs[compName], instanceName),
+			path: snap.ComponentMountDir(compName, compRevs[compName], naming.InstanceName(instanceName)),
 		})
 	}
 

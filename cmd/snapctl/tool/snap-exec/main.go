@@ -35,6 +35,7 @@ import (
 	"github.com/snapcore/snapd/logger"
 	"github.com/snapcore/snapd/osutil"
 	"github.com/snapcore/snapd/snap"
+	"github.com/snapcore/snapd/snap/naming"
 	"github.com/snapcore/snapd/snap/snapenv"
 
 	// sets up the snap.NewContainerFromDir hook from snapdir
@@ -183,7 +184,7 @@ func execApp(snapTarget, revision, command string, args []string) error {
 	}
 
 	snapName, appName := snap.SplitSnapApp(snapTarget)
-	info, err := snap.ReadInfo(snapName, &snap.SideInfo{
+	info, err := snap.ReadInfo(snapName.String(), &snap.SideInfo{
 		Revision: rev,
 	})
 	if err != nil {
@@ -300,7 +301,7 @@ func execHook(snapTarget string, revision, hookName string) error {
 			return err
 		}
 		hook = component.Hooks[hookName]
-		mountDir = snap.ComponentMountDir(component.Component.ComponentName, component.Revision, info.InstanceName())
+		mountDir = snap.ComponentMountDir(component.Component.ComponentName, component.Revision, naming.InstanceName(info.InstanceName()))
 	}
 
 	if hook == nil {

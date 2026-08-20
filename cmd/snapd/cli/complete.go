@@ -34,6 +34,7 @@ import (
 	"github.com/snapcore/snapd/dirs"
 	"github.com/snapcore/snapd/i18n"
 	"github.com/snapcore/snapd/snap"
+	"github.com/snapcore/snapd/snap/naming"
 )
 
 // SnapAndApp holds a snap name and an application name
@@ -517,7 +518,7 @@ func (s appName) Complete(match string) []flags.Completion {
 		if app.IsService() {
 			continue
 		}
-		name := snap.JoinSnapApp(app.Snap, app.Name)
+		name := snap.JoinSnapApp(naming.InstanceName(app.Snap), app.Name)
 		if !strings.HasPrefix(name, match) {
 			continue
 		}
@@ -551,7 +552,7 @@ func (s serviceName) Complete(match string) []flags.Completion {
 		if !app.IsService() {
 			continue
 		}
-		name := snap.JoinSnapApp(app.Snap, app.Name)
+		name := snap.JoinSnapApp(naming.InstanceName(app.Snap), app.Name)
 		if !strings.HasPrefix(name, match) {
 			continue
 		}
