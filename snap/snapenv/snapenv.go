@@ -142,8 +142,8 @@ func basicEnv(info *snap.Info) osutil.Environment {
 
 	// Add the ubuntu-save specific environment variable if
 	// the snap folder exists in the save directory.
-	if exists, isDir, err := osutil.DirExists(snap.CommonDataSaveDir(naming.InstanceName(info.InstanceName()))); err == nil && exists && isDir {
-		env["SNAP_SAVE_DATA"] = snap.CommonDataSaveDir(naming.InstanceName(info.InstanceName()))
+	if exists, isDir, err := osutil.DirExists(snap.CommonDataSaveDir(info.InstanceName())); err == nil && exists && isDir {
+		env["SNAP_SAVE_DATA"] = snap.CommonDataSaveDir(info.InstanceName())
 	} else if err != nil {
 		logger.Noticef("cannot determine existence of save data directory for snap %q: %v",
 			info.InstanceName(), err)

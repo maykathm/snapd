@@ -334,15 +334,77 @@ yields the typed value directly, providing compile-time type safety at
 input boundaries.
 ```
 
-### Patch N+2 (optional) — Deprecate/remove old string helpers
-Once callers are typed, remove or deprecate `snap.InstanceName`, `snap.InstanceSnap`, `snap.SplitInstanceName`.
+### ✅ Patch N+2 — Eliminate redundant type conversions
+
+**Status: COMPLETED (including tests!)**
+
+Clean up all occurrences of `naming.InstanceName(x.InstanceName())` and 
+`naming.InstanceName(x.InstanceName().String())` that were introduced during 
+the gradual refactoring. These conversions are now unnecessary since 
+`PlaceInfo.InstanceName()` returns typed `naming.InstanceName` directly.
+
+**Phase 1: Non-test files** (Commit b75a943b45)
+- 22 files changed, 65 insertions, 71 deletions
+
+**Phase 2: .String() round-trips** (Commit 2f5f4105ef)
+- 4 files: seed/seed20.go, store/tooling/tooling.go, overlord/install/install.go, wrappers/desktop.go
+- Removed: `naming.InstanceName(x.SnapName().String())` → `naming.InstanceName(x.SnapName())`
+
+**Phase 3: Test files** (Commit 26771be432)
+- 6 test files changed, 24 insertions, 25 deletions
+- Fixed overlord/ifacestate (16 occurrences), snap/snapenv (2), cmd/snapd/cli (2), overlord/snapstate (4)
+
+**Categories fixed:**
+1. **snap.Info wrapper methods** (8 fixes): MountDir, MountFile, HooksDir, DataDir, etc.
+2. **Type round-tripping** (~15 fixes in overlord/snapstate and related packages)
+3. **Old string helpers on typed values** (3 fixes): Replaced `snap.SplitInstanceName(x.InstanceName().String())` with `x.InstanceName().InstanceKey()`
+4. **Test helpers** (3 fixes in snap/snaptest)
+5. **Additional AppInfo/HookInfo methods** (6 fixes in snap/info.go)
+6. **Across the codebase** (~10 more fixes in daemon, overlord/devicestate, cmd/*, interfaces)
+7. **Test files** (25 fixes across 6 test files)
+
+**Final verification:**
+- ✅ Zero `naming.InstanceName(x.InstanceName())` patterns remain
+- ✅ Zero `naming.InstanceName(x.InstanceName().String())` patterns remain
+- ✅ Zero `naming.InstanceName(x.SnapName().String())` patterns remain
+- ✅ Zero `naming.SnapName(x.SnapName())` patterns remain
+- ✅ All packages compile
+- ✅ All tests pass
+
+**Total cleanup:** 32 files changed across 3 commits
+
+**Categories fixed:**
+1. **snap.Info wrapper methods** (8 fixes): MountDir, MountFile, HooksDir, DataDir, etc.
+2. **Type round-tripping** (~15 fixes in overlord/snapstate and related packages)
+3. **Old string helpers on typed values** (3 fixes): Replaced `snap.SplitInstanceName(x.InstanceName().String())` with `x.InstanceName().InstanceKey()`
+4. **Test helpers** (3 fixes in snap/snaptest)
+5. **Additional AppInfo/HookInfo methods** (6 fixes in snap/info.go)
+6. **Across the codebase** (~10 more fixes in daemon, overlord/devicestate, cmd/*, interfaces)
+
+**Total cleanup:** 22 files changed, 65 insertions, 71 deletions
+
+**Result:** All non-test code now has zero redundant type wrapping patterns.
+
+**Test results:**
+- ✅ All affected packages compile
+- ✅ All tests pass
+
+**Commit:** b75a943b45
+
+### Patch N+3 (optional) — Deprecate old string helpers
+Once the typed refactoring is fully adopted, consider adding deprecation
+notices to `snap.InstanceName()`, `snap.InstanceSnap()`, and
+`snap.SplitInstanceName()` to guide future code toward using the typed API.
+
+Note: These functions still have ~60 legitimate uses in string-based code,
+so removal is not appropriate. Deprecation notices would be optional.
 
 ---
 
 ## Current Status
 
-**Completed:** Patches 1-7, Patch N, Patch N+1 (all core typing work complete!)
-**Next:** Patch N+2 (optional: deprecate old string helpers)
+**Completed:** Patches 1-7, Patch N, Patch N+1, Patch N+2 (all core typing work complete!)
+**Optional future work:** Patch N+3 (add deprecation notices to old string helpers)
 
 **Progress tracking:**
 - [x] Patch 1: Types + helpers + tests
@@ -355,7 +417,8 @@ Once callers are typed, remove or deprecate `snap.InstanceName`, `snap.InstanceS
 - [x] Patches 8-10: Surveyed, no action needed
 - [x] Patch N: PlaceInfo and SnapRef interface methods
 - [x] Patch N+1: Boundary constructor conversions
-- [ ] Patch N+2: Deprecate old string helpers (optional)
+- [x] Patch N+2: Eliminate redundant type conversions
+- [ ] Patch N+3: Add deprecation notices (optional)
 - [ ] Patch N+2: Deprecate old string helpers
 - [x] Patch 3: Snap/app + security-tag helpers
 - [x] Patch 4: `interfaces.SnapAppSet.InstanceName()` typed return

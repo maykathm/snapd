@@ -75,7 +75,7 @@ type LinkContext struct {
 }
 
 func createSharedSnapDirForParallelInstance(s snap.PlaceInfo) error {
-	_, key := snap.SplitInstanceName(s.InstanceName().String())
+	key := s.InstanceName().InstanceKey()
 
 	if key != "" {
 		err := os.MkdirAll(snap.BaseDir(naming.InstanceName(s.SnapName())), 0755)
@@ -87,7 +87,7 @@ func createSharedSnapDirForParallelInstance(s snap.PlaceInfo) error {
 }
 
 func removeSharedSnapDirForParallelInstance(s snap.PlaceInfo) {
-	_, instanceKey := snap.SplitInstanceName(s.InstanceName().String())
+	instanceKey := s.InstanceName().InstanceKey()
 
 	if instanceKey != "" {
 		// failure to remove is ok, there may be revisions of the

@@ -1003,7 +1003,7 @@ func (s *seed20) lookupUnassertedComponent(comp20 internal.Component20, info *sn
 	// Unasserted components from the seed will have an x1 revision when installed
 	csi := snap.NewComponentSideInfo(cref, snap.R(-1))
 	cpi := snap.MinimalComponentContainerPlaceInfo(
-		compName, snap.R(-1), naming.InstanceName(info.SnapName().String()))
+		compName, snap.R(-1), naming.InstanceName(info.SnapName()))
 	newCompPath, err := handler.HandleUnassertedContainer(cpi, compPath, tm)
 	if err != nil {
 		return Component{}, err
@@ -1098,11 +1098,11 @@ func (s *seed20) lookupSnap(snapRef naming.SnapRef, modelSnap *asserts.ModelSnap
 			if err != nil {
 				return nil, err
 			}
-			seedComps = append(seedComps, comp)
-		}
+		seedComps = append(seedComps, comp)
+	}
 
-		pinfo := snap.MinimalSnapContainerPlaceInfo(naming.InstanceName(info.SnapName().String()), snap.R(-1))
-		newPath, err := handler.HandleUnassertedContainer(pinfo, path, tm)
+	pinfo := snap.MinimalSnapContainerPlaceInfo(naming.InstanceName(info.SnapName()), snap.R(-1))
+	newPath, err := handler.HandleUnassertedContainer(pinfo, path, tm)
 		if err != nil {
 			return nil, err
 		}

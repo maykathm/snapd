@@ -257,13 +257,13 @@ func (tsto *ToolingStore) downloadComponents(comps []string, sar *store.SnapActi
 			return nil, fmt.Errorf("%s component for %s not found in store",
 				comp, sar.SnapName().String())
 		}
-		baseName := snapOpts.Basename
-		if baseName == "" {
-			cpi := snap.MinimalComponentContainerPlaceInfo(
-				srr.Name, snap.R(srr.Revision), naming.InstanceName(sar.SnapName().String()))
-			baseName = cpi.Filename()
-		} else {
-			baseName += fmt.Sprintf("+%s.comp", srr.Name)
+	baseName := snapOpts.Basename
+	if baseName == "" {
+		cpi := snap.MinimalComponentContainerPlaceInfo(
+			srr.Name, snap.R(srr.Revision), naming.InstanceName(sar.SnapName()))
+		baseName = cpi.Filename()
+	} else {
+		baseName += fmt.Sprintf("+%s.comp", srr.Name)
 		}
 
 		var targetDir string

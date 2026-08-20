@@ -4912,10 +4912,10 @@ func (s *interfaceManagerSuite) TestSetupProfilesUsesFreshSnapInfo(c *C) {
 	c.Assert(s.secBackend.SetupCalls, HasLen, 2)
 	c.Assert(s.secBackend.RemoveCalls, HasLen, 0)
 	// The sample snap was setup, with the correct new revision.
-	c.Check(s.secBackend.SetupCalls[0].AppSet.InstanceName(), Equals, naming.InstanceName(newSnapInfo.InstanceName()))
+	c.Check(s.secBackend.SetupCalls[0].AppSet.InstanceName(), Equals, newSnapInfo.InstanceName())
 	c.Check(s.secBackend.SetupCalls[0].AppSet.Info().Revision, Equals, newSnapInfo.Revision)
 	// The OS snap was setup (because it was affected).
-	c.Check(s.secBackend.SetupCalls[1].AppSet.InstanceName(), Equals, naming.InstanceName(coreSnapInfo.InstanceName()))
+	c.Check(s.secBackend.SetupCalls[1].AppSet.InstanceName(), Equals, coreSnapInfo.InstanceName())
 	c.Check(s.secBackend.SetupCalls[1].AppSet.Info().Revision, Equals, coreSnapInfo.Revision)
 }
 
@@ -4951,7 +4951,7 @@ func (s *interfaceManagerSuite) TestSetupProfilesOnInstall(c *C) {
 	c.Check(change.Status(), Equals, state.DoneStatus)
 
 	c.Assert(s.secBackend.SetupCalls, HasLen, 1)
-	c.Check(s.secBackend.SetupCalls[0].AppSet.InstanceName(), Equals, naming.InstanceName(installSnapInfo.InstanceName()))
+	c.Check(s.secBackend.SetupCalls[0].AppSet.InstanceName(), Equals, installSnapInfo.InstanceName())
 	c.Check(s.secBackend.SetupCalls[0].AppSet.Info().Revision, Equals, installSnapInfo.Revision)
 }
 
@@ -4993,7 +4993,7 @@ func (s *interfaceManagerSuite) TestSetupProfilesInstallSnapAndComponents(c *C) 
 	c.Assert(s.secBackend.SetupCalls, HasLen, 1)
 
 	appSet := s.secBackend.SetupCalls[0].AppSet
-	c.Check(appSet.InstanceName(), Equals, naming.InstanceName(snapInfo.InstanceName()))
+	c.Check(appSet.InstanceName(), Equals, snapInfo.InstanceName())
 	c.Check(appSet.Info().Revision, Equals, snapInfo.Revision)
 
 	// the snap defines another component, comp3. note that it is not listed
@@ -5053,7 +5053,7 @@ func (s *interfaceManagerSuite) TestSetupProfilesInstallSnapAndComponentsPreexis
 	c.Assert(s.secBackend.SetupCalls, HasLen, 1)
 
 	appSet := s.secBackend.SetupCalls[0].AppSet
-	c.Check(appSet.InstanceName(), Equals, naming.InstanceName(snapInfo.InstanceName()))
+	c.Check(appSet.InstanceName(), Equals, snapInfo.InstanceName())
 	c.Check(appSet.Info().Revision, Equals, snapInfo.Revision)
 
 	// comp3 is preexisting component, so it should be listed here, even though
@@ -5112,7 +5112,7 @@ func (s *interfaceManagerSuite) TestSetupProfilesInstallComponent(c *C) {
 	c.Assert(s.secBackend.SetupCalls, HasLen, 1)
 
 	appSet := s.secBackend.SetupCalls[0].AppSet
-	c.Check(appSet.InstanceName(), Equals, naming.InstanceName(snapInfo.InstanceName()))
+	c.Check(appSet.InstanceName(), Equals, snapInfo.InstanceName())
 	c.Check(appSet.Info().Revision, Equals, snapInfo.Revision)
 
 	// the snap defines another component, comp2. note that it is not listed
@@ -5189,7 +5189,7 @@ func (s *interfaceManagerSuite) TestSetupProfilesInstallComponentSnapHasPreexist
 	c.Assert(s.secBackend.SetupCalls, HasLen, 1)
 
 	appSet := s.secBackend.SetupCalls[0].AppSet
-	c.Check(appSet.InstanceName(), Equals, naming.InstanceName(snapInfo.InstanceName()))
+	c.Check(appSet.InstanceName(), Equals, snapInfo.InstanceName())
 	c.Check(appSet.Info().Revision, Equals, snapInfo.Revision)
 
 	// the snap defines another component, comp2. note that it is not listed
@@ -5247,7 +5247,7 @@ func (s *interfaceManagerSuite) TestSetupProfilesUpdateSnapWithComponents(c *C) 
 	c.Assert(s.secBackend.SetupCalls, HasLen, 1)
 
 	appSet := s.secBackend.SetupCalls[0].AppSet
-	c.Check(appSet.InstanceName(), Equals, naming.InstanceName(snapInfo.InstanceName()))
+	c.Check(appSet.InstanceName(), Equals, snapInfo.InstanceName())
 	c.Check(appSet.Info().Revision, Equals, snapInfo.Revision)
 
 	// the snap defines another component, comp2. note that it is not listed
@@ -5344,11 +5344,11 @@ func (s *interfaceManagerSuite) TestSetupProfilesOfAffectedSnapWithComponents(c 
 	c.Assert(s.secBackend.SetupCalls, HasLen, 2)
 
 	firstAppSet := s.secBackend.SetupCalls[0].AppSet
-	c.Check(firstAppSet.InstanceName(), Equals, naming.InstanceName(snapInfo.InstanceName()))
+	c.Check(firstAppSet.InstanceName(), Equals, snapInfo.InstanceName())
 	c.Check(firstAppSet.Info().Revision, Equals, snapInfo.Revision)
 
 	secondAppSet := s.secBackend.SetupCalls[1].AppSet
-	c.Check(secondAppSet.InstanceName(), Equals, naming.InstanceName(coreSnapInfo.InstanceName()))
+	c.Check(secondAppSet.InstanceName(), Equals, coreSnapInfo.InstanceName())
 	c.Check(secondAppSet.Info().Revision, Equals, coreSnapInfo.Revision)
 
 	// the snap defines another component, comp2. note that it is not listed
@@ -5519,11 +5519,11 @@ func (s *interfaceManagerSuite) TestAutoConnectSetupSecurityForConnectedSlots(c 
 	c.Assert(s.secBackend.RemoveCalls, HasLen, 0)
 
 	// The sample snap was setup, with the correct new revision:
-	c.Check(s.secBackend.SetupCalls[0].AppSet.InstanceName(), Equals, naming.InstanceName(snapInfo.InstanceName()))
+	c.Check(s.secBackend.SetupCalls[0].AppSet.InstanceName(), Equals, snapInfo.InstanceName())
 	c.Check(s.secBackend.SetupCalls[0].AppSet.Info().Revision, Equals, snapInfo.Revision)
 
 	// The OS snap was setup (because its connected to sample snap).
-	c.Check(s.secBackend.SetupCalls[1].AppSet.InstanceName(), Equals, naming.InstanceName(coreSnapInfo.InstanceName()))
+	c.Check(s.secBackend.SetupCalls[1].AppSet.InstanceName(), Equals, coreSnapInfo.InstanceName())
 	c.Check(s.secBackend.SetupCalls[1].AppSet.Info().Revision, Equals, coreSnapInfo.Revision)
 }
 
@@ -6910,7 +6910,7 @@ func (s *interfaceManagerSuite) TestUndoSetupProfilesOnRefresh(c *C) {
 	// setup the security of the snap we had in the state.
 	c.Assert(s.secBackend.SetupCalls, HasLen, 1)
 	c.Assert(s.secBackend.RemoveCalls, HasLen, 0)
-	c.Check(s.secBackend.SetupCalls[0].AppSet.InstanceName(), Equals, naming.InstanceName(snapInfo.InstanceName()))
+	c.Check(s.secBackend.SetupCalls[0].AppSet.InstanceName(), Equals, snapInfo.InstanceName())
 	c.Check(s.secBackend.SetupCalls[0].AppSet.Info().Revision, Equals, snapInfo.Revision)
 	c.Check(s.secBackend.SetupCalls[0].Options, DeepEquals, interfaces.ConfinementOptions{KernelSnap: "krnl"})
 
@@ -6971,7 +6971,7 @@ hooks:
 	c.Assert(change.Status(), Equals, state.DoneStatus)
 	c.Assert(change.Err(), IsNil)
 	c.Assert(s.secBackend.SetupCalls, HasLen, 1)
-	c.Check(s.secBackend.SetupCalls[0].AppSet.InstanceName(), Equals, naming.InstanceName(producerInfo.InstanceName()))
+	c.Check(s.secBackend.SetupCalls[0].AppSet.InstanceName(), Equals, producerInfo.InstanceName())
 	c.Check(s.secBackend.SetupCalls[0].AppSet.Info().Revision, Equals, updatedInfo.Revision)
 	c.Check(s.secBackend.SetupCalls[0].Options, DeepEquals, interfaces.ConfinementOptions{KernelSnap: "krnl"})
 	c.Check(s.secBackend.SetupCalls[0].SetupContext, DeepEquals, interfaces.SetupContext{
@@ -7209,11 +7209,11 @@ func (s *interfaceManagerSuite) TestUndoSetupProfilesOnRefreshClassicToStrictUse
 	c.Assert(s.secBackend.SetupCalls, HasLen, 2)
 
 	// Explicitly assert Classic is false for the new revision.
-	c.Check(s.secBackend.SetupCalls[0].AppSet.InstanceName(), Equals, naming.InstanceName(oldSnapInfo.InstanceName()))
+	c.Check(s.secBackend.SetupCalls[0].AppSet.InstanceName(), Equals, oldSnapInfo.InstanceName())
 	c.Check(s.secBackend.SetupCalls[0].AppSet.Info().Revision, Equals, snap.R(newRev))
 	c.Check(s.secBackend.SetupCalls[0].Options, DeepEquals, interfaces.ConfinementOptions{KernelSnap: "krnl"})
 
-	c.Check(s.secBackend.SetupCalls[1].AppSet.InstanceName(), Equals, naming.InstanceName(oldSnapInfo.InstanceName()))
+	c.Check(s.secBackend.SetupCalls[1].AppSet.InstanceName(), Equals, oldSnapInfo.InstanceName())
 	c.Check(s.secBackend.SetupCalls[1].AppSet.Info().Revision, Equals, oldSnapInfo.Revision)
 	c.Check(s.secBackend.SetupCalls[1].Options, DeepEquals, interfaces.ConfinementOptions{Classic: true, KernelSnap: "krnl"})
 }

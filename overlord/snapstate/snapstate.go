@@ -4273,7 +4273,7 @@ func downloadsToKeep(st *state.State) (map[string]bool, error) {
 				// download task runs, which may, or may not have run already.
 				if compsup.CompPath == "" {
 					cpi := snap.MinimalComponentContainerPlaceInfo(compsup.ComponentName(),
-						compsup.Revision(), naming.InstanceName(snapsup.InstanceName().String()))
+						compsup.Revision(), snapsup.InstanceName())
 					keepBlob(cpi.MountFile())
 				} else {
 					keepBlob(compsup.CompPath)
@@ -4418,11 +4418,11 @@ func unmountSnap(snapst *SnapState) error {
 	for _, rev := range snapst.Sequence.Revisions {
 		for _, c := range rev.Components {
 			compName := c.SideInfo.Component.ComponentName
-			cpi := snap.MinimalComponentContainerPlaceInfo(
-				compName,
-				c.SideInfo.Revision,
-				naming.InstanceName(snapst.InstanceName().String()),
-			)
+		cpi := snap.MinimalComponentContainerPlaceInfo(
+			compName,
+			c.SideInfo.Revision,
+			snapst.InstanceName(),
+		)
 
 			mountDir := cpi.MountDir()
 
@@ -4439,7 +4439,7 @@ func unmountSnap(snapst *SnapState) error {
 			}
 		}
 
-		mountDir := snap.MountDir(naming.InstanceName(snapst.InstanceName().String()), rev.Snap.Revision)
+		mountDir := snap.MountDir(snapst.InstanceName(), rev.Snap.Revision)
 		logger.Debugf("unmounting snap %s at %s", snapst.InstanceName().String(), mountDir)
 		if _, err := exec.Command("umount", "-d", "-l", mountDir).CombinedOutput(); err != nil {
 			return err
