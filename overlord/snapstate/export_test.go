@@ -28,6 +28,7 @@ import (
 	"github.com/snapcore/snapd/overlord/snapstate/backend"
 	"github.com/snapcore/snapd/overlord/state"
 	"github.com/snapcore/snapd/snap"
+	"github.com/snapcore/snapd/snap/naming"
 	"github.com/snapcore/snapd/store"
 	"github.com/snapcore/snapd/testutil"
 	userclient "github.com/snapcore/snapd/usersession/client"
@@ -68,7 +69,7 @@ func SetSnapManagerBackend(s *SnapManager, b ManagerBackend) {
 	s.backend = b
 }
 
-func MockSnapReadInfo(mock func(name string, si *snap.SideInfo) (*snap.Info, error)) (restore func()) {
+func MockSnapReadInfo(mock func(name naming.InstanceName, si *snap.SideInfo) (*snap.Info, error)) (restore func()) {
 	old := snapReadInfo
 	snapReadInfo = mock
 	return func() { snapReadInfo = old }

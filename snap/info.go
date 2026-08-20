@@ -1662,10 +1662,10 @@ func (hook *HookInfo) SecurityTag() string {
 	if hook.Component != nil {
 		return HookSecurityTag(naming.InstanceName(SnapComponentName(
 			hook.Snap.InstanceName().String(),
-		hook.Component.Name,
-	)), hook.Name)
-}
-return HookSecurityTag(hook.Snap.InstanceName(), hook.Name)
+			hook.Component.Name,
+		)), hook.Name)
+	}
+	return HookSecurityTag(hook.Snap.InstanceName(), hook.Name)
 }
 
 // EnvChain returns the chain of environment overrides, possibly with
@@ -1753,17 +1753,17 @@ var SanitizePlugsSlots = sanitizePlugsSlotsUnimpl
 
 // ReadInfo reads the snap information for the installed snap with the given
 // name and given side-info.
-func ReadInfo(name string, si *SideInfo) (*Info, error) {
-	return ReadInfoFromMountPoint(name, MountDir(naming.InstanceName(name), si.Revision), MountFile(naming.InstanceName(name), si.Revision), si)
+func ReadInfo(name naming.InstanceName, si *SideInfo) (*Info, error) {
+	return ReadInfoFromMountPoint(name, MountDir(name, si.Revision), MountFile(name, si.Revision), si)
 }
 
 // ReadInfoFromMountPoint reads the snap information for a mounted
 // snap given the mound point, mount file, and side info.
-func ReadInfoFromMountPoint(name, mountPoint, mountFile string, si *SideInfo) (*Info, error) {
+func ReadInfoFromMountPoint(name naming.InstanceName, mountPoint, mountFile string, si *SideInfo) (*Info, error) {
 	snapYamlFn := filepath.Join(mountPoint, "meta", "snap.yaml")
 	meta, err := os.ReadFile(snapYamlFn)
 	if os.IsNotExist(err) {
-		return nil, &NotFoundError{Snap: name, Revision: si.Revision, Path: snapYamlFn}
+		return nil, &NotFoundError{Snap: name.String(), Revision: si.Revision, Path: snapYamlFn}
 	}
 	if err != nil {
 		return nil, err
@@ -1772,16 +1772,16 @@ func ReadInfoFromMountPoint(name, mountPoint, mountFile string, si *SideInfo) (*
 	strk := new(scopedTracker)
 	info, err := infoFromSnapYamlWithSideInfo(meta, si, strk)
 	if err != nil {
-		return nil, &invalidMetaError{Snap: name, Revision: si.Revision, Msg: err.Error()}
+		return nil, &invalidMetaError{Snap: name.String(), Revision: si.Revision, Msg: err.Error()}
 	}
 
-	_, instanceKey := SplitInstanceName(name)
+	_, instanceKey := SplitInstanceName(name.String())
 	info.InstanceKey = instanceKey
 
 	hooksDir := filepath.Join(mountPoint, "meta", "hooks")
 	err = addImplicitHooks(info, hooksDir)
 	if err != nil {
-		return nil, &invalidMetaError{Snap: name, Revision: si.Revision, Msg: err.Error()}
+		return nil, &invalidMetaError{Snap: name.String(), Revision: si.Revision, Msg: err.Error()}
 	}
 
 	bindImplicitHooks(info, strk)
@@ -1792,7 +1792,7 @@ func ReadInfoFromMountPoint(name, mountPoint, mountFile string, si *SideInfo) (*
 		// is still in place (it's a bind mount, it doesn't care about the
 		// source moving) but the symlink in /var/lib/snapd/snaps is now
 		// dangling.
-		return nil, &NotFoundError{Snap: name, Revision: si.Revision, Path: mountFile}
+		return nil, &NotFoundError{Snap: name.String(), Revision: si.Revision, Path: mountFile}
 	}
 	if err != nil {
 		return nil, err
@@ -1809,11 +1809,11 @@ func ReadInfoFromMountPoint(name, mountPoint, mountFile string, si *SideInfo) (*
 
 // ReadCurrentInfo reads the snap information from the installed snap in
 // 'current' revision
-func ReadCurrentInfo(snapName string) (*Info, error) {
-	curFn := filepath.Join(dirs.SnapMountDir, snapName, "current")
+func ReadCurrentInfo(snapName naming.InstanceName) (*Info, error) {
+	curFn := filepath.Join(dirs.SnapMountDir, snapName.String(), "current")
 	realFn, err := os.Readlink(curFn)
 	if err != nil {
-		return nil, fmt.Errorf("%w: %s", NotFoundError{Snap: snapName, Revision: R(0)}, err)
+		return nil, fmt.Errorf("%w: %s", NotFoundError{Snap: snapName.String(), Revision: R(0)}, err)
 	}
 	rev := filepath.Base(realFn)
 	revision, err := ParseRevision(rev)

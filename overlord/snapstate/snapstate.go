@@ -298,7 +298,7 @@ func FinishRestart(task *state.Task, snapsup *SnapSetup, opts FinishRestartOptio
 			return fmt.Errorf("there was a snapd rollback across the restart")
 		}
 
-		snapdInfo, err := snap.ReadCurrentInfo(snapsup.SnapName().String())
+		snapdInfo, err := snap.ReadCurrentInfo(naming.InstanceName(snapsup.SnapName()))
 		if err != nil {
 			return fmt.Errorf("cannot get current snapd snap info: %v", err)
 		}
@@ -3462,7 +3462,7 @@ func basesInUseForSequence(st *state.State, snapst *SnapState) ([]string, error)
 	bases := make([]string, 0, len(sis))
 	instanceName := snapst.InstanceName()
 	for _, si := range sis {
-		snapInfo, err := snap.ReadInfo(instanceName.String(), si)
+		snapInfo, err := snap.ReadInfo(instanceName, si)
 		if err == nil {
 			if typ := snapInfo.Type(); typ != snap.TypeApp && typ != snap.TypeGadget {
 				continue
@@ -3846,7 +3846,7 @@ func Info(st *state.State, name string, revision snap.Revision) (*snap.Info, err
 	sis := snapst.Sequence.SideInfos()
 	for i := len(sis) - 1; i >= 0; i-- {
 		if si := sis[i]; si.Revision == revision {
-			return readInfo(name, si, 0)
+			return readInfo(naming.InstanceName(name), si, 0)
 		}
 	}
 
@@ -4418,11 +4418,11 @@ func unmountSnap(snapst *SnapState) error {
 	for _, rev := range snapst.Sequence.Revisions {
 		for _, c := range rev.Components {
 			compName := c.SideInfo.Component.ComponentName
-		cpi := snap.MinimalComponentContainerPlaceInfo(
-			compName,
-			c.SideInfo.Revision,
-			snapst.InstanceName(),
-		)
+			cpi := snap.MinimalComponentContainerPlaceInfo(
+				compName,
+				c.SideInfo.Revision,
+				snapst.InstanceName(),
+			)
 
 			mountDir := cpi.MountDir()
 

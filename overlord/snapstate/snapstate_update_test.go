@@ -13793,7 +13793,7 @@ func (s *snapmgrTestSuite) testUpdateDowngradeBlockedByOtherChanges(old, new str
 		Revision: snap.R(3),
 	}
 
-	restore := snapstate.MockSnapReadInfo(func(name string, si *snap.SideInfo) (*snap.Info, error) {
+	restore := snapstate.MockSnapReadInfo(func(name naming.InstanceName, si *snap.SideInfo) (*snap.Info, error) {
 		var version string
 		switch name {
 		case "snapd":
@@ -13808,7 +13808,7 @@ func (s *snapmgrTestSuite) testUpdateDowngradeBlockedByOtherChanges(old, new str
 			version = "1.0"
 		}
 		return &snap.Info{
-			SuggestedName: name,
+			SuggestedName: name.String(),
 			Version:       version,
 			Architectures: []string{"all"},
 			SideInfo:      *si,
@@ -13893,7 +13893,7 @@ func (s *snapmgrTestSuite) testUpdateNotAllowedWhileDowngrading(c *C, old, new s
 		Channel:  "channel-for-7",
 	}
 
-	restore := snapstate.MockSnapReadInfo(func(name string, si *snap.SideInfo) (*snap.Info, error) {
+	restore := snapstate.MockSnapReadInfo(func(name naming.InstanceName, si *snap.SideInfo) (*snap.Info, error) {
 		var version string
 		switch name {
 		case "snapd":
@@ -13908,7 +13908,7 @@ func (s *snapmgrTestSuite) testUpdateNotAllowedWhileDowngrading(c *C, old, new s
 			version = "1.0"
 		}
 		return &snap.Info{
-			SuggestedName: name,
+			SuggestedName: name.String(),
 			Version:       version,
 			Architectures: []string{"all"},
 			SideInfo:      *si,
@@ -14168,7 +14168,7 @@ func (s *snapmgrTestSuite) TestSnapdRefreshForRemodel(c *C) {
 		SnapType: "app",
 	})
 
-	restore := snapstate.MockSnapReadInfo(func(name string, si *snap.SideInfo) (*snap.Info, error) {
+	restore := snapstate.MockSnapReadInfo(func(name naming.InstanceName, si *snap.SideInfo) (*snap.Info, error) {
 		var version string
 		switch name {
 		case "snapd":
@@ -14182,7 +14182,7 @@ func (s *snapmgrTestSuite) TestSnapdRefreshForRemodel(c *C) {
 			version = "1.0"
 		}
 		return &snap.Info{
-			SuggestedName: name,
+			SuggestedName: name.String(),
 			Version:       version,
 			Architectures: []string{"all"},
 			SideInfo:      *si,

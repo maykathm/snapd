@@ -55,9 +55,9 @@ func mockSnap(c *check.C, instanceName, yamlText string, sideInfo *snap.SideInfo
 		snapName, instanceKey := snap.SplitInstanceName(instanceName)
 		snapInfo.InstanceKey = instanceKey
 
-	// Make sure snap name/instance name checks out
-	c.Assert(snapInfo.InstanceName().String(), check.Equals, instanceName)
-	c.Assert(snapInfo.SnapName().String(), check.Equals, snapName)
+		// Make sure snap name/instance name checks out
+		c.Assert(snapInfo.InstanceName().String(), check.Equals, instanceName)
+		c.Assert(snapInfo.SnapName().String(), check.Equals, snapName)
 	}
 
 	// Put the YAML on disk, in the right spot.

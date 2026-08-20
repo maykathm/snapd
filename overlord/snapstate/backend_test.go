@@ -44,6 +44,7 @@ import (
 	"github.com/snapcore/snapd/randutil"
 	"github.com/snapcore/snapd/snap"
 	"github.com/snapcore/snapd/snap/integrity"
+	"github.com/snapcore/snapd/snap/naming"
 	"github.com/snapcore/snapd/snap/snapfile"
 	"github.com/snapcore/snapd/store"
 	"github.com/snapcore/snapd/store/storetest"
@@ -1251,7 +1252,7 @@ func (f *fakeSnappyBackend) RemoveComponentDir(cpi snap.ContainerPlaceInfo) erro
 	return nil
 }
 
-func (f *fakeSnappyBackend) ReadInfo(name string, si *snap.SideInfo) (*snap.Info, error) {
+func (f *fakeSnappyBackend) ReadInfo(name naming.InstanceName, si *snap.SideInfo) (*snap.Info, error) {
 	if name == "borken" && si.Revision == snap.R(2) {
 		return nil, errors.New(`cannot read info for "borken" snap`)
 	}
@@ -1259,9 +1260,9 @@ func (f *fakeSnappyBackend) ReadInfo(name string, si *snap.SideInfo) (*snap.Info
 		return nil, errors.New(`cannot read info for "borken-undo-setup" snap`)
 	}
 	if name == "not-there" && si.Revision == snap.R(2) {
-		return nil, &snap.NotFoundError{Snap: name, Revision: si.Revision}
+		return nil, &snap.NotFoundError{Snap: name.String(), Revision: si.Revision}
 	}
-	snapName, instanceKey := snap.SplitInstanceName(name)
+	snapName, instanceKey := snap.SplitInstanceName(name.String())
 	// naive emulation for now, always works
 	info := &snap.Info{
 		SuggestedName: snapName,
@@ -1349,7 +1350,7 @@ apps:
 		info.Base = "core24"
 	}
 
-	if snapInfos, ok := f.infos[name]; ok {
+	if snapInfos, ok := f.infos[name.String()]; ok {
 		if storedInfo, ok := snapInfos[si.Revision]; ok {
 			storedInfo.SideInfo = *si
 			info = storedInfo
@@ -1390,7 +1391,7 @@ func (f *fakeSnappyBackend) ClearTrashedData(si *snap.Info) {
 }
 
 func (f *fakeSnappyBackend) StoreInfo(st *state.State, name, channel string, userID int, flags snapstate.Flags) (*snap.Info, error) {
-	return f.ReadInfo(name, &snap.SideInfo{
+	return f.ReadInfo(naming.InstanceName(name), &snap.SideInfo{
 		RealName: name,
 	})
 }
