@@ -331,7 +331,7 @@ input boundaries.
 
 ### ✅ Patch N+2 — Eliminate redundant type conversions
 
-**Status: COMPLETED (including tests!)**
+**Status: COMPLETED (including tests and snap.InstanceName() typing!)**
 
 Clean up all occurrences of `naming.InstanceName(x.InstanceName())` and 
 `naming.InstanceName(x.InstanceName().String())` that were introduced during 
@@ -349,6 +349,12 @@ the gradual refactoring. These conversions are now unnecessary since
 - 6 test files changed, 24 insertions, 25 deletions
 - Fixed overlord/ifacestate (16 occurrences), snap/snapenv (2), cmd/snapd/cli (2), overlord/snapstate (4)
 
+**Phase 4: Type snap.InstanceName() function** (Commit d7cfa55cfa)
+- Changed `snap.InstanceName(snapName, instanceKey string) string` → returns `naming.InstanceName`
+- Eliminated 2 more redundant wrappings: `naming.InstanceName(snap.InstanceName(...))`
+- Updated 5 call sites + 6 test files
+- 8 files changed, 24 insertions, 24 deletions
+
 **Categories fixed:**
 1. **snap.Info wrapper methods** (8 fixes): MountDir, MountFile, HooksDir, DataDir, etc.
 2. **Type round-tripping** (~15 fixes in overlord/snapstate and related packages)
@@ -357,6 +363,7 @@ the gradual refactoring. These conversions are now unnecessary since
 5. **Additional AppInfo/HookInfo methods** (6 fixes in snap/info.go)
 6. **Across the codebase** (~10 more fixes in daemon, overlord/devicestate, cmd/*, interfaces)
 7. **Test files** (25 fixes across 6 test files)
+8. **snap.InstanceName() helper** (2 redundant wrappers eliminated, function now typed)
 
 **Final verification:**
 - ✅ Zero `naming.InstanceName(x.InstanceName())` patterns remain
@@ -366,7 +373,7 @@ the gradual refactoring. These conversions are now unnecessary since
 - ✅ All packages compile
 - ✅ All tests pass
 
-**Total cleanup:** 32 files changed across 3 commits
+**Total cleanup:** 40 files changed across 4 commits
 
 **Categories fixed:**
 1. **snap.Info wrapper methods** (8 fixes): MountDir, MountFile, HooksDir, DataDir, etc.
