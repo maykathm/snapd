@@ -6872,7 +6872,7 @@ func (s *snapmgrTestSuite) TestConflictMany(c *C) {
 			Active:  false,
 		})
 
-		ts, err := snapstate.Enable(s.state, instanceName)
+		ts, err := snapstate.Enable(s.state, naming.InstanceName(instanceName))
 		c.Assert(err, IsNil)
 		// need a change to make the tasks visible
 		s.state.NewChange("enable", "...").AddAll(ts)
@@ -6915,7 +6915,7 @@ func (s *snapmgrTestSuite) TestConflictChangeId(c *C) {
 			Current: snap.R(11),
 		})
 
-		ts, err := snapstate.Enable(s.state, name)
+		ts, err := snapstate.Enable(s.state, naming.InstanceName(name))
 		c.Assert(err, IsNil)
 
 		changes[i] = s.state.NewChange("enable", "...")

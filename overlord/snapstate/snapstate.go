@@ -2917,11 +2917,11 @@ func AddGadgetAssetsTasks(st *state.State, ts *state.TaskSet) (*state.TaskSet, e
 }
 
 // Enable sets a snap to the active state
-func Enable(st *state.State, name string) (*state.TaskSet, error) {
+func Enable(st *state.State, name naming.InstanceName) (*state.TaskSet, error) {
 	var snapst SnapState
-	err := Get(st, name, &snapst)
+	err := Get(st, name.String(), &snapst)
 	if errors.Is(err, state.ErrNoState) {
-		return nil, &snap.NotInstalledError{Snap: name}
+		return nil, &snap.NotInstalledError{Snap: name.String()}
 	}
 	if err != nil {
 		return nil, err
@@ -2931,7 +2931,7 @@ func Enable(st *state.State, name string) (*state.TaskSet, error) {
 		return nil, fmt.Errorf("snap %q already enabled", name)
 	}
 
-	if err := CheckChangeConflict(st, name, nil); err != nil {
+	if err := CheckChangeConflict(st, name.String(), nil); err != nil {
 		return nil, err
 	}
 
@@ -2973,11 +2973,11 @@ func Enable(st *state.State, name string) (*state.TaskSet, error) {
 }
 
 // Disable sets a snap to the inactive state
-func Disable(st *state.State, name string) (*state.TaskSet, error) {
+func Disable(st *state.State, name naming.InstanceName) (*state.TaskSet, error) {
 	var snapst SnapState
-	err := Get(st, name, &snapst)
+	err := Get(st, name.String(), &snapst)
 	if errors.Is(err, state.ErrNoState) {
-		return nil, &snap.NotInstalledError{Snap: name}
+		return nil, &snap.NotInstalledError{Snap: name.String()}
 	}
 	if err != nil {
 		return nil, err
@@ -2986,7 +2986,7 @@ func Disable(st *state.State, name string) (*state.TaskSet, error) {
 		return nil, fmt.Errorf("snap %q already disabled", name)
 	}
 
-	info, err := Info(st, name, snapst.Current)
+	info, err := Info(st, name.String(), snapst.Current)
 	if err != nil {
 		return nil, err
 	}
@@ -2994,13 +2994,13 @@ func Disable(st *state.State, name string) (*state.TaskSet, error) {
 		return nil, fmt.Errorf("snap %q cannot be disabled", name)
 	}
 
-	if err := CheckChangeConflict(st, name, nil); err != nil {
+	if err := CheckChangeConflict(st, name.String(), nil); err != nil {
 		return nil, err
 	}
 
 	snapsup := &SnapSetup{
 		SideInfo: &snap.SideInfo{
-			RealName: snap.InstanceSnap(name),
+			RealName: snap.InstanceSnap(name.String()),
 			Revision: snapst.Current,
 		},
 		Type:        info.Type(),
@@ -3595,9 +3595,9 @@ func validateSnapNames(names []string) error {
 
 // Revert returns a set of tasks for reverting to the previous version of the snap.
 // Note that the state must be locked by the caller.
-func Revert(st *state.State, name string, flags Flags, fromChange string) (*state.TaskSet, error) {
+func Revert(st *state.State, name naming.InstanceName, flags Flags, fromChange string) (*state.TaskSet, error) {
 	var snapst SnapState
-	err := Get(st, name, &snapst)
+	err := Get(st, name.String(), &snapst)
 	if err != nil && !errors.Is(err, state.ErrNoState) {
 		return nil, err
 	}
@@ -3610,7 +3610,7 @@ func Revert(st *state.State, name string, flags Flags, fromChange string) (*stat
 	return RevertToRevision(st, name, pi.Revision, flags, fromChange)
 }
 
-func RevertToRevision(st *state.State, name string, rev snap.Revision, flags Flags, fromChange string) (*state.TaskSet, error) {
+func RevertToRevision(st *state.State, name naming.InstanceName, rev snap.Revision, flags Flags, fromChange string) (*state.TaskSet, error) {
 	seedRefresh, err := seedRefreshEnabled(st)
 	if err != nil {
 		return nil, err
@@ -3660,9 +3660,9 @@ func RevertToRevision(st *state.State, name string, rev snap.Revision, flags Fla
 	return installTS.ts, nil
 }
 
-func revertToRevisionTaskSet(st *state.State, name string, rev snap.Revision, flags Flags, fromChange string, noRestartBoundaries bool) (snapInstallTaskSet, error) {
+func revertToRevisionTaskSet(st *state.State, name naming.InstanceName, rev snap.Revision, flags Flags, fromChange string, noRestartBoundaries bool) (snapInstallTaskSet, error) {
 	var snapst SnapState
-	err := Get(st, name, &snapst)
+	err := Get(st, name.String(), &snapst)
 	if err != nil && !errors.Is(err, state.ErrNoState) {
 		return snapInstallTaskSet{}, err
 	}
@@ -3694,7 +3694,7 @@ func revertToRevisionTaskSet(st *state.State, name string, rev snap.Revision, fl
 		}
 	}
 
-	info, err := Info(st, name, rev)
+	info, err := Info(st, name.String(), rev)
 	if err != nil {
 		return snapInstallTaskSet{}, err
 	}

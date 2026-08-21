@@ -55,6 +55,7 @@ import (
 	apparmor_sandbox "github.com/snapcore/snapd/sandbox/apparmor"
 	"github.com/snapcore/snapd/sandbox/cgroup"
 	"github.com/snapcore/snapd/snap"
+	"github.com/snapcore/snapd/snap/naming"
 	"github.com/snapcore/snapd/snap/quota"
 	"github.com/snapcore/snapd/snapdenv"
 	"github.com/snapcore/snapd/snapdtool"
@@ -4906,7 +4907,7 @@ var maybeRestoreValidationSetsAndRevertSnaps = func(st *state.State, refreshedSn
 		if verr.WrongRevisionSnaps[snapName] != nil {
 			// XXX: should we be extra paranoid and use RevertToRevision with
 			// the specific revision from verr.WrongRevisionSnaps?
-			ts, err := Revert(st, snapName, Flags{RevertStatus: NotBlocked}, fromChange)
+			ts, err := Revert(st, naming.InstanceName(snapName), Flags{RevertStatus: NotBlocked}, fromChange)
 			if err != nil {
 				return nil, fmt.Errorf("cannot revert snap %q: %v", snapName, err)
 			}

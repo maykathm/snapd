@@ -41,6 +41,7 @@ import (
 	"github.com/snapcore/snapd/overlord/snapstate"
 	"github.com/snapcore/snapd/overlord/state"
 	"github.com/snapcore/snapd/snap"
+	"github.com/snapcore/snapd/snap/naming"
 	"github.com/snapcore/snapd/testutil"
 )
 
@@ -227,7 +228,7 @@ func MockSnapstateSwitch(mock func(*state.State, string, *snapstate.RevisionOpti
 	}
 }
 
-func MockSnapstateRevert(mock func(*state.State, string, snapstate.Flags, string) (*state.TaskSet, error)) (restore func()) {
+func MockSnapstateRevert(mock func(*state.State, naming.InstanceName, snapstate.Flags, string) (*state.TaskSet, error)) (restore func()) {
 	oldSnapstateRevert := snapstateRevert
 	snapstateRevert = mock
 	return func() {
@@ -235,7 +236,7 @@ func MockSnapstateRevert(mock func(*state.State, string, snapstate.Flags, string
 	}
 }
 
-func MockSnapstateRevertToRevision(mock func(*state.State, string, snap.Revision, snapstate.Flags, string) (*state.TaskSet, error)) (restore func()) {
+func MockSnapstateRevertToRevision(mock func(*state.State, naming.InstanceName, snap.Revision, snapstate.Flags, string) (*state.TaskSet, error)) (restore func()) {
 	oldSnapstateRevertToRevision := snapstateRevertToRevision
 	snapstateRevertToRevision = mock
 	return func() {

@@ -15834,7 +15834,7 @@ func (s *snapmgrTestSuite) testRevertWithComponents(c *C, undo bool) {
 		InstanceKey:     instanceKey,
 	})
 
-	ts, err := snapstate.Revert(s.state, instanceName, snapstate.Flags{}, "")
+	ts, err := snapstate.Revert(s.state, naming.InstanceName(instanceName), snapstate.Flags{}, "")
 	c.Assert(err, IsNil)
 
 	chg := s.state.NewChange("revert", "revert a snap")
@@ -21703,7 +21703,7 @@ func (s *snapmgrTestSuite) testRevertSeedRefreshRunThrough(c *C, spec seedRefres
 
 	oldSideInfo, _ := setupSeedRefreshRevertSnapOfType(c, s.state, spec)
 
-	ts, err := snapstate.RevertToRevision(s.state, spec.name, oldSideInfo.Revision, snapstate.Flags{}, "")
+	ts, err := snapstate.RevertToRevision(s.state, naming.InstanceName(spec.name), oldSideInfo.Revision, snapstate.Flags{}, "")
 	c.Assert(err, IsNil)
 
 	chg := s.state.NewChange("revert", "revert a snap backwards")

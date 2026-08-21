@@ -700,10 +700,15 @@ func snapRevert(_ context.Context, inst *snapInstruction, st *state.State) (*sna
 		return nil, err
 	}
 
+	if err := naming.ValidateInstance(inst.Snaps[0]); err != nil {
+		return nil, fmt.Errorf("invalid snap name %q: %v", inst.Snaps[0], err)
+	}
+	instName := naming.InstanceName(inst.Snaps[0])
+
 	if inst.Revision.Unset() {
-		ts, err = snapstateRevert(st, inst.Snaps[0], flags, "")
+		ts, err = snapstateRevert(st, instName, flags, "")
 	} else {
-		ts, err = snapstateRevertToRevision(st, inst.Snaps[0], inst.Revision, flags, "")
+		ts, err = snapstateRevertToRevision(st, instName, inst.Revision, flags, "")
 	}
 	if err != nil {
 		return nil, err
@@ -721,7 +726,11 @@ func snapEnable(_ context.Context, inst *snapInstruction, st *state.State) (*sna
 	if !inst.Revision.Unset() {
 		return nil, errors.New("enable takes no revision")
 	}
-	ts, err := snapstate.Enable(st, inst.Snaps[0])
+	if err := naming.ValidateInstance(inst.Snaps[0]); err != nil {
+		return nil, fmt.Errorf("invalid snap name %q: %v", inst.Snaps[0], err)
+	}
+	instName := naming.InstanceName(inst.Snaps[0])
+	ts, err := snapstate.Enable(st, instName)
 	if err != nil {
 		return nil, err
 	}
@@ -738,7 +747,11 @@ func snapDisable(_ context.Context, inst *snapInstruction, st *state.State) (*sn
 	if !inst.Revision.Unset() {
 		return nil, errors.New("disable takes no revision")
 	}
-	ts, err := snapstate.Disable(st, inst.Snaps[0])
+	if err := naming.ValidateInstance(inst.Snaps[0]); err != nil {
+		return nil, fmt.Errorf("invalid snap name %q: %v", inst.Snaps[0], err)
+	}
+	instName := naming.InstanceName(inst.Snaps[0])
+	ts, err := snapstate.Disable(st, instName)
 	if err != nil {
 		return nil, err
 	}

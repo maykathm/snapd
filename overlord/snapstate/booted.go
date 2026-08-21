@@ -27,6 +27,7 @@ import (
 	"github.com/snapcore/snapd/overlord/state"
 	"github.com/snapcore/snapd/overlord/swfeats"
 	"github.com/snapcore/snapd/snap"
+	"github.com/snapcore/snapd/snap/naming"
 )
 
 var updateRevisionsChangeKind = swfeats.RegisterChangeKind("update-revisions")
@@ -76,7 +77,7 @@ func UpdateBootRevisions(st *state.State) error {
 			// FIXME: check that there is no task
 			//        for this already in progress
 			const noRestartBoundaries = false
-			installTS, err := revertToRevisionTaskSet(st, actual.SnapName().String(), actual.SnapRevision(), Flags{}, "", noRestartBoundaries)
+			installTS, err := revertToRevisionTaskSet(st, naming.NewInstanceName(actual.SnapName(), ""), actual.SnapRevision(), Flags{}, "", noRestartBoundaries)
 			if err != nil {
 				return err
 			}
