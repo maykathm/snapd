@@ -146,6 +146,137 @@ These functions are at input boundaries (HTTP, CLI) and SHOULD stay as `string` 
 
 ---
 
+## 🔧 TIER D: Subsystem-Specific Functions (Optional Improvements)
+
+Additional areas identified for comprehensive typing coverage.
+
+### overlord/hookstate - Hook Setup Functions
+
+**Location:** `overlord/hookstate/hooks.go`
+
+**Struct to type:**
+```go
+type HookSetup struct {
+    Snap        string  // ← Change to naming.InstanceName
+    Revision    snap.Revision
+    Hook        string
+    Optional    bool
+    IgnoreError bool
+    TrackError  bool
+    // ... other fields
+}
+```
+
+**Functions to update:**
+
+1. **SetupInstallHook(st, snapName string, rev, lane) *HookSetup** → `naming.InstanceName`
+2. **SetupPreRefreshHook(st, snapName string) *HookSetup** → `naming.InstanceName`
+3. **SetupPostRefreshHook(st, snapName string) *HookSetup** → `naming.InstanceName`
+4. **SetupRemoveHook(st, snapName string) *HookSetup** → `naming.InstanceName`
+5. **SetupConfigureHook(st, snapName string) *HookSetup** → `naming.InstanceName`
+6. **SetupCheckHealthHook(st, snapName string) *HookSetup** → `naming.InstanceName`
+7. **SetupGateAutoRefreshHook(st, snapName string, ...) *HookSetup** → `naming.InstanceName`
+8. **SetupFooHook** (various component hooks) - similar pattern
+
+**Estimated call sites:** ~40-50 across overlord packages
+
+**Impact:** ⭐⭐⭐ Medium-High - Hook operations are frequent throughout snap lifecycle
+
+**Why type this:**
+- Consistency with `Context.InstanceName()` (already typed in Patch 6)
+- Hook setup is per-instance (parallel installs need instance keys)
+- Eliminates string handling in task creation
+
+### overlord/servicestate - Service Control Functions
+
+**Location:** `overlord/servicestate/service_control.go`
+
+**Structs to type:**
+```go
+type ServiceAction struct {
+    SnapName string  // ← Change to naming.InstanceName
+    Action   string
+}
+
+type Instruction struct {
+    Action   string
+    Names    []string  // App names (keep as string)
+    // ... options
+}
+```
+
+**Functions to update:**
+
+1. **Service control handlers** that construct ServiceAction (~5 functions)
+2. **Instruction parsing** that extracts snap names from service specifications
+3. **Helper functions** in quota_handlers.go that take snap names
+
+**Estimated call sites:** ~15-20 in servicestate and snapstate
+
+**Impact:** ⭐⭐⭐ Medium - Service operations are common user operations
+
+**Why type this:**
+- Service names are based on security tags (which use instance names)
+- Prevents confusion between snap name and instance name in service ops
+- Aligns with systemd unit naming (snap.{instance}.{app}.service)
+
+### interfaces/udev - Udev Backend Functions
+
+**Location:** `interfaces/udev/backend.go`
+
+**Functions to update:**
+
+1. **snapRulesFilePath(snapName string) string** → accept `naming.InstanceName`
+   - Currently: `tag := snap.SecurityTag(naming.InstanceName(snapName))` (manual wrap)
+   - Should: Accept typed name directly, no wrapping needed
+
+2. **Internal helpers** for device cgroup paths (~2-3 functions)
+
+**Estimated call sites:** ~10-15 (mostly internal to udev backend)
+
+**Impact:** ⭐⭐ Low-Medium - Mostly internal consistency improvement
+
+**Why type this:**
+- Removes manual wrapping throughout udev backend
+- Consistency with other interface backends
+- Udev rules are per-instance (include instance key in paths)
+
+### sandbox/cgroup - Cgroup and RAA Functions
+
+**Location:** `sandbox/cgroup/process.go`, `sandbox/cgroup/scanning.go`
+
+**Functions to update:**
+
+1. **SnapNameFromPid(pid int) (string, error)** 
+   - Change return to: `(naming.InstanceName, error)`
+   - Purpose: Extract snap instance name from process cgroup
+   - Used for: RAA tracking, process management
+
+2. **PidsOfSnap(snapInstanceName string) (map[string][]int, error)**
+   - Change parameter to: `naming.InstanceName`
+   - Purpose: Get all PIDs for a snap instance grouped by security tag
+   - Used for: Service control, refresh tracking
+
+3. **SnapNameInCgroup(pid int, snapName string) (bool, error)**
+   - Change parameter to: `naming.InstanceName`
+   - Purpose: Check if PID belongs to given snap instance
+   - Used for: Process validation
+
+4. **Related RAA tracking functions** (~5-10 more functions)
+
+**Estimated call sites:** ~20-30 across overlord/snapstate and overlord/servicestate
+
+**Impact:** ⭐⭐⭐ Medium - RAA (Refresh App Awareness) is important for UX
+
+**Why type this:**
+- Cgroups track processes per-instance (not per-snap)
+- RAA needs accurate instance tracking for parallel installs
+- Prevents bugs in "which apps are running" detection during refresh
+
+**Note:** `SecurityTagFromCgroupPath()` already returns typed `naming.SecurityTag` - good example to follow
+
+---
+
 ## Special Cases
 
 ### Functions With "snapName" vs "instanceName" Ambiguity
@@ -200,6 +331,27 @@ ts, err := snapstate.Install(ctx, st, snapst.InstanceName(), opts, userID, flags
 // No more .String() conversions!
 ```
 
+**Subsystem typing pattern:**
+```go
+// Before (hookstate)
+hookSetup := &HookSetup{
+    Snap: snapst.InstanceName().String(),  // Unnecessary conversion
+    Hook: "install",
+}
+
+// After
+hookSetup := &HookSetup{
+    Snap: snapst.InstanceName(),  // Direct typed value
+    Hook: "install",
+}
+
+// Before (cgroups)
+pids, err := cgroup.PidsOfSnap(info.InstanceName().String())
+
+// After
+pids, err := cgroup.PidsOfSnap(info.InstanceName())
+```
+
 ### Phase 2: Utility Functions (Tier A)
 **Estimated effort:** 1-2 days
 **Call sites:** ~50-100
@@ -209,12 +361,28 @@ Type snap package utilities:
 - SplitSnapComponentInstanceName, SplitSnapInstanceAndComponents
 - Additional snapstate operations
 
-### Phase 3: Internal Helpers (Tier B) - Optional
+### Phase 3: Subsystem-Specific Functions (Tier D) - Optional
+**Estimated effort:** 2-3 days
+**Call sites:** ~85-115 total
+
+Type subsystem-specific functions for comprehensive coverage:
+- HookSetup struct + hook setup functions (~40-50 sites)
+- ServiceAction struct + service control (~15-20 sites)
+- Udev backend internal helpers (~10-15 sites)
+- Cgroup/RAA public API (~20-30 sites)
+
+**Benefits:**
+- Consistency across all snap name/instance name handling
+- Prevents bugs in parallel install scenarios
+- Improves process tracking accuracy (RAA)
+- Cleaner hook and service operation code
+
+### Phase 4: Internal Helpers (Tier B) - Optional
 **Estimated effort:** 1-2 days
 **Call sites:** ~50-100
 
-Type internal functions for consistency.
-Only if pursuing exhaustive typing.
+Type remaining internal functions for exhaustive consistency.
+Only if pursuing complete coverage.
 
 ---
 
@@ -372,3 +540,99 @@ Type the 14 core snapstate functions. This gives you:
 **After Tier S:** Evaluate if Tier A utilities are worth typing, or if you're satisfied with coverage.
 
 The Tier S functions are the "waist" of the system - everything flows through them. Typing them provides the most bang for your buck.
+
+---
+
+## Coverage Summary
+
+### Already Typed (Completed Work)
+✅ **Core Types & Helpers** (Patches 1-3)
+- naming.SnapName, naming.InstanceName types
+- Filesystem path helpers (BaseDir, MountDir, DataDir, etc.)
+- Security tags (AppSecurityTag, HookSecurityTag, etc.)
+- Snap/app helpers (JoinSnapApp, SplitSnapApp)
+
+✅ **Interface Layer** (Patch 4)
+- interfaces.SnapAppSet.InstanceName()
+- Interface backend call sites
+
+✅ **State Managers** (Patches 5-7)
+- snapstate.SnapSetup/SnapState accessors
+- hookstate.Context.InstanceName()
+- ifacestate type aliases
+
+✅ **Core Interfaces** (Patch N)
+- PlaceInfo.InstanceName() / SnapName()
+- naming.SnapRef.SnapName()
+- All implementers (snap.Info, SeedSnap, etc.)
+
+✅ **Key Subsystems Verified**
+- snap.Info methods (SnapInfo helpers)
+- snap/snapenv package
+- Layout expansion (ExpandSnapVariables)
+- snapctl (via context abstraction)
+
+### High-Value Remaining Work
+
+🎯 **Tier S: Core APIs** (~150-200 sites, 2-3 days)
+- Install, Update, Remove, Enable, Disable
+- Info, CurrentInfo, Get, Set
+- Revert, RevertToRevision, Switch
+
+📦 **Tier 1: Entry Point Structs** (~158 sites, 2-3 hours)
+- PathSnap.InstanceName
+- StoreSnap.InstanceName
+- StoreUpdate.InstanceName
+
+### Optional Improvement Work
+
+🔧 **Tier D: Subsystems** (~85-115 sites, 2-3 days)
+- HookSetup.Snap field (~40-50 sites)
+- ServiceAction.SnapName field (~15-20 sites)
+- Udev internal helpers (~10-15 sites)
+- Cgroup/RAA public API (~20-30 sites)
+
+📊 **Tier 2-4: Store/Display/Seed** (~50-100 sites, 2-4 hours)
+- Store API structs (CurrentSnap, SnapAction)
+- Display/response structs
+- Seed refresh structures
+
+**Total Potential:** ~450-600 additional call sites for comprehensive coverage
+**High-Value Core:** ~300-350 call sites (Tier S + Tier 1 + Tier D)
+
+### Subsystem Status Matrix
+
+| Subsystem | Location | Status | Remaining Work |
+|-----------|----------|--------|----------------|
+| SnapInfo helpers | snap/info.go | ✅ Complete | None |
+| snapenv | snap/snapenv | ✅ Complete | None |
+| SnapExpandVariables | snap/info.go | ✅ Complete | None |
+| Layouts | snap/validate.go | ✅ Complete | None |
+| snapctl | cmd/snapctl | ✅ Complete | None |
+| **Core APIs** | overlord/snapstate | ⚠️ Ready | Type 14 main functions |
+| **Entry Structs** | overlord/snapstate/target.go | ⚠️ Ready | Type 4 struct fields |
+| **Hooks** | overlord/hookstate | ⚠️ Partial | Type HookSetup.Snap |
+| **Services** | overlord/servicestate | ⚠️ Partial | Type ServiceAction.SnapName |
+| **Udev** | interfaces/udev | ⚠️ Partial | Type internal helpers |
+| **Cgroups/RAA** | sandbox/cgroup | ⚠️ Partial | Type public API |
+| Store API | store/store_action.go | 🔲 Untyped | Type CurrentSnap, SnapAction |
+| Display/Response | daemon/response.go | 🔲 Untyped | Optional - low priority |
+
+**Legend:**
+- ✅ Complete: Fully typed, no further work needed
+- ⚠️ Partial: Core typed, additional opportunities available
+- ⚠️ Ready: Identified and ready to type
+- 🔲 Untyped: Not yet addressed, optional
+
+---
+
+## Strategic Recommendation
+
+For **maximum impact with reasonable effort**, execute in this order:
+
+1. **Tier S (Core APIs)** - Mandatory for type safety at system waist
+2. **Tier 1 (Entry Structs)** - High value, relatively quick wins
+3. **Tier D (Subsystems)** - Optional but good for consistency
+4. **Everything else** - Only if pursuing exhaustive coverage
+
+After Tier S + Tier 1, you'll have typed the most critical ~300-350 call sites and achieved excellent practical coverage of the naming system.

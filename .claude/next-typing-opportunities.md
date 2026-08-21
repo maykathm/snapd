@@ -170,7 +170,119 @@ These are mostly for JSON serialization, display, or logging. Lower priority bec
 
 ---
 
-## Tier 5: Internal Helper Functions (LOWEST VALUE) 🔧
+## Tier 5: Subsystem-Specific Structs and Functions 🔧
+
+These are additional areas that could benefit from typing but were not part of the initial refactoring.
+
+### 5a. Hooks - HookSetup Struct (`overlord/hookstate`)
+
+**Location:** `overlord/hookstate/hookmgr.go:88-111`
+
+```go
+type HookSetup struct {
+    Snap        string  // ← Should be naming.InstanceName
+    Revision    snap.Revision
+    Hook        string
+    Optional    bool
+    IgnoreError bool
+    TrackError  bool
+    // ... other fields
+}
+```
+
+**Functions to update (~10-15):**
+- `SetupInstallHook(st *state.State, snapName string, rev snap.Revision, lane int) *HookSetup`
+- `SetupPreRefreshHook(st *state.State, snapName string) *HookSetup`
+- `SetupPostRefreshHook(st *state.State, snapName string) *HookSetup`
+- `SetupRemoveHook(st *state.State, snapName string) *HookSetup`
+- `SetupConfigureHook(st *state.State, snapName string) *HookSetup`
+- `SetupCheckHealthHook(st *state.State, snapName string) *HookSetup`
+- `SetupGateAutoRefreshHook(st *state.State, snapName string, ...) *HookSetup`
+- Similar functions for component hooks
+
+**Call sites:** ~40-50 across overlord packages
+
+**Value:** Medium - Hook operations are frequent; typing provides consistency with Context.InstanceName()
+
+### 5b. Service Control - ServiceAction Struct (`overlord/servicestate`)
+
+**Location:** `overlord/servicestate/service_control.go:40`
+
+```go
+type ServiceAction struct {
+    SnapName string  // ← Should be naming.InstanceName
+    Action   string  // "start", "stop", "restart", "reload"
+}
+
+type Instruction struct {
+    Action   string
+    Names    []string  // App names to control
+    StartOptions *StartOptions
+    StopOptions  *StopOptions
+    RestartOptions *RestartOptions
+}
+```
+
+**Functions to update (~5-10):**
+- Service control handlers that construct ServiceAction
+- Instruction parsing that extracts snap names from service names
+- Helper functions in `overlord/servicestate/quota_handlers.go`
+
+**Call sites:** ~15-20 in servicestate and snapstate
+
+**Value:** Medium - Service operations are common; prevents snap/instance name confusion
+
+### 5c. Udev Rules - Internal Helpers (`interfaces/udev`)
+
+**Location:** `interfaces/udev/backend.go`
+
+Current pattern requires manual wrapping:
+```go
+// Line 93 - manual wrapping
+func snapRulesFilePath(snapName string) string {
+    tag := snap.SecurityTag(naming.InstanceName(snapName))
+    // ...
+}
+```
+
+**Functions to update (~3-5):**
+- `snapRulesFilePath(snapName string) string` → accept `naming.InstanceName`
+- Internal helpers that construct device cgroup paths
+- Rule file path generation functions
+
+**Call sites:** ~10-15 (mostly internal to udev backend)
+
+**Value:** Low-Medium - Mostly internal consistency; removes manual wrapping
+
+### 5d. Cgroups and RAA Tracking - Public API (`sandbox/cgroup`)
+
+**Location:** `sandbox/cgroup/process.go`, `sandbox/cgroup/scanning.go`
+
+```go
+// Currently returns string, could return naming.InstanceName
+func SnapNameFromPid(pid int) (string, error)
+
+// Currently takes string, could take naming.InstanceName  
+func PidsOfSnap(snapInstanceName string) (map[string][]int, error)
+
+// Already properly typed - good example
+func SecurityTagFromCgroupPath(path string) naming.SecurityTag
+```
+
+**Functions to update (~10-15):**
+- `SnapNameFromPid(pid int)` → return `(naming.InstanceName, error)`
+- `PidsOfSnap(snapInstanceName string)` → accept `naming.InstanceName`
+- `SnapNameInCgroup(pid int, snapName string)` → accept `naming.InstanceName`
+- Related RAA tracking functions
+- Helper functions in process/cgroup scanning
+
+**Call sites:** ~20-30 across overlord/snapstate and overlord/servicestate
+
+**Value:** Medium - RAA (Refresh App Awareness) is important for smooth refreshes; typing helps prevent process tracking bugs
+
+---
+
+## Tier 6: Internal Helper Functions (LOWEST VALUE) 🛠️
 
 Many internal functions still take `string` parameters:
 ```go
@@ -208,7 +320,11 @@ This gives you the most value with reasonable effort (~158 call sites, mostly me
 ### Consider Later (Diminishing returns):
 - Tier 3: Seed operations
 - Tier 4: Display/response structs
-- Tier 5: Internal helpers (probably not worth it)
+- Tier 5a: Hooks - HookSetup struct (~40-50 call sites)
+- Tier 5b: Service control - ServiceAction struct (~15-20 call sites)
+- Tier 5c: Udev rules - internal helpers (~10-15 call sites)
+- Tier 5d: Cgroups/RAA - public API (~20-30 call sites)
+- Tier 6: Internal helpers (probably not worth it)
 
 ---
 

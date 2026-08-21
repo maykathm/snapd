@@ -421,19 +421,196 @@ so removal is not appropriate. Deprecation notices would be optional.
 - [x] Patch N+1: Boundary constructor conversions
 - [x] Patch N+2: Eliminate redundant type conversions
 - [ ] Patch N+3: Add deprecation notices (optional)
-- [ ] Patch N+2: Deprecate old string helpers
-- [x] Patch 3: Snap/app + security-tag helpers
-- [x] Patch 4: `interfaces.SnapAppSet.InstanceName()` typed return
-- [x] Patch 5: `overlord/snapstate` accessors (`SnapSetup`, `SnapState`) - **split into 3 commits**
-  - [x] 5a: Type accessors + fix autorefresh, component, conflict (66 lines)
-  - [x] 5b: Fix all call sites across overlord managers (730 lines, 24 files)
-  - [x] 5c: Fix test files (130 lines, 13 test files)
-- [x] Patch 6: `overlord/hookstate` accessor (`Context.InstanceName()`) - 37 files, ~250 call sites, ~70 test fixes
-- [x] Patch 7: `overlord/ifacestate` type aliases (triggeringSnap, affectedSnap)
-- [x] Patches 8-10: Surveyed remaining managers - no local accessors found
-- [~] Patch N: Central `PlaceInfo` interface - WIP (46 files, ~230 insertions, does not compile yet)
-- [ ] Patch N+1: Boundary constructor conversions
-- [ ] Patch N+2: Deprecate old string helpers
+
+---
+
+## Coverage Analysis: Key Subsystems
+
+This section documents the typing status of major snapd subsystems to ensure comprehensive coverage.
+
+### ✅ Fully Typed Subsystems (No Further Work Needed)
+
+#### 1. SnapInfo Helpers (`snap/info.go`)
+**Status:** Complete
+
+The `snap.Info` struct is the central type representing a snap. All naming-related methods are properly typed:
+- `InstanceName() naming.InstanceName` - Returns instance name with optional key
+- `SnapName() naming.SnapName` - Returns the global snap name without instance key
+- `ExpandSnapVariables(path string) string` - Uses typed names internally for variable expansion
+
+**Evidence:** ~44 uses of naming types in info.go. All PlaceInfo implementers return typed names.
+
+#### 2. snapctl (`cmd/snapctl`)
+**Status:** Complete (no direct work needed)
+
+snapctl is a thin wrapper that routes commands to snapd via socket. It doesn't directly manipulate snap names:
+- Gets context from environment variables (`SNAP_COOKIE`, `SNAP_CONTEXT`)
+- Passes context ID to snapd for resolution
+- Actual name handling is in `hookstate.Context` which already returns typed `naming.InstanceName`
+
+#### 3. SnapExpandVariables (`snap/info.go:808-855`)
+**Status:** Complete
+
+Two related functions expand snap-specific environment variables:
+- `ExpandSnapVariables(path string)` - Simple version using defaults
+- `ExpandSnapVariablesSetSnapMountDir(path, snapMountDir, expandFor)` - Advanced version
+
+**Behavior:**
+- Expands `$SNAP`, `$SNAP_DATA`, `$SNAP_COMMON` in paths
+- Has two perspectives: `PerspectiveSelf` (snap name) vs `PerspectiveOther` (instance name)
+- Used in layout validation, interface specs (apparmor, mount), and interface implementations
+- Internally uses typed `naming.InstanceName` correctly
+
+#### 4. snapenv Package (`snap/snapenv`)
+**Status:** Complete
+
+Generates environment variables for snap execution (SNAP_NAME, SNAP_INSTANCE_NAME, SNAP_DATA, etc.):
+- `ExtendEnvForRun()` - Main entry point for setting environment
+- `basicEnv()` - Sets core snap environment variables
+- Uses `info.SnapName()` and `info.InstanceName()` throughout
+- Correctly distinguishes between SNAP_NAME (snap name) and SNAP_INSTANCE_NAME (instance name)
+
+#### 5. Layouts (`snap/info.go:470-510`, `snap/validate.go`)
+**Status:** Complete (indirect typing)
+
+Layouts allow snaps to make files/directories appear in specific locations:
+- `Layout` struct has `Snap *Info` reference
+- Validation uses `info.ExpandSnapVariables(layout.Path)`
+- Mount/apparmor specs use typed instance names via parent `snap.Info`
+- No direct name handling - all access goes through typed `Info.InstanceName()` / `Info.SnapName()`
+
+### ⚠️ Partially Typed Subsystems (Additional Work Available)
+
+#### 6. Hooks (`overlord/hookstate`)
+**What it does:** Manages hook execution, coordinates hook lifecycle, maintains hook context.
+
+**Current status:**
+- ✅ `Context.InstanceName()` returns typed `naming.InstanceName` (completed in Patch 6)
+- ❌ `HookSetup.Snap` field is still `string` (should be `naming.InstanceName`)
+- ❌ Hook setup functions accept `string` for snap names
+
+**Key structures:**
+```go
+type HookSetup struct {
+    Snap        string  // ← Should be naming.InstanceName
+    Revision    snap.Revision
+    Hook        string
+    Optional    bool
+    // ... other fields
+}
+```
+
+**Functions needing updates:**
+- `SetupInstallHook(st, snapName string, rev, lane) *HookSetup`
+- `SetupPreRefreshHook(st, snapName string) *HookSetup`
+- `SetupPostRefreshHook(st, snapName string) *HookSetup`
+- `SetupRemoveHook(st, snapName string) *HookSetup`
+- Similar functions for configure, check-health, gate-auto-refresh hooks
+
+**Scope:** ~10-15 function signatures in `overlord/hookstate/hooks.go`
+
+**Value:** Medium - Eliminates string handling in hook task creation, provides type safety for all hook operations.
+
+#### 7. Service Control (`overlord/servicestate`, `wrappers`)
+**What it does:** Manages systemd service lifecycle (start/stop/restart) for snap applications.
+
+**Current status:**
+- ✅ Service names use typed instance names via `AppInfo.SecurityTag()`
+- ✅ Systemd unit names correctly derived from typed security tags
+- ❌ `ServiceAction.SnapName` field is still `string` (should be `naming.InstanceName`)
+
+**Key structures:**
+```go
+type ServiceAction struct {
+    SnapName string  // ← Should be naming.InstanceName
+    Action   string  // "start", "stop", "restart", etc.
+}
+
+type Instruction struct {
+    Action   string
+    Names    []string
+    StartOptions *StartOptions
+    StopOptions  *StopOptions
+    RestartOptions *RestartOptions
+}
+```
+
+**Functions needing updates:**
+- Service control handlers in `overlord/servicestate/service_control.go`
+- Instruction parsing that extracts snap names
+
+**Scope:** ~5-10 affected functions
+
+**Value:** Medium - Service operations are frequent; typing prevents name/instance confusion.
+
+#### 8. Udev Rules (`interfaces/udev`)
+**What it does:** Manages udev rules and device cgroup policies for snap device access.
+
+**Current status:**
+- ⚠️ Functions take `string` for snap names, manually wrap in `naming.InstanceName()`
+- Backend.Setup() receives typed `appSet.InstanceName()` but casts back to string
+
+**Key patterns:**
+```go
+// Current pattern (backend.go:93)
+tag := snap.SecurityTag(naming.InstanceName(snapName))
+// Could be simplified if snapName parameter was typed
+```
+
+**Functions needing updates:**
+- `snapRulesFilePath(snapName string) string` - internal helper
+- Other internal helpers that construct udev rule paths
+
+**Scope:** ~3-5 internal function signatures
+
+**Value:** Low - Mostly internal, but improves consistency and removes manual wrapping.
+
+#### 9. Cgroups and RAA Tracking (`sandbox/cgroup`)
+**What it does:**
+- **Cgroups:** Track snap processes via systemd cgroup hierarchy
+- **RAA (Refresh App Awareness):** Experimental feature to track running apps during snap refresh
+
+**Current status:**
+- ⚠️ Uses `naming.SecurityTag` internally (which embeds typed names)
+- ❌ Public API returns/accepts `string` for snap names
+- ✅ SecurityTag parsing uses `naming.ParseSecurityTag()` correctly
+
+**Key functions:**
+```go
+// Returns string, could return naming.InstanceName
+func SnapNameFromPid(pid int) (string, error)
+
+// Takes string, could take naming.InstanceName
+func PidsOfSnap(snapInstanceName string) (map[string][]int, error)
+
+// Properly typed - returns naming.SecurityTag
+func SecurityTagFromCgroupPath(path string) naming.SecurityTag
+```
+
+**Functions needing updates:**
+- `SnapNameFromPid(pid int)` → return `naming.InstanceName`
+- `PidsOfSnap(snapInstanceName string)` → accept `naming.InstanceName`
+- Related helper functions in scanning/tracking
+
+**Scope:** ~10-15 functions in `sandbox/cgroup/`
+
+**Value:** Medium - RAA is important for smooth refreshes; typing helps prevent bugs in process tracking.
+
+### Summary Table
+
+| Subsystem | Location | Status | Work Needed | Scope | Priority |
+|-----------|----------|--------|-------------|-------|----------|
+| SnapInfo helpers | `snap/info.go` | ✅ Complete | None | N/A | N/A |
+| snapctl | `cmd/snapctl` | ✅ Complete | None | N/A | N/A |
+| SnapExpandVariables | `snap/info.go` | ✅ Complete | None | N/A | N/A |
+| snapenv | `snap/snapenv` | ✅ Complete | None | N/A | N/A |
+| Layouts | `snap/` | ✅ Complete | None | N/A | N/A |
+| **Hooks** | `overlord/hookstate` | ⚠️ Partial | Type HookSetup.Snap field | ~10-15 funcs | Medium |
+| **Service control** | `overlord/servicestate` | ⚠️ Partial | Type ServiceAction.SnapName | ~5-10 funcs | Medium |
+| **Udev rules** | `interfaces/udev` | ⚠️ Partial | Type internal helpers | ~3-5 funcs | Low |
+| **Cgroups/RAA** | `sandbox/cgroup` | ⚠️ Partial | Type public API | ~10-15 funcs | Medium |
+
+**Total remaining work:** ~28-45 function signatures across 4 subsystems (all optional improvements)
 
 ---
 
