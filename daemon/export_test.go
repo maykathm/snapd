@@ -244,7 +244,7 @@ func MockSnapstateRevertToRevision(mock func(*state.State, naming.InstanceName, 
 	}
 }
 
-func MockSnapstateRemove(mock func(st *state.State, name string, revision snap.Revision, flags *snapstate.RemoveFlags) (*state.TaskSet, error)) (restore func()) {
+func MockSnapstateRemove(mock func(st *state.State, name naming.InstanceName, revision snap.Revision, flags *snapstate.RemoveFlags) (*state.TaskSet, error)) (restore func()) {
 	oldSnapstateRemove := snapstateRemove
 	snapstateRemove = mock
 	return func() {

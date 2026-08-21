@@ -661,8 +661,12 @@ func snapRemove(_ context.Context, inst *snapInstruction, st *state.State) (*sna
 }
 
 func removeSnap(inst *snapInstruction, st *state.State) (*snapInstructionResult, error) {
+	if err := naming.ValidateInstance(inst.Snaps[0]); err != nil {
+		return nil, fmt.Errorf("invalid snap name %q: %v", inst.Snaps[0], err)
+	}
+	instName := naming.InstanceName(inst.Snaps[0])
 	flags := &snapstate.RemoveFlags{Purge: inst.Purge, Terminate: inst.Terminate}
-	ts, err := snapstateRemove(st, inst.Snaps[0], inst.Revision, flags)
+	ts, err := snapstateRemove(st, instName, inst.Revision, flags)
 	if err != nil {
 		return nil, err
 	}

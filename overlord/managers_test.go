@@ -3269,7 +3269,7 @@ func (s *mgrsSuite) installLocalTestSnap(c *C, snapYamlContent string) *snap.Inf
 func (s *mgrsSuite) removeSnap(c *C, name string) {
 	st := s.o.State()
 
-	ts, err := snapstate.Remove(st, name, snap.R(0), &snapstate.RemoveFlags{Purge: true})
+	ts, err := snapstate.Remove(st, naming.InstanceName(name), snap.R(0), &snapstate.RemoveFlags{Purge: true})
 	c.Assert(err, IsNil)
 	chg := st.NewChange("remove-snap", "...")
 	chg.AddAll(ts)
@@ -4909,7 +4909,7 @@ func (s *mgrsSuite) testUpdateWithAutoconnectRetry(c *C, updateSnapName, removeS
 	chg.AddAll(ts)
 
 	// remove other-snap
-	ts2, err := snapstate.Remove(st, removeSnapName, snap.R(0), &snapstate.RemoveFlags{Purge: true})
+	ts2, err := snapstate.Remove(st, naming.InstanceName(removeSnapName), snap.R(0), &snapstate.RemoveFlags{Purge: true})
 	c.Assert(err, IsNil)
 	chg2 := st.NewChange("remove-snap", "...")
 	chg2.AddAll(ts2)

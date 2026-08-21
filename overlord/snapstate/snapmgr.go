@@ -1192,7 +1192,7 @@ func (m *SnapManager) ensureVulnerableSnapRemoved(name string) error {
 
 	// remove all the inactive vulnerable revisions
 	for _, rev := range inactiveVulnRevisions {
-		tss, err := Remove(m.state, name, rev, nil)
+		tss, err := Remove(m.state, naming.InstanceName(name), rev, nil)
 
 		if err != nil {
 			// in case of conflict, just trigger another ensure in a little

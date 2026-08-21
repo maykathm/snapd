@@ -3103,7 +3103,7 @@ type RemoveFlags struct {
 
 // Remove returns a set of tasks for removing snap.
 // Note that the state must be locked by the caller.
-func Remove(st *state.State, name string, revision snap.Revision, flags *RemoveFlags) (*state.TaskSet, error) {
+func Remove(st *state.State, name naming.InstanceName, revision snap.Revision, flags *RemoveFlags) (*state.TaskSet, error) {
 	if flags == nil {
 		flags = &RemoveFlags{}
 	}
@@ -3113,12 +3113,12 @@ func Remove(st *state.State, name string, revision snap.Revision, flags *RemoveF
 	}
 
 	var snapst SnapState
-	if err := Get(st, name, &snapst); err != nil && !errors.Is(err, state.ErrNoState) {
+	if err := Get(st, name.String(), &snapst); err != nil && !errors.Is(err, state.ErrNoState) {
 		return nil, err
 	}
 
 	if !snapst.IsInstalled() {
-		return nil, &snap.NotInstalledError{Snap: name, Rev: snap.R(0)}
+		return nil, &snap.NotInstalledError{Snap: name.String(), Rev: snap.R(0)}
 	}
 
 	removals := map[string]bool{snapst.InstanceName().String(): true}
@@ -3132,7 +3132,7 @@ func Remove(st *state.State, name string, revision snap.Revision, flags *RemoveF
 			if _, ok := err.(*osutil.NotEnoughDiskSpaceError); ok {
 				return nil, &InsufficientSpaceError{
 					Path:       path,
-					Snaps:      []string{name},
+					Snaps:      []string{name.String()},
 					ChangeKind: "remove",
 					Message:    fmt.Sprintf("cannot create automatic snapshot when removing last revision of the snap: %v", err)}
 			}
@@ -3807,7 +3807,7 @@ func TransitionCore(st *state.State, oldName, newName string) ([]*state.TaskSet,
 	})
 
 	// then remove the old snap
-	tsRm, err := Remove(st, oldName, snap.R(0), nil)
+	tsRm, err := Remove(st, naming.InstanceName(oldName), snap.R(0), nil)
 	if err != nil {
 		return nil, err
 	}

@@ -550,9 +550,9 @@ func (s *snapsSuite) TestPostSnapsRemoveWithTerminate(c *check.C) {
 	d := s.daemonWithOverlordMockAndStore()
 
 	var snapstateRemoveCalled int
-	defer daemon.MockSnapstateRemove(func(st *state.State, name string, revision snap.Revision, flags *snapstate.RemoveFlags) (*state.TaskSet, error) {
+	defer daemon.MockSnapstateRemove(func(st *state.State, name naming.InstanceName, revision snap.Revision, flags *snapstate.RemoveFlags) (*state.TaskSet, error) {
 		snapstateRemoveCalled++
-		c.Check(name, check.Equals, "foo")
+		c.Check(name.String(), check.Equals, "foo")
 		c.Check(flags.Terminate, check.Equals, true)
 		t := st.NewTask("fake-remove", "Remove one")
 		return state.NewTaskSet(t), nil
@@ -2192,8 +2192,8 @@ func (s *snapsSuite) TestPostSnapTerminateWrongAction(c *check.C) {
 func (s *snapsSuite) TestPostSnapTerminateWithRevisionSet(c *check.C) {
 	s.daemonWithOverlordMock()
 
-	defer daemon.MockSnapstateRemove(func(st *state.State, name string, revision snap.Revision, flags *snapstate.RemoveFlags) (*state.TaskSet, error) {
-		c.Check(name, check.Equals, "some-snap")
+	defer daemon.MockSnapstateRemove(func(st *state.State, name naming.InstanceName, revision snap.Revision, flags *snapstate.RemoveFlags) (*state.TaskSet, error) {
+		c.Check(name.String(), check.Equals, "some-snap")
 		c.Check(flags.Terminate, check.Equals, true)
 		t := st.NewTask("fake-remove", "Remove one")
 		return state.NewTaskSet(t), nil

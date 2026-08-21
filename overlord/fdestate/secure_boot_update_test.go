@@ -436,7 +436,7 @@ func (s *fdeMgrSuite) testEFISecurebootPrepareConflictSnapChangesForKind(
 	})
 
 	chg := st.NewChange("kernel-snap-remove", "...")
-	rmTasks, err := snapstate.Remove(st, model.Kernel(), snap.R(1), nil)
+	rmTasks, err := snapstate.Remove(st, naming.InstanceName(model.Kernel()), snap.R(1), nil)
 	c.Assert(err, IsNil)
 	c.Assert(rmTasks, NotNil)
 	chg.AddAll(rmTasks)
