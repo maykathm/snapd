@@ -37,6 +37,7 @@ import (
 	"github.com/snapcore/snapd/overlord/state"
 	"github.com/snapcore/snapd/overlord/swfeats"
 	"github.com/snapcore/snapd/snap/channel"
+	"github.com/snapcore/snapd/snap/naming"
 	"github.com/snapcore/snapd/store"
 	"github.com/snapcore/snapd/strutil"
 )
@@ -219,12 +220,12 @@ func installThemes(c *Command, r *http.Request, user *auth.UserState) Response {
 	toInstall := make([]snapstate.StoreSnap, 0, len(candidateSnaps))
 	for pkg := range candidateSnaps {
 		toInstall = append(toInstall, snapstate.StoreSnap{
-			InstanceName: pkg,
+			InstanceName: naming.InstanceName(pkg),
 		})
 	}
 
 	sort.Slice(toInstall, func(i, j int) bool {
-		return toInstall[i].InstanceName < toInstall[j].InstanceName
+		return toInstall[i].InstanceName.String() < toInstall[j].InstanceName.String()
 	})
 
 	st := c.d.overlord.State()

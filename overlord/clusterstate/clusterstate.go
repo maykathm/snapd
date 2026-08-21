@@ -31,6 +31,7 @@ import (
 	"github.com/snapcore/snapd/overlord/devicestate"
 	"github.com/snapcore/snapd/overlord/snapstate"
 	"github.com/snapcore/snapd/overlord/state"
+	"github.com/snapcore/snapd/snap/naming"
 )
 
 var (
@@ -350,7 +351,7 @@ func snapsForSubcluster(
 			}
 
 			ss := snapstate.StoreSnap{
-				InstanceName:  sn.Instance,
+				InstanceName:  naming.InstanceName(sn.Instance),
 				SkipIfPresent: true,
 				RevOpts: snapstate.RevisionOptions{
 					Channel: sn.Channel,

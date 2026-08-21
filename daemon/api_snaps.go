@@ -984,7 +984,7 @@ func installationTaskSets(ctx context.Context, st *state.State, inst *snapInstru
 		if !snapst.IsInstalled() {
 			installedSnaps = append(installedSnaps, name)
 			snaps = append(snaps, snapstate.StoreSnap{
-				InstanceName: name,
+				InstanceName: naming.InstanceName(name),
 				Components:   comps,
 				RevOpts:      revOpts,
 			})

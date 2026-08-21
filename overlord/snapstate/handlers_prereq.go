@@ -32,6 +32,7 @@ import (
 	"github.com/snapcore/snapd/overlord/state"
 	"github.com/snapcore/snapd/release"
 	"github.com/snapcore/snapd/snap"
+	"github.com/snapcore/snapd/snap/naming"
 	"github.com/snapcore/snapd/timings"
 	"gopkg.in/tomb.v2"
 )
@@ -196,7 +197,7 @@ func installPrereqs(t *state.Task, snapsup *SnapSetup, dctx DeviceContext, tm ti
 		var ts *state.TaskSet
 		timings.Run(tm, "install-prereq", fmt.Sprintf("install %q", prereqName), func(timings.Measurer) {
 			ts, err = ensurePrerequisite(t, contentAttrs, StoreSnap{
-				InstanceName: prereqName,
+				InstanceName: naming.InstanceName(prereqName),
 				RevOpts: RevisionOptions{
 					Channel: defaultPrereqSnapsChannel(),
 				},
@@ -219,7 +220,7 @@ func installPrereqs(t *state.Task, snapsup *SnapSetup, dctx DeviceContext, tm ti
 
 		timings.Run(tm, "install-prereq", fmt.Sprintf("install base %q", base), func(timings.Measurer) {
 			baseTS, err = ensurePrerequisite(t, nil, StoreSnap{
-				InstanceName: base,
+				InstanceName: naming.InstanceName(base),
 				RevOpts: RevisionOptions{
 					Channel: defaultBaseSnapsChannel(),
 				},
@@ -469,7 +470,7 @@ func ensurePrerequisite(t *state.Task, contentAttrs []string, sn StoreSnap, opts
 	}
 
 	// check for an existing link-snap task before creating prerequisite tasks.
-	action, err := checkForInFlightPrereqTasks(t, sn.InstanceName, opts.Flags.RequireTypeBase)
+	action, err := checkForInFlightPrereqTasks(t, sn.InstanceName.String(), opts.Flags.RequireTypeBase)
 	if err != nil {
 		return nil, err
 	}
@@ -480,7 +481,7 @@ func ensurePrerequisite(t *state.Task, contentAttrs []string, sn StoreSnap, opts
 		return nil, &state.Retry{After: prerequisitesRetryTimeout}
 	}
 
-	installed, err := isInstalled(st, sn.InstanceName)
+	installed, err := isInstalled(st, sn.InstanceName.String())
 	if err != nil {
 		return nil, err
 	}
@@ -505,10 +506,10 @@ func ensurePrerequisite(t *state.Task, contentAttrs []string, sn StoreSnap, opts
 			// prereqs that are content providers are considered soft
 			// prerequisites. by the time we hit this branch, we know that the
 			// content provider's update is neither finished nor in flight. in
-			// that case, we proceed without it.
-			return nil, nil
-		}
-		ts, err = maybeUpdateContentProvider(t, sn.InstanceName, contentAttrs, opts)
+		// that case, we proceed without it.
+		return nil, nil
+	}
+	ts, err = maybeUpdateContentProvider(t, sn.InstanceName.String(), contentAttrs, opts)
 	}
 	if err != nil {
 		var cerr *ChangeConflictError

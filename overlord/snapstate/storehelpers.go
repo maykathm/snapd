@@ -999,7 +999,7 @@ func sendInstallOrDownloadActions(ctx context.Context, st *state.State, action s
 	for _, sn := range snaps {
 		action := &store.SnapAction{
 			Action:       action,
-			InstanceName: sn.InstanceName,
+			InstanceName: sn.InstanceName.String(),
 		}
 
 		if err := completeStoreAction(action, sn.RevOpts, opts.Flags.IgnoreValidation); err != nil {

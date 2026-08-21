@@ -391,7 +391,7 @@ func (s *snapmgrTestSuite) TestInstallAlreadyInstalledMany(c *C) {
 	names := []string{"some-snap", "other-snap", "some-other-snap"}
 	var snaps []snapstate.StoreSnap
 	for _, name := range names {
-		sn := snapstate.StoreSnap{InstanceName: name}
+		sn := snapstate.StoreSnap{InstanceName: naming.InstanceName(name)}
 		snaps = append(snaps, sn)
 	}
 	target := snapstate.StoreInstallGoal(snaps...)
@@ -2332,7 +2332,7 @@ func (s *snapmgrTestSuite) testInstallWithRevisionRunThrough(c *C, snapName, req
 
 	chg := s.state.NewChange("install", "install a snap")
 	opts := &snapstate.RevisionOptions{Channel: requestedChannel, Revision: snap.R(42)}
-	ts, err := snapstate.Install(context.Background(), s.state, snapName, opts, s.user.ID, snapstate.Flags{})
+	ts, err := snapstate.Install(context.Background(), s.state, naming.InstanceName(snapName), opts, s.user.ID, snapstate.Flags{})
 	c.Assert(err, IsNil)
 	chg.AddAll(ts)
 
@@ -6308,7 +6308,7 @@ func (s *snapmgrTestSuite) testUndoMigrateOnInstallWithCore22(c *C, expectSeqFil
 	defer s.state.Unlock()
 
 	snapName := "snap-core18-to-core22"
-	ts, err := snapstate.Install(context.Background(), s.state, snapName, nil, 0, snapstate.Flags{})
+	ts, err := snapstate.Install(context.Background(), s.state, naming.InstanceName(snapName), nil, 0, snapstate.Flags{})
 	c.Assert(err, IsNil)
 	chg := s.state.NewChange("install", "install a snap")
 	chg.AddAll(ts)
@@ -7001,7 +7001,7 @@ func (s *snapmgrTestSuite) testInstallComponentsRunThrough(c *C, opts testInstal
 	}
 
 	target := snapstate.StoreInstallGoal(snapstate.StoreSnap{
-		InstanceName: instanceName,
+		InstanceName: naming.InstanceName(instanceName),
 		Components:   opts.components,
 		RevOpts:      snapstate.RevisionOptions{Channel: channel},
 	})

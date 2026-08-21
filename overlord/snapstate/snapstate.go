@@ -693,7 +693,7 @@ func TryPath(st *state.State, name, path string, flags Flags) (*state.TaskSet, e
 // The returned TaskSet will contain a LastBeforeLocalModificationsEdge
 // identifying the last task before the first task that introduces system
 // modifications.
-func Install(ctx context.Context, st *state.State, name string, opts *RevisionOptions, userID int, flags Flags) (*state.TaskSet, error) {
+func Install(ctx context.Context, st *state.State, name naming.InstanceName, opts *RevisionOptions, userID int, flags Flags) (*state.TaskSet, error) {
 	return InstallWithDeviceContext(ctx, st, name, opts, userID, flags, nil, nil, "")
 }
 
@@ -704,7 +704,7 @@ func Install(ctx context.Context, st *state.State, name string, opts *RevisionOp
 // The returned TaskSet will contain a LastBeforeLocalModificationsEdge
 // identifying the last task before the first task that introduces system
 // modifications.
-func InstallWithDeviceContext(ctx context.Context, st *state.State, name string, opts *RevisionOptions, userID int, flags Flags, prqt PrereqTracker, deviceCtx DeviceContext, fromChange string) (*state.TaskSet, error) {
+func InstallWithDeviceContext(ctx context.Context, st *state.State, name naming.InstanceName, opts *RevisionOptions, userID int, flags Flags, prqt PrereqTracker, deviceCtx DeviceContext, fromChange string) (*state.TaskSet, error) {
 	logger.Debugf("installing with device context %s", name)
 	if opts == nil {
 		opts = &RevisionOptions{}
@@ -803,7 +803,7 @@ func downloadTasks(
 	}
 
 	sar, err := sendOneDownloadAction(ctx, st, StoreSnap{
-		InstanceName: name,
+		InstanceName: naming.InstanceName(name),
 		Components:   components,
 		RevOpts:      revOpts,
 	}, opts)
@@ -1005,7 +1005,7 @@ func InstallMany(st *state.State, names []string, revOpts []*RevisionOptions, us
 	snaps := make([]StoreSnap, 0, len(names))
 	for i, name := range names {
 		sn := StoreSnap{
-			InstanceName:  name,
+			InstanceName:  naming.InstanceName(name),
 			SkipIfPresent: true,
 		}
 		if len(revOpts) > 0 && revOpts[i] != nil {
@@ -3763,7 +3763,7 @@ func TransitionCore(st *state.State, oldName, newName string) ([]*state.TaskSet,
 		}
 
 		result, err := sendOneInstallAction(context.TODO(), st, StoreSnap{
-			InstanceName: newName,
+			InstanceName: naming.InstanceName(newName),
 			RevOpts: RevisionOptions{
 				Channel:        oldSnapst.TrackingChannel,
 				ValidationSets: enforced,

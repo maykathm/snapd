@@ -345,7 +345,7 @@ type storeInstallGoal struct {
 
 func (s *storeInstallGoal) snap(name string) (StoreSnap, bool) {
 	for _, sn := range s.snaps {
-		if sn.InstanceName == name {
+		if sn.InstanceName.String() == name {
 			return sn, true
 		}
 	}
@@ -355,7 +355,7 @@ func (s *storeInstallGoal) snap(name string) (StoreSnap, bool) {
 // StoreSnap represents a snap that is to be installed from the store.
 type StoreSnap struct {
 	// InstanceName is the name of snap to install.
-	InstanceName string
+	InstanceName naming.InstanceName
 	// Components is the list of components to install with this snap.
 	Components []string
 	// RevOpts contains options that apply to the installation of this snap.
@@ -371,11 +371,11 @@ func StoreInstallGoal(snaps ...StoreSnap) InstallGoal {
 	seen := make(map[string]bool, len(snaps))
 	unique := make([]StoreSnap, 0, len(snaps))
 	for _, sn := range snaps {
-		if _, ok := seen[sn.InstanceName]; ok {
+		if _, ok := seen[sn.InstanceName.String()]; ok {
 			continue
 		}
 
-		seen[sn.InstanceName] = true
+		seen[sn.InstanceName.String()] = true
 		unique = append(unique, sn)
 	}
 
@@ -759,7 +759,7 @@ func (s *storeInstallGoal) validateAndPrune(st *state.State, installedSnaps map[
 	uninstalled := s.snaps[:0]
 	var alreadyInstalled []string
 	for _, sn := range s.snaps {
-		if err := snap.ValidateInstanceName(sn.InstanceName); err != nil {
+		if err := snap.ValidateInstanceName(sn.InstanceName.String()); err != nil {
 			return fmt.Errorf("invalid instance name: %v", err)
 		}
 
@@ -767,10 +767,10 @@ func (s *storeInstallGoal) validateAndPrune(st *state.State, installedSnaps map[
 			return fmt.Errorf("invalid revision options for snap %q: %w", sn.InstanceName, err)
 		}
 
-		snapst, ok := installedSnaps[sn.InstanceName]
+		snapst, ok := installedSnaps[sn.InstanceName.String()]
 		if ok && snapst.IsInstalled() {
 			if !sn.SkipIfPresent {
-				alreadyInstalled = append(alreadyInstalled, sn.InstanceName)
+				alreadyInstalled = append(alreadyInstalled, sn.InstanceName.String())
 			}
 			continue
 		}
@@ -786,7 +786,7 @@ func (s *storeInstallGoal) validateAndPrune(st *state.State, installedSnaps map[
 			sn.RevOpts.Channel = "stable"
 		}
 
-		if err := sn.RevOpts.resolveChannelForStore(sn.InstanceName, "stable", opts.DeviceCtx); err != nil {
+		if err := sn.RevOpts.resolveChannelForStore(sn.InstanceName.String(), "stable", opts.DeviceCtx); err != nil {
 			return err
 		}
 

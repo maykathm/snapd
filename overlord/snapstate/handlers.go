@@ -347,7 +347,7 @@ func (m *SnapManager) doDownloadSnap(t *state.Task, tomb *tomb.Tomb) error {
 		// of snapd that did not store the DownloadInfo in the state
 		// yet. Therefore do not worry about DeviceContext.
 		result, err = sendOneInstallActionUnlocked(context.TODO(), st, StoreSnap{
-			InstanceName: snapsup.InstanceName().String(),
+			InstanceName: snapsup.InstanceName(),
 			RevOpts: RevisionOptions{
 				Channel:        snapsup.Channel,
 				CohortKey:      snapsup.CohortKey,

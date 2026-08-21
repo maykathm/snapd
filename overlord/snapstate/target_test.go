@@ -1475,7 +1475,7 @@ func (s *targetTestSuite) TestInstallWithIntegrityDataEssentialSnap(c *C) {
 
 	for _, tc := range tests {
 		goal := snapstate.StoreInstallGoal(snapstate.StoreSnap{
-			InstanceName: tc.instanceName,
+			InstanceName: naming.InstanceName(tc.instanceName),
 			RevOpts: snapstate.RevisionOptions{
 				Channel: "channel-with-integrity-data",
 			},
