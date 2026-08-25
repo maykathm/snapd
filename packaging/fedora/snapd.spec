@@ -1030,6 +1030,15 @@ fi
 %endif
 
 %changelog
+* Tue Aug 25 2026 Katie May <katie.may@canonical.com>
+- New upstream release 2.77
+ - Packaging: here's a packaging item
+ - Interfaces: here's an interface item
+ - Packaging: here's a packaging item
+ - Interfaces: here's an interface item
+ - Packaging: here's a packaging item
+ - Interfaces: here's an interface item
+
 * Fri Jul 24 2026 Sergio Cazzolato <sergio.cazzolato@canonical.com>
 - New upstream release 2.77
  - FDE: add reseal check after snapd refresh
