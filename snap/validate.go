@@ -440,10 +440,10 @@ func Validate(info *Info) error {
 		return err
 	}
 
-	if err := ValidateName(info.SnapName()); err != nil {
+	if err := ValidateName(info.SnapName().String()); err != nil {
 		return err
 	}
-	if err := ValidateInstanceName(name); err != nil {
+	if err := ValidateInstanceName(name.String()); err != nil {
 		return err
 	}
 
@@ -650,7 +650,7 @@ func ValidateLayoutAll(info *Info) error {
 	// Validate that layout are not attempting to define elements that normally
 	// come from other snaps. This is separate from the ValidateLayout below to
 	// simplify argument passing.
-	thisSnapMntDir := filepath.Join("/snap/", info.SnapName())
+	thisSnapMntDir := filepath.Join("/snap/", info.SnapName().String())
 	for _, path := range paths {
 		if strings.HasPrefix(path, "/snap/") && !strings.HasPrefix(path, thisSnapMntDir) {
 			return fmt.Errorf("layout %q defines a layout in space belonging to another snap", path)
@@ -1485,7 +1485,7 @@ func (prqt *SelfContainedSetPrereqTracker) Check() (warnings, errs []error) {
 			case 0:
 				errs = append(errs, fmt.Errorf("cannot use snap %q: default provider %q or any alternative provider for content %q is missing", info.InstanceName(), defaultProvider, wantedTag))
 			case 1:
-				if candSlots[0].Snap.InstanceName() == defaultProvider {
+				if candSlots[0].Snap.InstanceName().String() == defaultProvider {
 					continue
 				}
 				// XXX TODO: consider also publisher
@@ -1497,7 +1497,7 @@ func (prqt *SelfContainedSetPrereqTracker) Check() (warnings, errs []error) {
 				}
 				sort.Strings(slots)
 				w := &ProviderWarning{
-					Snap:            info.InstanceName(),
+					Snap:            info.InstanceName().String(),
 					Plug:            plugName,
 					ContentTag:      wantedTag,
 					DefaultProvider: defaultProvider,

@@ -553,7 +553,7 @@ func (s *targetTestSuite) TestUpdateWithGoalMixesRefreshAndInstallIfMissing(c *C
 
 		names := make(map[string]bool)
 		for _, info := range refreshes {
-			names[info.InstanceName()] = true
+			names[info.InstanceName().String()] = true
 		}
 
 		c.Check(names, DeepEquals, map[string]bool{
@@ -977,7 +977,7 @@ func (s *targetTestSuite) TestUpdateComponents(c *C) {
 		compMntDir string, info *snap.Info, csi *snap.ComponentSideInfo,
 	) (*snap.ComponentInfo, error) {
 		return &snap.ComponentInfo{
-			Component:         naming.NewComponentRef(info.SnapName(), compName),
+			Component:         naming.NewComponentRef(info.SnapName().String(), compName),
 			Type:              snap.StandardComponent,
 			CompVersion:       "1.0",
 			ComponentSideInfo: *csi,
@@ -1048,7 +1048,7 @@ func (s *targetTestSuite) TestUpdateComponentsSameComponentRevision(c *C) {
 		compMntDir string, info *snap.Info, csi *snap.ComponentSideInfo,
 	) (*snap.ComponentInfo, error) {
 		return &snap.ComponentInfo{
-			Component:         naming.NewComponentRef(info.SnapName(), compName),
+			Component:         naming.NewComponentRef(info.SnapName().String(), compName),
 			Type:              snap.StandardComponent,
 			CompVersion:       "1.0",
 			ComponentSideInfo: *csi,

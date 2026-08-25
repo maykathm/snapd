@@ -194,14 +194,14 @@ type: kernel
 	c.Check(snapType, Equals, snap.TypeKernel)
 	c.Assert(installRecord, NotNil)
 	c.Assert(bloader.ExtractKernelAssetsCalls, HasLen, 1)
-	c.Assert(bloader.ExtractKernelAssetsCalls[0].InstanceName(), Equals, "kernel")
+	c.Assert(bloader.ExtractKernelAssetsCalls[0].InstanceName().String(), Equals, "kernel")
 	minInfo := snap.MinimalPlaceInfo("kernel", snap.R(140))
 
 	// undo deletes the kernel assets again
 	err = s.be.UndoSetupSnap(minInfo, "kernel", nil, mockDevWithKernel, progress.Null)
 	c.Assert(err, IsNil)
 	c.Assert(bloader.RemoveKernelAssetsCalls, HasLen, 1)
-	c.Assert(bloader.RemoveKernelAssetsCalls[0].InstanceName(), Equals, "kernel")
+	c.Assert(bloader.RemoveKernelAssetsCalls[0].InstanceName().String(), Equals, "kernel")
 }
 
 func (s *setupSuite) TestSetupDoIdempotent(c *C) {
@@ -237,14 +237,14 @@ type: kernel
 	c.Assert(err, IsNil)
 	c.Assert(installRecord, NotNil)
 	c.Assert(bloader.ExtractKernelAssetsCalls, HasLen, 1)
-	c.Assert(bloader.ExtractKernelAssetsCalls[0].InstanceName(), Equals, "kernel")
+	c.Assert(bloader.ExtractKernelAssetsCalls[0].InstanceName().String(), Equals, "kernel")
 
 	// retry run
 	_, installRecord, err = s.be.SetupSnap(snapPath, "kernel", &si, mockDevWithKernel, nil, progress.Null)
 	c.Assert(err, IsNil)
 	c.Assert(installRecord, NotNil)
 	c.Assert(bloader.ExtractKernelAssetsCalls, HasLen, 2)
-	c.Assert(bloader.ExtractKernelAssetsCalls[1].InstanceName(), Equals, "kernel")
+	c.Assert(bloader.ExtractKernelAssetsCalls[1].InstanceName().String(), Equals, "kernel")
 	minInfo := snap.MinimalPlaceInfo("kernel", snap.R(140))
 
 	// validity checks
@@ -417,19 +417,19 @@ func (s *setupSuite) TestRemoveSnapFilesDir(c *C) {
 	c.Assert(l, HasLen, 0)
 	c.Assert(osutil.FileExists(minInfo.MountDir()), Equals, false)
 	c.Assert(osutil.FileExists(minInfo.MountFile()), Equals, false)
-	c.Assert(osutil.FileExists(snap.BaseDir(minInfo.InstanceName())), Equals, true)
-	c.Assert(osutil.FileExists(snap.BaseDir(minInfo.SnapName())), Equals, true)
+	c.Assert(osutil.FileExists(snap.BaseDir(minInfo.InstanceName().String())), Equals, true)
+	c.Assert(osutil.FileExists(snap.BaseDir(minInfo.SnapName().String())), Equals, true)
 
 	// /snap/hello is kept as other instances exist
 	err = s.be.RemoveSnapDir(minInfo, true)
 	c.Assert(err, IsNil)
-	c.Assert(osutil.FileExists(snap.BaseDir(minInfo.InstanceName())), Equals, false)
-	c.Assert(osutil.FileExists(snap.BaseDir(minInfo.SnapName())), Equals, true)
+	c.Assert(osutil.FileExists(snap.BaseDir(minInfo.InstanceName().String())), Equals, false)
+	c.Assert(osutil.FileExists(snap.BaseDir(minInfo.SnapName().String())), Equals, true)
 
 	// /snap/hello is removed when there are no more instances
 	err = s.be.RemoveSnapDir(minInfo, false)
 	c.Assert(err, IsNil)
-	c.Assert(osutil.FileExists(snap.BaseDir(minInfo.SnapName())), Equals, false)
+	c.Assert(osutil.FileExists(snap.BaseDir(minInfo.SnapName().String())), Equals, false)
 }
 
 func (s *setupSuite) TestSetupComponentDoUndoSimple(c *C) {

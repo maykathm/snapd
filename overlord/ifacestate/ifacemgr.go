@@ -38,6 +38,7 @@ import (
 	"github.com/snapcore/snapd/overlord/state"
 	"github.com/snapcore/snapd/overlord/swfeats"
 	"github.com/snapcore/snapd/snap"
+	"github.com/snapcore/snapd/snap/naming"
 	"github.com/snapcore/snapd/snapdenv"
 	"github.com/snapcore/snapd/timings"
 )
@@ -495,8 +496,8 @@ func (m *InterfaceManager) ResolveDisconnect(plugSnapName, plugName, slotSnapNam
 		}
 		connected = func(plugSn, plug, slotSn, slot string) (bool, error) {
 			cref := interfaces.ConnRef{
-				PlugRef: interfaces.PlugRef{Snap: plugSn, Name: plug},
-				SlotRef: interfaces.SlotRef{Snap: slotSn, Name: slot},
+				PlugRef: interfaces.PlugRef{Snap: naming.InstanceName(plugSn), Name: plug},
+				SlotRef: interfaces.SlotRef{Snap: naming.InstanceName(slotSn), Name: slot},
 			}
 			_, ok := conns[cref.ID()]
 			return ok, nil
@@ -509,10 +510,10 @@ func (m *InterfaceManager) ResolveDisconnect(plugSnapName, plugName, slotSnapNam
 				if err != nil {
 					return nil, err
 				}
-				if cref.PlugRef.Snap == snapName && cref.PlugRef.Name == plugOrSlotName {
+				if cref.PlugRef.Snap.String() == snapName && cref.PlugRef.Name == plugOrSlotName {
 					refs = append(refs, cref)
 				}
-				if cref.SlotRef.Snap == snapName && cref.SlotRef.Name == plugOrSlotName {
+				if cref.SlotRef.Snap.String() == snapName && cref.SlotRef.Name == plugOrSlotName {
 					refs = append(refs, cref)
 				}
 			}
@@ -521,8 +522,8 @@ func (m *InterfaceManager) ResolveDisconnect(plugSnapName, plugName, slotSnapNam
 	} else {
 		connected = func(plugSn, plug, slotSn, slot string) (bool, error) {
 			_, err := m.repo.Connection(&interfaces.ConnRef{
-				PlugRef: interfaces.PlugRef{Snap: plugSn, Name: plug},
-				SlotRef: interfaces.SlotRef{Snap: slotSn, Name: slot},
+				PlugRef: interfaces.PlugRef{Snap: naming.InstanceName(plugSn), Name: plug},
+				SlotRef: interfaces.SlotRef{Snap: naming.InstanceName(slotSn), Name: slot},
 			})
 			if _, notConnected := err.(*interfaces.NotConnectedError); notConnected {
 				return false, nil
@@ -568,8 +569,8 @@ func (m *InterfaceManager) ResolveDisconnect(plugSnapName, plugName, slotSnapNam
 		}
 		return []*interfaces.ConnRef{
 			{
-				PlugRef: interfaces.PlugRef{Snap: plugSnapName, Name: plugName},
-				SlotRef: interfaces.SlotRef{Snap: slotSnapName, Name: slotName},
+				PlugRef: interfaces.PlugRef{Snap: naming.InstanceName(plugSnapName), Name: plugName},
+				SlotRef: interfaces.SlotRef{Snap: naming.InstanceName(slotSnapName), Name: slotName},
 			}}, nil
 	// 2: <snap>:<plug or slot> (through 1st pair)
 	// Return a list of connections involving specified plug or slot.

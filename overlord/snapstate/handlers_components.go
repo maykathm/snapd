@@ -338,7 +338,7 @@ func (m *SnapManager) doMountComponent(t *state.Task, _ *tomb.Tomb) (retErr erro
 // ReadComponentInfo reads the snap's component and returns a ComponentInfo.
 func ReadComponentInfo(snapInfo *snap.Info, csi *snap.ComponentSideInfo) (*snap.ComponentInfo, error) {
 	compName, compRev := csi.Component.ComponentName, csi.Revision
-	mountDir := snap.ComponentMountDir(compName, compRev, snapInfo.InstanceName())
+	mountDir := snap.ComponentMountDir(compName, compRev, snapInfo.InstanceName().String())
 	return readComponentInfoAt(mountDir, snapInfo, csi)
 }
 
@@ -463,7 +463,7 @@ func (m *SnapManager) doLinkComponent(t *state.Task, _ *tomb.Tomb) error {
 	// Create the symlink
 	csi := cs.SideInfo
 	cpi := snap.MinimalComponentContainerPlaceInfo(csi.Component.ComponentName,
-		csi.Revision, snapInfo.InstanceName())
+		csi.Revision, snapInfo.InstanceName().String())
 	if err := m.backend.LinkComponent(cpi, snapInfo.Revision); err != nil {
 		return err
 	}
@@ -506,7 +506,7 @@ func (m *SnapManager) undoLinkComponent(t *state.Task, _ *tomb.Tomb) error {
 	// Remove the symlink
 	csi := linkedComp.SideInfo
 	cpi := snap.MinimalComponentContainerPlaceInfo(csi.Component.ComponentName,
-		csi.Revision, snapInfo.InstanceName())
+		csi.Revision, snapInfo.InstanceName().String())
 	if err := m.backend.UnlinkComponent(cpi, snapInfo.Revision); err != nil {
 		return err
 	}
@@ -547,12 +547,12 @@ func (m *SnapManager) doUnlinkCurrentComponent(t *state.Task, _ *tomb.Tomb) (err
 
 	// Remove current component for the current snap
 	if err := m.unlinkComponent(
-		t, snapSt, snapInfo.InstanceName(), snapInfo.Revision, cref); err != nil {
+		t, snapSt, snapInfo.InstanceName().String(), snapInfo.Revision, cref); err != nil {
 		return err
 	}
 
 	// Finally, write the state
-	Set(st, snapInfo.InstanceName(), snapSt)
+	Set(st, snapInfo.InstanceName().String(), snapSt)
 	// Make sure we won't be rerun
 	t.SetStatus(state.DoneStatus)
 
@@ -630,7 +630,7 @@ func (m *SnapManager) undoUnlinkCurrentComponent(t *state.Task, _ *tomb.Tomb) (e
 	}
 
 	if err := m.relinkComponent(
-		t, snapSt, snapInfo.InstanceName(), snapInfo.Revision); err != nil {
+		t, snapSt, snapInfo.InstanceName().String(), snapInfo.Revision); err != nil {
 		return err
 	}
 

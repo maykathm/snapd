@@ -53,6 +53,7 @@ import (
 	"github.com/snapcore/snapd/overlord/state"
 	"github.com/snapcore/snapd/overlord/swfeats/swfeatstest"
 	"github.com/snapcore/snapd/snap"
+	"github.com/snapcore/snapd/snap/naming"
 	"github.com/snapcore/snapd/snap/snaptest"
 	"github.com/snapcore/snapd/store"
 	"github.com/snapcore/snapd/testutil"
@@ -557,13 +558,13 @@ func (s *confdbTestSuite) TestGetViewNoAssertion(c *C) {
 
 func mockInstalledSnap(c *C, st *state.State, snapYaml string, hooks []string) *snap.Info {
 	info := snaptest.MockSnapCurrent(c, snapYaml, &snap.SideInfo{Revision: snap.R(1)})
-	snapstate.Set(st, info.InstanceName(), &snapstate.SnapState{
+	snapstate.Set(st, info.InstanceName().String(), &snapstate.SnapState{
 		Active: true,
 		Sequence: snapstatetest.NewSequenceFromSnapSideInfos([]*snap.SideInfo{
 			{
-				RealName: info.SnapName(),
+				RealName: info.SnapName().String(),
 				Revision: info.Revision,
-				SnapID:   info.InstanceName() + "-id",
+				SnapID:   info.InstanceName().String() + "-id",
 			},
 		}),
 		Current:         info.Revision,
@@ -662,8 +663,8 @@ slots:
 
 	for _, n := range []string{"view-1", "view-2", "view-3"} {
 		ref := &interfaces.ConnRef{
-			PlugRef: interfaces.PlugRef{Snap: "test-snap", Name: n},
-			SlotRef: interfaces.SlotRef{Snap: "core", Name: "confdb-slot"},
+			PlugRef: interfaces.PlugRef{Snap: naming.InstanceName("test-snap"), Name: n},
+			SlotRef: interfaces.SlotRef{Snap: naming.InstanceName("core"), Name: "confdb-slot"},
 		}
 		_, err = repo.Connect(ref, nil, nil, nil, nil, nil)
 		c.Assert(err, IsNil)
@@ -960,12 +961,12 @@ plugs:
 		c.Assert(err, IsNil)
 
 		setupRef := &interfaces.ConnRef{
-			PlugRef: interfaces.PlugRef{Snap: snapName, Name: "setup"},
-			SlotRef: interfaces.SlotRef{Snap: "core", Name: "confdb-slot"},
+			PlugRef: interfaces.PlugRef{Snap: naming.InstanceName(snapName), Name: "setup"},
+			SlotRef: interfaces.SlotRef{Snap: naming.InstanceName("core"), Name: "confdb-slot"},
 		}
 		otherRef := &interfaces.ConnRef{
-			PlugRef: interfaces.PlugRef{Snap: snapName, Name: "other"},
-			SlotRef: interfaces.SlotRef{Snap: "core", Name: "confdb-slot"},
+			PlugRef: interfaces.PlugRef{Snap: naming.InstanceName(snapName), Name: "other"},
+			SlotRef: interfaces.SlotRef{Snap: naming.InstanceName("core"), Name: "confdb-slot"},
 		}
 
 		for _, ref := range []*interfaces.ConnRef{setupRef, otherRef} {
@@ -3372,7 +3373,7 @@ plugs:
 
 	_, err = repo.Connect(&interfaces.ConnRef{
 		PlugRef: interfaces.PlugRef{Snap: "observer-snap", Name: "state"},
-		SlotRef: interfaces.SlotRef{Snap: "core", Name: "confdb-slot"},
+		SlotRef: interfaces.SlotRef{Snap: naming.InstanceName("core"), Name: "confdb-slot"},
 	}, nil, nil, nil, nil, nil)
 	c.Assert(err, IsNil)
 

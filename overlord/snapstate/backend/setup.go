@@ -306,7 +306,7 @@ func (b Backend) RemoveComponentFiles(cpi snap.ContainerPlaceInfo, installRecord
 func (b Backend) RemoveSnapDir(s snap.PlaceInfo, hasOtherInstances bool) error {
 	mountDir := s.MountDir()
 
-	_, instanceKey := snap.SplitInstanceName(s.InstanceName())
+	_, instanceKey := snap.SplitInstanceName(s.InstanceName().String())
 	if instanceKey != "" {
 		// always ok to remove instance specific one, failure to remove
 		// is ok, there may be other revisions
@@ -315,7 +315,7 @@ func (b Backend) RemoveSnapDir(s snap.PlaceInfo, hasOtherInstances bool) error {
 	if !hasOtherInstances {
 		// remove only if not used by other instances of the same snap,
 		// failure to remove is ok, there may be other revisions
-		os.Remove(snap.BaseDir(s.SnapName()))
+		os.Remove(snap.BaseDir(s.SnapName().String()))
 	}
 	return nil
 }

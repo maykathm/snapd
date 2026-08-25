@@ -61,7 +61,7 @@ func (b Backend) RemoveSnapSaveData(snapInfo *snap.Info, dev snap.Device) error 
 		return nil
 	}
 
-	saveDir := snap.CommonDataSaveDir(snapInfo.InstanceName())
+	saveDir := snap.CommonDataSaveDir(snapInfo.InstanceName().String())
 	if exists, isDir, err := osutil.DirExists(saveDir); err == nil && !(exists && isDir) {
 		return nil
 	} else if err != nil {
@@ -121,14 +121,14 @@ func (b Backend) RemoveSnapDataDir(info *snap.Info, hasOtherInstances bool, opts
 	if info.InstanceKey != "" {
 		// data directories of snaps with instance key are never used by
 		// other instances
-		if err := removeBaseDataDirsFor(info.InstanceName()); err != nil {
+		if err := removeBaseDataDirsFor(info.InstanceName().String()); err != nil {
 			return err
 		}
 	}
 	if !hasOtherInstances {
 		// remove the snap base directory only if there are no other
 		// snap instances using it
-		if err := removeBaseDataDirsFor(info.SnapName()); err != nil {
+		if err := removeBaseDataDirsFor(info.SnapName().String()); err != nil {
 			return err
 		}
 	}
