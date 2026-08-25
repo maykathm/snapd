@@ -1,3 +1,9 @@
+# New in snapd 2.78
+
+* Packaging: here's a packaging item
+* Interfaces: here's an interface item
+* Packaging: here's a packaging item
+* Interfaces: here's an interface item
 # New in snapd 2.77
 * FDE: add reseal check after snapd refresh
 * FDE: allow reprovision without factory reset

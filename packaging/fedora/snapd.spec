@@ -114,7 +114,7 @@
 %endif
 
 Name:           snapd
-Version:        2.77
+Version:        2.78
 Release:        0%{?dist}
 Summary:        A transactional software package manager
 License:        GPL-3.0-only
@@ -1030,6 +1030,13 @@ fi
 %endif
 
 %changelog
+* Tue Aug 25 2026 Katie May <katie.may@canonical.com>
+- New upstream release 2.78
+ - Packaging: here's a packaging item
+ - Interfaces: here's an interface item
+ - Packaging: here's a packaging item
+ - Interfaces: here's an interface item
+
 * Fri Jul 24 2026 Sergio Cazzolato <sergio.cazzolato@canonical.com>
 - New upstream release 2.77
  - FDE: add reseal check after snapd refresh

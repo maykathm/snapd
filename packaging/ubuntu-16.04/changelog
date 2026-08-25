@@ -1,3 +1,13 @@
+snapd (2.78) xenial; urgency=medium
+
+  * New upstream release, LP: #3421
+    - Packaging: here's a packaging item
+    - Interfaces: here's an interface item
+    - Packaging: here's a packaging item
+    - Interfaces: here's an interface item
+
+ -- Katie May <katie.may@canonical.com>  Tue, 25 Aug 2026 18:37:26 +0200
+
 snapd (2.77) xenial; urgency=medium
 
   * New upstream release, LP: #2158102
