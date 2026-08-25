@@ -1,5 +1,17 @@
 snapd (2.77) xenial; urgency=medium
 
+  * New upstream release, LP: #12345
+    - Packaging: here's a packaging item
+    - Interfaces: here's an interface item
+    - Packaging: here's a packaging item
+    - Interfaces: here's an interface item
+    - Packaging: here's a packaging item
+    - Interfaces: here's an interface item
+
+ -- Katie May <katie.may@canonical.com>  Tue, 25 Aug 2026 19:52:16 +0200
+
+snapd (2.77) xenial; urgency=medium
+
   * New upstream release, LP: #2158102
     - FDE: add reseal check after snapd refresh
     - FDE: allow reprovision without factory reset
