@@ -90,7 +90,7 @@ func getInterfaces(c *Command, r *http.Request, user *auth.UserState) Response {
 		plugs := make([]*plugJSON, 0, len(info.Plugs))
 		for _, plug := range info.Plugs {
 			plugs = append(plugs, &plugJSON{
-				Snap:  plug.Snap.InstanceName(),
+				Snap:  plug.Snap.InstanceName().TODOInstanceName(),
 				Name:  plug.Name,
 				Attrs: plug.Attrs,
 				Label: plug.Label,
@@ -99,7 +99,7 @@ func getInterfaces(c *Command, r *http.Request, user *auth.UserState) Response {
 		slots := make([]*slotJSON, 0, len(info.Slots))
 		for _, slot := range info.Slots {
 			slots = append(slots, &slotJSON{
-				Snap:  slot.Snap.InstanceName(),
+				Snap:  slot.Snap.InstanceName().TODOInstanceName(),
 				Name:  slot.Name,
 				Attrs: slot.Attrs,
 				Label: slot.Label,
@@ -198,7 +198,7 @@ func changeInterfaces(c *Command, r *http.Request, user *auth.UserState) Respons
 			var ts *state.TaskSet
 			affected = snapNamesFromConns([]*interfaces.ConnRef{connRef})
 			summary = fmt.Sprintf("Connect %s:%s to %s:%s", connRef.PlugRef.Snap, connRef.PlugRef.Name, connRef.SlotRef.Snap, connRef.SlotRef.Name)
-			ts, err = ifacestate.Connect(st, connRef.PlugRef.Snap, connRef.PlugRef.Name, connRef.SlotRef.Snap, connRef.SlotRef.Name)
+			ts, err = ifacestate.Connect(st, connRef.PlugRef.Snap.TODOInstanceName(), connRef.PlugRef.Name, connRef.SlotRef.Snap.TODOInstanceName(), connRef.SlotRef.Name)
 			if _, ok := err.(*ifacestate.ErrAlreadyConnected); ok {
 				change := newChange(st, connectSnapChangeKind, summary, nil, affected)
 				change.SetStatus(state.DoneStatus)
@@ -254,8 +254,8 @@ func changeInterfaces(c *Command, r *http.Request, user *auth.UserState) Respons
 func snapNamesFromConns(conns []*interfaces.ConnRef) []string {
 	m := make(map[string]bool)
 	for _, conn := range conns {
-		m[conn.PlugRef.Snap] = true
-		m[conn.SlotRef.Snap] = true
+		m[conn.PlugRef.Snap.TODOInstanceName()] = true
+		m[conn.SlotRef.Snap.TODOInstanceName()] = true
 	}
 	l := make([]string, 0, len(m))
 	for name := range m {

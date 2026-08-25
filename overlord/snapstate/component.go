@@ -56,10 +56,10 @@ func InstallComponents(
 	}
 
 	var snapst SnapState
-	err := Get(st, info.InstanceName(), &snapst)
+	err := Get(st, info.InstanceName().TODOInstanceName(), &snapst)
 	if err != nil {
 		if errors.Is(err, state.ErrNoState) {
-			return nil, &snap.NotInstalledError{Snap: info.InstanceName()}
+			return nil, &snap.NotInstalledError{Snap: info.InstanceName().TODOInstanceName()}
 		}
 		return nil, err
 	}
@@ -70,13 +70,13 @@ func InstallComponents(
 		// new components at the same time when resolving validation sets
 		var alreadyInstalled []string
 		for _, comp := range names {
-			if snapst.CurrentComponentSideInfo(naming.NewComponentRef(info.SnapName(), comp)) != nil {
+			if snapst.CurrentComponentSideInfo(naming.NewComponentRef(info.SnapName().TODOSnapName(), comp)) != nil {
 				alreadyInstalled = append(alreadyInstalled, comp)
 			}
 		}
 
 		if len(alreadyInstalled) > 0 {
-			return nil, snap.NewAlreadyInstalledComponentsError(info.SnapName(), alreadyInstalled)
+			return nil, snap.NewAlreadyInstalledComponentsError(info.SnapName().TODOSnapName(), alreadyInstalled)
 		}
 	}
 
@@ -105,7 +105,7 @@ func InstallComponents(
 		comps[comp.ComponentName()] = comp.Revision()
 	}
 
-	if err := checkComponentsPresenceAndRevision(info.SnapName(), comps, pres, "install"); err != nil {
+	if err := checkComponentsPresenceAndRevision(info.SnapName().TODOSnapName(), comps, pres, "install"); err != nil {
 		return nil, err
 	}
 
@@ -291,10 +291,10 @@ func InstallComponentPath(st *state.State, csi *snap.ComponentSideInfo, info *sn
 
 	var snapst SnapState
 	// owner snap must be already installed
-	err := Get(st, info.InstanceName(), &snapst)
+	err := Get(st, info.InstanceName().TODOInstanceName(), &snapst)
 	if err != nil {
 		if errors.Is(err, state.ErrNoState) {
-			return nil, &snap.NotInstalledError{Snap: info.InstanceName()}
+			return nil, &snap.NotInstalledError{Snap: info.InstanceName().TODOInstanceName()}
 		}
 		return nil, err
 	}
@@ -775,7 +775,7 @@ func RemoveComponents(st *state.State, snapName string, compName []string, opts 
 		if compst == nil {
 			return nil, &snap.ComponentNotInstalledError{
 				NotInstalledError: snap.NotInstalledError{
-					Snap: info.InstanceName(),
+					Snap: info.InstanceName().TODOInstanceName(),
 					Rev:  info.Revision,
 				},
 				Component: comp,
@@ -801,7 +801,7 @@ func removeComponentTasks(st *state.State, snapst *SnapState, compst *sequence.C
 
 	// For the moment we consider the same conflicts as if the component
 	// was actually the snap.
-	if err := checkChangeConflictIgnoringOneChange(st, instName, nil, copts); err != nil {
+	if err := checkChangeConflictIgnoringOneChange(st, instName.TODOInstanceName(), nil, copts); err != nil {
 		return nil, err
 	}
 
@@ -838,7 +838,7 @@ func removeComponentTasks(st *state.State, snapst *SnapState, compst *sequence.C
 	// impact confinement of the snap itself.
 	copyConfinementFlagsFromSnapState(&snapSup.Flags, snapst)
 
-	removeHook := SetupRemoveComponentHook(st, instName, compst.SideInfo.Component.ComponentName)
+	removeHook := SetupRemoveComponentHook(st, instName.TODOInstanceName(), compst.SideInfo.Component.ComponentName)
 	removeHook.Set("component-setup", compSetup)
 	removeHook.Set("snap-setup", snapSup)
 

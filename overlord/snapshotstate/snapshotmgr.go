@@ -179,7 +179,7 @@ type snapshotSetup struct {
 func filename(setID uint64, si *snap.Info) string {
 	skel := &client.Snapshot{
 		SetID:    setID,
-		Snap:     si.InstanceName(),
+		Snap:     si.InstanceName().TODOInstanceName(),
 		Revision: si.Revision,
 		Version:  si.Version,
 	}

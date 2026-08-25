@@ -189,33 +189,33 @@ func (s *servicectlSuite) SetUpTest(c *C) {
 		Revision: snap.R(1),
 	})
 
-	snapstate.Set(s.st, info1.InstanceName(), &snapstate.SnapState{
+	snapstate.Set(s.st, info1.InstanceName().TODOInstanceName(), &snapstate.SnapState{
 		Active: true,
 		Sequence: snapstatetest.NewSequenceFromSnapSideInfos([]*snap.SideInfo{
 			{
-				RealName: info1.SnapName(),
+				RealName: info1.SnapName().TODOSnapName(),
 				Revision: info1.Revision,
 				SnapID:   "test-snap-id",
 			},
 		}),
 		Current: info1.Revision,
 	})
-	snapstate.Set(s.st, info2.InstanceName(), &snapstate.SnapState{
+	snapstate.Set(s.st, info2.InstanceName().TODOInstanceName(), &snapstate.SnapState{
 		Active: true,
 		Sequence: snapstatetest.NewSequenceFromSnapSideInfos([]*snap.SideInfo{
 			{
-				RealName: info2.SnapName(),
+				RealName: info2.SnapName().TODOSnapName(),
 				Revision: info2.Revision,
 				SnapID:   "other-snap-id",
 			},
 		}),
 		Current: info2.Revision,
 	})
-	snapstate.Set(s.st, infoFoo.InstanceName(), &snapstate.SnapState{
+	snapstate.Set(s.st, infoFoo.InstanceName().TODOInstanceName(), &snapstate.SnapState{
 		Active: true,
 		Sequence: snapstatetest.NewSequenceFromSnapSideInfos([]*snap.SideInfo{
 			{
-				RealName: infoFoo.SnapName(),
+				RealName: infoFoo.SnapName().TODOSnapName(),
 				Revision: infoFoo.Revision,
 				SnapID:   "other-snap-id",
 			},
@@ -798,11 +798,11 @@ apps:
 		info := snaptest.MockSnapCurrent(c, fmt.Sprintf(testSnapYaml, snapName), &snap.SideInfo{
 			Revision: snap.R(1),
 		})
-		snapstate.Set(s.st, info.InstanceName(), &snapstate.SnapState{
+		snapstate.Set(s.st, info.InstanceName().TODOInstanceName(), &snapstate.SnapState{
 			Active: true,
 			Sequence: snapstatetest.NewSequenceFromSnapSideInfos([]*snap.SideInfo{
 				{
-					RealName: info.SnapName(),
+					RealName: info.SnapName().TODOSnapName(),
 					Revision: info.Revision,
 					SnapID:   snapName + "-id",
 				},
@@ -899,7 +899,7 @@ apps:
 		}
 		setup, err := snapstate.TaskSnapSetup(t)
 		c.Assert(err, IsNil)
-		return setup.InstanceName().String()
+		return setup.InstanceName().TODOInstanceName()
 	}
 
 	for snapName, cmdTasks := range cmdTasksPerSnap {
@@ -1321,7 +1321,7 @@ test-snap.test-service  enabled  active   -
 }
 
 func (s *servicectlSuite) DecorateWithStatus(appInfo *client.AppInfo, snapApp *snap.AppInfo) error {
-	name := snapApp.Snap.InstanceName() + "." + appInfo.Name
+	name := snapApp.Snap.InstanceName().TODOInstanceName() + "." + appInfo.Name
 	dec, ok := s.decoratorResults[name]
 	if !ok {
 		return fmt.Errorf("%s not found in expected test decorator results", name)

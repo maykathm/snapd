@@ -359,7 +359,7 @@ func FinishRestart(task *state.Task, snapsup *SnapSetup, opts FinishRestartOptio
 		}
 		// if it is not a snap related to our booting we are not
 		// interested
-		if snapsup.InstanceName().String() != bootName {
+		if snapsup.InstanceName().TODOInstanceName() != bootName {
 			return nil
 		}
 
@@ -375,7 +375,7 @@ func FinishRestart(task *state.Task, snapsup *SnapSetup, opts FinishRestartOptio
 			return err
 		}
 
-		if snapsup.InstanceName().TODOInstanceName() != current.SnapName() || snapsup.SideInfo.Revision != current.SnapRevision() {
+		if snapsup.InstanceName() != naming.InstanceName(current.SnapName().TODOSnapName()) || snapsup.SideInfo.Revision != current.SnapRevision() {
 			// TODO: make sure this revision gets ignored for
 			//       automatic refreshes
 			return fmt.Errorf("cannot finish %s installation, there was a rollback across reboot", snapsup.InstanceName())
@@ -922,7 +922,7 @@ func validatedInfoFromPathAndSideInfo(instanceName string, path string, si *snap
 	}
 
 	snapName, instanceKey := snap.SplitInstanceName(instanceName)
-	if info.SnapName() != snapName {
+	if info.SnapName().TODOSnapName() != snapName {
 		return nil, fmt.Errorf("cannot install snap %q: instance name prefix does not match snap name: %s != %s", instanceName, snapName, info.SnapName())
 	}
 	info.InstanceKey = instanceKey
@@ -1021,7 +1021,7 @@ func InstallMany(st *state.State, names []string, revOpts []*RevisionOptions, us
 
 	installed := make([]string, 0, len(infos))
 	for _, info := range infos {
-		installed = append(installed, info.InstanceName())
+		installed = append(installed, info.InstanceName().TODOInstanceName())
 	}
 
 	return installed, tss, err
@@ -1728,7 +1728,7 @@ func splitEssentialUpdates(deviceCtx DeviceContext, updates []update) (essential
 		case snap.TypeSnapd:
 			snapdAndModelBase = append(snapdAndModelBase, up)
 		case snap.TypeBase:
-			if up.Setup.InstanceName().String() == deviceCtx.Base() {
+			if up.Setup.InstanceName().TODOInstanceName() == deviceCtx.Base() {
 				snapdAndModelBase = append(snapdAndModelBase, up)
 			} else {
 				nonEssential = append(nonEssential, up)
@@ -2321,15 +2321,15 @@ func autoRefreshPhase1(ctx context.Context, st *state.State, forGatingSnap strin
 	fromChange := ""
 	for _, t := range plan.targets {
 		name := t.info.InstanceName()
-		if _, ok := hints[name]; !ok {
+		if _, ok := hints[name.TODOInstanceName()]; !ok {
 			// filtered out by refreshHintsFromCandidates
 			continue
 		}
 
-		if err := checkChangeConflictIgnoringOneChange(st, name, &t.snapst, ConflictOptions{FromChange: fromChange}); err != nil {
+		if err := checkChangeConflictIgnoringOneChange(st, name.TODOInstanceName(), &t.snapst, ConflictOptions{FromChange: fromChange}); err != nil {
 			logger.Noticef("cannot refresh snap %q: %v", name, err)
 		} else {
-			updates = append(updates, name)
+			updates = append(updates, name.TODOInstanceName())
 		}
 	}
 
@@ -2528,7 +2528,7 @@ func checkForAvailableSpace(totalSize uint64, infos []minimalInstallInfo, change
 	if err := osutilCheckFreeSpace(rootDir, requiredSpace); err != nil {
 		snaps := make([]string, len(infos))
 		for i, up := range infos {
-			snaps[i] = up.InstanceName()
+			snaps[i] = up.InstanceName().TODOInstanceName()
 		}
 		if _, ok := err.(*osutil.NotEnoughDiskSpaceError); ok {
 			return &InsufficientSpaceError{
@@ -2747,7 +2747,7 @@ func addLinkNewBaseOrKernelTasks(st *state.State, snapst SnapState, ts *state.Ta
 
 	// Switching to a new model base may require regenerating the managed
 	// certificate database.
-	if shouldScheduleUpdateCertDBForRefresh(info.InstanceName(), info.Type(), deviceCtx) {
+	if shouldScheduleUpdateCertDBForRefresh(info.InstanceName().TODOInstanceName(), info.Type(), deviceCtx) {
 		updateCertDB := st.NewTask("update-cert-db", i18n.G("Update certificate database"))
 		add(updateCertDB)
 	}

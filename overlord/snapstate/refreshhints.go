@@ -169,7 +169,7 @@ func refreshHintsFromUpdatePlan(st *state.State, plan updatePlan, deviceCtx Devi
 		ignoreValidation := make(map[string]bool, len(plan.targets))
 		for _, t := range plan.targets {
 			if t.setup.IgnoreValidation {
-				ignoreValidation[t.info.InstanceName()] = true
+				ignoreValidation[t.info.InstanceName().TODOInstanceName()] = true
 			}
 		}
 
@@ -187,7 +187,7 @@ func refreshHintsFromUpdatePlan(st *state.State, plan updatePlan, deviceCtx Devi
 	for _, t := range plan.targets {
 		info := t.info
 		var snapst SnapState
-		if err := Get(st, info.InstanceName(), &snapst); err != nil {
+		if err := Get(st, info.InstanceName().TODOInstanceName(), &snapst); err != nil {
 			return nil, err
 		}
 
@@ -208,10 +208,10 @@ func refreshHintsFromUpdatePlan(st *state.State, plan updatePlan, deviceCtx Devi
 			continue
 		}
 
-		hints[info.InstanceName()] = &refreshCandidate{
+		hints[info.InstanceName().TODOInstanceName()] = &refreshCandidate{
 			SnapSetup:  snapsup,
 			Components: compsups,
-			Monitored:  IsSnapMonitored(st, info.InstanceName()),
+			Monitored:  IsSnapMonitored(st, info.InstanceName().TODOInstanceName()),
 		}
 	}
 	return hints, nil

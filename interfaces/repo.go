@@ -348,14 +348,14 @@ func (r *Repository) Plug(snapName, plugName string) *snap.PlugInfo {
 // Connection returns the specified Connection object or an error.
 func (r *Repository) Connection(connRef *ConnRef) (*Connection, error) {
 	// Ensure that such plug exists
-	plug := r.plugs[connRef.PlugRef.Snap][connRef.PlugRef.Name]
+	plug := r.plugs[connRef.PlugRef.Snap.TODOInstanceName()][connRef.PlugRef.Name]
 	if plug == nil {
 		return nil, &NoPlugOrSlotError{
 			message: fmt.Sprintf("snap %q has no plug named %q",
 				connRef.PlugRef.Snap, connRef.PlugRef.Name)}
 	}
 	// Ensure that such slot exists
-	slot := r.slots[connRef.SlotRef.Snap][connRef.SlotRef.Name]
+	slot := r.slots[connRef.SlotRef.Snap.TODOInstanceName()][connRef.SlotRef.Name]
 	if slot == nil {
 		return nil, &NoPlugOrSlotError{
 			message: fmt.Sprintf("snap %q has no slot named %q",
@@ -422,7 +422,7 @@ func (r *Repository) AddSlot(slot *snap.SlotInfo) error {
 	snapName := slot.Snap.InstanceName()
 
 	// Reject snaps with invalid names
-	if err := snap.ValidateInstanceName(snapName); err != nil {
+	if err := snap.ValidateInstanceName(snapName.TODOInstanceName()); err != nil {
 		return err
 	}
 	// Reject slots with invalid names
@@ -434,19 +434,19 @@ func (r *Repository) AddSlot(slot *snap.SlotInfo) error {
 	if i == nil {
 		return fmt.Errorf("cannot add slot, interface %q is not known", slot.Interface)
 	}
-	if _, ok := r.slots[snapName][slot.Name]; ok {
+	if _, ok := r.slots[snapName.TODOInstanceName()][slot.Name]; ok {
 		return fmt.Errorf("snap %q has slots conflicting on name %q", snapName, slot.Name)
 	}
-	if _, ok := r.plugs[snapName][slot.Name]; ok {
+	if _, ok := r.plugs[snapName.TODOInstanceName()][slot.Name]; ok {
 		return fmt.Errorf("snap %q has plug and slot conflicting on name %q", snapName, slot.Name)
 	}
-	if r.appSets[snapName] == nil {
+	if r.appSets[snapName.TODOInstanceName()] == nil {
 		return fmt.Errorf("cannot add slot, snap %q is not known", snapName)
 	}
-	if r.slots[snapName] == nil {
-		r.slots[snapName] = make(map[string]*snap.SlotInfo)
+	if r.slots[snapName.TODOInstanceName()] == nil {
+		r.slots[snapName.TODOInstanceName()] = make(map[string]*snap.SlotInfo)
 	}
-	r.slots[snapName][slot.Name] = slot
+	r.slots[snapName.TODOInstanceName()][slot.Name] = slot
 	return nil
 }
 
@@ -569,14 +569,14 @@ func (r *Repository) Connect(ref *ConnRef, plugStaticAttrs, plugDynamicAttrs, sl
 	slotName := ref.SlotRef.Name
 
 	// Ensure that such plug exists
-	plug := r.plugs[plugSnapName][plugName]
+	plug := r.plugs[plugSnapName.TODOInstanceName()][plugName]
 	if plug == nil {
 		return nil, &NoPlugOrSlotError{
 			message: fmt.Sprintf("cannot connect plug %q from snap %q: no such plug",
 				plugName, plugSnapName)}
 	}
 	// Ensure that such slot exists
-	slot := r.slots[slotSnapName][slotName]
+	slot := r.slots[slotSnapName.TODOInstanceName()][slotName]
 	if slot == nil {
 		return nil, &NoPlugOrSlotError{
 			message: fmt.Sprintf("cannot connect slot %q from snap %q: no such slot",
@@ -602,12 +602,12 @@ func (r *Repository) Connect(ref *ConnRef, plugStaticAttrs, plugDynamicAttrs, sl
 		}
 	}
 
-	plugAppSet := r.appSets[plugSnapName]
+	plugAppSet := r.appSets[plugSnapName.TODOInstanceName()]
 	if plugAppSet == nil {
 		return nil, fmt.Errorf("internal error: no app set for plug snap %q", plugSnapName)
 	}
 
-	slotAppSet := r.appSets[slotSnapName]
+	slotAppSet := r.appSets[slotSnapName.TODOInstanceName()]
 	if slotAppSet == nil {
 		return nil, fmt.Errorf("internal error: no app set for plug snap %q", plugSnapName)
 	}
@@ -879,8 +879,8 @@ func (r *Repository) DisconnectAll(conns []*ConnRef) {
 	defer r.m.Unlock()
 
 	for _, conn := range conns {
-		plug := r.plugs[conn.PlugRef.Snap][conn.PlugRef.Name]
-		slot := r.slots[conn.SlotRef.Snap][conn.SlotRef.Name]
+		plug := r.plugs[conn.PlugRef.Snap.TODOInstanceName()][conn.PlugRef.Name]
+		slot := r.slots[conn.SlotRef.Snap.TODOInstanceName()][conn.SlotRef.Name]
 		if plug != nil && slot != nil {
 			r.disconnect(plug, slot)
 		}
@@ -1035,30 +1035,30 @@ func (r *Repository) AddAppSet(appSet *SnapAppSet) error {
 	snapName := snapInfo.InstanceName()
 
 	// just checking for the name's existence in r.appSets should be enough
-	if r.appSets[snapName] != nil {
+	if r.appSets[snapName.TODOInstanceName()] != nil {
 		return fmt.Errorf("cannot register interfaces for snap %q more than once", snapName)
 	}
 
-	r.appSets[snapName] = appSet
+	r.appSets[snapName.TODOInstanceName()] = appSet
 
 	for plugName, plugInfo := range snapInfo.Plugs {
 		if _, ok := r.ifaces[plugInfo.Interface]; !ok {
 			continue
 		}
-		if r.plugs[snapName] == nil {
-			r.plugs[snapName] = make(map[string]*snap.PlugInfo)
+		if r.plugs[snapName.TODOInstanceName()] == nil {
+			r.plugs[snapName.TODOInstanceName()] = make(map[string]*snap.PlugInfo)
 		}
-		r.plugs[snapName][plugName] = plugInfo
+		r.plugs[snapName.TODOInstanceName()][plugName] = plugInfo
 	}
 
 	for slotName, slotInfo := range snapInfo.Slots {
 		if _, ok := r.ifaces[slotInfo.Interface]; !ok {
 			continue
 		}
-		if r.slots[snapName] == nil {
-			r.slots[snapName] = make(map[string]*snap.SlotInfo)
+		if r.slots[snapName.TODOInstanceName()] == nil {
+			r.slots[snapName.TODOInstanceName()] = make(map[string]*snap.SlotInfo)
 		}
-		r.slots[snapName][slotName] = slotInfo
+		r.slots[snapName.TODOInstanceName()][slotName] = slotInfo
 	}
 	return nil
 }
@@ -1127,7 +1127,7 @@ func (r *Repository) DisconnectSnap(snapName string) ([]string, error) {
 
 	result := make([]string, 0, len(seen))
 	for info := range seen {
-		result = append(result, info.InstanceName())
+		result = append(result, info.InstanceName().TODOInstanceName())
 	}
 	sort.Strings(result)
 	return result, nil
@@ -1167,7 +1167,7 @@ func (r *Repository) AutoConnectCandidateSlots(plugSnapName, plugName string, po
 			}
 			iface := slotInfo.Interface
 
-			slotAppSet := r.appSets[slotInfo.Snap.InstanceName()]
+			slotAppSet := r.appSets[slotInfo.Snap.InstanceName().TODOInstanceName()]
 			if slotAppSet == nil {
 				continue
 			}
@@ -1214,7 +1214,7 @@ func (r *Repository) AutoConnectCandidatePlugs(slotSnapName, slotName string, po
 			}
 			iface := slotInfo.Interface
 
-			plugAppSet := r.appSets[plugInfo.Snap.InstanceName()]
+			plugAppSet := r.appSets[plugInfo.Snap.InstanceName().TODOInstanceName()]
 			if plugAppSet == nil {
 				continue
 			}

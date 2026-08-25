@@ -621,7 +621,7 @@ func readInfoAndDeriveSideInfo(st *state.State, tempPath string, origPath string
 		if err != nil {
 			return nil, BadRequest("cannot read snap file: %v", err)
 		}
-		info.SideInfo = snap.SideInfo{RealName: info.SnapName()}
+		info.SideInfo = snap.SideInfo{RealName: info.SnapName().TODOSnapName()}
 		return info, nil
 	}
 
@@ -652,7 +652,7 @@ func readInfoAndDeriveSideInfo(st *state.State, tempPath string, origPath string
 	if si != nil {
 		info.SideInfo = *si
 	} else {
-		info.SideInfo = snap.SideInfo{RealName: info.SnapName()}
+		info.SideInfo = snap.SideInfo{RealName: info.SnapName().TODOSnapName()}
 	}
 
 	return info, nil
@@ -988,16 +988,16 @@ func trySnap(st *state.State, trydir string, flags snapstate.Flags) Response {
 	}
 
 	// TODO consider support for trying snaps plus components
-	tset, err := snapstateTryPath(st, info.InstanceName(), trydir, flags)
+	tset, err := snapstateTryPath(st, info.InstanceName().TODOInstanceName(), trydir, flags)
 	if err != nil {
-		return errToResponse(err, []string{info.InstanceName()}, BadRequest, "cannot try %s: %s", trydir)
+		return errToResponse(err, []string{info.InstanceName().TODOInstanceName()}, BadRequest, "cannot try %s: %s", trydir)
 	}
 
 	msg := fmt.Sprintf(i18n.G("Try %q snap from %s"), info.InstanceName(), trydir)
-	chg := newChange(st, trySnapChangeKind, msg, []*state.TaskSet{tset}, []string{info.InstanceName()})
+	chg := newChange(st, trySnapChangeKind, msg, []*state.TaskSet{tset}, []string{info.InstanceName().TODOInstanceName()})
 	chg.Set("api-data", map[string]any{
-		"snap-name":  info.InstanceName(),
-		"snap-names": []string{info.InstanceName()},
+		"snap-name":  info.InstanceName().TODOInstanceName(),
+		"snap-names": []string{info.InstanceName().TODOInstanceName()},
 	})
 
 	ensureStateSoon(st)

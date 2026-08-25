@@ -92,7 +92,7 @@ func (e *SnapNotClassicError) Error() string {
 // compatible with the given *snap.Info
 func validateFlagsForInfo(info *snap.Info, snapst *SnapState, flags Flags) error {
 	if flags.Classic && !info.NeedsClassic() {
-		return &SnapNotClassicError{Snap: info.InstanceName()}
+		return &SnapNotClassicError{Snap: info.InstanceName().TODOInstanceName()}
 	}
 
 	switch c := info.Confinement; c {
@@ -105,11 +105,11 @@ func validateFlagsForInfo(info *snap.Info, snapst *SnapState, flags Flags) error
 			return nil
 		}
 		return &SnapNeedsDevModeError{
-			Snap: info.InstanceName(),
+			Snap: info.InstanceName().TODOInstanceName(),
 		}
 	case snap.ClassicConfinement:
 		if !release.OnClassic {
-			return &SnapNeedsClassicSystemError{Snap: info.InstanceName()}
+			return &SnapNeedsClassicSystemError{Snap: info.InstanceName().TODOInstanceName()}
 		}
 
 		if flags.Classic {
@@ -121,7 +121,7 @@ func validateFlagsForInfo(info *snap.Info, snapst *SnapState, flags Flags) error
 		}
 
 		return &SnapNeedsClassicError{
-			Snap: info.InstanceName(),
+			Snap: info.InstanceName().TODOInstanceName(),
 		}
 	default:
 		return fmt.Errorf("unknown confinement %q", c)
@@ -203,7 +203,7 @@ func checkSnap(st *state.State, snapFilePath, instanceName string, si *snap.Side
 		}
 	}
 
-	if snapName != s.SnapName() {
+	if snapName != s.SnapName().TODOSnapName() {
 		return fmt.Errorf("cannot install snap %q using instance name %q", s.SnapName(), instanceName)
 	}
 
@@ -305,7 +305,7 @@ func checkGadgetOrKernel(st *state.State, snapInfo, curInfo *snap.Info, snapf sn
 	if errors.Is(err, state.ErrNoState) {
 		// check if we are in the remodel case
 		if deviceCtx != nil && deviceCtx.ForRemodeling() {
-			if whichName(deviceCtx.Model()) == snapInfo.InstanceName() {
+			if whichName(deviceCtx.Model()) == snapInfo.InstanceName().TODOInstanceName() {
 				return nil
 			}
 		}
@@ -541,7 +541,7 @@ func checkDesktopFileIDsConflicts(st *state.State, info *snap.Info) error {
 		return err
 	}
 	for instanceName, snapst := range stateMap {
-		if instanceName == info.InstanceName() {
+		if instanceName == info.InstanceName().TODOInstanceName() {
 			continue
 		}
 

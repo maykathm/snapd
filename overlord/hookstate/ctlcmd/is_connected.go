@@ -175,10 +175,10 @@ func (c *isConnectedCommand) Execute(args []string) error {
 				return fmt.Errorf("internal error: %s", err)
 			}
 
-			if connRef.PlugRef.Snap == snapName.TODOInstanceName() {
+			if connRef.PlugRef.Snap == snapName {
 				nameSet[connRef.PlugRef.Name] = struct{}{}
 			}
-			if connRef.SlotRef.Snap == snapName.TODOInstanceName() {
+			if connRef.SlotRef.Snap == snapName {
 				nameSet[connRef.SlotRef.Name] = struct{}{}
 			}
 		}
@@ -208,8 +208,8 @@ func (c *isConnectedCommand) Execute(args []string) error {
 			return fmt.Errorf("internal error: %s", err)
 		}
 
-		matchingPlug := connRef.PlugRef.Snap == snapName.TODOInstanceName() && connRef.PlugRef.Name == plugOrSlot
-		matchingSlot := connRef.SlotRef.Snap == snapName.TODOInstanceName() && connRef.SlotRef.Name == plugOrSlot
+		matchingPlug := connRef.PlugRef.Snap == snapName && connRef.PlugRef.Name == plugOrSlot
+		matchingSlot := connRef.SlotRef.Snap == snapName && connRef.SlotRef.Name == plugOrSlot
 		if otherSnap != nil {
 			if matchingPlug && connRef.SlotRef.Snap == otherSnap.InstanceName() || matchingSlot && connRef.PlugRef.Snap == otherSnap.InstanceName() {
 				return nil

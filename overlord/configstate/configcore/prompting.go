@@ -46,7 +46,7 @@ var serviceControlChangeKind = swfeats.RegisterChangeKind("service-control")
 func startHandlers(st *state.State, handlers []*snap.AppInfo) error {
 	var affectedSnaps []string
 	for _, h := range handlers {
-		affectedSnaps = append(affectedSnaps, h.Snap.InstanceName())
+		affectedSnaps = append(affectedSnaps, h.Snap.InstanceName().TODOInstanceName())
 	}
 
 	// start and enable prompt handlers

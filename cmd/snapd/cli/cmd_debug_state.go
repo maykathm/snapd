@@ -372,7 +372,7 @@ func (c *cmdDebugState) showConnectionDetails(st *state.State, connArg string) e
 		// command invoked with 'snap' only
 		case plugMatch.Snap != "" && plugMatch.Name == "" && slotMatch.Snap == "" && slotMatch.Name == "":
 			// should match one of the snap names
-			if plugMatch.Snap != slot.Snap && plugMatch.Snap != plug.Snap {
+			if plugMatch.Snap != slot.Snap.TODOInstanceName() && plugMatch.Snap != plug.Snap.TODOInstanceName() {
 				continue
 			}
 

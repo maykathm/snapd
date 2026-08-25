@@ -144,12 +144,12 @@ func (f installSizeTestStore) SnapAction(ctx context.Context, currentSnaps []*st
 	}
 
 	for _, sr := range sars {
-		if sz, ok := sizes[sr.Info.InstanceName()]; ok {
+		if sz, ok := sizes[sr.Info.InstanceName().TODOInstanceName()]; ok {
 			sr.Info.Size = sz
 		} else {
 			panic(fmt.Sprintf("unexpected snap: %q", sr.Info.InstanceName()))
 		}
-		if sr.Info.InstanceName() == "snap-content-slot-other" {
+		if sr.Info.InstanceName().TODOInstanceName() == "snap-content-slot-other" {
 			sr.Info.Base = "some-other-base"
 		}
 	}

@@ -302,7 +302,7 @@ func (s *snapmgrTestSuite) TestInstallDevModeConfinementFiltering(c *C) {
 	task0 := ts.Tasks()[0]
 	snapsup, err := snapstate.TaskSnapSetup(task0)
 	c.Assert(err, IsNil, Commentf("%#v", task0))
-	c.Assert(snapsup.InstanceName().String(), Equals, "some-snap")
+	c.Assert(snapsup.InstanceName().TODOInstanceName(), Equals, "some-snap")
 	c.Assert(snapsup.DevMode, Equals, true)
 	c.Assert(snapsup.ApplySnapDevMode, Equals, false)
 
@@ -4123,7 +4123,7 @@ func (s *snapmgrTestSuite) TestInstallMany(c *C) {
 			if t.Kind() == "prerequisites" && !t.Has("prerequisites-sync") {
 				sup, err := snapstate.TaskSnapSetup(t)
 				c.Assert(err, IsNil)
-				c.Check(sup.Version, Equals, sup.SnapName().String()+"Ver")
+				c.Check(sup.Version, Equals, sup.SnapName().TODOSnapName()+"Ver")
 			}
 		}
 	}
@@ -4153,7 +4153,7 @@ func (s *snapmgrTestSuite) TestInstallManyNoDelayed(c *C) {
 			if t.Kind() == "prerequisites" && !t.Has("prerequisites-sync") {
 				sup, err := snapstate.TaskSnapSetup(t)
 				c.Assert(err, IsNil)
-				c.Check(sup.Version, Equals, sup.SnapName().String()+"Ver")
+				c.Check(sup.Version, Equals, sup.SnapName().TODOSnapName()+"Ver")
 			}
 		}
 	}
@@ -5645,7 +5645,7 @@ epoch: 1
 			if t.Kind() == "prerequisites" && !t.Has("prerequisites-sync") {
 				sup, err := snapstate.TaskSnapSetup(t)
 				c.Assert(err, IsNil)
-				c.Check(sup.SnapName().String(), Equals, snapNames[i])
+				c.Check(sup.SnapName().TODOSnapName(), Equals, snapNames[i])
 				c.Check(sup.Version, Equals, "1.0")
 			}
 		}
@@ -6249,7 +6249,7 @@ epoch: 1
 			if t.Kind() == "prerequisites" && !t.Has("prerequisites-sync") {
 				sup, err := snapstate.TaskSnapSetup(t)
 				c.Assert(err, IsNil)
-				c.Check(sup.SnapName().String(), Equals, snapNames[i])
+				c.Check(sup.SnapName().TODOSnapName(), Equals, snapNames[i])
 				c.Check(sup.Version, Equals, "1.0")
 			}
 		}
@@ -7963,7 +7963,7 @@ func (s *validationSetsSuite) testInstallComponentsValidationSets(c *C, opts tes
 	defer restore()
 
 	s.fakeStore.snapResourcesFn = func(info *snap.Info) []store.SnapResourceResult {
-		c.Assert(info.InstanceName(), DeepEquals, snapName)
+		c.Assert(info.InstanceName().TODOInstanceName(), DeepEquals, snapName)
 		return []store.SnapResourceResult{
 			{
 				DownloadInfo: snap.DownloadInfo{
@@ -8148,7 +8148,7 @@ func (s *validationSetsSuite) testUpdateComponentsValidationSets(c *C, opts test
 	defer restore()
 
 	s.fakeStore.snapResourcesFn = func(info *snap.Info) []store.SnapResourceResult {
-		c.Assert(info.InstanceName(), DeepEquals, instanceName)
+		c.Assert(info.InstanceName().TODOInstanceName(), DeepEquals, instanceName)
 		results := make([]store.SnapResourceResult, 0, len(opts.comps))
 		for _, c := range opts.comps {
 			results = append(results, store.SnapResourceResult{

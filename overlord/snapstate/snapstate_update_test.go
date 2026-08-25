@@ -6542,8 +6542,8 @@ func (s *snapmgrTestSuite) TestParallelInstanceUpdateMany(c *C) {
 	snapsupInstance, err = snapstate.TaskSnapSetup(tts[1].Tasks()[0])
 	c.Assert(err, IsNil)
 
-	c.Assert(snapsup.InstanceName().String(), Equals, "some-snap")
-	c.Assert(snapsupInstance.InstanceName().String(), Equals, "some-snap_instance")
+	c.Assert(snapsup.InstanceName().TODOInstanceName(), Equals, "some-snap")
+	c.Assert(snapsupInstance.InstanceName().TODOInstanceName(), Equals, "some-snap_instance")
 
 	verifyUpdateTasks(c, snap.TypeApp, 0, 3, tts[0])
 	verifyUpdateTasks(c, snap.TypeApp, 0, 1, tts[1])
@@ -8861,7 +8861,7 @@ func (s *snapmgrTestSuite) TestUpdatePrerequisiteBackwardsCompat(c *C) {
 	var snapsup snapstate.SnapSetup
 	err = earlyPrereq.Get("snap-setup", &snapsup)
 	c.Assert(err, IsNil)
-	c.Assert(snapsup.InstanceName().String(), Equals, "outdated-consumer")
+	c.Assert(snapsup.InstanceName().TODOInstanceName(), Equals, "outdated-consumer")
 	snapsup.PrereqContentAttrs = nil
 	earlyPrereq.Set("snap-setup", &snapsup)
 
@@ -12217,7 +12217,7 @@ func (s *snapmgrTestSuite) TestAutoRefreshRefreshInhibitNoticeRecordedOnPreDownl
 	s.state.Unlock()
 
 	s.fakeStore.snapResourcesFn = func(info *snap.Info) []store.SnapResourceResult {
-		c.Assert(info.InstanceName(), Equals, "some-snap")
+		c.Assert(info.InstanceName().TODOInstanceName(), Equals, "some-snap")
 		return []store.SnapResourceResult{
 			{
 				Name:      "standard-component",
@@ -13137,9 +13137,9 @@ func (s *snapmgrTestSuite) TestRefreshForcedOnRefreshInhibitionTimeout(c *C) {
 
 	check := make(map[string]int, 2)
 	restore = snapstate.MockRefreshAppsCheck(func(info *snap.Info) error {
-		check[info.InstanceName()]++
+		check[info.InstanceName().TODOInstanceName()]++
 
-		switch check[info.InstanceName()] {
+		switch check[info.InstanceName().TODOInstanceName()] {
 		case 1:
 			return nil
 		case 2:
@@ -15083,7 +15083,7 @@ func (s *snapmgrTestSuite) TestSplitEssentialSnapUpdates(c *C) {
 	updatesToNames := func(updates []snapstate.SnapUpdate) []string {
 		names := make([]string, 0, len(updates))
 		for _, up := range updates {
-			names = append(names, up.Setup.InstanceName().String())
+			names = append(names, up.Setup.InstanceName().TODOInstanceName())
 		}
 		return names
 	}
@@ -20381,7 +20381,7 @@ func (s *snapmgrTestSuite) TestUpdateWithGoalSeedRefreshPrerequisitesUpdatesMode
 
 	providerSnapSetup, err := snapstate.TaskSnapSetup(providerSnapSetupTask)
 	c.Assert(err, IsNil)
-	c.Check(providerSnapSetup.InstanceName().String(), Equals, "content-provider")
+	c.Check(providerSnapSetup.InstanceName().TODOInstanceName(), Equals, "content-provider")
 	c.Check(observed.prerequisites, testutil.DeepUnsortedMatches, []snapstate.SeedRefreshCandidate{{
 		InstanceName:     providerSnapSetup.InstanceName().TODOInstanceName(),
 		SnapSetupTaskIDs: []string{providerSnapSetupTask.ID()},
@@ -20561,13 +20561,13 @@ func (s *snapmgrTestSuite) TestUpdateWithGoalSeedRefreshRecursivePrerequisitesBe
 	c.Assert(providerSnapSetupTask, NotNil)
 	providerSnapsup, err := snapstate.TaskSnapSetup(providerSnapSetupTask)
 	c.Assert(err, IsNil)
-	c.Check(providerSnapsup.InstanceName().String(), Equals, "content-provider")
+	c.Check(providerSnapsup.InstanceName().TODOInstanceName(), Equals, "content-provider")
 
 	nestedSnapSetupTask := s.state.Task(observed.prerequisites[1].SnapSetupTaskIDs[0])
 	c.Assert(nestedSnapSetupTask, NotNil)
 	nestedSnapsup, err := snapstate.TaskSnapSetup(nestedSnapSetupTask)
 	c.Assert(err, IsNil)
-	c.Check(nestedSnapsup.InstanceName().String(), Equals, "nested-provider")
+	c.Check(nestedSnapsup.InstanceName().TODOInstanceName(), Equals, "nested-provider")
 
 	// both prerequisite task sets are observed, but only content-provider is
 	// seed-relevant. nested-provider is intentionally outside the seed refresh.
@@ -21920,7 +21920,7 @@ func (s *snapmgrTestSuite) TestInstallPathSeedRefreshRunThrough(c *C) {
 	c.Assert(err, IsNil)
 	snapsup, err := snapstate.TaskSnapSetup(setupTask)
 	c.Assert(err, IsNil)
-	c.Check(snapsup.InstanceName().String(), Equals, "kernel")
+	c.Check(snapsup.InstanceName().TODOInstanceName(), Equals, "kernel")
 	c.Check(snapsup.Revision(), Equals, newSideInfo.Revision)
 	c.Check(snapsup.SnapPath, Equals, path)
 

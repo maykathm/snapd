@@ -312,7 +312,7 @@ func checkSnapstateDevModeFlags(c *C, tsAll []*state.TaskSet, snapsWithDevModeFl
 		}
 		snapsup, err := snapstate.TaskSnapSetup(task0)
 		c.Assert(err, IsNil, Commentf("%#v", task0))
-		if strutil.ListContains(allDevModeSnaps, snapsup.InstanceName().String()) {
+		if strutil.ListContains(allDevModeSnaps, snapsup.InstanceName().TODOInstanceName()) {
 			c.Assert(snapsup.DevMode, Equals, true)
 			matched++
 		} else {
@@ -326,7 +326,7 @@ func checkSnapstateDevModeFlags(c *C, tsAll []*state.TaskSet, snapsWithDevModeFl
 func checkSeedSnapLanes(c *C, model *asserts.Model, tss []*state.TaskSet) {
 	isEssential := func(name string) bool {
 		for _, sn := range model.EssentialSnaps() {
-			if sn.SnapName() == name {
+			if sn.SnapName().TODOSnapName() == name {
 				return true
 			}
 		}

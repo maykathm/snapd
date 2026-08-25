@@ -38,6 +38,7 @@ import (
 	"github.com/snapcore/snapd/overlord/state"
 	"github.com/snapcore/snapd/overlord/swfeats"
 	"github.com/snapcore/snapd/snap"
+	"github.com/snapcore/snapd/snap/naming"
 )
 
 var connectRetryTimeout = time.Second * 5
@@ -123,7 +124,7 @@ func connect(st *state.State, plugSnap, plugName, slotSnap, slotName string, fla
 	if err != nil {
 		return nil, err
 	}
-	connRef := interfaces.ConnRef{PlugRef: interfaces.PlugRef{Snap: plugSnap, Name: plugName}, SlotRef: interfaces.SlotRef{Snap: slotSnap, Name: slotName}}
+	connRef := interfaces.ConnRef{PlugRef: interfaces.PlugRef{Snap: naming.InstanceName(plugSnap), Name: plugName}, SlotRef: interfaces.SlotRef{Snap: naming.InstanceName(slotSnap), Name: slotName}}
 	if conn, ok := conns[connRef.ID()]; ok && !conn.Undesired && !conn.HotplugGone {
 		return nil, &ErrAlreadyConnected{Connection: connRef}
 	}
@@ -201,8 +202,8 @@ func connect(st *state.State, plugSnap, plugName, slotSnap, slotName string, fla
 		prev = prepareSlotConnection
 	}
 
-	connectInterface.Set("slot", interfaces.SlotRef{Snap: slotSnap, Name: slotName})
-	connectInterface.Set("plug", interfaces.PlugRef{Snap: plugSnap, Name: plugName})
+	connectInterface.Set("slot", interfaces.SlotRef{Snap: naming.InstanceName(slotSnap), Name: slotName})
+	connectInterface.Set("plug", interfaces.PlugRef{Snap: naming.InstanceName(plugSnap), Name: plugName})
 	if flags.AutoConnect {
 		connectInterface.Set("auto", true)
 	}
@@ -322,7 +323,7 @@ func initialConnectAttributes(st *state.State, plugSnapInfo *snap.Info, plugSnap
 func Disconnect(st *state.State, conn *interfaces.Connection) (*state.TaskSet, error) {
 	plugSnap := conn.Plug.Snap().InstanceName()
 	slotSnap := conn.Slot.Snap().InstanceName()
-	if err := snapstate.CheckChangeConflictMany(st, []string{plugSnap, slotSnap}, ""); err != nil {
+	if err := snapstate.CheckChangeConflictMany(st, []string{plugSnap.TODOInstanceName(), slotSnap.TODOInstanceName()}, ""); err != nil {
 		return nil, err
 	}
 
@@ -336,7 +337,7 @@ func Disconnect(st *state.State, conn *interfaces.Connection) (*state.TaskSet, e
 // If the interface is already disconnected, it will be removed from the state
 // (forgotten).
 func Forget(st *state.State, repo *interfaces.Repository, connRef *interfaces.ConnRef) (*state.TaskSet, error) {
-	if err := snapstate.CheckChangeConflictMany(st, []string{connRef.PlugRef.Snap, connRef.SlotRef.Snap}, ""); err != nil {
+	if err := snapstate.CheckChangeConflictMany(st, []string{connRef.PlugRef.Snap.TODOInstanceName(), connRef.SlotRef.Snap.TODOInstanceName()}, ""); err != nil {
 		return nil, err
 	}
 
@@ -394,10 +395,10 @@ func disconnectTasks(st *state.State, conn *interfaces.Connection, flags disconn
 	slotName := conn.Slot.Name()
 
 	var plugSnapst, slotSnapst snapstate.SnapState
-	if err := snapstate.Get(st, slotSnap, &slotSnapst); err != nil {
+	if err := snapstate.Get(st, slotSnap.TODOInstanceName(), &slotSnapst); err != nil {
 		return nil, err
 	}
-	if err := snapstate.Get(st, plugSnap, &plugSnapst); err != nil {
+	if err := snapstate.Get(st, plugSnap.TODOInstanceName(), &plugSnapst); err != nil {
 		return nil, err
 	}
 
@@ -449,13 +450,13 @@ func disconnectTasks(st *state.State, conn *interfaces.Connection, flags disconn
 		hookName := fmt.Sprintf("disconnect-slot-%s", slotName)
 		if slotSnapInfo.Hooks[hookName] != nil {
 			disconnectSlotHookSetup := &hookstate.HookSetup{
-				Snap:        slotSnap,
+				Snap:        slotSnap.TODOInstanceName(),
 				Hook:        hookName,
 				Optional:    true,
 				IgnoreError: flags.IgnoreHookError,
 			}
 			undoDisconnectSlotHookSetup := &hookstate.HookSetup{
-				Snap:        slotSnap,
+				Snap:        slotSnap.TODOInstanceName(),
 				Hook:        "connect-slot-" + slotName,
 				Optional:    true,
 				IgnoreError: flags.IgnoreHookError,
@@ -473,13 +474,13 @@ func disconnectTasks(st *state.State, conn *interfaces.Connection, flags disconn
 		hookName := fmt.Sprintf("disconnect-plug-%s", plugName)
 		if plugSnapInfo.Hooks[hookName] != nil {
 			disconnectPlugHookSetup := &hookstate.HookSetup{
-				Snap:        plugSnap,
+				Snap:        plugSnap.TODOInstanceName(),
 				Hook:        hookName,
 				Optional:    true,
 				IgnoreError: flags.IgnoreHookError,
 			}
 			undoDisconnectPlugHookSetup := &hookstate.HookSetup{
-				Snap:        plugSnap,
+				Snap:        plugSnap.TODOInstanceName(),
 				Hook:        "connect-plug-" + plugName,
 				Optional:    true,
 				IgnoreError: flags.IgnoreHookError,
@@ -634,7 +635,7 @@ func InterfacesRequestsControlHandlerServices(st *state.State) ([]*snap.AppInfo,
 		}
 
 		sn := connRef.PlugRef.Snap
-		si, err := snapstate.CurrentInfo(st, sn)
+		si, err := snapstate.CurrentInfo(st, sn.TODOInstanceName())
 		if err != nil {
 			return nil, err
 		}

@@ -308,7 +308,7 @@ func fillComponentInfo(about aboutSnap) []client.Component {
 		currentCompsSet[comp.Component.ComponentName] = true
 		csi := snapst.CurrentComponentSideInfo(comp.Component)
 		cpi := snap.MinimalComponentContainerPlaceInfo(
-			comp.Component.ComponentName, csi.Revision, localSnap.InstanceName())
+			comp.Component.ComponentName, csi.Revision, localSnap.InstanceName().TODOInstanceName())
 		compSz, err := snap.ComponentSize(cpi)
 		if err != nil {
 			logger.Noticef("cannot get size of %s: %v", comp.Component, err)

@@ -194,7 +194,7 @@ type SnapSetup struct {
 }
 
 func (snapsup *SnapSetup) InstanceName() naming.InstanceName {
-	return naming.InstanceName(snap.InstanceName(snapsup.SnapName().String(), snapsup.InstanceKey))
+	return naming.InstanceName(snap.InstanceName(snapsup.SnapName().TODOSnapName(), snapsup.InstanceKey))
 }
 
 func (snapsup *SnapSetup) SnapName() naming.SnapName {
@@ -331,7 +331,7 @@ func ComponentInfoFromComponentSetup(compsup *ComponentSetup, info *snap.Info) (
 	cpi := snap.MinimalComponentContainerPlaceInfo(
 		compsup.ComponentName(),
 		compsup.CompSideInfo.Revision,
-		info.InstanceName(),
+		info.InstanceName().TODOInstanceName(),
 	)
 
 	container := snapdir.New(cpi.MountDir())

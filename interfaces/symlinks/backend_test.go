@@ -86,7 +86,7 @@ func (s *backendSuite) mockSlot(c *C, yaml string, slotName string) (*interfaces
 	if slotInfo, ok := info.Slots[slotName]; ok {
 		return set, slotInfo
 	}
-	panic(fmt.Sprintf("cannot find slot %q in snap %q", slotName, info.InstanceName()))
+	panic(fmt.Sprintf("cannot find slot %q in snap %q", slotName, info.InstanceName().TODOInstanceName()))
 }
 
 func (s *backendSuite) mockPlugs(c *C, yaml string, plugNames []string) (*interfaces.SnapAppSet, []*snap.PlugInfo) {
@@ -103,7 +103,7 @@ func (s *backendSuite) mockPlugs(c *C, yaml string, plugNames []string) (*interf
 			plugInfos = append(plugInfos, plugInfo)
 			continue
 		}
-		panic(fmt.Sprintf("cannot find plug %q in snap %q", plug, info.InstanceName()))
+		panic(fmt.Sprintf("cannot find plug %q in snap %q", plug, info.InstanceName().TODOInstanceName()))
 	}
 	return set, plugInfos
 }
@@ -200,8 +200,8 @@ func (s *backendSuite) TestConnectDisconnect(c *C) {
 	checkSymlink(c, "/snap/somesnap2/1/target2.so", "/usr/lib/foo/bar2.so")
 
 	// Now disconnect the first slot and set-up backends again
-	c.Assert(s.Repo.Disconnect(plugInfos[0].Snap.InstanceName(), plugInfos[0].Name,
-		slotInfo1.Snap.InstanceName(), slotInfo1.Name), IsNil)
+	c.Assert(s.Repo.Disconnect(plugInfos[0].Snap.InstanceName().TODOInstanceName(), plugInfos[0].Name,
+		slotInfo1.Snap.InstanceName().TODOInstanceName(), slotInfo1.Name), IsNil)
 	s.Backend.Setup(appSet, interfaces.ConfinementOptions{}, interfaces.SetupContext{Reason: interfaces.SnapSetupReasonOther}, s.Repo, nil)
 
 	// Only symlinks for the connected slots are around
@@ -267,8 +267,8 @@ func (s *backendSuite) TestTwoPlugs(c *C) {
 	checkSymlink(c, "/snap/somesnap2/1/target2.so", "/usr/lib/foo2/bar2.so")
 
 	// Now disconnect the first slot and set-up backends again
-	c.Assert(s.Repo.Disconnect(plugInfos[0].Snap.InstanceName(), plugInfos[0].Name,
-		slotInfo1.Snap.InstanceName(), slotInfo1.Name), IsNil)
+	c.Assert(s.Repo.Disconnect(plugInfos[0].Snap.InstanceName().TODOInstanceName(), plugInfos[0].Name,
+		slotInfo1.Snap.InstanceName().TODOInstanceName(), slotInfo1.Name), IsNil)
 	s.Backend.Setup(appSet, interfaces.ConfinementOptions{}, interfaces.SetupContext{Reason: interfaces.SnapSetupReasonOther}, s.Repo, nil)
 
 	// Only symlinks for the connected slots are around

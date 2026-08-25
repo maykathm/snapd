@@ -963,7 +963,7 @@ func (v *ValidationSets) constraintsForSnap(snapRef naming.SnapRef) *snapConstra
 	}
 	// snapID not available, find by snap name
 	for _, cstrs := range v.snaps {
-		if cstrs.name == snapRef.SnapName() {
+		if cstrs.name == snapRef.SnapName().TODOSnapName() {
 			return cstrs
 		}
 	}
@@ -1081,7 +1081,7 @@ func (s *SnapPresenceConstraints) RequiredComponents() map[string]PresenceConstr
 // Check with ValidationSets.Conflict() before calling this method.
 func (v *ValidationSets) Presence(sn naming.SnapRef) (SnapPresenceConstraints, error) {
 	// if this is true, then calling code has a bug
-	if snapName := sn.SnapName(); strings.Contains(snapName, "_") {
+	if snapName := sn.SnapName(); strings.Contains(snapName.TODOSnapName(), "_") {
 		return SnapPresenceConstraints{}, fmt.Errorf("internal error: cannot check snap against validation sets with instance name: %q", snapName)
 	}
 

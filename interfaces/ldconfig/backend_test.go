@@ -74,7 +74,7 @@ func (s *backendSuite) mockSlot(c *C, yaml string, si *snap.SideInfo, slotName s
 	if slotInfo, ok := info.Slots[slotName]; ok {
 		return set, slotInfo
 	}
-	panic(fmt.Sprintf("cannot find slot %q in snap %q", slotName, info.InstanceName()))
+	panic(fmt.Sprintf("cannot find slot %q in snap %q", slotName, info.InstanceName().TODOInstanceName()))
 }
 
 func (s *backendSuite) mockPlug(c *C, yaml string, si *snap.SideInfo, plugName string) (*interfaces.SnapAppSet, *snap.PlugInfo) {
@@ -88,7 +88,7 @@ func (s *backendSuite) mockPlug(c *C, yaml string, si *snap.SideInfo, plugName s
 	if plugInfo, ok := info.Plugs[plugName]; ok {
 		return set, plugInfo
 	}
-	panic(fmt.Sprintf("cannot find plug %q in snap %q", plugName, info.InstanceName()))
+	panic(fmt.Sprintf("cannot find plug %q in snap %q", plugName, info.InstanceName().TODOInstanceName()))
 }
 
 const cudaProvider1 = `name: cuda1
@@ -168,8 +168,8 @@ func (s *backendSuite) TestInstallingCreatesLdconf(c *C) {
 	s.ldconfigCmd.ForgetCalls()
 
 	// Now disconnect the first slot and set-up backends again
-	c.Assert(s.Repo.Disconnect(plugInfo.Snap.InstanceName(), plugInfo.Name,
-		slotInfo1.Snap.InstanceName(), slotInfo1.Name), IsNil)
+	c.Assert(s.Repo.Disconnect(plugInfo.Snap.InstanceName().TODOInstanceName(), plugInfo.Name,
+		slotInfo1.Snap.InstanceName().TODOInstanceName(), slotInfo1.Name), IsNil)
 	c.Assert(s.Backend.Setup(appSet, interfaces.ConfinementOptions{}, interfaces.SetupContext{Reason: interfaces.SnapSetupReasonOther}, s.Repo, nil), IsNil)
 	c.Assert(s.Backend.Setup(slotAppSet1, interfaces.ConfinementOptions{}, interfaces.SetupContext{Reason: interfaces.SnapSetupReasonOther}, s.Repo, nil), IsNil)
 	c.Assert(s.Backend.Setup(slotAppSet2, interfaces.ConfinementOptions{}, interfaces.SetupContext{Reason: interfaces.SnapSetupReasonOther}, s.Repo, nil), IsNil)
@@ -218,8 +218,8 @@ func (s *backendSuite) TestInstallingLdconfigFileCreatedRemoved(c *C) {
 	c.Assert(s.ldconfigCmd.Calls(), IsNil)
 
 	// disconnect and setup, ldconfig not run either
-	c.Assert(s.Repo.Disconnect(plugInfo.Snap.InstanceName(), plugInfo.Name,
-		slotInfo1.Snap.InstanceName(), slotInfo1.Name), IsNil)
+	c.Assert(s.Repo.Disconnect(plugInfo.Snap.InstanceName().TODOInstanceName(), plugInfo.Name,
+		slotInfo1.Snap.InstanceName().TODOInstanceName(), slotInfo1.Name), IsNil)
 	c.Assert(s.Backend.Setup(appSet, interfaces.ConfinementOptions{}, interfaces.SetupContext{Reason: interfaces.SnapSetupReasonOther}, s.Repo, nil), IsNil)
 	c.Assert(confPath, testutil.FileAbsent)
 	c.Assert(s.ldconfigCmd.Calls(), IsNil)
@@ -258,8 +258,8 @@ func (s *backendSuite) TestInstallingLdconfigFileCreatedRemoved(c *C) {
 	c.Assert(s.ldconfigCmd.Calls(), IsNil)
 
 	// disconnect then Setup now removed the configuration and calls ldconfig
-	c.Assert(s.Repo.Disconnect(plugInfo.Snap.InstanceName(), plugInfo.Name,
-		slotInfo1.Snap.InstanceName(), slotInfo1.Name), IsNil)
+	c.Assert(s.Repo.Disconnect(plugInfo.Snap.InstanceName().TODOInstanceName(), plugInfo.Name,
+		slotInfo1.Snap.InstanceName().TODOInstanceName(), slotInfo1.Name), IsNil)
 	c.Assert(s.Backend.Setup(appSet, interfaces.ConfinementOptions{}, interfaces.SetupContext{Reason: interfaces.SnapSetupReasonOther}, s.Repo, nil), IsNil)
 	c.Assert(confPath, testutil.FileAbsent)
 	c.Assert(s.ldconfigCmd.Calls(), DeepEquals, [][]string{{"ldconfig"}})

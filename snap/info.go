@@ -544,7 +544,7 @@ func (s *Info) InstanceName() naming.InstanceName {
 // ContainerName returns the name of the container, which is the instance name
 // for snaps.
 func (s *Info) ContainerName() string {
-	return s.InstanceName()
+	return s.InstanceName().TODOInstanceName()
 }
 
 // SnapName returns the global blessed name of the snap.
@@ -697,12 +697,12 @@ func (s *Info) Type() Type {
 
 // MountDir returns the base directory of the snap where it gets mounted.
 func (s *Info) MountDir() string {
-	return MountDir(s.InstanceName(), s.Revision)
+	return MountDir(s.InstanceName().TODOInstanceName(), s.Revision)
 }
 
 // MountFile returns the path where the snap file that is mounted is installed.
 func (s *Info) MountFile() string {
-	return MountFile(s.InstanceName(), s.Revision)
+	return MountFile(s.InstanceName().TODOInstanceName(), s.Revision)
 }
 
 // MountDescription returns the mount unit Description field.
@@ -712,38 +712,38 @@ func (s *Info) MountDescription() string {
 
 // HooksDir returns the directory containing the snap's hooks.
 func (s *Info) HooksDir() string {
-	return HooksDir(s.InstanceName(), s.Revision)
+	return HooksDir(s.InstanceName().TODOInstanceName(), s.Revision)
 }
 
 // DataDir returns the data directory of the snap.
 func (s *Info) DataDir() string {
-	return DataDir(s.InstanceName(), s.Revision)
+	return DataDir(s.InstanceName().TODOInstanceName(), s.Revision)
 }
 
 // UserDataDir returns the user-specific data directory of the snap.
 func (s *Info) UserDataDir(home string, opts *dirs.SnapDirOptions) string {
-	return UserDataDir(home, s.InstanceName(), s.Revision, opts)
+	return UserDataDir(home, s.InstanceName().TODOInstanceName(), s.Revision, opts)
 }
 
 // UserCommonDataDir returns the user-specific data directory common across
 // revision of the snap.
 func (s *Info) UserCommonDataDir(home string, opts *dirs.SnapDirOptions) string {
-	return UserCommonDataDir(home, s.InstanceName(), opts)
+	return UserCommonDataDir(home, s.InstanceName().TODOInstanceName(), opts)
 }
 
 // UserExposedHomeDir returns the new upper-case snap directory in the user home.
 func (s *Info) UserExposedHomeDir(home string) string {
-	return filepath.Join(home, dirs.ExposedSnapHomeDir, s.InstanceName())
+	return filepath.Join(home, dirs.ExposedSnapHomeDir, s.InstanceName().TODOInstanceName())
 }
 
 // CommonDataDir returns the data directory common across revisions of the snap.
 func (s *Info) CommonDataDir() string {
-	return CommonDataDir(s.InstanceName())
+	return CommonDataDir(s.InstanceName().TODOInstanceName())
 }
 
 // CommonDataSaveDir returns the save data directory common across revisions of the snap.
 func (s *Info) CommonDataSaveDir() string {
-	return CommonDataSaveDir(s.InstanceName())
+	return CommonDataSaveDir(s.InstanceName().TODOInstanceName())
 }
 
 // DataHomeDirs returns the per user data directories of the snap across multiple
@@ -751,7 +751,7 @@ func (s *Info) CommonDataSaveDir() string {
 func (s *Info) DataHomeDirs(opts *dirs.SnapDirOptions) []string {
 	var dataHomeGlob []string
 	for _, glob := range dirs.DataHomeGlobs(opts) {
-		dataHomeGlob = append(dataHomeGlob, filepath.Join(glob, s.InstanceName(), s.Revision.String()))
+		dataHomeGlob = append(dataHomeGlob, filepath.Join(glob, s.InstanceName().TODOInstanceName(), s.Revision.String()))
 	}
 	return dataHomeGlob
 }
@@ -761,7 +761,7 @@ func (s *Info) DataHomeDirs(opts *dirs.SnapDirOptions) []string {
 func (s *Info) CommonDataHomeDirs(opts *dirs.SnapDirOptions) []string {
 	var comDataHomeGlob []string
 	for _, glob := range dirs.DataHomeGlobs(opts) {
-		comDataHomeGlob = append(comDataHomeGlob, filepath.Join(glob, s.InstanceName(), "common"))
+		comDataHomeGlob = append(comDataHomeGlob, filepath.Join(glob, s.InstanceName().TODOInstanceName(), "common"))
 	}
 	return comDataHomeGlob
 }
@@ -769,7 +769,7 @@ func (s *Info) CommonDataHomeDirs(opts *dirs.SnapDirOptions) []string {
 // UserXdgRuntimeDir returns the XDG_RUNTIME_DIR directory of the snap for a
 // particular user.
 func (s *Info) UserXdgRuntimeDir(euid sys.UserID) string {
-	return UserXdgRuntimeDir(euid, s.InstanceName())
+	return UserXdgRuntimeDir(euid, s.InstanceName().TODOInstanceName())
 }
 
 // XdgRuntimeDirs returns the XDG_RUNTIME_DIR directories for all users of the
@@ -779,7 +779,7 @@ func (s *Info) XdgRuntimeDirs() string {
 }
 
 func (s *Info) BinaryNameGlobs() []string {
-	return []string{s.InstanceName(), fmt.Sprintf("%s.*", s.InstanceName())}
+	return []string{s.InstanceName().TODOInstanceName(), fmt.Sprintf("%s.*", s.InstanceName())}
 }
 
 // NeedsDevMode returns whether the snap needs devmode.
@@ -831,10 +831,12 @@ const (
 // while being expanded for use in the context of the plug, special variables
 // may mean instance-specific value.
 func (s *Info) ExpandSnapVariablesSetSnapMountDir(path, snapMountDir string, expandFor ExpandSnapPerspective) string {
-	name := s.SnapName()
+	var name string
 
 	if expandFor == PerspectiveOther {
-		name = s.InstanceName()
+		name = s.InstanceName().TODOInstanceName()
+	} else {
+		name = s.SnapName().TODOSnapName()
 	}
 
 	return os.Expand(path, func(v string) string {
@@ -979,7 +981,7 @@ func BadInterfacesSummary(snapInfo *Info) string {
 // and desktop filename.
 func (s *Info) DesktopPrefix() string {
 	if s.InstanceKey == "" {
-		return s.SnapName()
+		return s.SnapName().TODOSnapName()
 	}
 	// we cannot use the usual "_" separator because that is also used
 	// to separate "$snap_$desktopfile"
@@ -1215,7 +1217,7 @@ func getAttribute(snapName string, ifaceName string, attrs map[string]any, key s
 }
 
 func (plug *PlugInfo) Attr(key string, val any) error {
-	return getAttribute(plug.Snap.InstanceName(), plug.Interface, plug.Attrs, key, val)
+	return getAttribute(plug.Snap.InstanceName().TODOInstanceName(), plug.Interface, plug.Attrs, key, val)
 }
 
 func (plug *PlugInfo) Lookup(key string) (any, bool) {
@@ -1228,7 +1230,7 @@ func (plug *PlugInfo) String() string {
 }
 
 func (slot *SlotInfo) Attr(key string, val any) error {
-	return getAttribute(slot.Snap.InstanceName(), slot.Interface, slot.Attrs, key, val)
+	return getAttribute(slot.Snap.InstanceName().TODOInstanceName(), slot.Interface, slot.Attrs, key, val)
 }
 
 func (slot *SlotInfo) Lookup(key string) (any, bool) {
@@ -1500,7 +1502,7 @@ func (timer *TimerInfo) File() string {
 }
 
 func (app *AppInfo) String() string {
-	return JoinSnapApp(app.Snap.InstanceName(), app.Name)
+	return JoinSnapApp(app.Snap.InstanceName().TODOInstanceName(), app.Name)
 }
 
 // SecurityTag returns application-specific security tag.
@@ -1508,7 +1510,7 @@ func (app *AppInfo) String() string {
 // Security tags are used by various security subsystems as "profile names" and
 // sometimes also as a part of the file name.
 func (app *AppInfo) SecurityTag() string {
-	return AppSecurityTag(app.Snap.InstanceName(), app.Name)
+	return AppSecurityTag(app.Snap.InstanceName().TODOInstanceName(), app.Name)
 }
 
 // DesktopFile returns the path to the installed optional desktop file for the
@@ -1565,24 +1567,24 @@ func (app *AppInfo) fallbackDesktopFile() string {
 
 // WrapperPath returns the path to wrapper invoking the app binary.
 func (app *AppInfo) WrapperPath() string {
-	return filepath.Join(dirs.SnapBinariesDir, JoinSnapApp(app.Snap.InstanceName(), app.Name))
+	return filepath.Join(dirs.SnapBinariesDir, JoinSnapApp(app.Snap.InstanceName().TODOInstanceName(), app.Name))
 }
 
 // CompleterPath returns the path to the completer snippet for the app binary.
 func (app *AppInfo) CompleterPath() string {
-	return filepath.Join(dirs.CompletersDir, JoinSnapApp(app.Snap.InstanceName(), app.Name))
+	return filepath.Join(dirs.CompletersDir, JoinSnapApp(app.Snap.InstanceName().TODOInstanceName(), app.Name))
 }
 
 // CompleterPath returns the legacy path to the completer snippet for the app binary.
 func (app *AppInfo) LegacyCompleterPath() string {
-	return filepath.Join(dirs.LegacyCompletersDir, JoinSnapApp(app.Snap.InstanceName(), app.Name))
+	return filepath.Join(dirs.LegacyCompletersDir, JoinSnapApp(app.Snap.InstanceName().TODOInstanceName(), app.Name))
 }
 
 func (app *AppInfo) launcherCommand(command string) string {
 	if command != "" {
 		command = " " + command
 	}
-	if app.Name == app.Snap.SnapName() {
+	if app.Name == app.Snap.SnapName().TODOSnapName() {
 		return fmt.Sprintf("/usr/bin/snap run%s %s", command, app.Snap.InstanceName())
 	}
 	return fmt.Sprintf("/usr/bin/snap run%s %s.%s", command, app.Snap.InstanceName(), app.Name)
@@ -1657,11 +1659,11 @@ func (app *AppInfo) EnvChain() []osutil.ExpandableEnv {
 func (hook *HookInfo) SecurityTag() string {
 	if hook.Component != nil {
 		return HookSecurityTag(SnapComponentName(
-			hook.Snap.InstanceName(),
+			hook.Snap.InstanceName().TODOInstanceName(),
 			hook.Component.Name,
 		), hook.Name)
 	}
-	return HookSecurityTag(hook.Snap.InstanceName(), hook.Name)
+	return HookSecurityTag(hook.Snap.InstanceName().TODOInstanceName(), hook.Name)
 }
 
 // EnvChain returns the chain of environment overrides, possibly with
@@ -1832,7 +1834,7 @@ func ReadCurrentComponentInfo(component string, info *Info) (*ComponentInfo, err
 	// TODO: creating this here is a bit of a hack, since we aren't actually
 	// able to set the revision of the component. we create it so that we can
 	// use ComponentLinkPath, which doesn't use the revision.
-	cpi := MinimalComponentContainerPlaceInfo(component, Revision{}, info.InstanceName())
+	cpi := MinimalComponentContainerPlaceInfo(component, Revision{}, info.InstanceName().TODOInstanceName())
 	link := ComponentLinkPath(cpi, info.Revision)
 
 	linkSource, err := os.Readlink(link)
@@ -1851,7 +1853,7 @@ func ReadCurrentComponentInfo(component string, info *Info) (*ComponentInfo, err
 
 	return ReadComponentInfoFromContainer(container, info, &ComponentSideInfo{
 		Revision:  revision,
-		Component: naming.NewComponentRef(info.SnapName(), component),
+		Component: naming.NewComponentRef(info.SnapName().TODOSnapName(), component),
 	})
 }
 

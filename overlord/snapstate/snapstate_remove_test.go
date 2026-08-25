@@ -1688,7 +1688,7 @@ type snapdBackend struct {
 }
 
 func (f *snapdBackend) RemoveSnapData(info *snap.Info, opts *dirs.SnapDirOptions) error {
-	dir := snap.DataDir(info.SnapName(), info.Revision)
+	dir := snap.DataDir(info.SnapName().TODOSnapName(), info.Revision)
 	if err := os.Remove(dir); err != nil {
 		return fmt.Errorf("unexpected error: %v", err)
 	}
@@ -1696,7 +1696,7 @@ func (f *snapdBackend) RemoveSnapData(info *snap.Info, opts *dirs.SnapDirOptions
 }
 
 func (f *snapdBackend) RemoveSnapCommonData(info *snap.Info, opts *dirs.SnapDirOptions) error {
-	dir := snap.CommonDataDir(info.SnapName())
+	dir := snap.CommonDataDir(info.SnapName().TODOSnapName())
 	if err := os.Remove(dir); err != nil {
 		return fmt.Errorf("unexpected error: %v", err)
 	}
@@ -1704,7 +1704,7 @@ func (f *snapdBackend) RemoveSnapCommonData(info *snap.Info, opts *dirs.SnapDirO
 }
 
 func (f *snapdBackend) RemoveSnapSaveData(info *snap.Info, dev snap.Device) error {
-	dir := snap.CommonDataSaveDir(info.InstanceName())
+	dir := snap.CommonDataSaveDir(info.InstanceName().TODOInstanceName())
 	if err := os.RemoveAll(dir); err != nil {
 		return fmt.Errorf("unexpected error: %v", err)
 	}
