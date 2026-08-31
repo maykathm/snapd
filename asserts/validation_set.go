@@ -88,8 +88,8 @@ type ValidationSetComponent struct {
 }
 
 // SnapName implements naming.SnapRef.
-func (s *ValidationSetSnap) SnapName() string {
-	return s.Name
+func (s *ValidationSetSnap) SnapName() naming.SnapName {
+	return naming.SnapName(s.Name)
 }
 
 // ID implements naming.SnapRef.

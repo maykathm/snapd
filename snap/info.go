@@ -83,10 +83,10 @@ type ContainerPlaceInfo interface {
 type PlaceInfo interface {
 	// InstanceName returns the name of the snap decorated with instance
 	// key, if any.
-	InstanceName() string
+	InstanceName() naming.InstanceName
 
 	// SnapName returns the name of the snap.
-	SnapName() string
+	SnapName() naming.SnapName
 
 	// SnapRevision returns the revision of the snap.
 	SnapRevision() Revision
@@ -515,8 +515,8 @@ func (s *Info) Provenance() string {
 
 // InstanceName returns the blessed name of the snap decorated with instance
 // key, if any.
-func (s *Info) InstanceName() string {
-	return InstanceName(s.SnapName(), s.InstanceKey)
+func (s *Info) InstanceName() naming.InstanceName {
+	return naming.NewInstanceName(s.SnapName(), s.InstanceKey)
 }
 
 // ContainerName returns the name of the container, which is the instance name
@@ -526,11 +526,11 @@ func (s *Info) ContainerName() string {
 }
 
 // SnapName returns the global blessed name of the snap.
-func (s *Info) SnapName() string {
+func (s *Info) SnapName() naming.SnapName {
 	if s.RealName != "" {
-		return s.RealName
+		return naming.SnapName(s.RealName)
 	}
-	return s.SuggestedName
+	return naming.SnapName(s.SuggestedName)
 }
 
 // Filename returns the name of the snap with the revision number,
