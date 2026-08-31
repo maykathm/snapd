@@ -97,7 +97,7 @@ var osutilCheckFreeSpace = osutil.CheckFreeSpace
 var TestingLeaveOutKernelUpdateGadgetAssets bool = false
 
 type minimalInstallInfo interface {
-	InstanceName() string
+	InstanceName() naming.InstanceName
 	Type() snap.Type
 	SnapBase() string
 	DownloadSize() int64
