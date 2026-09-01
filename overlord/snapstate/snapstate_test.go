@@ -5086,11 +5086,11 @@ func (s *snapmgrQuerySuite) TestActiveInfos(c *C) {
 	c.Check(infos, HasLen, 2)
 
 	instanceName := "name1_instance"
-	if infos[0].InstanceName() != instanceName && infos[1].InstanceName() != instanceName {
+	if infos[0].InstanceName().String() != instanceName && infos[1].InstanceName().String() != instanceName {
 		c.Fail()
 	}
 	// need stable ordering
-	if infos[0].InstanceName() == instanceName {
+	if infos[0].InstanceName().String() == instanceName {
 		infos[1], infos[0] = infos[0], infos[1]
 	}
 
@@ -10477,7 +10477,7 @@ func (s *snapmgrTestSuite) testResolveValidationSetsEnforcementErrorComponents(c
 
 	s.fakeStore.snapResourcesFn = func(info *snap.Info) []store.SnapResourceResult {
 		var results []store.SnapResourceResult
-		for _, csi := range opts.componentsPerSnap[info.InstanceName()] {
+		for _, csi := range opts.componentsPerSnap[info.InstanceName().String()] {
 			results = append(results, store.SnapResourceResult{
 				DownloadInfo: snap.DownloadInfo{
 					DownloadURL: "http://example.com/" + csi.Component.ComponentName,
@@ -10494,7 +10494,7 @@ func (s *snapmgrTestSuite) testResolveValidationSetsEnforcementErrorComponents(c
 
 	s.fakeStore.mutateSnapInfo = func(info *snap.Info) error {
 		info.Components = make(map[string]*snap.Component)
-		for _, csi := range opts.componentsPerSnap[info.InstanceName()] {
+		for _, csi := range opts.componentsPerSnap[info.InstanceName().String()] {
 			info.Components[csi.Component.ComponentName] = &snap.Component{
 				Type: snap.TestComponent,
 				Name: csi.Component.ComponentName,

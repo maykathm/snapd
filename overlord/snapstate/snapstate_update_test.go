@@ -12264,7 +12264,7 @@ func (s *snapmgrTestSuite) TestAutoRefreshRefreshInhibitNoticeRecordedOnPreDownl
 	s.state.Unlock()
 
 	s.fakeStore.snapResourcesFn = func(info *snap.Info) []store.SnapResourceResult {
-		c.Assert(info.InstanceName(), Equals, "some-snap")
+		c.Assert(info.InstanceName().String(), Equals, "some-snap")
 		return []store.SnapResourceResult{
 			{
 				Name:      "standard-component",
@@ -13138,9 +13138,9 @@ func (s *snapmgrTestSuite) TestRefreshForcedOnRefreshInhibitionTimeout(c *C) {
 
 	check := make(map[string]int, 2)
 	restore := snapstate.MockRefreshAppsCheck(func(info *snap.Info) error {
-		check[info.InstanceName()]++
+		check[info.InstanceName().String()]++
 
-		switch check[info.InstanceName()] {
+		switch check[info.InstanceName().String()] {
 		case 1:
 			return nil
 		case 2:

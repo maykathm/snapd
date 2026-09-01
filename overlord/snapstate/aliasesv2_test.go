@@ -147,7 +147,7 @@ func (s *snapmgrTestSuite) TestApplyAliasesChangeMulti(c *C) {
 
 func (s *snapmgrTestSuite) TestAutoAliasesDelta(c *C) {
 	snapstate.AutoAliases = func(st *state.State, info *snap.Info) (map[string]string, error) {
-		c.Check(info.InstanceName(), Equals, "alias-snap")
+		c.Check(info.InstanceName().String(), Equals, "alias-snap")
 		return map[string]string{
 			"alias1": "cmd1",
 			"alias2": "cmd2",
@@ -188,8 +188,8 @@ func (s *snapmgrTestSuite) TestAutoAliasesDelta(c *C) {
 func (s *snapmgrTestSuite) TestAutoAliasesDeltaAll(c *C) {
 	seen := make(map[string]bool)
 	snapstate.AutoAliases = func(st *state.State, info *snap.Info) (map[string]string, error) {
-		seen[info.InstanceName()] = true
-		if info.InstanceName() == "alias-snap" {
+		seen[info.InstanceName().String()] = true
+		if info.InstanceName().String() == "alias-snap" {
 			return map[string]string{
 				"alias1": "cmd1",
 				"alias2": "cmd2",
@@ -257,7 +257,7 @@ func (s *snapmgrTestSuite) TestAutoAliasesDeltaAll(c *C) {
 
 func (s *snapmgrTestSuite) TestAutoAliasesDeltaOverManual(c *C) {
 	snapstate.AutoAliases = func(st *state.State, info *snap.Info) (map[string]string, error) {
-		c.Check(info.InstanceName(), Equals, "alias-snap")
+		c.Check(info.InstanceName().String(), Equals, "alias-snap")
 		return map[string]string{
 			"alias1": "cmd1",
 			"alias2": "cmd2",

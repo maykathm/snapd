@@ -259,11 +259,11 @@ func checkGadgetOrKernel(st *state.State, snapInfo, curInfo *snap.Info, _ snap.C
 		return fmt.Errorf("cannot install %s snap on classic if not requested by the model", kind)
 	}
 
-	if snapInfo.InstanceName() != snapInfo.SnapName().String() {
+	if snapInfo.InstanceName().String() != snapInfo.SnapName().String() {
 		return fmt.Errorf("cannot install %q, parallel installation of kernel or gadget snaps is not supported", snapInfo.InstanceName())
 	}
 
-	if snapInfo.InstanceName() != expectedName {
+	if snapInfo.InstanceName().String() != expectedName {
 		return fmt.Errorf("cannot install %s %q, model assertion requests %q", kind, snapInfo.InstanceName(), expectedName)
 	}
 
@@ -366,7 +366,7 @@ func CanManageRefreshes(st *state.State) bool {
 
 		for _, plugInfo := range info.Plugs {
 			if plugInfo.Interface == "snapd-control" && plugInfo.Attrs["refresh-schedule"] == "managed" {
-				snapName := info.InstanceName()
+				snapName := info.InstanceName().String()
 				plugName := plugInfo.Name
 				if interfaceConnected(st, snapName, plugName) {
 					return true

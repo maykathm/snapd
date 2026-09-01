@@ -508,12 +508,12 @@ func (s *bootenv20Suite) TestCurrentBoot20NameAndRevision(c *C) {
 
 	current, err := boot.GetCurrentBoot(snap.TypeBase, coreDev)
 	c.Check(err, IsNil)
-	c.Check(current.SnapName(), Equals, s.base1.SnapName())
+	c.Check(current.SnapName().String(), Equals, s.base1.SnapName().String())
 	c.Check(current.SnapRevision(), Equals, snap.R(1))
 
 	current, err = boot.GetCurrentBoot(snap.TypeKernel, coreDev)
 	c.Check(err, IsNil)
-	c.Check(current.SnapName(), Equals, s.kern1.SnapName())
+	c.Check(current.SnapName().String(), Equals, s.kern1.SnapName().String())
 	c.Check(current.SnapRevision(), Equals, snap.R(1))
 
 	s.bootloader.BootVars["kernel_status"] = boot.TryingStatus
@@ -536,7 +536,7 @@ func (s *bootenv20EnvRefKernelSuite) TestCurrentBoot20NameAndRevision(c *C) {
 
 	current, err := boot.GetCurrentBoot(snap.TypeKernel, coreDev)
 	c.Assert(err, IsNil)
-	c.Assert(current.SnapName(), Equals, s.kern1.SnapName())
+	c.Assert(current.SnapName().String(), Equals, s.kern1.SnapName().String())
 	c.Assert(current.SnapRevision(), Equals, snap.R(1))
 }
 

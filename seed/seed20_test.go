@@ -3002,7 +3002,7 @@ func (s *seed20Suite) TestLoadMetaCore20Iter(c *C) {
 	// and bubbles up the errors
 	err = seed20.Iter(func(sn *seed.Snap) error {
 		if sn.SnapName() == "core20" {
-			return fmt.Errorf("mock error for snap %q", sn.SnapName())
+			return fmt.Errorf("mock error for snap %q", sn.SnapName().String())
 		}
 		return nil
 	})

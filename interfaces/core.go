@@ -166,9 +166,9 @@ func ParseConnRef(id string) (*ConnRef, error) {
 	if len(plugParts) != 2 || len(slotParts) != 2 {
 		return nil, fmt.Errorf("malformed connection identifier: %q", id)
 	}
-	conn.PlugRef.Snap = plugParts[0]
+	conn.PlugRef.Snap = naming.InstanceName(plugParts[0])
 	conn.PlugRef.Name = plugParts[1]
-	conn.SlotRef.Snap = slotParts[0]
+	conn.SlotRef.Snap = naming.InstanceName(slotParts[0])
 	conn.SlotRef.Name = slotParts[1]
 	return &conn, nil
 }

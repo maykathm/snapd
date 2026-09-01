@@ -301,7 +301,7 @@ func (s *baseMgrsSuite) SetUpTest(c *C) {
 	s.automaticSnapshots = nil
 	r := snapshotstate.MockBackendSave(func(_ context.Context, id uint64, si *snap.Info, cfg map[string]any, usernames []string,
 		options *snap.SnapshotOptions, _ *dirs.SnapDirOptions) (*client.Snapshot, error) {
-		s.automaticSnapshots = append(s.automaticSnapshots, automaticSnapshotCall{InstanceName: si.InstanceName(), SnapConfig: cfg, Usernames: usernames, Options: options})
+		s.automaticSnapshots = append(s.automaticSnapshots, automaticSnapshotCall{InstanceName: si.InstanceName().String(), SnapConfig: cfg, Usernames: usernames, Options: options})
 		return nil, nil
 	})
 	s.AddCleanup(r)
@@ -654,7 +654,7 @@ func (ms *baseMgrsSuite) mockInstalledSnapWithRevAndFiles(c *C, snapYaml string,
 		SnapID:   fakeSnapID(info.SnapName().String()),
 		Revision: info.Revision,
 	}
-	snapstate.Set(st, info.InstanceName(), &snapstate.SnapState{
+	snapstate.Set(st, info.InstanceName().String(), &snapstate.SnapState{
 		Active:   true,
 		Sequence: snapstatetest.NewSequenceFromSnapSideInfos([]*snap.SideInfo{si}),
 		Current:  info.Revision,
@@ -1201,11 +1201,12 @@ func (s *baseMgrsSuite) mockStore(c *C) *httptest.Server {
 			panic(err)
 		}
 
-		name := info.SnapName().String()
+		name := info.SnapName()
+		nameStr := name.String()
 
-		hit := strings.Replace(hitTemplate, "@URL@", baseURL.String()+"/api/v1/snaps/download/"+name+"/"+revno, -1)
-		hit = strings.Replace(hit, "@NAME@", name, -1)
-		hit = strings.Replace(hit, "@SNAPID@", fakeSnapID(name), -1)
+		hit := strings.Replace(hitTemplate, "@URL@", baseURL.String()+"/api/v1/snaps/download/"+nameStr+"/"+revno, -1)
+		hit = strings.Replace(hit, "@NAME@", nameStr, -1)
+		hit = strings.Replace(hit, "@SNAPID@", fakeSnapID(nameStr), -1)
 		hit = strings.Replace(hit, "@ICON@", path.Join(iconURL.String(), "icon.svg"), -1)
 		hit = strings.Replace(hit, "@VERSION@", info.Version, -1)
 		hit = strings.Replace(hit, "@REVISION@", revno, -1)
@@ -1464,19 +1465,19 @@ func (s *baseMgrsSuite) serveSnap(snapPath, revno string) {
 	if err != nil {
 		panic(err)
 	}
-	name := info.SnapName().String()
-	s.serveIDtoName[fakeSnapID(name)] = name
+	name := info.SnapName()
+	s.serveIDtoName[fakeSnapID(name.String())] = name.String()
 
-	if oldPath := s.serveSnapPath[name]; oldPath != "" {
-		oldRev := s.serveRevision[name]
+	if oldPath := s.serveSnapPath[name.String()]; oldPath != "" {
+		oldRev := s.serveRevision[name.String()]
 		if oldRev == "" {
 			panic("old path set but not old revision")
 		}
-		s.serveOldPaths[name] = append(s.serveOldPaths[name], oldPath)
-		s.serveOldRevs[name] = append(s.serveOldRevs[name], oldRev)
+		s.serveOldPaths[name.String()] = append(s.serveOldPaths[name.String()], oldPath)
+		s.serveOldRevs[name.String()] = append(s.serveOldRevs[name.String()], oldRev)
 	}
-	s.serveSnapPath[name] = snapPath
-	s.serveRevision[name] = revno
+	s.serveSnapPath[name.String()] = snapPath
+	s.serveRevision[name.String()] = revno
 }
 
 func (s *mgrsSuite) TestHappyRemoteInstallAndUpgradeSvc(c *C) {
@@ -3248,9 +3249,9 @@ func (s *mgrsSuite) installLocalTestSnap(c *C, snapYamlContent string) *snap.Inf
 	// store current state
 	snapName := info.InstanceName()
 	var snapst snapstate.SnapState
-	snapstate.Get(st, snapName, &snapst)
+	snapstate.Get(st, snapName.String(), &snapst)
 
-	ts, err := snapstate.InstallPath(st, &snap.SideInfo{RealName: snapName}, snapPath, "", "", snapstate.Flags{DevMode: true}, nil)
+	ts, err := snapstate.InstallPath(st, &snap.SideInfo{RealName: snapName.String()}, snapPath, "", "", snapstate.Flags{DevMode: true}, nil)
 	c.Assert(err, IsNil)
 	chg := st.NewChange("install-snap", "...")
 	chg.AddAll(ts)
@@ -6122,7 +6123,7 @@ func (ms *mgrsSuite) TestRefreshSimplePrevRev(c *C) {
 		SnapID:   fakeSnapID(info.SnapName().String()),
 		Revision: snap.R(2),
 	}
-	snapstate.Set(st, info.InstanceName(), &snapstate.SnapState{
+	snapstate.Set(st, info.InstanceName().String(), &snapstate.SnapState{
 		Active:   true,
 		Sequence: snapstatetest.NewSequenceFromSnapSideInfos([]*snap.SideInfo{si1, si2}),
 		Current:  snap.R(2),
@@ -6225,7 +6226,7 @@ func (ms *mgrsSuite) TestRefreshSimpleRevertToLocalFromLocalFile(c *C) {
 		SnapID:   fakeSnapID(info.SnapName().String()),
 		Revision: snap.R(2),
 	}
-	snapstate.Set(st, info.InstanceName(), &snapstate.SnapState{
+	snapstate.Set(st, info.InstanceName().String(), &snapstate.SnapState{
 		Active:   true,
 		Sequence: snapstatetest.NewSequenceFromSnapSideInfos([]*snap.SideInfo{si1, si2}),
 		Current:  snap.R(2),
@@ -8475,7 +8476,7 @@ func (s *mgrsSuiteCore) TestRemodelUC20DifferentGadgetChannel(c *C) {
 
 func verifyModelEssentialSnapHasContent(c *C, sd seed.Seed, name string, file, content string) {
 	for _, ms := range sd.EssentialSnaps() {
-		c.Logf("mode snap %q %v", ms.SnapName(), ms.Path)
+		c.Logf("mode snap %q %v", ms.SnapName().String(), ms.Path)
 		if ms.SnapName().String() == name {
 			sf, err := snapfile.Open(ms.Path)
 			c.Assert(err, IsNil)
@@ -15094,7 +15095,7 @@ func (s *mgrsSuite) TestDelayedSecurityBackendSideEffectsApplied(c *C) {
 						}
 						return nil
 					default:
-						return fmt.Errorf("unexpected call for snap %q", appSet.InstanceName())
+						return fmt.Errorf("unexpected call for snap %q", appSet.InstanceName().String())
 					}
 				}
 				return nil
@@ -15278,7 +15279,7 @@ func (s *mgrsSuite) testDelayedSecurityBackendSideEffectsTransactionallyApplied(
 						}
 						return nil
 					default:
-						return fmt.Errorf("unexpected call for snap %q", appSet.InstanceName())
+						return fmt.Errorf("unexpected call for snap %q", appSet.InstanceName().String())
 					}
 				}
 				return nil

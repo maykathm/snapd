@@ -54,7 +54,7 @@ func (a *SnapAppSet) Components() []*snap.ComponentInfo {
 // InstanceName returns the instance name of the snap that this SnapAppSet is
 // based on.
 func (a *SnapAppSet) InstanceName() naming.InstanceName {
-	return naming.InstanceName(a.info.InstanceName())
+	return a.info.InstanceName()
 }
 
 // ExpandSliceSnapVariablesInRootfs resolves $SNAP, $SNAP_DATA, $SNAP_COMMON

@@ -519,7 +519,7 @@ func (s *toolingSuite) TestDownloadManySnapWithComps(c *C) {
 	var numCore, numReq int
 	bdf := func(si *snap.Info, cinfos map[string]*snap.ComponentInfo) (targetPath string, compPaths map[string]string, err error) {
 		compPaths = make(map[string]string, len(cinfos))
-		switch si.SnapName().String() {
+		switch si.SnapName() {
 		case "core":
 			c.Check(len(cinfos), Equals, 0)
 			numCore++
@@ -544,7 +544,7 @@ func (s *toolingSuite) TestDownloadManySnapWithComps(c *C) {
 			compPaths[cref1.ComponentName] = filepath.Join(dlDir, fmt.Sprintf("%s.comp", cref1.String()))
 			compPaths[cref2.ComponentName] = filepath.Join(dlDir, fmt.Sprintf("%s.comp", cref2.String()))
 		default:
-			c.Error("unexpected snap", si.SnapName())
+			c.Error("unexpected snap", si.SnapName().String())
 		}
 		return filepath.Join(dlDir, si.SnapName().String()), compPaths, nil
 	}

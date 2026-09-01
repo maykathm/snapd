@@ -331,7 +331,7 @@ func ComponentInfoFromComponentSetup(compsup *ComponentSetup, info *snap.Info) (
 	cpi := snap.MinimalComponentContainerPlaceInfo(
 		compsup.ComponentName(),
 		compsup.CompSideInfo.Revision,
-		info.InstanceName(),
+		info.InstanceName().String(),
 	)
 
 	container := snapdir.New(cpi.MountDir())

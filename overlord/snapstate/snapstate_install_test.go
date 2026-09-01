@@ -8212,7 +8212,7 @@ func (s *validationSetsSuite) testInstallComponentsValidationSets(c *C, opts tes
 	defer restore()
 
 	s.fakeStore.snapResourcesFn = func(info *snap.Info) []store.SnapResourceResult {
-		c.Assert(info.InstanceName(), DeepEquals, snapName)
+		c.Assert(info.InstanceName().String(), DeepEquals, snapName)
 		return []store.SnapResourceResult{
 			{
 				DownloadInfo: snap.DownloadInfo{
@@ -8397,7 +8397,7 @@ func (s *validationSetsSuite) testUpdateComponentsValidationSets(c *C, opts test
 	defer restore()
 
 	s.fakeStore.snapResourcesFn = func(info *snap.Info) []store.SnapResourceResult {
-		c.Assert(info.InstanceName(), DeepEquals, instanceName)
+		c.Assert(info.InstanceName().String(), DeepEquals, instanceName)
 		results := make([]store.SnapResourceResult, 0, len(opts.comps))
 		for _, c := range opts.comps {
 			results = append(results, store.SnapResourceResult{

@@ -553,7 +553,7 @@ func (s *targetTestSuite) TestUpdateWithGoalMixesRefreshAndInstallIfMissing(c *C
 
 		names := make(map[string]bool)
 		for _, info := range refreshes {
-			names[info.InstanceName()] = true
+			names[info.InstanceName().String()] = true
 		}
 
 		c.Check(names, DeepEquals, map[string]bool{
