@@ -596,7 +596,7 @@ func (v *ValidationSets) addSnap(sn *asserts.ValidationSetSnap, validationSetKey
 	if sc == nil {
 		v.snaps[sn.SnapID] = &snapConstraints{
 			constraints: constraints{
-				name:     sn.Name,
+				name:     sn.Name.String(),
 				presence: sn.Presence,
 				revisions: map[snap.Revision][]revConstraint{
 					rev: {rc},
