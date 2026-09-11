@@ -29,6 +29,7 @@ import (
 	. "github.com/snapcore/snapd/interfaces"
 	"github.com/snapcore/snapd/interfaces/ifacetest"
 	"github.com/snapcore/snapd/snap"
+	"github.com/snapcore/snapd/snap/naming"
 	"github.com/snapcore/snapd/testutil"
 )
 
@@ -357,8 +358,8 @@ func (s *RepositorySuite) TestAddAppSetParallelInstance(c *C) {
 	c.Assert(err, IsNil)
 	c.Assert(s.testRepo.AllPlugs(""), HasLen, 2)
 
-	c.Assert(s.testRepo.Plug(s.consumer.InstanceName().String(), s.consumerPlug.Name), DeepEquals, s.consumerPlug)
-	c.Assert(s.testRepo.Plug(consumer.InstanceName().String(), "plug"), DeepEquals, consumer.Info().Plugs["plug"])
+	c.Assert(s.testRepo.Plug(s.consumer.InstanceName(), s.consumerPlug.Name), DeepEquals, s.consumerPlug)
+	c.Assert(s.testRepo.Plug(consumer.InstanceName(), "plug"), DeepEquals, consumer.Info().Plugs["plug"])
 }
 
 // Tests for Repository.AddSlot()
@@ -441,7 +442,7 @@ func (s *RepositorySuite) TestAddSlotClashingPlug(c *C) {
 
 	c.Assert(err, ErrorMatches, `snap "consumer" has plug and slot conflicting on name "plug"`)
 	c.Assert(s.testRepo.AllPlugs(""), HasLen, 1)
-	c.Assert(s.testRepo.Plug(s.consumer.InstanceName().String(), "plug"), DeepEquals, s.consumerPlug)
+	c.Assert(s.testRepo.Plug(s.consumer.InstanceName(), "plug"), DeepEquals, s.consumerPlug)
 }
 
 func (s *RepositorySuite) TestAddSlotStoresCorrectData(c *C) {
@@ -1558,11 +1559,11 @@ func (s *RepositorySuite) TestSnapSpecificationFailureWithPermanentSnippets(c *C
 }
 
 type testSideArity struct {
-	sideSnapName string
+	sideSnapName naming.InstanceName
 }
 
 func (a *testSideArity) SlotsPerPlugAny() bool {
-	return strings.HasSuffix(a.sideSnapName, "2")
+	return strings.HasSuffix(a.sideSnapName.String(), "2")
 }
 
 func (s *RepositorySuite) TestAutoConnectCandidatePlugsAndSlots(c *C) {
@@ -1734,7 +1735,7 @@ plugs:
 		case "producer2":
 			c.Check(arities[i].SlotsPerPlugAny(), Equals, true)
 		}
-		seenProducers[producerName] = true
+		seenProducers[producerName.String()] = true
 	}
 	c.Check(seenProducers, DeepEquals, map[string]bool{
 		"producer1": true,
@@ -1970,7 +1971,7 @@ func (s *DisconnectSnapSuite) TestCrossConnection(c *C) {
 		connRef2 := &ConnRef{PlugRef: PlugRef{Snap: "s2", Name: "iface-b"}, SlotRef: SlotRef{Snap: "s1", Name: "iface-b"}}
 		_, err = s.repo.Connect(connRef2, nil, nil, nil, nil, nil)
 		c.Assert(err, IsNil)
-		affected, err := s.repo.DisconnectSnap(snapName)
+		affected, err := s.repo.DisconnectSnap(naming.InstanceName(snapName))
 		c.Assert(err, IsNil)
 		c.Check(affected, testutil.Contains, "s1")
 		c.Check(affected, testutil.Contains, "s2")

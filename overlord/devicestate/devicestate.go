@@ -259,11 +259,11 @@ func checkGadgetOrKernel(st *state.State, snapInfo, curInfo *snap.Info, _ snap.C
 		return fmt.Errorf("cannot install %s snap on classic if not requested by the model", kind)
 	}
 
-	if snapInfo.InstanceName() != snapInfo.SnapName().String() {
+	if snapInfo.InstanceName().String() != snapInfo.SnapName().String() {
 		return fmt.Errorf("cannot install %q, parallel installation of kernel or gadget snaps is not supported", snapInfo.InstanceName())
 	}
 
-	if snapInfo.InstanceName() != expectedName {
+	if snapInfo.InstanceName().String() != expectedName {
 		return fmt.Errorf("cannot install %s %q, model assertion requests %q", kind, snapInfo.InstanceName(), expectedName)
 	}
 
@@ -330,7 +330,7 @@ func proxyStore(st *state.State, tr *config.Transaction) (*asserts.Store, error)
 
 // interfaceConnected returns true if the given snap/interface names
 // are connected
-func interfaceConnected(st *state.State, snapName, ifName string) bool {
+func interfaceConnected(st *state.State, snapName naming.InstanceName, ifName string) bool {
 	conns, err := ifacerepo.Get(st).Connected(snapName, ifName)
 	return err == nil && len(conns) > 0
 }

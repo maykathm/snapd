@@ -49,7 +49,7 @@ func (c *collectFilter) plugOrConnectedSlotMatches(plug *interfaces.PlugRef, con
 			return true
 		}
 	}
-	if c.snapName != "" && plug.Snap != c.snapName {
+	if c.snapName != "" && plug.Snap.String() != c.snapName {
 		return false
 	}
 	return true
@@ -61,7 +61,7 @@ func (c *collectFilter) slotOrConnectedPlugMatches(slot *interfaces.SlotRef, con
 			return true
 		}
 	}
-	if c.snapName != "" && slot.Snap != c.snapName {
+	if c.snapName != "" && slot.Snap.String() != c.snapName {
 		return false
 	}
 	return true
@@ -194,7 +194,7 @@ func collectConnections(ifaceMgr *ifacestate.InterfaceManager, filter collectFil
 		}
 		sort.Sort(bySlotRef(connectedSlots))
 		pj := &plugJSON{
-			Snap:        plugRef.Snap,
+			Snap:        plugRef.Snap.String(),
 			Name:        plugRef.Name,
 			Interface:   plug.Interface,
 			Attrs:       plug.Attrs,
@@ -219,7 +219,7 @@ func collectConnections(ifaceMgr *ifacestate.InterfaceManager, filter collectFil
 		}
 		sort.Sort(byPlugRef(connectedPlugs))
 		sj := &slotJSON{
-			Snap:        slotRef.Snap,
+			Snap:        slotRef.Snap.String(),
 			Name:        slotRef.Name,
 			Interface:   slot.Interface,
 			Attrs:       slot.Attrs,

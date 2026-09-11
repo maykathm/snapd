@@ -35,6 +35,7 @@ import (
 	"github.com/snapcore/snapd/overlord/state"
 	"github.com/snapcore/snapd/overlord/swfeats"
 	"github.com/snapcore/snapd/snap"
+	"github.com/snapcore/snapd/snap/naming"
 )
 
 var (
@@ -429,7 +430,7 @@ func hotplugSlotName(hotplugKey snap.HotplugKey, systemSnapInstanceName, slotSpe
 		if slot, ok := stateSlots[slotName]; ok {
 			return slot.HotplugKey == hotplugKey
 		}
-		return repo.Slot(systemSnapInstanceName, slotName) == nil
+		return repo.Slot(naming.InstanceName(systemSnapInstanceName), slotName) == nil
 	})
 	return proposedName
 }
