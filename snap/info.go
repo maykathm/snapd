@@ -515,7 +515,7 @@ func (s *Info) Provenance() string {
 
 // InstanceName returns the blessed name of the snap decorated with instance
 // key, if any.
-func (s *Info) InstanceName() string {
+func (s *Info) InstanceName() naming.InstanceName {
 	return InstanceName(s.SnapName().String(), s.InstanceKey)
 }
 
@@ -1872,7 +1872,7 @@ func SplitSnapApp(snapApp string) (snap, app string) {
 func JoinSnapApp(snap, app string) string {
 	storeName, instanceKey := SplitInstanceName(snap)
 	if storeName == app {
-		return InstanceName(app, instanceKey)
+		return InstanceName(app, instanceKey).String()
 	}
 	return fmt.Sprintf("%s.%s", snap, app)
 }
@@ -1917,11 +1917,11 @@ func SnapComponentName(snapInstance, componentName string) string {
 
 // InstanceName takes the snap name and the instance key and returns an instance
 // name of the snap.
-func InstanceName(snapName, instanceKey string) string {
+func InstanceName(snapName, instanceKey string) naming.InstanceName {
 	if instanceKey != "" {
-		return fmt.Sprintf("%s_%s", snapName, instanceKey)
+		return naming.InstanceName(fmt.Sprintf("%s_%s", snapName, instanceKey))
 	}
-	return snapName
+	return naming.InstanceName(snapName)
 }
 
 // SortServices sorts the apps based on their Before and After specs, such that
