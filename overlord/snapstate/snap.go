@@ -351,7 +351,7 @@ func removeExtraComponentsTasks(st *state.State, snapst *SnapState, targetRevisi
 
 // shouldScheduleUpdateCertDBForRefresh reports whether a snap operation
 // should inject an update-cert-db task.
-func shouldScheduleUpdateCertDBForRefresh(instanceName string, snapType snap.Type, ctx DeviceContext) bool {
+func shouldScheduleUpdateCertDBForRefresh(instanceName naming.InstanceName, snapType snap.Type, ctx DeviceContext) bool {
 	if snapType != snap.TypeBase {
 		return false
 	}

@@ -29,6 +29,7 @@ import (
 	"github.com/snapcore/snapd/overlord/ifacestate"
 	"github.com/snapcore/snapd/overlord/snapstate"
 	"github.com/snapcore/snapd/overlord/state"
+	"github.com/snapcore/snapd/snap/naming"
 )
 
 var connectionsCmd = &Command{
@@ -38,9 +39,9 @@ var connectionsCmd = &Command{
 }
 
 type collectFilter struct {
-	snapName  string
-	ifaceName string
-	connected bool
+	instanceName naming.InstanceName
+	ifaceName    string
+	connected    bool
 }
 
 func (c *collectFilter) plugOrConnectedSlotMatches(plug *interfaces.PlugRef, connectedSlots []interfaces.SlotRef) bool {

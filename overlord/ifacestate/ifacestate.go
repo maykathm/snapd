@@ -38,6 +38,7 @@ import (
 	"github.com/snapcore/snapd/overlord/state"
 	"github.com/snapcore/snapd/overlord/swfeats"
 	"github.com/snapcore/snapd/snap"
+	"github.com/snapcore/snapd/snap/naming"
 )
 
 var connectRetryTimeout = time.Second * 5
@@ -100,7 +101,7 @@ func Connect(st *state.State, plugSnap, plugName, slotSnap, slotName string) (*s
 	return connect(st, plugSnap, plugName, slotSnap, slotName, connectOpts{})
 }
 
-func connect(st *state.State, plugSnap, plugName, slotSnap, slotName string, flags connectOpts) (*state.TaskSet, error) {
+func connect(st *state.State, plugSnap naming.InstanceName, plugName string, slotSnap naming.InstanceName, slotName string, flags connectOpts) (*state.TaskSet, error) {
 	// TODO: Store the intent-to-connect in the state so that we automatically
 	// try to reconnect on reboot (reconnection can fail or can connect with
 	// different parameters so we cannot store the actual connection details).

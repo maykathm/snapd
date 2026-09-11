@@ -38,6 +38,7 @@ import (
 	"github.com/snapcore/snapd/overlord/state"
 	"github.com/snapcore/snapd/overlord/swfeats"
 	"github.com/snapcore/snapd/snap"
+	"github.com/snapcore/snapd/snap/naming"
 	"github.com/snapcore/snapd/snapdenv"
 	"github.com/snapcore/snapd/timings"
 )
@@ -484,9 +485,9 @@ func (m *InterfaceManager) ConnectionStates() (connStateByRef map[string]Connect
 // In both cases the snap name can be omitted to implicitly refer to the core
 // snap. If there's no core snap it is simply assumed to be called "core" to
 // provide consistent error messages.
-func (m *InterfaceManager) ResolveDisconnect(plugSnapName, plugName, slotSnapName, slotName string, forget bool) ([]*interfaces.ConnRef, error) {
-	var connected func(plugSn, plug, slotSn, slot string) (bool, error)
-	var connectedPlugOrSlot func(snapName, plugOrSlotName string) ([]*interfaces.ConnRef, error)
+func (m *InterfaceManager) ResolveDisconnect(plugSnapName naming.InstanceName, plugName string, slotSnapName naming.InstanceName, slotName string, forget bool) ([]*interfaces.ConnRef, error) {
+	var connected func(plugSn naming.InstanceName, plug string, slotSn naming.InstanceName, slot string) (bool, error)
+	var connectedPlugOrSlot func(snapName naming.InstanceName, plugOrSlotName string) ([]*interfaces.ConnRef, error)
 
 	if forget {
 		conns, err := getConns(m.state)

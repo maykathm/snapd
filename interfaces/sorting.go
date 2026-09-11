@@ -23,6 +23,7 @@ import (
 	"sort"
 
 	"github.com/snapcore/snapd/snap"
+	"github.com/snapcore/snapd/snap/naming"
 )
 
 type byConnRef []*ConnRef
@@ -61,8 +62,8 @@ func (c bySlotSnapAndName) Less(i, j int) bool {
 	return c[i].Name < c[j].Name
 }
 
-func sortedSnapNamesWithPlugs(m map[string]map[string]*snap.PlugInfo) []string {
-	keys := make([]string, 0, len(m))
+func sortedSnapNamesWithPlugs(m map[naming.InstanceName]map[string]*snap.PlugInfo) []naming.InstanceName {
+	keys := make([]naming.InstanceName, 0, len(m))
 	for key := range m {
 		keys = append(keys, key)
 	}
@@ -79,8 +80,8 @@ func sortedPlugNames(m map[string]*snap.PlugInfo) []string {
 	return keys
 }
 
-func sortedSnapNamesWithSlots(m map[string]map[string]*snap.SlotInfo) []string {
-	keys := make([]string, 0, len(m))
+func sortedSnapNamesWithSlots(m map[naming.InstanceName]map[string]*snap.SlotInfo) []naming.InstanceName {
+	keys := make([]naming.InstanceName, 0, len(m))
 	for key := range m {
 		keys = append(keys, key)
 	}

@@ -31,6 +31,7 @@ import (
 	"github.com/snapcore/snapd/overlord/state"
 	"github.com/snapcore/snapd/overlord/swfeats"
 	"github.com/snapcore/snapd/snap"
+	"github.com/snapcore/snapd/snap/naming"
 	"github.com/snapcore/snapd/strutil"
 )
 
@@ -537,7 +538,7 @@ func (m *SnapManager) ensureAliasesV2() error {
 }
 
 // Alias sets up a manual alias from alias to app in snapName.
-func Alias(st *state.State, instanceName, app, alias string) (*state.TaskSet, error) {
+func Alias(st *state.State, instanceName naming.InstanceName, app, alias string) (*state.TaskSet, error) {
 	if err := snap.ValidateAlias(alias); err != nil {
 		return nil, err
 	}
@@ -598,7 +599,7 @@ func manualAlias(info *snap.Info, curAliases map[string]*AliasTarget, target, al
 }
 
 // DisableAllAliases disables all aliases of a snap, removing all manual ones.
-func DisableAllAliases(st *state.State, instanceName string) (*state.TaskSet, error) {
+func DisableAllAliases(st *state.State, instanceName naming.InstanceName) (*state.TaskSet, error) {
 	var snapst SnapState
 	err := Get(st, instanceName, &snapst)
 	if errors.Is(err, state.ErrNoState) {
@@ -625,7 +626,7 @@ func DisableAllAliases(st *state.State, instanceName string) (*state.TaskSet, er
 }
 
 // RemoveManualAlias removes a manual alias.
-func RemoveManualAlias(st *state.State, alias string) (ts *state.TaskSet, instanceName string, err error) {
+func RemoveManualAlias(st *state.State, alias string) (ts *state.TaskSet, instanceName naming.InstanceName, err error) {
 	instanceName, err = findSnapOfManualAlias(st, alias)
 	if err != nil {
 		return nil, "", err
@@ -648,7 +649,7 @@ func RemoveManualAlias(st *state.State, alias string) (ts *state.TaskSet, instan
 	return state.NewTaskSet(unalias), instanceName, nil
 }
 
-func findSnapOfManualAlias(st *state.State, alias string) (snapName string, err error) {
+func findSnapOfManualAlias(st *state.State, alias string) (snapName naming.InstanceName, err error) {
 	snapStates, err := All(st)
 	if err != nil {
 		return "", err
@@ -685,7 +686,7 @@ func manualUnalias(curAliases map[string]*AliasTarget, alias string) (newAliases
 
 // Prefer enables all aliases of a snap in preference to conflicting aliases
 // of other snaps whose aliases will be disabled (removed for manual ones).
-func Prefer(st *state.State, name string) (*state.TaskSet, error) {
+func Prefer(st *state.State, name naming.InstanceName) (*state.TaskSet, error) {
 	var snapst SnapState
 	err := Get(st, name, &snapst)
 	if errors.Is(err, state.ErrNoState) {

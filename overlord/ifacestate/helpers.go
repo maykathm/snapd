@@ -43,6 +43,7 @@ import (
 	"github.com/snapcore/snapd/overlord/snapstate"
 	"github.com/snapcore/snapd/overlord/state"
 	"github.com/snapcore/snapd/snap"
+	"github.com/snapcore/snapd/snap/naming"
 	"github.com/snapcore/snapd/systemd"
 	"github.com/snapcore/snapd/timings"
 )
@@ -514,7 +515,7 @@ func restoreConnectionsForSetupProfiles(task *state.Task) error {
 //
 // The return value is the list of reloaded connection IDs, plus the original
 // connection states whose persisted state was changed or dropped.
-func (m *InterfaceManager) reloadConnections(snapName string) (
+func (m *InterfaceManager) reloadConnections(instanceName naming.InstanceName) (
 	reloadedConnectionIDs []string,
 	changedOrDroppedConns map[string]*schema.ConnState,
 	err error,
@@ -673,7 +674,7 @@ ConnsLoop:
 
 // removeConnections disconnects all connections of the snap in the repo. It should only be used if the snap
 // has no connections in the state. State must be locked by the caller.
-func (m *InterfaceManager) removeConnections(snapName string) error {
+func (m *InterfaceManager) removeConnections(snapName naming.InstanceName) error {
 	conns, err := getConns(m.state)
 	if err != nil {
 		return err
@@ -745,7 +746,7 @@ func (m *InterfaceManager) setupSnapSecurity(task *state.Task, appSet *interface
 	return m.setupSecurityByBackend(task, []*interfaces.SnapAppSet{appSet}, []interfaces.ConfinementOptions{opts}, sctxs, tm)
 }
 
-func (m *InterfaceManager) removeSnapSecurity(task *state.Task, instanceName string) error {
+func (m *InterfaceManager) removeSnapSecurity(task *state.Task, instanceName naming.InstanceName) error {
 	st := task.State()
 	for _, backend := range m.repo.Backends() {
 		st.Unlock()
@@ -1441,7 +1442,7 @@ type SnapMapper interface {
 	// The API responses always reflect the real system state.
 	RemapSnapFromRequest(snapName string) string
 	// Returns actual name of the system snap.
-	SystemSnapName() string
+	SystemSnapName() naming.InstanceName
 }
 
 // IdentityMapper implements SnapMapper and performs no transformations at all.
@@ -1485,8 +1486,8 @@ func (m *CoreCoreSystemMapper) RemapSnapFromRequest(snapName string) string {
 }
 
 // SystemSnapName returns actual name of the system snap.
-func (m *CoreCoreSystemMapper) SystemSnapName() string {
-	return "core"
+func (m *CoreCoreSystemMapper) SystemSnapName() naming.InstanceName {
+	return naming.Core
 }
 
 // CoreSnapdSystemMapper implements SnapMapper and makes implicit slots
@@ -1535,8 +1536,8 @@ func (m *CoreSnapdSystemMapper) RemapSnapFromRequest(snapName string) string {
 }
 
 // SystemSnapName returns actual name of the system snap.
-func (m *CoreSnapdSystemMapper) SystemSnapName() string {
-	return "snapd"
+func (m *CoreSnapdSystemMapper) SystemSnapName() naming.InstanceName {
+	return naming.Snapd
 }
 
 // mapper contains the currently active snap mapper.
@@ -1565,7 +1566,7 @@ func RemapSnapFromRequest(snapName string) string {
 }
 
 // SystemSnapName returns actual name of the system snap.
-func SystemSnapName() string {
+func SystemSnapName() naming.InstanceName {
 	return mapper.SystemSnapName()
 }
 

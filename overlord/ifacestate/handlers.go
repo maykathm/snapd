@@ -47,6 +47,7 @@ import (
 	"github.com/snapcore/snapd/overlord/snapstate"
 	"github.com/snapcore/snapd/overlord/state"
 	"github.com/snapcore/snapd/snap"
+	"github.com/snapcore/snapd/snap/naming"
 	"github.com/snapcore/snapd/snap/quota"
 	"github.com/snapcore/snapd/strutil"
 	"github.com/snapcore/snapd/timings"
@@ -111,7 +112,7 @@ func (m *InterfaceManager) buildConfinementOptions(st *state.State, task *state.
 	}, nil
 }
 
-func (m *InterfaceManager) setupAffectedSnaps(task *state.Task, affectingSnap string, affectedSnaps []string, tm timings.Measurer) error {
+func (m *InterfaceManager) setupAffectedSnaps(task *state.Task, affectingSnap naming.InstanceName, affectedSnaps []naming.InstanceName, tm timings.Measurer) error {
 	st := task.State()
 
 	// Setup security of the affected snaps.
@@ -365,7 +366,7 @@ func (d delayedEffectsForSnaps) EnqueueFor(snapName affectedSnap, backend interf
 // refreshAppSetConnections refreshes repository connections for appSet and, on
 // the setup-profiles do path, records undo data for persisted connection state
 // that reloadConnections changed or dropped.
-func (m *InterfaceManager) refreshAppSetConnections(task *state.Task, appSet *interfaces.SnapAppSet) ([]string, []string, error) {
+func (m *InterfaceManager) refreshAppSetConnections(task *state.Task, appSet *interfaces.SnapAppSet) ([]naming.InstanceName, []string, error) {
 	snapInfo := appSet.Info()
 	instanceName := appSet.InstanceName()
 
@@ -625,7 +626,7 @@ func (m *InterfaceManager) doRemoveProfiles(task *state.Task, tomb *tomb.Tomb) e
 	return setPendingProfilesSideInfo(task.State(), instanceName.String(), nil)
 }
 
-func (m *InterfaceManager) removeProfilesForSnap(task *state.Task, _ *tomb.Tomb, snapName string, tm timings.Measurer) error {
+func (m *InterfaceManager) removeProfilesForSnap(task *state.Task, _ *tomb.Tomb, instanceName naming.InstanceName, tm timings.Measurer) error {
 	// Disconnect the snap entirely.
 	// This is required to remove the snap from the interface repository.
 	// The returned list of affected snaps will need to have its security setup

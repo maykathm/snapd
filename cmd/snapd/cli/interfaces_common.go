@@ -24,11 +24,12 @@ import (
 	"strings"
 
 	"github.com/snapcore/snapd/i18n"
+	"github.com/snapcore/snapd/snap/naming"
 )
 
 // SnapAndName holds a snap name and a plug or slot name.
 type SnapAndName struct {
-	Snap string
+	Snap naming.InstanceName
 	Name string
 }
 

@@ -37,6 +37,7 @@ import (
 	"github.com/snapcore/snapd/overlord/snapstate"
 	"github.com/snapcore/snapd/overlord/state"
 	"github.com/snapcore/snapd/snap"
+	"github.com/snapcore/snapd/snap/naming"
 	"github.com/snapcore/snapd/sysconfig"
 )
 
@@ -55,7 +56,7 @@ func ConfigureHookTimeout() time.Duration {
 	return timeout
 }
 
-func canConfigure(st *state.State, snapName string) error {
+func canConfigure(st *state.State, snapName naming.InstanceName) error {
 	// the "core" snap/pseudonym can always be configured as it
 	// is handled internally
 	if snapName == "core" {
@@ -96,12 +97,12 @@ func canConfigure(st *state.State, snapName string) error {
 // ConfigureInstalled returns a taskset to apply the given
 // configuration patch for an installed snap. It returns
 // snap.NotInstalledError if the snap is not installed.
-func ConfigureInstalled(st *state.State, snapName string, patch map[string]any, flags int) (*state.TaskSet, error) {
-	if err := canConfigure(st, snapName); err != nil {
+func ConfigureInstalled(st *state.State, instanceName naming.InstanceName, patch map[string]any, flags int) (*state.TaskSet, error) {
+	if err := canConfigure(st, instanceName); err != nil {
 		return nil, err
 	}
 
-	taskset := Configure(st, snapName, patch, flags)
+	taskset := Configure(st, instanceName.String(), patch, flags)
 	return taskset, nil
 }
 

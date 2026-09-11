@@ -31,6 +31,7 @@ import (
 	"github.com/snapcore/snapd/overlord/state"
 	"github.com/snapcore/snapd/overlord/swfeats"
 	"github.com/snapcore/snapd/snap"
+	"github.com/snapcore/snapd/snap/naming"
 )
 
 var (
@@ -52,10 +53,10 @@ var (
 
 // aliasAction is an action performed on aliases
 type aliasAction struct {
-	Action string `json:"action"`
-	Snap   string `json:"snap"`
-	App    string `json:"app"`
-	Alias  string `json:"alias"`
+	Action string              `json:"action"`
+	Snap   naming.InstanceName `json:"snap"`
+	App    string              `json:"app"`
+	Alias  string              `json:"alias"`
 	// old now unsupported api
 	Aliases []string `json:"aliases"`
 }
