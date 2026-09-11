@@ -1601,7 +1601,7 @@ slots:
 
 	candidateSlots, arities := repo.AutoConnectCandidateSlots("consumer", "auto", policyCheck)
 	c.Assert(candidateSlots, HasLen, 1)
-	c.Check(candidateSlots[0].Snap.InstanceName(), Equals, "producer")
+	c.Check(candidateSlots[0].Snap.InstanceName().String(), Equals, "producer")
 	c.Check(candidateSlots[0].Interface, Equals, "auto")
 	c.Check(candidateSlots[0].Name, Equals, "auto")
 	c.Assert(arities, HasLen, 1)
@@ -1609,7 +1609,7 @@ slots:
 
 	candidatePlugs := repo.AutoConnectCandidatePlugs("producer", "auto", policyCheck)
 	c.Assert(candidatePlugs, HasLen, 1)
-	c.Check(candidatePlugs[0].Snap.InstanceName(), Equals, "consumer")
+	c.Check(candidatePlugs[0].Snap.InstanceName().String(), Equals, "consumer")
 	c.Check(candidatePlugs[0].Interface, Equals, "auto")
 	c.Check(candidatePlugs[0].Name, Equals, "auto")
 }
@@ -1660,7 +1660,7 @@ plugs:
 	// Both can auto-connect
 	candidateSlots, arities := repo.AutoConnectCandidateSlots("consumer1", "auto", policyCheck)
 	c.Assert(candidateSlots, HasLen, 1)
-	c.Check(candidateSlots[0].Snap.InstanceName(), Equals, "producer")
+	c.Check(candidateSlots[0].Snap.InstanceName().String(), Equals, "producer")
 	c.Check(candidateSlots[0].Interface, Equals, "auto")
 	c.Check(candidateSlots[0].Name, Equals, "auto")
 	c.Assert(arities, HasLen, 1)
@@ -1668,7 +1668,7 @@ plugs:
 
 	candidateSlots, arities = repo.AutoConnectCandidateSlots("consumer2", "auto", policyCheck)
 	c.Assert(candidateSlots, HasLen, 1)
-	c.Check(candidateSlots[0].Snap.InstanceName(), Equals, "producer")
+	c.Check(candidateSlots[0].Snap.InstanceName().String(), Equals, "producer")
 	c.Check(candidateSlots[0].Interface, Equals, "auto")
 	c.Check(candidateSlots[0].Name, Equals, "auto")
 	c.Assert(arities, HasLen, 1)

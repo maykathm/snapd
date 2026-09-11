@@ -290,7 +290,7 @@ func (compsu *ComponentSetup) BlobPath(instanceName string) string {
 	cpi := snap.MinimalComponentContainerPlaceInfo(
 		compsu.CompSideInfo.Component.ComponentName,
 		compsu.CompSideInfo.Revision,
-		instanceName,
+		naming.InstanceName(instanceName),
 	)
 
 	return filepath.Join(blobDir,

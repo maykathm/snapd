@@ -98,7 +98,7 @@ func (s *infoSuite) TestSideInfoOverrides(c *C) {
 		SnapID:            "snapidsnapidsnapidsnapidsnapidsn",
 	}
 
-	c.Check(info.InstanceName(), Equals, "newname")
+	c.Check(info.InstanceName().String(), Equals, "newname")
 	c.Check(info.Summary(), Equals, "fixed summary")
 	c.Check(info.Description(), Equals, "fixed desc")
 	c.Check(info.Revision, Equals, snap.R(1))
@@ -335,7 +335,7 @@ func (s *infoSuite) TestReadInfo(c *C) {
 	snapInfo2, err := snap.ReadInfo("sample", si)
 	c.Assert(err, IsNil)
 
-	c.Check(snapInfo2.InstanceName(), Equals, "sample")
+	c.Check(snapInfo2.InstanceName().String(), Equals, "sample")
 	c.Check(snapInfo2.Revision, Equals, snap.R(42))
 	c.Check(snapInfo2.Summary(), Equals, "esummary")
 
@@ -354,7 +354,7 @@ func (s *infoSuite) TestReadInfoWithInstance(c *C) {
 	snapInfo2, err := snap.ReadInfo("sample_instance", si)
 	c.Assert(err, IsNil)
 
-	c.Check(snapInfo2.InstanceName(), Equals, "sample_instance")
+	c.Check(snapInfo2.InstanceName().String(), Equals, "sample_instance")
 	c.Check(snapInfo2.SnapName().String(), Equals, "sample")
 	c.Check(snapInfo2.Revision, Equals, snap.R(42))
 	c.Check(snapInfo2.Summary(), Equals, "instance summary")
@@ -374,7 +374,7 @@ func (s *infoSuite) TestReadCurrentInfo(c *C) {
 	snapInfo2, err := snap.ReadCurrentInfo("sample")
 	c.Assert(err, IsNil)
 
-	c.Check(snapInfo2.InstanceName(), Equals, "sample")
+	c.Check(snapInfo2.InstanceName().String(), Equals, "sample")
 	c.Check(snapInfo2.Revision, Equals, snap.R(42))
 	c.Check(snapInfo2, DeepEquals, snapInfo1)
 
@@ -421,7 +421,7 @@ func (s *infoSuite) TestReadCurrentInfoWithInstance(c *C) {
 	snapInfo2, err := snap.ReadCurrentInfo("sample_instance")
 	c.Assert(err, IsNil)
 
-	c.Check(snapInfo2.InstanceName(), Equals, "sample_instance")
+	c.Check(snapInfo2.InstanceName().String(), Equals, "sample_instance")
 	c.Check(snapInfo2.SnapName().String(), Equals, "sample")
 	c.Check(snapInfo2.Revision, Equals, snap.R(42))
 	c.Check(snapInfo2, DeepEquals, snapInfo1)
@@ -563,7 +563,7 @@ confinement: devmode`
 
 	info, err := snap.ReadInfoFromSnapFile(snapf, nil)
 	c.Assert(err, IsNil)
-	c.Check(info.InstanceName(), Equals, "foo")
+	c.Check(info.InstanceName().String(), Equals, "foo")
 	c.Check(info.Version, Equals, "1.0")
 	c.Check(info.Type(), Equals, snap.TypeApp)
 	c.Check(info.Revision, Equals, snap.R(0))
@@ -585,7 +585,7 @@ confinement: classic`
 
 	info, err := snap.ReadInfoFromSnapFile(snapf, nil)
 	c.Assert(err, IsNil)
-	c.Check(info.InstanceName(), Equals, "foo")
+	c.Check(info.InstanceName().String(), Equals, "foo")
 	c.Check(info.Version, Equals, "1.0")
 	c.Check(info.Type(), Equals, snap.TypeApp)
 	c.Check(info.Revision, Equals, snap.R(0))
@@ -605,7 +605,7 @@ type: app`
 
 	info, err := snap.ReadInfoFromSnapFile(snapf, nil)
 	c.Assert(err, IsNil)
-	c.Check(info.InstanceName(), Equals, "foo")
+	c.Check(info.InstanceName().String(), Equals, "foo")
 	c.Check(info.Version, Equals, "1.0")
 	c.Check(info.Type(), Equals, snap.TypeApp)
 	c.Check(info.Revision, Equals, snap.R(0))
@@ -628,7 +628,7 @@ type: app`
 		Revision: snap.R(42),
 	})
 	c.Assert(err, IsNil)
-	c.Check(info.InstanceName(), Equals, "baz")
+	c.Check(info.InstanceName().String(), Equals, "baz")
 	c.Check(info.Version, Equals, "1.0")
 	c.Check(info.Type(), Equals, snap.TypeApp)
 	c.Check(info.Revision, Equals, snap.R(42))
@@ -1300,14 +1300,14 @@ func (s *infoSuite) TestAppDesktopFile(c *C) {
 	snapInfo, err := snap.ReadInfo("sample", &snap.SideInfo{})
 	c.Assert(err, IsNil)
 
-	c.Check(snapInfo.InstanceName(), Equals, "sample")
+	c.Check(snapInfo.InstanceName().String(), Equals, "sample")
 	c.Check(snapInfo.Apps["app"].DesktopFile(), Matches, `.*/var/lib/snapd/desktop/applications/sample_app.desktop`)
 	c.Check(snapInfo.Apps["sample"].DesktopFile(), Matches, `.*/var/lib/snapd/desktop/applications/sample_sample.desktop`)
 	c.Check(snapInfo.DesktopPrefix(), Equals, "sample")
 
 	// snap with instance key
 	snapInfo.InstanceKey = "instance"
-	c.Check(snapInfo.InstanceName(), Equals, "sample_instance")
+	c.Check(snapInfo.InstanceName().String(), Equals, "sample_instance")
 	c.Check(snapInfo.Apps["app"].DesktopFile(), Matches, `.*/var/lib/snapd/desktop/applications/sample\+instance_app.desktop`)
 	c.Check(snapInfo.Apps["sample"].DesktopFile(), Matches, `.*/var/lib/snapd/desktop/applications/sample\+instance_sample.desktop`)
 	c.Check(snapInfo.DesktopPrefix(), Equals, "sample+instance")
@@ -1885,11 +1885,11 @@ func (s *infoSuite) TestInstanceNameInSnapInfo(c *C) {
 		InstanceKey:   "foo",
 	}
 
-	c.Check(info.InstanceName(), Equals, "snap-name_foo")
+	c.Check(info.InstanceName().String(), Equals, "snap-name_foo")
 	c.Check(info.SnapName().String(), Equals, "snap-name")
 
 	info.InstanceKey = ""
-	c.Check(info.InstanceName(), Equals, "snap-name")
+	c.Check(info.InstanceName().String(), Equals, "snap-name")
 	c.Check(info.SnapName().String(), Equals, "snap-name")
 }
 

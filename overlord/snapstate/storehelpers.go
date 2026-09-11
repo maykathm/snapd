@@ -31,6 +31,7 @@ import (
 	"github.com/snapcore/snapd/overlord/state"
 	"github.com/snapcore/snapd/snap"
 	"github.com/snapcore/snapd/snap/integrity"
+	"github.com/snapcore/snapd/snap/naming"
 	"github.com/snapcore/snapd/store"
 	"github.com/snapcore/snapd/strutil"
 )
@@ -127,9 +128,9 @@ var installSize = func(st *state.State, snaps []minimalInstallInfo, userID int, 
 		return 0, err
 	}
 
-	accountedSnaps := map[string]bool{}
+	accountedSnaps := map[naming.InstanceName]bool{}
 	for _, snap := range curSnaps {
-		accountedSnaps[snap.InstanceName] = true
+		accountedSnaps[naming.InstanceName(snap.InstanceName)] = true
 	}
 
 	// if the prerequisites are included in the install, don't query the store
@@ -149,21 +150,21 @@ var installSize = func(st *state.State, snaps []minimalInstallInfo, userID int, 
 			if inst.SnapBase() != "" {
 				base = inst.SnapBase()
 			}
-			if !accountedSnaps[base] {
+			if !accountedSnaps[naming.InstanceName(base)] {
 				prereqs = append(prereqs, base)
-				accountedSnaps[base] = true
+				accountedSnaps[naming.InstanceName(base)] = true
 			}
 		}
 		for _, snapName := range inst.Prereq(st, prqt) {
-			if !accountedSnaps[snapName] {
+			if !accountedSnaps[naming.InstanceName(snapName)] {
 				prereqs = append(prereqs, snapName)
-				accountedSnaps[snapName] = true
+				accountedSnaps[naming.InstanceName(snapName)] = true
 			}
 		}
 	}
 
-	snapSizes := map[string]uint64{}
-	targetRevisions := make(map[string]snap.Revision, len(snaps))
+	snapSizes := map[naming.InstanceName]uint64{}
+	targetRevisions := make(map[naming.InstanceName]snap.Revision, len(snaps))
 	for _, inst := range snaps {
 		if inst.DownloadSize() == 0 {
 			return 0, fmt.Errorf("internal error: download info missing for %q", inst.InstanceName())
@@ -220,11 +221,12 @@ var installSize = func(st *state.State, snaps []minimalInstallInfo, userID int, 
 	}
 
 	for instanceName, snapst := range snapStates {
-		if _, ok := snapSizes[instanceName]; !ok {
+		typedInstanceName := naming.InstanceName(instanceName)
+		if _, ok := snapSizes[typedInstanceName]; !ok {
 			continue
 		}
 
-		targetRevision, ok := targetRevisions[instanceName]
+		targetRevision, ok := targetRevisions[typedInstanceName]
 
 		// if we don't know the target revision, then this snap is a
 		// prerequisite. since it is already installed, we can exclude it from
@@ -234,7 +236,7 @@ var installSize = func(st *state.State, snaps []minimalInstallInfo, userID int, 
 		// is in the sequence. if it is, then we can exclude it from the size
 		// calculation.
 		if !ok || snapst.LastIndex(targetRevision) >= 0 {
-			delete(snapSizes, instanceName)
+			delete(snapSizes, typedInstanceName)
 		}
 	}
 
@@ -337,7 +339,7 @@ func collectCurrentSnaps(snapStates map[string]*SnapState, holds map[string][]st
 		}
 
 		installed := &store.CurrentSnap{
-			InstanceName: snapInfo.InstanceName(),
+			InstanceName: snapInfo.InstanceName().String(),
 			SnapID:       snapInfo.SnapID,
 			// the desired channel (not snapInfo.Channel!)
 			TrackingChannel:  snapst.TrackingChannel,
@@ -346,7 +348,7 @@ func collectCurrentSnaps(snapStates map[string]*SnapState, holds map[string][]st
 			IgnoreValidation: snapst.IgnoreValidation,
 			Epoch:            snapInfo.Epoch,
 			CohortKey:        snapst.CohortKey,
-			HeldBy:           holds[snapInfo.InstanceName()],
+			HeldBy:           holds[snapInfo.InstanceName().String()],
 			Resources:        resources,
 		}
 		curSnaps = append(curSnaps, installed)
@@ -403,7 +405,7 @@ func storeUpdatePlan(ctx context.Context, st *state.State, allSnaps map[string]*
 		// drop anything from the plan that we're about to retry. we'll add them
 		// back after we get the non-throttled responses from the store.
 		if err := plan.filter(func(t target) (bool, error) {
-			_, retrying := needsRetry[t.info.InstanceName()]
+			_, retrying := needsRetry[t.info.InstanceName().String()]
 			return !retrying, nil
 		}); err != nil {
 			return updatePlan{}, err
@@ -440,7 +442,7 @@ func detectThrottledUpdatesToRetry(st *state.State, requested map[string]StoreUp
 
 	targetByName := make(map[string]target, len(plan.targets))
 	for _, update := range plan.targets {
-		targetByName[update.info.InstanceName()] = update
+		targetByName[update.info.InstanceName().String()] = update
 	}
 
 	retry = make(map[string]StoreUpdate)
@@ -514,7 +516,7 @@ func storeUpdatePlanCore(
 		snapst, ok := allSnaps[update.InstanceName]
 		if !ok {
 			if !update.InstallIfMissing {
-				return updatePlan{}, snap.NotInstalledError{Snap: update.InstanceName}
+				return updatePlan{}, snap.NotInstalledError{Snap: naming.InstanceName(update.InstanceName)}
 			}
 			snapst = &SnapState{}
 		}
@@ -580,12 +582,12 @@ func storeUpdatePlanCore(
 	}
 
 	for _, sar := range sars {
-		up, ok := updates[sar.InstanceName()]
+		up, ok := updates[sar.InstanceName().String()]
 		if !ok {
 			return updatePlan{}, fmt.Errorf("unsolicited snap action result: %q", sar.InstanceName())
 		}
 
-		snapst, ok := allSnaps[sar.InstanceName()]
+		snapst, ok := allSnaps[sar.InstanceName().String()]
 		if !ok {
 			snapst = &SnapState{}
 		}
@@ -633,7 +635,7 @@ func storeUpdatePlanCore(
 	}
 
 	for _, t := range plan.targets {
-		up, ok := updates[t.info.InstanceName()]
+		up, ok := updates[t.info.InstanceName().String()]
 		if !ok {
 			return updatePlan{}, fmt.Errorf("internal error: target created for snap without an update: %s", t.info.InstanceName())
 		}
@@ -850,7 +852,7 @@ func installActionsForAmend(st *state.State, updates map[string]StoreUpdate, opt
 
 		action := &store.SnapAction{
 			Action:       "install",
-			InstanceName: info.InstanceName(),
+			InstanceName: info.InstanceName().String(),
 			Epoch:        info.Epoch,
 		}
 

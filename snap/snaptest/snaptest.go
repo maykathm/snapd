@@ -121,7 +121,7 @@ func MockComponent(c *check.C, yamlText string, info *snap.Info, csi snap.Compon
 	cpi := snap.MinimalComponentContainerPlaceInfo(
 		csi.Component.ComponentName,
 		csi.Revision,
-		info.SnapName().String(),
+		info.InstanceName(),
 	)
 	err = os.Rename(compPath, cpi.MountFile())
 	c.Assert(err, check.IsNil)

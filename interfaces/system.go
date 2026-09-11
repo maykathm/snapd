@@ -21,7 +21,6 @@ package interfaces
 
 import (
 	"github.com/snapcore/snapd/snap/naming"
-	"github.com/snapcore/snapd/strutil"
 )
 
 func systemSnapNames() []naming.InstanceName {
@@ -31,8 +30,13 @@ func systemSnapNames() []naming.InstanceName {
 // IsTheSystemSnap returns true if snapName is one of the possible
 // names for the snap representing the system.
 func IsTheSystemSnap(snapName string) bool {
-	if snapName == "" || strutil.ListContains(systemSnapNames(), snapName) {
+	if snapName == "" {
 		return true
+	}
+	for _, name := range systemSnapNames() {
+		if name.String() == snapName {
+			return true
+		}
 	}
 	return false
 }

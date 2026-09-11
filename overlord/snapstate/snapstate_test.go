@@ -4964,7 +4964,7 @@ func (s *snapmgrQuerySuite) TestInfo(c *C) {
 	info, err := snapstate.Info(st, "name1", snap.R(11))
 	c.Assert(err, IsNil)
 
-	c.Check(info.InstanceName(), Equals, "name1")
+	c.Check(info.InstanceName().String(), Equals, "name1")
 	c.Check(info.Revision, Equals, snap.R(11))
 	c.Check(info.Summary(), Equals, "s11")
 	c.Check(info.Version, Equals, "1.1")
@@ -4983,7 +4983,7 @@ func (s *snapmgrQuerySuite) TestSnapStateCurrentInfo(c *C) {
 	info, err := snapst.CurrentInfo()
 	c.Assert(err, IsNil)
 
-	c.Check(info.InstanceName(), Equals, "name1")
+	c.Check(info.InstanceName().String(), Equals, "name1")
 	c.Check(info.Revision, Equals, snap.R(12))
 	c.Check(info.Summary(), Equals, "s12")
 	c.Check(info.Version, Equals, "1.2")
@@ -5018,7 +5018,7 @@ func (s *snapmgrQuerySuite) TestSnapStateCurrentInfoLoadsAuxiliaryStoreInfo(c *C
 	info, err := snapst.CurrentInfo()
 	c.Assert(err, IsNil)
 
-	c.Check(info.InstanceName(), Equals, "name1")
+	c.Check(info.InstanceName().String(), Equals, "name1")
 	c.Check(info.Revision, Equals, snap.R(12))
 	c.Check(info.Summary(), Equals, "s12")
 	c.Check(info.Version, Equals, "1.2")
@@ -5040,7 +5040,7 @@ func (s *snapmgrQuerySuite) TestSnapStateCurrentInfoParallelInstall(c *C) {
 	info, err := snapst.CurrentInfo()
 	c.Assert(err, IsNil)
 
-	c.Check(info.InstanceName(), Equals, "name1_instance")
+	c.Check(info.InstanceName().String(), Equals, "name1_instance")
 	c.Check(info.Revision, Equals, snap.R(13))
 	c.Check(info.Summary(), Equals, "s13 instance")
 	c.Check(info.Version, Equals, "1.3")
@@ -5062,7 +5062,7 @@ func (s *snapmgrQuerySuite) TestCurrentInfo(c *C) {
 	info, err := snapstate.CurrentInfo(st, "name1")
 	c.Assert(err, IsNil)
 
-	c.Check(info.InstanceName(), Equals, "name1")
+	c.Check(info.InstanceName().String(), Equals, "name1")
 	c.Check(info.Revision, Equals, snap.R(12))
 }
 
@@ -5094,13 +5094,13 @@ func (s *snapmgrQuerySuite) TestActiveInfos(c *C) {
 		infos[1], infos[0] = infos[0], infos[1]
 	}
 
-	c.Check(infos[0].InstanceName(), Equals, "name1")
+	c.Check(infos[0].InstanceName().String(), Equals, "name1")
 	c.Check(infos[0].Revision, Equals, snap.R(12))
 	c.Check(infos[0].Summary(), Equals, "s12")
 	c.Check(infos[0].Version, Equals, "1.2")
 	c.Check(infos[0].Description(), Equals, "Lots of text")
 
-	c.Check(infos[1].InstanceName(), Equals, "name1_instance")
+	c.Check(infos[1].InstanceName().String(), Equals, "name1_instance")
 	c.Check(infos[1].Revision, Equals, snap.R(13))
 	c.Check(infos[1].Summary(), Equals, "s13 instance")
 	c.Check(infos[1].Version, Equals, "1.3")
@@ -5140,7 +5140,7 @@ version: v1
 	info, err := snapstate.GadgetInfo(st, deviceCtx)
 	c.Assert(err, IsNil)
 
-	c.Check(info.InstanceName(), Equals, "gadget")
+	c.Check(info.InstanceName().String(), Equals, "gadget")
 	c.Check(info.Revision, Equals, snap.R(2))
 	c.Check(info.Version, Equals, "v1")
 	c.Check(info.Type(), Equals, snap.TypeGadget)
@@ -5185,7 +5185,7 @@ version: v2
 	info, err := snapstate.KernelInfo(st, deviceCtx)
 	c.Assert(err, IsNil)
 
-	c.Check(info.InstanceName(), Equals, "pc-kernel")
+	c.Check(info.InstanceName().String(), Equals, "pc-kernel")
 	c.Check(info.Revision, Equals, snap.R(3))
 	c.Check(info.Version, Equals, "v2")
 	c.Check(info.Type(), Equals, snap.TypeKernel)
@@ -5242,7 +5242,7 @@ version: v20
 	info, err := snapstate.BootBaseInfo(st, deviceCtx)
 	c.Assert(err, IsNil)
 
-	c.Check(info.InstanceName(), Equals, "core20")
+	c.Check(info.InstanceName().String(), Equals, "core20")
 	c.Check(info.Revision, Equals, snap.R(4))
 	c.Check(info.Version, Equals, "v20")
 	c.Check(info.Type(), Equals, snap.TypeBase)
@@ -5404,7 +5404,7 @@ func (s *snapmgrQuerySuite) TestAll(c *C) {
 	info12, err := snap.ReadInfo("name1", snapst.CurrentSideInfo())
 	c.Assert(err, IsNil)
 
-	c.Check(info12.InstanceName(), Equals, "name1")
+	c.Check(info12.InstanceName().String(), Equals, "name1")
 	c.Check(info12.Revision, Equals, snap.R(12))
 	c.Check(info12.Summary(), Equals, "s12")
 	c.Check(info12.Version, Equals, "1.2")
@@ -5413,7 +5413,7 @@ func (s *snapmgrQuerySuite) TestAll(c *C) {
 	info11, err := snap.ReadInfo("name1", snapst.Sequence.Revisions[0].Snap)
 	c.Assert(err, IsNil)
 
-	c.Check(info11.InstanceName(), Equals, "name1")
+	c.Check(info11.InstanceName().String(), Equals, "name1")
 	c.Check(info11.Revision, Equals, snap.R(11))
 	c.Check(info11.Version, Equals, "1.1")
 
@@ -5426,7 +5426,7 @@ func (s *snapmgrQuerySuite) TestAll(c *C) {
 	info13, err := snap.ReadInfo("name1_instance", instance.CurrentSideInfo())
 	c.Assert(err, IsNil)
 
-	c.Check(info13.InstanceName(), Equals, "name1_instance")
+	c.Check(info13.InstanceName().String(), Equals, "name1_instance")
 	c.Check(info13.SnapName().String(), Equals, "name1")
 	c.Check(info13.Revision, Equals, snap.R(13))
 	c.Check(info13.Summary(), Equals, "s13 instance")

@@ -6403,7 +6403,7 @@ func (s *snapmgrTestSuite) TestUpdateManyValidateRefreshes(c *C) {
 	validateRefreshes := func(st *state.State, refreshes []*snap.Info, ignoreValidation map[string]bool, userID int, deviceCtx snapstate.DeviceContext) ([]*snap.Info, error) {
 		validateCalled = true
 		c.Check(refreshes, HasLen, 1)
-		c.Check(refreshes[0].InstanceName(), Equals, "some-snap")
+		c.Check(refreshes[0].InstanceName().String(), Equals, "some-snap")
 		c.Check(refreshes[0].SnapID, Equals, "some-snap-id")
 		c.Check(refreshes[0].Revision, Equals, snap.R(11))
 		c.Check(ignoreValidation, HasLen, 0)
@@ -6525,8 +6525,8 @@ func (s *snapmgrTestSuite) TestParallelInstanceUpdateManyValidateRefreshes(c *C)
 			instanceIdx = 1
 			someIdx = 0
 		}
-		c.Check(refreshes[someIdx].InstanceName(), Equals, "some-snap")
-		c.Check(refreshes[instanceIdx].InstanceName(), Equals, "some-snap_instance")
+		c.Check(refreshes[someIdx].InstanceName().String(), Equals, "some-snap")
+		c.Check(refreshes[instanceIdx].InstanceName().String(), Equals, "some-snap_instance")
 		c.Check(refreshes[0].SnapID, Equals, "some-snap-id")
 		c.Check(refreshes[0].Revision, Equals, snap.R(11))
 		c.Check(refreshes[1].SnapID, Equals, "some-snap-id")
@@ -6620,12 +6620,12 @@ func (s *snapmgrTestSuite) testUpdateManyDiskSpaceCheck(c *C, tc updateManyDiskS
 		if installSizeCalls == 1 {
 			// initial request should contain essential and non-essential snaps
 			c.Assert(snaps, HasLen, 2)
-			c.Check(snaps[0].InstanceName(), Equals, "snapd")
-			c.Check(snaps[1].InstanceName(), Equals, "some-snap")
+			c.Check(snaps[0].InstanceName().String(), Equals, "snapd")
+			c.Check(snaps[1].InstanceName().String(), Equals, "some-snap")
 		} else {
 			// retried request should only contain essential snaps
 			c.Assert(snaps, HasLen, 1)
-			c.Check(snaps[0].InstanceName(), Equals, "snapd")
+			c.Check(snaps[0].InstanceName().String(), Equals, "snapd")
 		}
 		return 123, nil
 	})
@@ -7340,7 +7340,7 @@ func (s *snapmgrTestSuite) testUpdateDiskSpaceCheck(c *C, featureFlag, failInsta
 			return 0, fmt.Errorf("boom")
 		}
 		c.Assert(snaps, HasLen, 1)
-		c.Check(snaps[0].InstanceName(), Equals, "some-snap")
+		c.Check(snaps[0].InstanceName().String(), Equals, "some-snap")
 		return 123, nil
 	})
 	defer restoreInstallSize()
@@ -7455,7 +7455,7 @@ func (s *snapmgrTestSuite) TestUpdateDiskSpaceReservationZeroChecksNormalSize(c 
 	restore = snapstate.MockInstallSize(func(st *state.State, snaps []snapstate.MinimalInstallInfo, userID int, prqt snapstate.PrereqTracker) (uint64, error) {
 		installSizeCalled = true
 		c.Assert(snaps, HasLen, 1)
-		c.Check(snaps[0].InstanceName(), Equals, "some-snap")
+		c.Check(snaps[0].InstanceName().String(), Equals, "some-snap")
 		return 123, nil
 	})
 	defer restore()
@@ -12329,7 +12329,7 @@ func (s *snapmgrTestSuite) TestAutoRefreshRefreshInhibitNoticeRecordedOnPreDownl
 	s.state.Unlock()
 
 	s.fakeStore.snapResourcesFn = func(info *snap.Info) []store.SnapResourceResult {
-		c.Assert(info.InstanceName(), Equals, "some-snap")
+		c.Assert(info.InstanceName().String(), Equals, "some-snap")
 		return []store.SnapResourceResult{
 			{
 				Name:      "standard-component",
@@ -12793,7 +12793,7 @@ func (s *snapmgrTestSuite) TestDownloadTaskWaitsForPreDownload(c *C) {
 func (s *snapmgrTestSuite) TestPreDownloadTaskContinuesAutoRefreshIfSoftCheckOk(c *C) {
 	var softChecked bool
 	restore := snapstate.MockRefreshAppsCheck(func(info *snap.Info) error {
-		c.Assert(info.InstanceName(), Equals, "foo")
+		c.Assert(info.InstanceName().String(), Equals, "foo")
 		softChecked = true
 		return nil
 	})
@@ -12916,7 +12916,7 @@ func (s *snapmgrTestSuite) TestDownloadTaskMonitorsSnapStoppedOnSoftCheckFail(c 
 	var softChecked bool
 	inhibited := true
 	restore := snapstate.MockRefreshAppsCheck(func(info *snap.Info) error {
-		c.Assert(info.InstanceName(), Equals, "foo")
+		c.Assert(info.InstanceName().String(), Equals, "foo")
 		softChecked = true
 		if inhibited {
 			return snapstate.NewBusySnapError(info, []int{123}, nil, nil)
@@ -13013,7 +13013,7 @@ func (s *snapmgrTestSuite) TestDownloadTaskMonitorsRepeated(c *C) {
 	var softChecked bool
 	inhibited := true
 	restore := snapstate.MockRefreshAppsCheck(func(info *snap.Info) error {
-		c.Assert(info.InstanceName(), Equals, "foo")
+		c.Assert(info.InstanceName().String(), Equals, "foo")
 		softChecked = true
 		if inhibited {
 			return snapstate.NewBusySnapError(info, []int{123}, nil, nil)
@@ -13109,7 +13109,7 @@ func (s *snapmgrTestSuite) TestUnlinkMonitorSnapOnHardCheckFailure(c *C) {
 	var check int
 	restore = snapstate.MockRefreshAppsCheck(func(info *snap.Info) error {
 		check++
-		c.Check(info.InstanceName(), Equals, "some-snap")
+		c.Check(info.InstanceName().String(), Equals, "some-snap")
 
 		switch check {
 		case 1:
@@ -13203,9 +13203,9 @@ func (s *snapmgrTestSuite) TestRefreshForcedOnRefreshInhibitionTimeout(c *C) {
 
 	check := make(map[string]int, 2)
 	restore := snapstate.MockRefreshAppsCheck(func(info *snap.Info) error {
-		check[info.InstanceName()]++
+		check[info.InstanceName().String()]++
 
-		switch check[info.InstanceName()] {
+		switch check[info.InstanceName().String()] {
 		case 1:
 			return nil
 		case 2:
@@ -13531,7 +13531,7 @@ func (s *snapmgrTestSuite) TestPreDownloadWithIgnoreRunningRefresh(c *C) {
 	defer restore()
 
 	restore = snapstate.MockRefreshAppsCheck(func(info *snap.Info) error {
-		c.Assert(info.InstanceName(), Equals, "some-snap")
+		c.Assert(info.InstanceName().String(), Equals, "some-snap")
 		return snapstate.NewBusySnapError(info, []int{123}, nil, nil)
 	})
 	defer restore()
@@ -13627,7 +13627,7 @@ func (s *snapmgrTestSuite) TestPreDownloadCleansSnapDownloads(c *C) {
 	defer restore()
 
 	restore = snapstate.MockRefreshAppsCheck(func(info *snap.Info) error {
-		c.Assert(info.InstanceName(), Equals, "some-snap")
+		c.Assert(info.InstanceName().String(), Equals, "some-snap")
 		return snapstate.NewBusySnapError(info, []int{123}, nil, nil)
 	})
 	defer restore()
@@ -14356,7 +14356,7 @@ func (s *snapmgrTestSuite) TestUpdateManyFilteredForSnapsNotInOldHints(c *C) {
 	filter := func(info *snap.Info, s *snapstate.SnapState) bool {
 		filterCalled++
 		c.Check(info, NotNil)
-		c.Check(info.InstanceName(), Equals, "some-snap")
+		c.Check(info.InstanceName().String(), Equals, "some-snap")
 		c.Check(s, NotNil)
 		return true
 	}
@@ -18350,7 +18350,7 @@ func (s *snapmgrTestSuite) TestRefreshCandidates(c *C) {
 	candidates, err := snapstate.RefreshCandidates(s.state, nil)
 	c.Assert(err, IsNil)
 	c.Assert(candidates, HasLen, 1)
-	c.Check(candidates[0].InstanceName(), Equals, "some-snap")
+	c.Check(candidates[0].InstanceName().String(), Equals, "some-snap")
 }
 
 func (s *snapmgrTestSuite) TestUpdateTasksWithComponentsRemoved(c *C) {

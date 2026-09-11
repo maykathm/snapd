@@ -35,6 +35,7 @@ import (
 	"github.com/snapcore/snapd/overlord/state"
 	"github.com/snapcore/snapd/release"
 	"github.com/snapcore/snapd/snap"
+	"github.com/snapcore/snapd/snap/naming"
 	"github.com/snapcore/snapd/strutil"
 )
 
@@ -170,7 +171,7 @@ func HoldRefreshesBySystem(st *state.State, level HoldLevel, holdTime string, ho
 
 	for _, holdSnap := range holdSnaps {
 		if _, ok := snaps[holdSnap]; !ok {
-			return snap.NotInstalledError{Snap: holdSnap}
+			return snap.NotInstalledError{Snap: naming.InstanceName(holdSnap)}
 		}
 	}
 
@@ -585,7 +586,7 @@ func affectedByRefresh(st *state.State, updates []string) (map[string]*AffectedS
 		if err != nil {
 			return nil, fmt.Errorf("cannot get boot base info: %v", err)
 		}
-		bootBase = bootBaseInfo.InstanceName()
+		bootBase = bootBaseInfo.InstanceName().String()
 	}
 
 	byBase := make(map[string][]string)
@@ -645,14 +646,14 @@ func affectedByRefresh(st *state.State, updates []string) (map[string]*AffectedS
 		}
 
 		// the snap affects itself (as long as it has the hook)
-		if snapSt := snapsWithHook[up.InstanceName()]; snapSt != nil {
-			addAffected(up.InstanceName(), up.InstanceName(), false, false)
+		if snapSt := snapsWithHook[up.InstanceName().String()]; snapSt != nil {
+			addAffected(up.InstanceName().String(), up.InstanceName().String(), false, false)
 		}
 
 		// on core system, affected by update of boot base
-		if bootBase != "" && up.InstanceName() == bootBase {
+		if bootBase != "" && up.InstanceName().String() == bootBase {
 			for _, snapSt := range snapsWithHook {
-				addAffected(snapSt.InstanceName().String(), up.InstanceName(), true, false)
+				addAffected(snapSt.InstanceName().String(), up.InstanceName().String(), true, false)
 			}
 		}
 
@@ -660,14 +661,14 @@ func affectedByRefresh(st *state.State, updates []string) (map[string]*AffectedS
 		// XXX: gadget refresh doesn't always require reboot, refine this
 		if up.Type() == snap.TypeKernel || up.Type() == snap.TypeGadget {
 			for _, snapSt := range snapsWithHook {
-				addAffected(snapSt.InstanceName().String(), up.InstanceName(), true, false)
+				addAffected(snapSt.InstanceName().String(), up.InstanceName().String(), true, false)
 			}
 			continue
 		}
 		if up.Type() == snap.TypeBase || up.SnapName() == "core" {
 			// affected by refresh of this base snap
-			for _, snapName := range byBase[up.InstanceName()] {
-				addAffected(snapName, up.InstanceName(), false, true)
+			for _, snapName := range byBase[up.InstanceName().String()] {
+				addAffected(snapName, up.InstanceName().String(), false, true)
 			}
 		}
 
@@ -684,8 +685,8 @@ func affectedByRefresh(st *state.State, updates []string) (map[string]*AffectedS
 				}
 				for _, cref := range conns {
 					// affected only if it wasn't optimized out above
-					if snapsWithHook[cref.PlugRef.Snap] != nil {
-						addAffected(cref.PlugRef.Snap, up.InstanceName(), true, false)
+					if snapsWithHook[cref.PlugRef.Snap.String()] != nil {
+						addAffected(cref.PlugRef.Snap.String(), up.InstanceName().String(), true, false)
 					}
 				}
 			}
@@ -709,8 +710,8 @@ func affectedByRefresh(st *state.State, updates []string) (map[string]*AffectedS
 					return nil, err
 				}
 				for _, cref := range conns {
-					if snapsWithHook[cref.PlugRef.Snap] != nil {
-						addAffected(cref.PlugRef.Snap, up.InstanceName(), true, false)
+					if snapsWithHook[cref.PlugRef.Snap.String()] != nil {
+						addAffected(cref.PlugRef.Snap.String(), up.InstanceName().String(), true, false)
 					}
 				}
 			}
@@ -766,10 +767,10 @@ var snapsToRefresh = func(gatingTask *state.Task) ([]*refreshCandidate, error) {
 	var skipped []string
 	var candidates []*refreshCandidate
 	for _, s := range snaps {
-		if _, ok := held[s.InstanceName()]; !ok {
+		if _, ok := held[s.InstanceName().String()]; !ok {
 			candidates = append(candidates, s)
 		} else {
-			skipped = append(skipped, s.InstanceName())
+			skipped = append(skipped, s.InstanceName().String())
 		}
 	}
 

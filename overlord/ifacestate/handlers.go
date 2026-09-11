@@ -1627,7 +1627,7 @@ func batchConnectTasks(st *state.State, snapsup *snapstate.SnapSetup, conns map[
 			opts.AutoConnect = true
 		}
 		opts.DelayedSetupProfiles = true
-		connectTs, err := connect(st, conn.PlugRef.Snap.String(), conn.PlugRef.Name, conn.SlotRef.Snap.String(), conn.SlotRef.Name, opts)
+		connectTs, err := connect(st, conn.PlugRef.Snap, conn.PlugRef.Name, conn.SlotRef.Snap, conn.SlotRef.Name, opts)
 		if err != nil {
 			return nil, false, fmt.Errorf("internal error: auto-connect of %q failed: %s", conn, err)
 		}

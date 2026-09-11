@@ -56,7 +56,7 @@ func InstallComponents(
 	}
 
 	var snapst SnapState
-	err := Get(st, info.InstanceName(), &snapst)
+	err := Get(st, info.InstanceName().String(), &snapst)
 	if err != nil {
 		if errors.Is(err, state.ErrNoState) {
 			return nil, &snap.NotInstalledError{Snap: info.InstanceName()}
@@ -291,7 +291,7 @@ func InstallComponentPath(st *state.State, csi *snap.ComponentSideInfo, info *sn
 
 	var snapst SnapState
 	// owner snap must be already installed
-	err := Get(st, info.InstanceName(), &snapst)
+	err := Get(st, info.InstanceName().String(), &snapst)
 	if err != nil {
 		if errors.Is(err, state.ErrNoState) {
 			return nil, &snap.NotInstalledError{Snap: info.InstanceName()}
@@ -429,7 +429,7 @@ func newComponentInstallChoreographer(
 	}
 
 	// we consider the same conflicts as if the component was actually the snap.
-	if err := checkChangeConflictIgnoringOneChange(st, snapsup.InstanceName().String(), snapst, copts); err != nil {
+	if err := checkChangeConflictIgnoringOneChange(st, snapsup.InstanceName(), snapst, copts); err != nil {
 		return nil, err
 	}
 
@@ -753,7 +753,7 @@ func RemoveComponents(st *state.State, snapName string, compName []string, opts 
 		return nil, err
 	}
 	if !snapst.IsInstalled() {
-		return nil, &snap.NotInstalledError{Snap: snapName, Rev: snap.R(0)}
+		return nil, &snap.NotInstalledError{Snap: naming.InstanceName(snapName), Rev: snap.R(0)}
 	}
 
 	info, err := snapst.CurrentInfo()
@@ -869,7 +869,7 @@ func removeComponentTasks(st *state.State, snapst *SnapState, compst *sequence.C
 	// impact confinement of the snap itself.
 	copyConfinementFlagsFromSnapState(&snapSup.Flags, snapst)
 
-	removeHook := SetupRemoveComponentHook(st, instName, compst.SideInfo.Component.ComponentName)
+	removeHook := SetupRemoveComponentHook(st, instName.String(), compst.SideInfo.Component.ComponentName)
 	removeHook.Set("component-setup", compSetup)
 	removeHook.Set("snap-setup", snapSup)
 

@@ -49,7 +49,7 @@ func (s *commonSuite) SetUpTest(c *C) {
 }
 
 func (s *commonSuite) TestInstanceName(c *C) {
-	c.Check(s.upCtx.InstanceName(), Equals, "foo")
+	c.Check(s.upCtx.InstanceName().String(), Equals, "foo")
 }
 
 func (s *commonSuite) TestLock(c *C) {

@@ -102,7 +102,7 @@ const defaultDiskSpaceReservation = 5 * 1024 * 1024
 var TestingLeaveOutKernelUpdateGadgetAssets bool = false
 
 type minimalInstallInfo interface {
-	InstanceName() string
+	InstanceName() naming.InstanceName
 	Revision() snap.Revision
 	Type() snap.Type
 	SnapBase() string
@@ -137,7 +137,7 @@ type InsufficientSpaceError struct {
 	// Path is the filesystem path checked for available disk space
 	Path string
 	// Snaps affected by the failing operation
-	Snaps []string
+	Snaps []naming.InstanceName
 	// Kind of the change that failed
 	ChangeKind string
 	// Message is optional, otherwise one is composed from the other information
@@ -149,10 +149,21 @@ func (e *InsufficientSpaceError) Error() string {
 		return e.Message
 	}
 	if len(e.Snaps) > 0 {
-		snaps := strings.Join(e.Snaps, ", ")
+		snaps := make([]string, len(e.Snaps))
+		for i, name := range e.Snaps {
+			snaps[i] = name.String()
+		}
 		return fmt.Sprintf("insufficient space in %q to perform %q change for the following snaps: %s", e.Path, e.ChangeKind, snaps)
 	}
 	return fmt.Sprintf("insufficient space in %q", e.Path)
+}
+
+func namingInstanceNames(names []string) []naming.InstanceName {
+	instanceNames := make([]naming.InstanceName, len(names))
+	for i, name := range names {
+		instanceNames[i] = naming.InstanceName(name)
+	}
+	return instanceNames
 }
 
 // Allows to know if snapd should send desktop notifications to the user.
@@ -407,10 +418,10 @@ func FinishRestart(task *state.Task, snapsup *SnapSetup, opts FinishRestartOptio
 			return err
 		}
 
-		if snapsup.InstanceName().String() != current.InstanceName() || snapsup.SideInfo.Revision != current.SnapRevision() {
+		if snapsup.InstanceName().String() != current.InstanceName().String() || snapsup.SideInfo.Revision != current.SnapRevision() {
 			// TODO: make sure this revision gets ignored for
 			//       automatic refreshes
-			return fmt.Errorf("cannot finish %s installation, there was a rollback across reboot", snapsup.InstanceName())
+			return fmt.Errorf("cannot finish %s installation, there was a rollback across reboot", snapsup.InstanceName().String())
 		}
 	}
 
@@ -1094,7 +1105,7 @@ func InstallMany(st *state.State, names []string, revOpts []*RevisionOptions, us
 
 	installed := make([]string, 0, len(infos))
 	for _, info := range infos {
-		installed = append(installed, info.InstanceName())
+		installed = append(installed, info.InstanceName().String())
 	}
 
 	return installed, tss, err
@@ -1754,7 +1765,7 @@ func maybeSwitchSnapMetadataTaskSet(st *state.State, snapsup SnapSetup, snapst S
 		return nil, nil
 	}
 
-	if err := checkChangeConflictIgnoringOneChange(st, snapst.InstanceName().String(), nil, opts.ConflictOptions); err != nil {
+	if err := checkChangeConflictIgnoringOneChange(st, snapst.InstanceName(), nil, opts.ConflictOptions); err != nil {
 		return nil, err
 	}
 
@@ -1872,7 +1883,7 @@ func applyAutoAliasesDelta(st *state.State, delta map[string][]string, op string
 		msg = i18n.G("Prune automatic aliases for snap %q")
 	}
 	for instanceName, aliases := range delta {
-		if err := checkChangeConflictIgnoringOneChange(st, instanceName, nil, copts); err != nil {
+		if err := checkChangeConflictIgnoringOneChange(st, naming.InstanceName(instanceName), nil, copts); err != nil {
 			if refreshAll {
 				// doing "refresh all", just skip this snap
 				logger.Noticef("cannot %s automatic aliases for snap %q: %v", op, instanceName, err)
@@ -2106,10 +2117,10 @@ func Switch(st *state.State, name string, opts *RevisionOptions, prqt PrereqTrac
 		return nil, err
 	}
 	if !snapst.IsInstalled() {
-		return nil, &snap.NotInstalledError{Snap: name}
+		return nil, &snap.NotInstalledError{Snap: naming.InstanceName(name)}
 	}
 
-	if err := CheckChangeConflict(st, name, nil); err != nil {
+	if err := CheckChangeConflict(st, naming.InstanceName(name), nil); err != nil {
 		return nil, err
 	}
 
@@ -2394,7 +2405,7 @@ func autoRefreshPhase1(ctx context.Context, st *state.State, forGatingSnap strin
 	fromChange := ""
 	for _, t := range plan.targets {
 		name := t.info.InstanceName()
-		if _, ok := hints[name]; !ok {
+		if _, ok := hints[name.String()]; !ok {
 			// filtered out by refreshHintsFromCandidates
 			continue
 		}
@@ -2402,7 +2413,7 @@ func autoRefreshPhase1(ctx context.Context, st *state.State, forGatingSnap strin
 		if err := checkChangeConflictIgnoringOneChange(st, name, &t.snapst, ConflictOptions{FromChange: fromChange}); err != nil {
 			logger.Noticef("cannot refresh snap %q: %v", name, err)
 		} else {
-			updates = append(updates, name)
+			updates = append(updates, name.String())
 		}
 	}
 
@@ -2603,7 +2614,7 @@ func checkForAvailableSpace(totalSize uint64, transaction *config.Transaction, i
 	}
 
 	if err := osutilCheckFreeSpace(rootDir, requiredSpace); err != nil {
-		snaps := make([]string, len(infos))
+		snaps := make([]naming.InstanceName, len(infos))
 		for i, up := range infos {
 			snaps[i] = up.InstanceName()
 		}
@@ -2640,7 +2651,7 @@ func MigrateHome(st *state.State, snaps []string) ([]*state.TaskSet, error) {
 
 	for _, name := range snaps {
 		if snapst, ok := allSnaps[name]; !ok {
-			return nil, snap.NotInstalledError{Snap: name}
+			return nil, snap.NotInstalledError{Snap: naming.InstanceName(name)}
 		} else if snapst.MigratedToExposedHome {
 			return nil, fmt.Errorf("cannot migrate %q to ~/Snap: already migrated", name)
 		}
@@ -2720,13 +2731,13 @@ func LinkNewBaseOrKernel(st *state.State, name string, fromChange string, device
 	var snapst SnapState
 	err := Get(st, name, &snapst)
 	if errors.Is(err, state.ErrNoState) {
-		return nil, &snap.NotInstalledError{Snap: name}
+		return nil, &snap.NotInstalledError{Snap: naming.InstanceName(name)}
 	}
 	if err != nil {
 		return nil, err
 	}
 
-	if err := checkChangeConflictIgnoringOneChange(st, name, nil, ConflictOptions{FromChange: fromChange}); err != nil {
+	if err := checkChangeConflictIgnoringOneChange(st, naming.InstanceName(name), nil, ConflictOptions{FromChange: fromChange}); err != nil {
 		return nil, err
 	}
 
@@ -2905,13 +2916,13 @@ func SwitchToNewGadget(st *state.State, name string, fromChange string) (*state.
 	var snapst SnapState
 	err := Get(st, name, &snapst)
 	if errors.Is(err, state.ErrNoState) {
-		return nil, &snap.NotInstalledError{Snap: name}
+		return nil, &snap.NotInstalledError{Snap: naming.InstanceName(name)}
 	}
 	if err != nil {
 		return nil, err
 	}
 
-	if err := checkChangeConflictIgnoringOneChange(st, name, nil, ConflictOptions{FromChange: fromChange}); err != nil {
+	if err := checkChangeConflictIgnoringOneChange(st, naming.InstanceName(name), nil, ConflictOptions{FromChange: fromChange}); err != nil {
 		return nil, err
 	}
 
@@ -2993,7 +3004,7 @@ func Enable(st *state.State, name string) (*state.TaskSet, error) {
 	var snapst SnapState
 	err := Get(st, name, &snapst)
 	if errors.Is(err, state.ErrNoState) {
-		return nil, &snap.NotInstalledError{Snap: name}
+		return nil, &snap.NotInstalledError{Snap: naming.InstanceName(name)}
 	}
 	if err != nil {
 		return nil, err
@@ -3003,7 +3014,7 @@ func Enable(st *state.State, name string) (*state.TaskSet, error) {
 		return nil, fmt.Errorf("snap %q already enabled", name)
 	}
 
-	if err := CheckChangeConflict(st, name, nil); err != nil {
+	if err := CheckChangeConflict(st, naming.InstanceName(name), nil); err != nil {
 		return nil, err
 	}
 
@@ -3049,7 +3060,7 @@ func Disable(st *state.State, name string) (*state.TaskSet, error) {
 	var snapst SnapState
 	err := Get(st, name, &snapst)
 	if errors.Is(err, state.ErrNoState) {
-		return nil, &snap.NotInstalledError{Snap: name}
+		return nil, &snap.NotInstalledError{Snap: naming.InstanceName(name)}
 	}
 	if err != nil {
 		return nil, err
@@ -3066,7 +3077,7 @@ func Disable(st *state.State, name string) (*state.TaskSet, error) {
 		return nil, fmt.Errorf("snap %q cannot be disabled", name)
 	}
 
-	if err := CheckChangeConflict(st, name, nil); err != nil {
+	if err := CheckChangeConflict(st, naming.InstanceName(name), nil); err != nil {
 		return nil, err
 	}
 
@@ -3191,7 +3202,7 @@ func Remove(st *state.State, name string, revision snap.Revision, flags *RemoveF
 	}
 
 	if !snapst.IsInstalled() {
-		return nil, &snap.NotInstalledError{Snap: name, Rev: snap.R(0)}
+		return nil, &snap.NotInstalledError{Snap: naming.InstanceName(name), Rev: snap.R(0)}
 	}
 
 	removals := map[string]bool{snapst.InstanceName().String(): true}
@@ -3209,7 +3220,7 @@ func Remove(st *state.State, name string, revision snap.Revision, flags *RemoveF
 			if _, ok := err.(*osutil.NotEnoughDiskSpaceError); ok {
 				return nil, &InsufficientSpaceError{
 					Path:       path,
-					Snaps:      []string{name},
+					Snaps:      []naming.InstanceName{naming.InstanceName(name)},
 					ChangeKind: "remove",
 					Message:    fmt.Sprintf("cannot create automatic snapshot when removing last revision of the snap: %v", err)}
 			}
@@ -3223,7 +3234,7 @@ func Remove(st *state.State, name string, revision snap.Revision, flags *RemoveF
 // if flags.Purge is not true, it also computes an estimate of the latter size.
 func removeTasks(st *state.State, snapst *SnapState, removals map[string]bool, revision snap.Revision, flags *RemoveFlags) (removeTs *state.TaskSet, snapshotSize uint64, err error) {
 	instanceName := snapst.InstanceName()
-	if err := CheckChangeConflict(st, instanceName.String(), nil); err != nil {
+	if err := CheckChangeConflict(st, instanceName, nil); err != nil {
 		return nil, 0, err
 	}
 
@@ -3250,7 +3261,7 @@ func removeTasks(st *state.State, snapst *SnapState, removals map[string]bool, r
 		}
 
 		if !revisionInSequence(snapst, revision) {
-			return nil, 0, &snap.NotInstalledError{Snap: instanceName.String(), Rev: revision}
+			return nil, 0, &snap.NotInstalledError{Snap: instanceName, Rev: revision}
 		}
 
 		removeAll = len(snapst.Sequence.Revisions) == 1
@@ -3647,7 +3658,7 @@ func RemoveMany(st *state.State, names []string, flags *RemoveFlags) ([]string, 
 			if _, ok := err.(*osutil.NotEnoughDiskSpaceError); ok {
 				return nil, nil, &InsufficientSpaceError{
 					Path:       path,
-					Snaps:      names,
+					Snaps:      namingInstanceNames(names),
 					ChangeKind: "remove",
 				}
 			}
@@ -3918,7 +3929,7 @@ func Info(st *state.State, name string, revision snap.Revision) (*snap.Info, err
 	var snapst SnapState
 	err := Get(st, name, &snapst)
 	if errors.Is(err, state.ErrNoState) {
-		return nil, &snap.NotInstalledError{Snap: name}
+		return nil, &snap.NotInstalledError{Snap: naming.InstanceName(name)}
 	}
 	if err != nil {
 		return nil, err
@@ -3943,7 +3954,7 @@ func CurrentInfo(st *state.State, name string) (*snap.Info, error) {
 	}
 	info, err := snapst.CurrentInfo()
 	if err == ErrNoCurrent {
-		return nil, &snap.NotInstalledError{Snap: name}
+		return nil, &snap.NotInstalledError{Snap: naming.InstanceName(name)}
 	}
 	return info, err
 }
@@ -4319,7 +4330,7 @@ func downloadsToKeep(st *state.State) (map[string]bool, error) {
 			keepBlob(snap.MountFile(snapName, rss.Snap.Revision))
 			for _, comp := range rss.Components {
 				cpi := snap.MinimalComponentContainerPlaceInfo(comp.SideInfo.Component.ComponentName,
-					comp.SideInfo.Revision, snapName)
+					comp.SideInfo.Revision, naming.InstanceName(snapName))
 				keepBlob(cpi.MountFile())
 			}
 		}
@@ -4354,7 +4365,7 @@ func downloadsToKeep(st *state.State) (map[string]bool, error) {
 				// download task runs, which may, or may not have run already.
 				if compsup.CompPath == "" {
 					cpi := snap.MinimalComponentContainerPlaceInfo(compsup.ComponentName(),
-						compsup.Revision(), snapsup.InstanceName().String())
+						compsup.Revision(), snapsup.InstanceName())
 					keepBlob(cpi.MountFile())
 				} else {
 					keepBlob(compsup.CompPath)
@@ -4502,7 +4513,7 @@ func unmountSnap(snapst *SnapState) error {
 			cpi := snap.MinimalComponentContainerPlaceInfo(
 				compName,
 				c.SideInfo.Revision,
-				snapst.InstanceName().String(),
+				snapst.InstanceName(),
 			)
 
 			mountDir := cpi.MountDir()

@@ -23,6 +23,8 @@ import (
 	"fmt"
 	"sort"
 	"strings"
+
+	"github.com/snapcore/snapd/snap/naming"
 )
 
 // Should not construct this error directly. Use NewAlreadyInstalledSnapsError,
@@ -136,7 +138,7 @@ func NewAlreadyInstalledError(snaps []string, comps map[string][]string) *Alread
 }
 
 type NotInstalledError struct {
-	Snap string
+	Snap naming.InstanceName
 	Rev  Revision
 }
 
