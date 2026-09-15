@@ -129,7 +129,7 @@ func seedRefreshCandidateForTaskSet(ts *state.TaskSet) (SeedRefreshCandidate, er
 	}
 
 	candidate := SeedRefreshCandidate{
-		InstanceName:          snapsup.InstanceName().String(),
+		InstanceName:          snapsup.InstanceName(),
 		ComponentSetupTaskIDs: compSetupTaskIDs,
 	}
 

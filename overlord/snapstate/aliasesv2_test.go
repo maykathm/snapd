@@ -1098,7 +1098,7 @@ func (s *snapmgrTestSuite) TestRemoveManualAliasTasks(c *C) {
 
 	ts, snapName, err := snapstate.RemoveManualAlias(s.state, "alias1")
 	c.Assert(err, IsNil)
-	c.Check(snapName, Equals, "alias-snap")
+	c.Check(snapName.String(), Equals, "alias-snap")
 
 	c.Assert(s.state.TaskCount(), Equals, len(ts.Tasks()))
 	c.Assert(taskKinds(ts.Tasks()), DeepEquals, []string{

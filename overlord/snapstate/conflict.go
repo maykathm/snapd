@@ -347,8 +347,8 @@ func CheckChangeConflict(st *state.State, instanceName naming.InstanceName, snap
 	return checkChangeConflictIgnoringOneChange(st, instanceName, snapst, ConflictOptions{})
 }
 
-	if err := checkChangeConflictManyWithOptions(st, []string{instanceName}, opts); err != nil {
 func checkChangeConflictIgnoringOneChange(st *state.State, instanceName naming.InstanceName, snapst *SnapState, opts ConflictOptions) error {
+	if err := checkChangeConflictManyWithOptions(st, []string{instanceName.String()}, opts); err != nil {
 		return err
 	}
 
@@ -360,13 +360,13 @@ func checkChangeConflictIgnoringOneChange(st *state.State, instanceName naming.I
 		// install, while getting the snap info; for refresh, when
 		// getting what needs refreshing).
 		var cursnapst SnapState
-		if err := Get(st, instanceName, &cursnapst); err != nil && !errors.Is(err, state.ErrNoState) {
+		if err := Get(st, instanceName.String(), &cursnapst); err != nil && !errors.Is(err, state.ErrNoState) {
 			return err
 		}
 
 		// TODO: implement the rather-boring-but-more-performant SnapState.Equals
 		if !reflect.DeepEqual(snapst, &cursnapst) {
-			return &ChangeConflictError{Snap: instanceName}
+			return &ChangeConflictError{Snap: instanceName.String()}
 		}
 	}
 

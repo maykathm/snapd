@@ -272,7 +272,7 @@ type polkitMissingAttrErr struct {
 }
 
 func (err *polkitMissingAttrErr) Error() string {
-	return fmt.Sprintf(`snap %q must have at least one of ("action-prefix", "install-rules") attributes set for interface "polkit"`, err.snapName)
+	return fmt.Sprintf(`snap %q must have at least one of ("action-prefix", "install-rules") attributes set for interface "polkit"`, err.instanceName)
 }
 
 func (iface *polkitInterface) PolkitConnectedPlug(spec *polkit.Specification, plug *interfaces.ConnectedPlug, slot *interfaces.ConnectedSlot) error {
@@ -320,7 +320,7 @@ func (iface *polkitInterface) BeforePreparePlug(plug *snap.PlugInfo) error {
 
 	// Check if both attributes are not set.
 	if policyErr != nil && ruleErr != nil {
-		return &polkitMissingAttrErr{plug.Snap.InstanceName().String()}
+		return &polkitMissingAttrErr{plug.Snap.InstanceName()}
 	}
 	return nil
 }

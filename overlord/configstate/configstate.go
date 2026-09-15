@@ -64,13 +64,13 @@ func canConfigure(st *state.State, snapName naming.InstanceName) error {
 	}
 
 	var snapst snapstate.SnapState
-	err := snapstate.Get(st, snapName, &snapst)
+	err := snapstate.Get(st, snapName.String(), &snapst)
 	if err != nil && !errors.Is(err, state.ErrNoState) {
 		return err
 	}
 
 	if !snapst.IsInstalled() {
-		return &snap.NotInstalledError{Snap: snapName}
+		return &snap.NotInstalledError{Snap: snapName.String()}
 	}
 
 	// the "snapd" snap cannot be configured yet

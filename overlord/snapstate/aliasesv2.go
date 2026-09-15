@@ -544,9 +544,9 @@ func Alias(st *state.State, instanceName naming.InstanceName, app, alias string)
 	}
 
 	var snapst SnapState
-	err := Get(st, instanceName, &snapst)
+	err := Get(st, instanceName.String(), &snapst)
 	if errors.Is(err, state.ErrNoState) {
-		return nil, &snap.NotInstalledError{Snap: instanceName}
+		return nil, &snap.NotInstalledError{Snap: instanceName.String()}
 	}
 	if err != nil {
 		return nil, err
@@ -555,7 +555,7 @@ func Alias(st *state.State, instanceName naming.InstanceName, app, alias string)
 		return nil, err
 	}
 
-	snapName, instanceKey := snap.SplitInstanceName(instanceName)
+	snapName, instanceKey := snap.SplitInstanceName(instanceName.String())
 	snapsup := &SnapSetup{
 		SideInfo:    &snap.SideInfo{RealName: snapName},
 		InstanceKey: instanceKey,
@@ -601,9 +601,9 @@ func manualAlias(info *snap.Info, curAliases map[string]*AliasTarget, target, al
 // DisableAllAliases disables all aliases of a snap, removing all manual ones.
 func DisableAllAliases(st *state.State, instanceName naming.InstanceName) (*state.TaskSet, error) {
 	var snapst SnapState
-	err := Get(st, instanceName, &snapst)
+	err := Get(st, instanceName.String(), &snapst)
 	if errors.Is(err, state.ErrNoState) {
-		return nil, &snap.NotInstalledError{Snap: instanceName}
+		return nil, &snap.NotInstalledError{Snap: instanceName.String()}
 	}
 	if err != nil {
 		return nil, err
@@ -613,7 +613,7 @@ func DisableAllAliases(st *state.State, instanceName naming.InstanceName) (*stat
 		return nil, err
 	}
 
-	snapName, instanceKey := snap.SplitInstanceName(instanceName)
+	snapName, instanceKey := snap.SplitInstanceName(instanceName.String())
 	snapsup := &SnapSetup{
 		SideInfo:    &snap.SideInfo{RealName: snapName},
 		InstanceKey: instanceKey,
@@ -636,7 +636,7 @@ func RemoveManualAlias(st *state.State, alias string) (ts *state.TaskSet, instan
 		return nil, "", err
 	}
 
-	snapName, instanceKey := snap.SplitInstanceName(instanceName)
+	snapName, instanceKey := snap.SplitInstanceName(instanceName.String())
 	snapsup := &SnapSetup{
 		SideInfo:    &snap.SideInfo{RealName: snapName},
 		InstanceKey: instanceKey,
@@ -657,7 +657,7 @@ func findSnapOfManualAlias(st *state.State, alias string) (snapName naming.Insta
 	for instanceName, snapst := range snapStates {
 		target := snapst.Aliases[alias]
 		if target != nil && target.Manual != "" {
-			return instanceName, nil
+			return naming.InstanceName(instanceName), nil
 		}
 	}
 	return "", fmt.Errorf("cannot find manual alias %q in any snap", alias)
@@ -688,9 +688,9 @@ func manualUnalias(curAliases map[string]*AliasTarget, alias string) (newAliases
 // of other snaps whose aliases will be disabled (removed for manual ones).
 func Prefer(st *state.State, name naming.InstanceName) (*state.TaskSet, error) {
 	var snapst SnapState
-	err := Get(st, name, &snapst)
+	err := Get(st, name.String(), &snapst)
 	if errors.Is(err, state.ErrNoState) {
-		return nil, &snap.NotInstalledError{Snap: name}
+		return nil, &snap.NotInstalledError{Snap: name.String()}
 	}
 	if err != nil {
 		return nil, err
@@ -700,7 +700,7 @@ func Prefer(st *state.State, name naming.InstanceName) (*state.TaskSet, error) {
 		return nil, err
 	}
 
-	snapName, instanceKey := snap.SplitInstanceName(name)
+	snapName, instanceKey := snap.SplitInstanceName(name.String())
 	snapsup := &SnapSetup{
 		SideInfo:    &snap.SideInfo{RealName: snapName},
 		InstanceKey: instanceKey,

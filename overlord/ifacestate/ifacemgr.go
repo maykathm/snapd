@@ -494,7 +494,7 @@ func (m *InterfaceManager) ResolveDisconnect(plugSnapName naming.InstanceName, p
 		if err != nil {
 			return nil, err
 		}
-		connected = func(plugSn, plug, slotSn, slot string) (bool, error) {
+		connected = func(plugSn naming.InstanceName, plug string, slotSn naming.InstanceName, slot string) (bool, error) {
 			cref := interfaces.ConnRef{
 				PlugRef: interfaces.PlugRef{Snap: plugSn, Name: plug},
 				SlotRef: interfaces.SlotRef{Snap: slotSn, Name: slot},
@@ -503,7 +503,7 @@ func (m *InterfaceManager) ResolveDisconnect(plugSnapName naming.InstanceName, p
 			return ok, nil
 		}
 
-		connectedPlugOrSlot = func(snapName, plugOrSlotName string) ([]*interfaces.ConnRef, error) {
+		connectedPlugOrSlot = func(snapName naming.InstanceName, plugOrSlotName string) ([]*interfaces.ConnRef, error) {
 			var refs []*interfaces.ConnRef
 			for connID := range conns {
 				cref, err := interfaces.ParseConnRef(connID)
@@ -520,7 +520,7 @@ func (m *InterfaceManager) ResolveDisconnect(plugSnapName naming.InstanceName, p
 			return refs, nil
 		}
 	} else {
-		connected = func(plugSn, plug, slotSn, slot string) (bool, error) {
+		connected = func(plugSn naming.InstanceName, plug string, slotSn naming.InstanceName, slot string) (bool, error) {
 			_, err := m.repo.Connection(&interfaces.ConnRef{
 				PlugRef: interfaces.PlugRef{Snap: plugSn, Name: plug},
 				SlotRef: interfaces.SlotRef{Snap: slotSn, Name: slot},
@@ -534,7 +534,7 @@ func (m *InterfaceManager) ResolveDisconnect(plugSnapName naming.InstanceName, p
 			return true, nil
 		}
 
-		connectedPlugOrSlot = func(snapName, plugOrSlotName string) ([]*interfaces.ConnRef, error) {
+		connectedPlugOrSlot = func(snapName naming.InstanceName, plugOrSlotName string) ([]*interfaces.ConnRef, error) {
 			return m.repo.Connected(snapName, plugOrSlotName)
 		}
 	}

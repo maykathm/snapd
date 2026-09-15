@@ -67,7 +67,9 @@ func sortedSnapNamesWithPlugs(m map[naming.InstanceName]map[string]*snap.PlugInf
 	for key := range m {
 		keys = append(keys, key)
 	}
-	sort.Strings(keys)
+	sort.Slice(keys, func(i, j int) bool {
+		return keys[i] < keys[j]
+	})
 	return keys
 }
 
@@ -85,7 +87,9 @@ func sortedSnapNamesWithSlots(m map[naming.InstanceName]map[string]*snap.SlotInf
 	for key := range m {
 		keys = append(keys, key)
 	}
-	sort.Strings(keys)
+	sort.Slice(keys, func(i, j int) bool {
+		return keys[i] < keys[j]
+	})
 	return keys
 }
 

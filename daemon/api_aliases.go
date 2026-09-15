@@ -84,12 +84,12 @@ func changeAliases(c *Command, r *http.Request, user *auth.UserState) Response {
 	case "alias":
 		taskset, err = snapstate.Alias(st, a.Snap, a.App, a.Alias)
 	case "unalias":
-		if a.Alias == a.Snap {
+		if a.Alias == a.Snap.String() {
 			// Do What I mean:
 			// check if a snap is referred/intended
 			// or just an alias
 			var snapst snapstate.SnapState
-			err := snapstate.Get(st, a.Snap, &snapst)
+			err := snapstate.Get(st, a.Snap.String(), &snapst)
 			if err != nil && !errors.Is(err, state.ErrNoState) {
 				return InternalError("%v", err)
 			}
@@ -128,7 +128,7 @@ func changeAliases(c *Command, r *http.Request, user *auth.UserState) Response {
 		changeKind = preferChangeKind
 	}
 
-	change := newChange(st, changeKind, summary, []*state.TaskSet{taskset}, []string{a.Snap})
+	change := newChange(st, changeKind, summary, []*state.TaskSet{taskset}, []string{a.Snap.String()})
 	st.EnsureBefore(0)
 
 	return AsyncResponse(nil, change.ID())

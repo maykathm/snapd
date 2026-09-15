@@ -372,11 +372,11 @@ var removeStaleConnections = func(st *state.State) error {
 			return err
 		}
 		var snapst snapstate.SnapState
-		if err := snapstate.Get(st, connRef.PlugRef.Snap, &snapst); err != nil {
+		if err := snapstate.Get(st, connRef.PlugRef.Snap.String(), &snapst); err != nil {
 			if !errors.Is(err, state.ErrNoState) {
 				return err
 			}
-			broken, err := isBrokenCached(connRef.SlotRef.Snap)
+			broken, err := isBrokenCached(connRef.SlotRef.Snap.String())
 			if err != nil {
 				return err
 			}
@@ -386,11 +386,11 @@ var removeStaleConnections = func(st *state.State) error {
 			staleConns = append(staleConns, id)
 			continue
 		}
-		if err := snapstate.Get(st, connRef.SlotRef.Snap, &snapst); err != nil {
+		if err := snapstate.Get(st, connRef.SlotRef.Snap.String(), &snapst); err != nil {
 			if !errors.Is(err, state.ErrNoState) {
 				return err
 			}
-			broken, err := isBrokenCached(connRef.PlugRef.Snap)
+			broken, err := isBrokenCached(connRef.PlugRef.Snap.String())
 			if err != nil {
 				return err
 			}
@@ -567,7 +567,7 @@ ConnsLoop:
 		// Apply filtering, this allows us to reload only a subset of
 		// connections (and similarly, refresh the static attributes of only a
 		// subset of connections).
-		if snapName != "" && connRef.PlugRef.Snap != snapName && connRef.SlotRef.Snap != snapName {
+		if instanceName != "" && connRef.PlugRef.Snap != instanceName && connRef.SlotRef.Snap != instanceName {
 			continue
 		}
 
@@ -583,8 +583,8 @@ ConnsLoop:
 			if connState.Auto && !connState.ByGadget && connState.Interface != "core-support" {
 				// only do anything about this connection if snap isn't in a broken state, otherwise
 				// leave the connection untouched.
-				for _, snapName := range []string{connRef.PlugRef.Snap, connRef.SlotRef.Snap} {
-					broken, err := isBroken(m.state, snapName)
+				for _, snapName := range []naming.InstanceName{connRef.PlugRef.Snap, connRef.SlotRef.Snap} {
+					broken, err := isBroken(m.state, snapName.String())
 					if err != nil {
 						return nil, nil, err
 					}
@@ -750,7 +750,7 @@ func (m *InterfaceManager) removeSnapSecurity(task *state.Task, instanceName nam
 	st := task.State()
 	for _, backend := range m.repo.Backends() {
 		st.Unlock()
-		err := backend.Remove(instanceName)
+		err := backend.Remove(instanceName.String())
 		st.Lock()
 		if err != nil {
 			task.Errorf("cannot setup %s for snap %q: %s", backend.Name(), instanceName, err)
@@ -869,7 +869,7 @@ func (gc *gadgetConnect) addGadgetConnections(newconns map[string]*interfaces.Co
 				return err
 			}
 		}
-		plug := gc.repo.Plug(plugSnapName, gconn.Plug.Plug)
+		plug := gc.repo.Plug(naming.InstanceName(plugSnapName), gconn.Plug.Plug)
 		if plug == nil {
 			task.Logf("gadget connections: ignoring missing plug %s:%s", gconn.Plug.SnapID, gconn.Plug.Plug)
 			continue
@@ -882,7 +882,7 @@ func (gc *gadgetConnect) addGadgetConnections(newconns map[string]*interfaces.Co
 				return err
 			}
 		}
-		slot := gc.repo.Slot(slotSnapName, gconn.Slot.Slot)
+		slot := gc.repo.Slot(naming.InstanceName(slotSnapName), gconn.Slot.Slot)
 		if slot == nil {
 			task.Logf("gadget connections: ignoring missing slot %s:%s", gconn.Slot.SnapID, gconn.Slot.Slot)
 			continue
@@ -921,7 +921,7 @@ func addNewConnection(st *state.State, task *state.Task, newconns map[string]*in
 		}
 	}
 
-	if err := checkAutoconnectConflicts(st, task, plug.Snap.InstanceName().String(), slot.Snap.InstanceName().String()); err != nil {
+	if err := checkAutoconnectConflicts(st, task, plug.Snap.InstanceName(), slot.Snap.InstanceName()); err != nil {
 		retry, _ := err.(*state.Retry)
 		return conflictError(retry, err)
 	}
@@ -1103,7 +1103,7 @@ func (c *autoConnectChecker) addAutoConnections(task *state.Task, newconns map[s
 	conflictError func(*state.Retry, error) error,
 ) error {
 	for _, plug := range plugs {
-		candSlots, arities := c.repo.AutoConnectCandidateSlots(plug.Snap.InstanceName().String(), plug.Name, c.check)
+		candSlots, arities := c.repo.AutoConnectCandidateSlots(plug.Snap.InstanceName(), plug.Name, c.check)
 
 		if len(candSlots) == 0 {
 			continue
@@ -1267,8 +1267,8 @@ func getConns(st *state.State) (conns map[string]*schema.ConnState, err error) {
 		if err != nil {
 			return nil, err
 		}
-		cref.PlugRef.Snap = RemapSnapFromState(cref.PlugRef.Snap)
-		cref.SlotRef.Snap = RemapSnapFromState(cref.SlotRef.Snap)
+		cref.PlugRef.Snap = naming.InstanceName(RemapSnapFromState(cref.PlugRef.Snap.String()))
+		cref.SlotRef.Snap = naming.InstanceName(RemapSnapFromState(cref.SlotRef.Snap.String()))
 		cstate.StaticSlotAttrs = utils.NormalizeInterfaceAttributes(cstate.StaticSlotAttrs).(map[string]any)
 		cstate.DynamicSlotAttrs = utils.NormalizeInterfaceAttributes(cstate.DynamicSlotAttrs).(map[string]any)
 		cstate.StaticPlugAttrs = utils.NormalizeInterfaceAttributes(cstate.StaticPlugAttrs).(map[string]any)
@@ -1289,8 +1289,8 @@ func setConns(st *state.State, conns map[string]*schema.ConnState) {
 			// We cannot fail here
 			panic(err)
 		}
-		cref.PlugRef.Snap = RemapSnapToState(cref.PlugRef.Snap)
-		cref.SlotRef.Snap = RemapSnapToState(cref.SlotRef.Snap)
+		cref.PlugRef.Snap = naming.InstanceName(RemapSnapToState(cref.PlugRef.Snap.String()))
+		cref.SlotRef.Snap = naming.InstanceName(RemapSnapToState(cref.SlotRef.Snap.String()))
 		remapped[cref.ID()] = cstate
 	}
 	st.Set("conns", remapped)
@@ -1480,7 +1480,7 @@ type CoreCoreSystemMapper struct {
 // explicitly refer to "core" or using the "system" nickname.
 func (m *CoreCoreSystemMapper) RemapSnapFromRequest(snapName string) string {
 	if snapName == "system" {
-		return m.SystemSnapName()
+		return m.SystemSnapName().String()
 	}
 	return snapName
 }
@@ -1504,7 +1504,7 @@ type CoreSnapdSystemMapper struct {
 // using "snapd" snap for hosting those slots and this lets us stay compatible.
 func (m *CoreSnapdSystemMapper) RemapSnapFromState(snapName string) string {
 	if snapName == "core" {
-		return m.SystemSnapName()
+		return m.SystemSnapName().String()
 	}
 	return snapName
 }
@@ -1515,7 +1515,7 @@ func (m *CoreSnapdSystemMapper) RemapSnapFromState(snapName string) string {
 // seem to refer to the "core" snap, as in pre core{16,18} days where there was
 // only one core snap.
 func (m *CoreSnapdSystemMapper) RemapSnapToState(snapName string) string {
-	if snapName == m.SystemSnapName() {
+	if snapName == m.SystemSnapName().String() {
 		return "core"
 	}
 	return snapName
@@ -1530,7 +1530,7 @@ func (m *CoreSnapdSystemMapper) RemapSnapToState(snapName string) string {
 // even if the request used "core".
 func (m *CoreSnapdSystemMapper) RemapSnapFromRequest(snapName string) string {
 	if snapName == "system" || snapName == "core" {
-		return m.SystemSnapName()
+		return m.SystemSnapName().String()
 	}
 	return snapName
 }
@@ -1572,7 +1572,7 @@ func SystemSnapName() naming.InstanceName {
 
 // systemSnapInfo returns current info for system snap.
 func systemSnapInfo(st *state.State) (*snap.Info, error) {
-	return snapstate.CurrentInfo(st, SystemSnapName())
+	return snapstate.CurrentInfo(st, SystemSnapName().String())
 }
 
 func connectDisconnectAffectedSnaps(t *state.Task) ([]string, error) {
@@ -1580,7 +1580,7 @@ func connectDisconnectAffectedSnaps(t *state.Task) ([]string, error) {
 	if err != nil {
 		return nil, fmt.Errorf("internal error: cannot obtain plug/slot data from task: %s", t.Summary())
 	}
-	return []string{plugRef.Snap, slotRef.Snap}, nil
+	return []string{plugRef.Snap.String(), slotRef.Snap.String()}, nil
 }
 
 func checkSystemSnapIsPresent(st *state.State) bool {
