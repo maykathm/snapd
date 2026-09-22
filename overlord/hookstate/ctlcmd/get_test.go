@@ -49,6 +49,7 @@ import (
 	"github.com/snapcore/snapd/overlord/ifacestate/ifacerepo"
 	"github.com/snapcore/snapd/overlord/state"
 	"github.com/snapcore/snapd/snap"
+	"github.com/snapcore/snapd/snap/snaptest"
 	"github.com/snapcore/snapd/testutil"
 )
 
@@ -73,6 +74,7 @@ func (s *getSuite) SetUpTest(c *C) {
 	state := state.New(nil)
 	state.Lock()
 	defer state.Unlock()
+	ifacerepo.Replace(state, interfaces.NewRepository())
 
 	task := state.NewTask("test-task", "my test task")
 	setup := &hookstate.HookSetup{Snap: "test-snap", Revision: snap.R(1), Hook: "test-hook"}
@@ -103,7 +105,7 @@ var getTests = []struct {
 	error: ".*unknown flag.*foo.*",
 }, {
 	args:  "get :foo bar",
-	error: ".*interface attributes can only be read during the execution of interface hooks.*",
+	error: `snap "test-snap" has no plug or slot named "foo"`,
 }, {
 	args:   "get test-key1",
 	stdout: "test-value1\n",
@@ -141,6 +143,7 @@ func (s *getSuite) TestGetTests(c *C) {
 
 		state := state.New(nil)
 		state.Lock()
+		ifacerepo.Replace(state, interfaces.NewRepository())
 
 		snapJSON := json.RawMessage(`{}`)
 		state.Set("snaps", map[string]*json.RawMessage{"test-snap": &snapJSON})
@@ -270,6 +273,81 @@ func (s *getSuite) TestGetRegularUser(c *C) {
 	c.Assert(err, IsNil)
 	c.Assert(string(stdout), Equals, "test-value1\n")
 	c.Assert(string(stderr), Equals, "")
+}
+
+func (s *getSuite) TestGetInterfaceAttributesOutsideInterfaceHook(c *C) {
+	repo := interfaces.NewRepository()
+	c.Assert(repo.AddInterface(&ifacetest.TestInterface{InterfaceName: "test"}), IsNil)
+
+	consumer := snaptest.MockInfo(c, `name: test-snap
+version: 1
+plugs:
+  service:
+    interface: test
+    local: consumer
+  unconnected:
+    interface: test
+`, nil)
+	provider := snaptest.MockInfo(c, `name: provider
+version: 1
+slots:
+  service:
+    interface: test
+    name: org.example.Service
+`, nil)
+	provider2 := snaptest.MockInfo(c, `name: provider2
+version: 1
+slots:
+  service:
+    interface: test
+    name: org.example.Other
+`, nil)
+	for _, info := range []*snap.Info{consumer, provider, provider2} {
+		appSet, err := interfaces.NewSnapAppSet(info, nil)
+		c.Assert(err, IsNil)
+		c.Assert(repo.AddAppSet(appSet), IsNil)
+	}
+
+	ref := &interfaces.ConnRef{
+		PlugRef: interfaces.PlugRef{Snap: "test-snap", Name: "service"},
+		SlotRef: interfaces.SlotRef{Snap: "provider", Name: "service"},
+	}
+	_, err := repo.Connect(ref, nil, map[string]any{"dynamic": "plug-value"}, nil, map[string]any{"dynamic": "slot-value"}, nil)
+	c.Assert(err, IsNil)
+
+	st := s.mockContext.State()
+	st.Lock()
+	ifacerepo.Replace(st, repo)
+	st.Unlock()
+
+	setup := &hookstate.HookSetup{Snap: "test-snap", Revision: snap.R(1)}
+	appContext, err := hookstate.NewContext(nil, st, setup, s.mockHandler, "")
+	c.Assert(err, IsNil)
+	c.Assert(appContext.IsEphemeral(), Equals, true)
+
+	for _, context := range []*hookstate.Context{s.mockContext, appContext} {
+		stdout, stderr, _, err := ctlcmd.Run(context, []string{"get", ":service", "local"}, 0, nil)
+		c.Assert(err, IsNil)
+		c.Check(string(stdout), Equals, "consumer\n")
+		c.Check(string(stderr), Equals, "")
+
+		stdout, stderr, _, err = ctlcmd.Run(context, []string{"get", "--slot", ":service", "name", "dynamic"}, 0, nil)
+		c.Assert(err, IsNil)
+		c.Check(string(stdout), Equals, "{\n\t\"dynamic\": \"slot-value\",\n\t\"name\": \"org.example.Service\"\n}\n")
+		c.Check(string(stderr), Equals, "")
+
+		_, _, _, err = ctlcmd.Run(context, []string{"get", ":unconnected", "name"}, 0, nil)
+		c.Check(err, ErrorMatches, `interface endpoint "unconnected" is not connected`)
+	}
+
+	secondRef := &interfaces.ConnRef{
+		PlugRef: interfaces.PlugRef{Snap: "test-snap", Name: "service"},
+		SlotRef: interfaces.SlotRef{Snap: "provider2", Name: "service"},
+	}
+	_, err = repo.Connect(secondRef, nil, nil, nil, nil, nil)
+	c.Assert(err, IsNil)
+	_, _, _, err = ctlcmd.Run(appContext, []string{"get", "--slot", ":service", "name"}, 0, nil)
+	c.Check(err, ErrorMatches, `interface endpoint "service" has multiple connections`)
 }
 
 func (s *getSuite) TestCommandWithoutContext(c *C) {

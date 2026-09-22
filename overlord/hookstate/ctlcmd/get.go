@@ -363,19 +363,18 @@ func attributesTask(context *hookstate.Context) (*state.Task, error) {
 }
 
 func (c *getCommand) getInterfaceSetting(context *hookstate.Context, plugOrSlot string) error {
-	// Make sure get :<plug|slot> is only supported during the execution of interface hooks
+	if c.ForcePlugSide && c.ForceSlotSide {
+		return fmt.Errorf("cannot use --plug and --slot together")
+	}
+
 	hookType, err := interfaceHookType(context.HookName())
 	if err != nil {
-		return errors.New(i18n.G("interface attributes can only be read during the execution of interface hooks"))
+		return c.getConnectedInterfaceSetting(context, plugOrSlot)
 	}
 
 	attrsTask, err := attributesTask(context)
 	if err != nil {
 		return err
-	}
-
-	if c.ForcePlugSide && c.ForceSlotSide {
-		return fmt.Errorf("cannot use --plug and --slot together")
 	}
 
 	isPlugSide := (hookType == preparePlugHook || hookType == unpreparePlugHook || hookType == connectPlugHook || hookType == disconnectPlugHook)
@@ -402,6 +401,45 @@ func (c *getCommand) getInterfaceSetting(context *hookstate.Context, plugOrSlot 
 		return fmt.Errorf(i18n.G("internal error: cannot get %s from appropriate task"), which)
 	}
 
+	return c.printInterfaceValues(context, staticAttrs, dynamicAttrs)
+}
+
+func (c *getCommand) getConnectedInterfaceSetting(context *hookstate.Context, plugOrSlot string) error {
+	instanceName := context.InstanceName().String()
+	st := context.State()
+	st.Lock()
+	defer st.Unlock()
+	repo := ifacerepo.Get(st)
+	refs, err := repo.Connected(instanceName, plugOrSlot)
+	if err != nil {
+		return err
+	}
+	if len(refs) == 0 {
+		return fmt.Errorf(i18n.G("interface endpoint %q is not connected"), plugOrSlot)
+	}
+	if len(refs) != 1 {
+		return fmt.Errorf(i18n.G("interface endpoint %q has multiple connections"), plugOrSlot)
+	}
+
+	conn, err := repo.Connection(refs[0])
+	if err != nil {
+		return err
+	}
+	localIsPlug := refs[0].PlugRef.Snap == instanceName && refs[0].PlugRef.Name == plugOrSlot
+
+	var staticAttrs, dynamicAttrs map[string]any
+	if c.ForcePlugSide || (localIsPlug && !c.ForceSlotSide) {
+		staticAttrs = conn.Plug.StaticAttrs()
+		dynamicAttrs = conn.Plug.DynamicAttrs()
+	} else {
+		staticAttrs = conn.Slot.StaticAttrs()
+		dynamicAttrs = conn.Slot.DynamicAttrs()
+	}
+
+	return c.printInterfaceValues(context, staticAttrs, dynamicAttrs)
+}
+
+func (c *getCommand) printInterfaceValues(context *hookstate.Context, staticAttrs, dynamicAttrs map[string]any) error {
 	return c.printValues(func(key string) (any, bool, error) {
 		subkeys, err := config.ParseKey(key)
 		if err != nil {
