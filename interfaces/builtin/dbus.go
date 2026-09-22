@@ -82,9 +82,7 @@ dbus (bind)
 # - using org.kde.foo-PID as the 'well-known' name
 # - using org.foo.cmd_<num>_<num> as the 'well-known' name
 # Note, snapd does not allow declaring a 'well-known' name that ends with
-# '-[0-9]+' or that contains '_'. Parallel installs of DBus services aren't
-# supported at this time, but if they were, this could allow a parallel
-# install'swell-known name to overlap with the normal install.
+# '-[0-9]+' or that contains '_'.
 dbus (bind)
     bus=###DBUS_BUS###
     name=###DBUS_NAME###{_,-}[1-9]{,[0-9_]}{,[0-9_]}{,[0-9_]}{,[0-9_]}{,[0-9_]}{,[0-9_]}{,[0-9_]}{,[0-9_]}{,[0-9]}{,_[1-9]{,[0-9_]}{,[0-9_]}{,[0-9_]}{,[0-9_]}{,[0-9_]}{,[0-9_]}{,[0-9_]}{,[0-9_]}{,[0-9]}},
@@ -280,14 +278,21 @@ func getAppArmorAbstraction(bus string) (string, error) {
 	return abstraction, nil
 }
 
+func instanceDBusName(name string, snapInfo *snap.Info) string {
+	if snapInfo.InstanceKey == "" {
+		return name
+	}
+	return name + "." + snapInfo.InstanceKey
+}
+
 // Calculate individual snippet policy based on bus and name
-func getAppArmorSnippet(policy string, bus string, name string) string {
+func getAppArmorSnippet(policy string, bus string, name string, snapInfo *snap.Info) string {
 	old := "###DBUS_BUS###"
 	new := bus
 	snippet := strings.Replace(policy, old, new, -1)
 
 	old = "###DBUS_NAME###"
-	new = name
+	new = instanceDBusName(name, snapInfo)
 	snippet = strings.Replace(snippet, old, new, -1)
 
 	// convert name to AppArmor dbus path (eg 'org.foo' to '/org/foo{,/**}')
@@ -330,7 +335,7 @@ func (iface *dbusInterface) AppArmorConnectedPlug(spec *apparmor.Specification, 
 	}
 
 	// well-known DBus name-specific connected plug policy
-	snippet := getAppArmorSnippet(dbusConnectedPlugAppArmor, bus, name)
+	snippet := getAppArmorSnippet(dbusConnectedPlugAppArmor, bus, name, slot.Snap())
 
 	// abstraction policy
 	abstraction, err := getAppArmorAbstraction(bus)
@@ -362,7 +367,7 @@ func (iface *dbusInterface) DBusPermanentSlot(spec *dbus.Specification, slot *sn
 	}
 
 	old := "###DBUS_NAME###"
-	new := name
+	new := instanceDBusName(name, slot.Snap)
 	spec.AddSnippet(strings.Replace(dbusPermanentSlotDBus, old, new, -1))
 	return nil
 }
@@ -374,7 +379,7 @@ func (iface *dbusInterface) AppArmorPermanentSlot(spec *apparmor.Specification, 
 	}
 
 	// well-known DBus name-specific permanent slot policy
-	snippet := getAppArmorSnippet(dbusPermanentSlotAppArmor, bus, name)
+	snippet := getAppArmorSnippet(dbusPermanentSlotAppArmor, bus, name, slot.Snap)
 
 	// abstraction policy
 	abstraction, err := getAppArmorAbstraction(bus)
@@ -389,7 +394,7 @@ func (iface *dbusInterface) AppArmorPermanentSlot(spec *apparmor.Specification, 
 
 	if release.OnClassic {
 		// classic-only policy
-		spec.AddSnippet(getAppArmorSnippet(dbusPermanentSlotAppArmorClassic, bus, name))
+		spec.AddSnippet(getAppArmorSnippet(dbusPermanentSlotAppArmorClassic, bus, name, slot.Snap))
 	}
 	return nil
 }
@@ -420,7 +425,7 @@ func (iface *dbusInterface) AppArmorConnectedSlot(spec *apparmor.Specification, 
 	}
 
 	// well-known DBus name-specific connected slot policy
-	snippet := getAppArmorSnippet(dbusConnectedSlotAppArmor, bus, name)
+	snippet := getAppArmorSnippet(dbusConnectedSlotAppArmor, bus, name, slot.Snap())
 
 	old := "###PLUG_SECURITY_TAGS###"
 	new := plug.LabelExpression()

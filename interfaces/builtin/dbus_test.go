@@ -488,6 +488,65 @@ func (s *DbusInterfaceSuite) TestConnectedPlugAppArmorSystem(c *C) {
 	c.Check(string(snippet), testutil.Contains, "interface=\"org.test-system-connected{,.*}\"\n")
 }
 
+func (s *DbusInterfaceSuite) TestParallelInstancePolicy(c *C) {
+	const slotYaml = `name: slotter
+version: 1.0
+slots:
+ this:
+  interface: dbus
+  bus: system
+  name: org.slotter.Service
+apps:
+ app:
+  command: foo
+  slots: [this]
+`
+	const plugYaml = `name: plugger
+version: 1.0
+plugs:
+ this:
+  interface: dbus
+  bus: system
+  name: org.slotter.Service
+apps:
+ app:
+  command: foo
+  plugs: [this]
+`
+
+	slotInfo := MockSlot(c, slotYaml, nil, "this")
+	slotInfo.Snap.InstanceKey = "instance"
+	slotAppSet, err := interfaces.NewSnapAppSet(slotInfo.Snap, nil)
+	c.Assert(err, IsNil)
+	slot := interfaces.NewConnectedSlot(slotInfo, slotAppSet, nil, nil)
+	plug, _ := MockConnectedPlug(c, plugYaml, nil, "this")
+
+	apparmorSpec := apparmor.NewSpecification(slotAppSet)
+	err = apparmorSpec.AddPermanentSlot(s.iface, slotInfo)
+	c.Assert(err, IsNil)
+	snippet := apparmorSpec.SnippetForTag("snap.slotter_instance.app")
+	c.Check(snippet, testutil.Contains, "name=org.slotter.Service.instance,")
+	c.Check(snippet, testutil.Contains, `path="/org/slotter/Service{,/**}"`)
+	c.Check(snippet, Not(testutil.Contains), `/org/slotter/Service/instance`)
+
+	dbusSpec := dbus.NewSpecification(slotAppSet)
+	err = dbusSpec.AddPermanentSlot(s.iface, slotInfo)
+	c.Assert(err, IsNil)
+	c.Check(dbusSpec.SnippetForTag("snap.slotter_instance.app"), testutil.Contains, `<allow own="org.slotter.Service.instance"/>`)
+
+	apparmorSpec = apparmor.NewSpecification(plug.AppSet())
+	err = apparmorSpec.AddConnectedPlug(s.iface, plug, slot)
+	c.Assert(err, IsNil)
+	c.Check(apparmorSpec.SnippetForTag("snap.plugger.app"), testutil.Contains, `peer=(name=org.slotter.Service.instance, label="snap.slotter_instance.app")`)
+
+	apparmorSpec = apparmor.NewSpecification(slotAppSet)
+	err = apparmorSpec.AddConnectedSlot(s.iface, plug, slot)
+	c.Assert(err, IsNil)
+	snippet = apparmorSpec.SnippetForTag("snap.slotter_instance.app")
+	c.Check(snippet, testutil.Contains, `path="/org/slotter/Service{,/**}"`)
+	c.Check(snippet, Not(testutil.Contains), `/org/slotter/Service/instance`)
+}
+
 func (s *DbusInterfaceSuite) TestConnectionFirst(c *C) {
 	const plugYaml = `name: plugger
 version: 1.0
