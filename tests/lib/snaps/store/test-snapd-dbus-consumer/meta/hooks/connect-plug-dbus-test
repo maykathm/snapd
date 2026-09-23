@@ -2,4 +2,4 @@
 
 set -eu
 
-snapctl get --slot :dbus-test name > "$SNAP_DATA/dbus-test-name"
+snapctl get --slot :dbus-test effective-name > "$SNAP_DATA/dbus-test-name"

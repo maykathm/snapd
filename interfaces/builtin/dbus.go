@@ -449,6 +449,14 @@ func (iface *dbusInterface) AutoConnect(*snap.PlugInfo, *snap.SlotInfo) bool {
 	return true
 }
 
+func (iface *dbusInterface) BeforeConnectSlot(slot *interfaces.ConnectedSlot) error {
+	_, name, err := iface.getAttribs(slot)
+	if err != nil {
+		return err
+	}
+	return slot.SetAttr("effective-name", instanceDBusName(name, slot.Snap()))
+}
+
 func init() {
 	registerIface(&dbusInterface{})
 }
