@@ -13,12 +13,25 @@ systems:
     - -ubuntu-core-*  # dbus interface disallows unconfined access on core,
                       # in addition, up until core20 session bus was not supported
 
-prepare: |
-    echo "Give a snap declaring a dbus slot in installed"
-    snap install --beta test-snapd-dbus-provider
+environment:
+    PARALLEL_PROVIDER: test-snapd-dbus-provider_foo
 
-    echo "And a snap declaring a matching dbus plug is installed"
-    snap install --beta test-snapd-dbus-consumer
+prepare: |
+    snap set system experimental.parallel-instances=true
+    tests.cleanup defer snap unset system experimental.parallel-instances
+
+    snap install --dangerous "$TESTSLIB"/snaps/store/test-snapd-dbus-provider/test-snapd-dbus-provider_1.0_amd64.snap.keep
+    snap install --dangerous --name="$PARALLEL_PROVIDER" "$TESTSLIB"/snaps/store/test-snapd-dbus-provider/test-snapd-dbus-provider_1.0_amd64.snap.keep
+    snap install --dangerous "$TESTSLIB"/snaps/store/test-snapd-dbus-consumer/test-snapd-dbus-consumer_1.0_amd64.snap.keep
+
+    echo "Give a snap declaring a dbus slot in installed"
+    # snap install --beta test-snapd-dbus-provider
+
+    # echo "And install a parallel instance of the provider"
+    # snap install --beta --name="$PARALLEL_PROVIDER" test-snapd-dbus-provider
+
+    # echo "And a snap declaring a matching dbus plug is installed"
+    # snap install --beta test-snapd-dbus-consumer
 
     tests.session -u test prepare
 
@@ -30,9 +43,11 @@ prepare: |
     # on shutdown.
     echo "And the provider dbus loop is started"
     tests.session -u test exec systemd-run --user --unit dbus-provider.service test-snapd-dbus-provider.provider
+    tests.session -u test exec systemd-run --user --unit dbus-provider-parallel.service "$PARALLEL_PROVIDER.provider"
 
 restore: |
     tests.session -u test exec systemctl --user stop dbus-provider.service
+    tests.session -u test exec systemctl --user stop dbus-provider-parallel.service
     tests.session -u test restore
 
 execute: |
@@ -48,12 +63,24 @@ execute: |
     echo "Then the consumer is able to call the provided method"
     tests.session -u test exec test-snapd-dbus-consumer.dbus-consumer | MATCH "hello world"
 
+    echo "And clear any previous warnings before connecting to the parallel provider"
+    snap disconnect test-snapd-dbus-consumer:dbus-test test-snapd-dbus-provider:dbus-test
+    snap warnings >/dev/null
+    snap okay || true
+
+    echo "When the plug is connected to the parallel provider"
+    snap connect test-snapd-dbus-consumer:dbus-test "$PARALLEL_PROVIDER:dbus-test" 2>&1 | MATCH "WARNING: There is 1 new warning. See 'snap warnings'"
+    snap warnings | tr '\n' ' ' | tr -s ' ' | MATCH "You are connecting to the dbus slot of a parallel instance. Unless the plug-side snap has explicit logic to deal with a parallel instance, the snap will likely not work correctly."
+
+    echo "Then the consumer can use the parallel provider's DBus name"
+    tests.session -u test exec test-snapd-dbus-consumer.dbus-consumer | MATCH "hello world"
+
     if [ "$(snap debug confinement)" = partial ]; then
         exit 0
     fi
 
     echo "When the plug is disconnected"
-    snap disconnect test-snapd-dbus-consumer:dbus-test test-snapd-dbus-provider:dbus-test
+    snap disconnect test-snapd-dbus-consumer:dbus-test "$PARALLEL_PROVIDER:dbus-test"
 
     echo "The consumer is not able to access the provided method"
     if tests.session -u test exec test-snapd-dbus-consumer.dbus-consumer 2> call.error; then

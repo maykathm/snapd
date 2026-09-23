@@ -2,6 +2,11 @@ name: test-snapd-dbus-provider
 version: 1.0
 summary: Basic dbus provider snap
 description: A basic snap declaring a dbus slot
+base: core24
+confinement: strict
+
+environment:
+    PYTHONPATH: "$SNAP/usr/lib/python3/dist-packages:${PYTHONPATH}"
 
 apps:
     provider:
@@ -43,6 +48,7 @@ slots:
 parts:
     provider:
         plugin: python
+        source: .
         stage-packages: [python3-gi, python3-dbus, gir1.2-glib-2.0]
     copy:
         plugin: dump

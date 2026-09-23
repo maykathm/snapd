@@ -2,7 +2,10 @@
 
 set -e
 
+PYTHONPATH="$SNAP/usr/lib/python3/dist-packages${PYTHONPATH:+:$PYTHONPATH}"
+export PYTHONPATH
+
 GI_TYPELIB_PATH="$SNAP"/usr/lib/girepository-1.0:"$(ls -d "$SNAP"/usr/lib/*/girepository-1.0)"
 export GI_TYPELIB_PATH
 
-"$SNAP"/usr/bin/python3 "$SNAP"/provider.py "$@"
+python3 "$SNAP"/provider.py "$@"

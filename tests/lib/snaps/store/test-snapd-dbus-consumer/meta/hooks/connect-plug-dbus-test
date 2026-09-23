@@ -1,0 +1,5 @@
+#!/bin/sh
+
+set -eu
+
+snapctl get --slot :dbus-test name > "$SNAP_DATA/dbus-test-name"

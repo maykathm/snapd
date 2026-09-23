@@ -2,6 +2,11 @@ name: test-snapd-dbus-consumer
 version: 1.0
 summary: Basic dbus consumer snap
 description: A basic snap declaring a plug on dbus
+base: core24
+confinement: strict
+
+environment:
+    PYTHONPATH: "$SNAP/usr/lib/python3/dist-packages:${PYTHONPATH}"
 
 apps:
     dbus-consumer:
@@ -24,6 +29,7 @@ plugs:
 parts:
     consumer:
         plugin: python
+        source: .
         stage-packages: [python3-dbus]
     copy:
         plugin: dump
