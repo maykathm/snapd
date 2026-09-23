@@ -1044,6 +1044,9 @@ func (m *InterfaceManager) doConnect(task *state.Task, _ *tomb.Tomb) (err error)
 		HotplugKey:       slot.HotplugKey,
 	}
 	setConns(st, conns)
+	if !autoConnect && slot.Interface == "dbus" && slot.Snap.InstanceKey != "" {
+		st.AddWarning("You are connecting to the dbus slot of a parallel instance. Unless the plug-side snap has explicit logic to deal with a parallel instance, the snap will likely not work correctly.", nil)
+	}
 
 	// the dynamic attributes might have been updated by the interface's BeforeConnectPlug/Slot code,
 	// so we need to update the task for connect-plug- and connect-slot- hooks to see new values.

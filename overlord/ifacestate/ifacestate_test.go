@@ -5801,6 +5801,35 @@ func (s *interfaceManagerSuite) TestConnectTracksConnectionsInState(c *C) {
 	})
 }
 
+func (s *interfaceManagerSuite) TestConnectWarnsForParallelInstanceDBusSlot(c *C) {
+	s.MockModel(c, nil)
+	s.mockSnap(c, `name: consumer
+version: 1
+plugs: {plug: {interface: dbus, bus: system, name: org.example.Service}}
+`)
+	s.mockSnapInstance(c, "producer_instance", `name: producer
+version: 1
+slots: {slot: {interface: dbus, bus: system, name: org.example.Service}}
+`)
+	_ = s.manager(c)
+
+	s.state.Lock()
+	ts0, err := ifacestate.Connect(s.state, "consumer", "plug", "producer_instance", "slot")
+	c.Assert(err, IsNil)
+	change := s.state.NewChange("connect", "manual connect")
+	change.AddAll(ts0)
+	s.state.Unlock()
+
+	s.settle(c)
+
+	s.state.Lock()
+	defer s.state.Unlock()
+	c.Assert(change.Err(), IsNil)
+	warnings := s.state.AllWarnings()
+	c.Assert(warnings, HasLen, 1)
+	c.Check(warnings[0].String(), Equals, "You are connecting to the dbus slot of a parallel instance. Unless the plug-side snap has explicit logic to deal with a parallel instance, the snap will likely not work correctly.")
+}
+
 func (s *interfaceManagerSuite) TestConnectSetsUpSecurity(c *C) {
 	s.MockModel(c, nil)
 
