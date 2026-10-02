@@ -53,6 +53,7 @@ import (
 	"github.com/snapcore/snapd/sandbox/cgroup"
 	"github.com/snapcore/snapd/sandbox/selinux"
 	"github.com/snapcore/snapd/snap"
+	"github.com/snapcore/snapd/snap/naming"
 	"github.com/snapcore/snapd/snap/snapenv"
 	"github.com/snapcore/snapd/snapdtool"
 	"github.com/snapcore/snapd/strutil"
@@ -413,7 +414,7 @@ func antialias(snapApp string, args []string) (string, []string) {
 
 func getSnapInfo(snapName string, revision snap.Revision) (info *snap.Info, err error) {
 	if revision.Unset() {
-		info, err = snap.ReadCurrentInfo(snapName)
+		info, err = snap.ReadCurrentInfo(naming.InstanceName(snapName))
 	} else {
 		info, err = snap.ReadInfo(snapName, &snap.SideInfo{
 			Revision: revision,
