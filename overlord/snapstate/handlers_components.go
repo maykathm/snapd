@@ -338,7 +338,7 @@ func (m *SnapManager) doMountComponent(t *state.Task, _ *tomb.Tomb) (retErr erro
 // ReadComponentInfo reads the snap's component and returns a ComponentInfo.
 func ReadComponentInfo(snapInfo *snap.Info, csi *snap.ComponentSideInfo) (*snap.ComponentInfo, error) {
 	compName, compRev := csi.Component.ComponentName, csi.Revision
-	mountDir := snap.ComponentMountDir(compName, compRev, snapInfo.InstanceName().String())
+	mountDir := snap.ComponentMountDir(compName, compRev, snapInfo.InstanceName())
 	return readComponentInfoAt(mountDir, snapInfo, csi)
 }
 

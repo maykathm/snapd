@@ -135,16 +135,14 @@ type PlaceInfo interface {
 
 // MinimalPlaceInfo returns a PlaceInfo with just the location information for a
 // snap of the given instance name and revision.
-func MinimalPlaceInfo(instanceName string, revision Revision) PlaceInfo {
-	storeName, instanceKey := SplitInstanceName(instanceName)
-	return &Info{SideInfo: SideInfo{RealName: storeName, Revision: revision}, InstanceKey: instanceKey}
+func MinimalPlaceInfo(instanceName naming.InstanceName, revision Revision) PlaceInfo {
+	return &Info{SideInfo: SideInfo{RealName: instanceName.SnapName().String(), Revision: revision}, InstanceKey: instanceName.InstanceKey()}
 }
 
 // MinimalSnapContainerPlaceInfo returns a ContainerPlaceInfo with just the location
 // information for a snap of the given instance name and revision.
-func MinimalSnapContainerPlaceInfo(instanceName string, revision Revision) ContainerPlaceInfo {
-	storeName, instanceKey := SplitInstanceName(instanceName)
-	return &Info{SideInfo: SideInfo{RealName: storeName, Revision: revision}, InstanceKey: instanceKey}
+func MinimalSnapContainerPlaceInfo(instanceName naming.InstanceName, revision Revision) ContainerPlaceInfo {
+	return &Info{SideInfo: SideInfo{RealName: instanceName.SnapName().String(), Revision: revision}, InstanceKey: instanceName.InstanceKey()}
 }
 
 // ParsePlaceInfoFromSnapFileName returns a PlaceInfo with just the location
@@ -190,7 +188,7 @@ func MountDir(name string, revision Revision) string {
 // ComponentMountDir returns the directory where a component gets mounted, which
 // will be of the form:
 // /snaps/<snap_instance>/components/mnt/<component_name>/<component_revision>
-func ComponentMountDir(componentName string, compRevision Revision, snapInstance string) string {
+func ComponentMountDir(componentName string, compRevision Revision, snapInstance naming.InstanceName) string {
 	return filepath.Join(ComponentsBaseDir(snapInstance), "mnt", componentName, compRevision.String())
 }
 
@@ -275,7 +273,7 @@ func HooksDir(name string, revision Revision) string {
 // ComponentHooksDir returns the directory containing the component's hooks for
 // the given component hook name. The provided snap name can be either a snap
 // name or snap instance name.
-func ComponentHooksDir(componentName string, compRevision Revision, snapInstance string) string {
+func ComponentHooksDir(componentName string, compRevision Revision, snapInstance naming.InstanceName) string {
 	return filepath.Join(ComponentMountDir(componentName, compRevision, snapInstance), "meta", "hooks")
 }
 
@@ -1765,11 +1763,11 @@ func ReadInfoFromMountPoint(name, mountPoint, mountFile string, si *SideInfo) (*
 
 // ReadCurrentInfo reads the snap information from the installed snap in
 // 'current' revision
-func ReadCurrentInfo(snapName string) (*Info, error) {
-	curFn := filepath.Join(dirs.SnapMountDir, snapName, "current")
+func ReadCurrentInfo(instanceName naming.InstanceName) (*Info, error) {
+	curFn := filepath.Join(dirs.SnapMountDir, instanceName.String(), "current")
 	realFn, err := os.Readlink(curFn)
 	if err != nil {
-		return nil, fmt.Errorf("%w: %s", NotFoundError{Snap: snapName, Revision: R(0)}, err)
+		return nil, fmt.Errorf("%w: %s", NotFoundError{Snap: instanceName.String(), Revision: R(0)}, err)
 	}
 	rev := filepath.Base(realFn)
 	revision, err := ParseRevision(rev)
@@ -1777,7 +1775,7 @@ func ReadCurrentInfo(snapName string) (*Info, error) {
 		return nil, fmt.Errorf("cannot read revision %s: %s", rev, err)
 	}
 
-	return ReadInfo(snapName, &SideInfo{Revision: revision})
+	return ReadInfo(instanceName.String(), &SideInfo{Revision: revision})
 }
 
 // NewContainerFromDir creates a new Container from the given directory.

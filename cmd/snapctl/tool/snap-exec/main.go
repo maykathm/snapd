@@ -300,7 +300,7 @@ func execHook(snapTarget string, revision, hookName string) error {
 			return err
 		}
 		hook = component.Hooks[hookName]
-		mountDir = snap.ComponentMountDir(component.Component.ComponentName, component.Revision, info.InstanceName().String())
+		mountDir = snap.ComponentMountDir(component.Component.ComponentName, component.Revision, info.InstanceName())
 	}
 
 	if hook == nil {

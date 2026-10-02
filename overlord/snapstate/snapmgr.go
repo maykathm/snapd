@@ -210,11 +210,11 @@ func (snapsup *SnapSetup) Revision() snap.Revision {
 }
 
 func (snapsup *SnapSetup) containerInfo() snap.ContainerPlaceInfo {
-	return snap.MinimalSnapContainerPlaceInfo(snapsup.InstanceName().String(), snapsup.Revision())
+	return snap.MinimalSnapContainerPlaceInfo(snapsup.InstanceName(), snapsup.Revision())
 }
 
 func (snapsup *SnapSetup) placeInfo() snap.PlaceInfo {
-	return snap.MinimalPlaceInfo(snapsup.InstanceName().String(), snapsup.Revision())
+	return snap.MinimalPlaceInfo(snapsup.InstanceName(), snapsup.Revision())
 }
 
 // MountDir returns the path to the directory where this snap would be mounted.
