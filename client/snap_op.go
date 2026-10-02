@@ -43,27 +43,28 @@ const (
 )
 
 type SnapOptions struct {
-	Channel          string          `json:"channel,omitempty"`
-	Revision         string          `json:"revision,omitempty"`
-	CohortKey        string          `json:"cohort-key,omitempty"`
-	LeaveCohort      bool            `json:"leave-cohort,omitempty"`
-	DevMode          bool            `json:"devmode,omitempty"`
-	JailMode         bool            `json:"jailmode,omitempty"`
-	Classic          bool            `json:"classic,omitempty"`
-	Dangerous        bool            `json:"dangerous,omitempty"`
-	IgnoreValidation bool            `json:"ignore-validation,omitempty"`
-	IgnoreRunning    bool            `json:"ignore-running,omitempty"`
-	Unaliased        bool            `json:"unaliased,omitempty"`
-	Prefer           bool            `json:"prefer,omitempty"`
-	Purge            bool            `json:"purge,omitempty"`
-	Terminate        bool            `json:"terminate,omitempty"`
-	Amend            bool            `json:"amend,omitempty"`
-	Transaction      TransactionType `json:"transaction,omitempty"`
-	QuotaGroupName   string          `json:"quota-group,omitempty"`
-	ValidationSets   []string        `json:"validation-sets,omitempty"`
-	Time             string          `json:"time,omitempty"`
-	HoldLevel        string          `json:"hold-level,omitempty"`
-	Users            []string        `json:"users,omitempty"`
+	Channel              string          `json:"channel,omitempty"`
+	Revision             string          `json:"revision,omitempty"`
+	CohortKey            string          `json:"cohort-key,omitempty"`
+	LeaveCohort          bool            `json:"leave-cohort,omitempty"`
+	DevMode              bool            `json:"devmode,omitempty"`
+	JailMode             bool            `json:"jailmode,omitempty"`
+	Classic              bool            `json:"classic,omitempty"`
+	Dangerous            bool            `json:"dangerous,omitempty"`
+	IgnoreValidation     bool            `json:"ignore-validation,omitempty"`
+	IgnoreInstanceErrors bool            `json:"ignore-instance-errors,omitempty"`
+	IgnoreRunning        bool            `json:"ignore-running,omitempty"`
+	Unaliased            bool            `json:"unaliased,omitempty"`
+	Prefer               bool            `json:"prefer,omitempty"`
+	Purge                bool            `json:"purge,omitempty"`
+	Terminate            bool            `json:"terminate,omitempty"`
+	Amend                bool            `json:"amend,omitempty"`
+	Transaction          TransactionType `json:"transaction,omitempty"`
+	QuotaGroupName       string          `json:"quota-group,omitempty"`
+	ValidationSets       []string        `json:"validation-sets,omitempty"`
+	Time                 string          `json:"time,omitempty"`
+	HoldLevel            string          `json:"hold-level,omitempty"`
+	Users                []string        `json:"users,omitempty"`
 }
 
 func writeFieldBool(mw *multipart.Writer, key string, val bool) error {
@@ -101,6 +102,7 @@ func (opts *SnapOptions) writeModeFields(mw *multipart.Writer) error {
 func (opts *SnapOptions) writeOptionFields(mw *multipart.Writer) error {
 	fields := []field{
 		{"ignore-running", opts.IgnoreRunning},
+		{"ignore-instance-errors", opts.IgnoreInstanceErrors},
 		{"unaliased", opts.Unaliased},
 		{"prefer", opts.Prefer},
 	}
@@ -126,16 +128,17 @@ type actionData struct {
 }
 
 type multiActionData struct {
-	Action         string              `json:"action"`
-	Snaps          []string            `json:"snaps,omitempty"`
-	Users          []string            `json:"users,omitempty"`
-	Transaction    TransactionType     `json:"transaction,omitempty"`
-	IgnoreRunning  bool                `json:"ignore-running,omitempty"`
-	Purge          bool                `json:"purge,omitempty"`
-	ValidationSets []string            `json:"validation-sets,omitempty"`
-	Time           string              `json:"time,omitempty"`
-	HoldLevel      string              `json:"hold-level,omitempty"`
-	Components     map[string][]string `json:"components,omitempty"`
+	Action               string              `json:"action"`
+	Snaps                []string            `json:"snaps,omitempty"`
+	Users                []string            `json:"users,omitempty"`
+	Transaction          TransactionType     `json:"transaction,omitempty"`
+	IgnoreRunning        bool                `json:"ignore-running,omitempty"`
+	IgnoreInstanceErrors bool                `json:"ignore-instance-errors,omitempty"`
+	Purge                bool                `json:"purge,omitempty"`
+	ValidationSets       []string            `json:"validation-sets,omitempty"`
+	Time                 string              `json:"time,omitempty"`
+	HoldLevel            string              `json:"hold-level,omitempty"`
+	Components           map[string][]string `json:"components,omitempty"`
 }
 
 // Install adds the snap with the given name from the given channel (or
@@ -265,6 +268,7 @@ func (client *Client) doMultiSnapActionFull(actionName string, snaps []string, c
 		action.Users = options.Users
 		action.Transaction = options.Transaction
 		action.IgnoreRunning = options.IgnoreRunning
+		action.IgnoreInstanceErrors = options.IgnoreInstanceErrors
 		action.Purge = options.Purge
 		action.ValidationSets = options.ValidationSets
 		action.Time = options.Time

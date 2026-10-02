@@ -274,6 +274,7 @@ type snapInstruction struct {
 	JailMode               bool                             `json:"jailmode"`
 	Classic                bool                             `json:"classic"`
 	IgnoreValidation       bool                             `json:"ignore-validation"`
+	IgnoreInstanceErrors   bool                             `json:"ignore-instance-errors"`
 	IgnoreRunning          bool                             `json:"ignore-running"`
 	Unaliased              bool                             `json:"unaliased"`
 	Prefer                 bool                             `json:"prefer"`
@@ -334,6 +335,7 @@ func (inst *snapInstruction) installFlags() (snapstate.Flags, error) {
 	if inst.IgnoreValidation {
 		flags.IgnoreValidation = true
 	}
+	flags.IgnoreInstanceErrors = inst.IgnoreInstanceErrors
 	if inst.Prefer {
 		flags.Prefer = true
 	}

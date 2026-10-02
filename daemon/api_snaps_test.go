@@ -2517,6 +2517,25 @@ func (s *snapsSuite) TestInstallIgnoreValidation(c *check.C) {
 	c.Check(res.Summary, check.Equals, `Install "some-snap" snap`)
 }
 
+func (s *snapsSuite) TestInstallIgnoreInstanceErrors(c *check.C) {
+	defer daemon.MockSnapstateInstallWithGoal(func(ctx context.Context, st *state.State, goal snapstate.InstallGoal, opts snapstate.Options) ([]*snap.Info, []*state.TaskSet, error) {
+		c.Check(opts.Flags.IgnoreInstanceErrors, check.Equals, true)
+		task := st.NewTask("fake-install-snap", "Doing a fake install")
+		return []*snap.Info{{}}, []*state.TaskSet{state.NewTaskSet(task)}, nil
+	})()
+	defer daemon.MockAssertstateRefreshSnapAssertions(func(st *state.State, userID int, opts *assertstate.RefreshAssertionsOptions) error {
+		return nil
+	})()
+
+	d := s.daemon(c)
+	inst := &daemon.SnapInstruction{Action: "install", Snaps: []string{"some-snap"}, IgnoreInstanceErrors: true}
+	st := d.Overlord().State()
+	st.Lock()
+	defer st.Unlock()
+	_, err := inst.Dispatch()(context.Background(), inst, st)
+	c.Assert(err, check.IsNil)
+}
+
 func (s *snapsSuite) TestInstallEmptyName(c *check.C) {
 	defer daemon.MockSnapstateInstallWithGoal(func(ctx context.Context, st *state.State, g snapstate.InstallGoal, opts snapstate.Options) ([]*snap.Info, []*state.TaskSet, error) {
 		return nil, nil, errors.New("should not be called")

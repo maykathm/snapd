@@ -693,6 +693,20 @@ func (s *SnapOpSuite) TestInstallIgnoreRunning(c *check.C) {
 	c.Check(s.srv.n, check.Equals, s.srv.total)
 }
 
+func (s *SnapOpSuite) TestInstallIgnoreInstanceErrors(c *check.C) {
+	s.srv.checker = func(r *http.Request) {
+		c.Check(r.URL.Path, check.Equals, "/v2/snaps/foo_instance")
+		c.Check(DecodedRequestBody(c, r), check.DeepEquals, map[string]any{
+			"action":                 "install",
+			"ignore-instance-errors": true,
+			"transaction":            string(client.TransactionPerSnap),
+		})
+	}
+	s.RedirectClientToTestServer(s.srv.handle)
+	_, err := snap.Parser(snap.Client()).ParseArgs([]string{"install", "--ignore-instance-errors", "foo_instance"})
+	c.Assert(err, check.IsNil)
+}
+
 func (s *SnapOpSuite) TestInstallNoPATH(c *check.C) {
 	// PATH restored by test tear down
 	os.Setenv("PATH", "/bin:/usr/bin:/sbin:/usr/sbin")
