@@ -1703,6 +1703,40 @@ func (s *snapmgrTestSuite) TestUpdateResetsHoldState(c *C) {
 	})
 }
 
+func (s *snapmgrTestSuite) TestParallelInstanceUpdateUnsupportedPlug(c *C) {
+	s.state.Lock()
+	defer s.state.Unlock()
+
+	snapstate.ReplaceStore(s.state, sneakyStore{fakeStore: s.fakeStore, state: s.state})
+	tr := config.NewTransaction(s.state)
+	tr.Set("core", "experimental.parallel-instances", true)
+	tr.Commit()
+
+	repo := interfaces.NewRepository()
+	ifacerepo.Replace(s.state, repo)
+	c.Assert(repo.AddInterface(&testParallelInstancesPlugRejectingInterface{}), IsNil)
+	s.fakeStore.mutateSnapInfo = func(info *snap.Info) error {
+		if info.SnapName() == "some-snap" {
+			info.Plugs = map[string]*snap.PlugInfo{
+				"pi-nok-plug": {Snap: info, Name: "pi-nok-plug", Interface: "pi-nok-plug-iface"},
+			}
+		}
+		return nil
+	}
+
+	si := &snap.SideInfo{RealName: "some-snap", SnapID: "some-snap-id", Revision: snap.R(7)}
+	snapstate.Set(s.state, "some-snap_instance", &snapstate.SnapState{
+		Active:      true,
+		Sequence:    snapstatetest.NewSequenceFromSnapSideInfos([]*snap.SideInfo{si}),
+		Current:     si.Revision,
+		SnapType:    "app",
+		InstanceKey: "instance",
+	})
+
+	_, err := snapstate.Update(s.state, "some-snap_instance", nil, s.user.ID, snapstate.Flags{})
+	c.Assert(err, IsNil)
+}
+
 func (s *snapmgrTestSuite) TestParallelInstanceUpdateRunThrough(c *C) {
 	// use services-snap here to make sure services would be stopped/started appropriately
 	si := snap.SideInfo{

@@ -661,7 +661,7 @@ func ensureInstallPreconditions(st *state.State, info *snap.Info, flags Flags, s
 	if err := validateFeatureFlags(st, info); err != nil {
 		return flags, fmt.Errorf("feature flag validation failed for snap %q: %w", info.InstanceName(), err)
 	}
-	if !flags.IgnoreInstanceErrors {
+	if !snapst.IsInstalled() && !flags.IgnoreInstanceErrors {
 		if err := checkParallelInstancesSupport(st, info); err != nil {
 			return flags, err
 		}
