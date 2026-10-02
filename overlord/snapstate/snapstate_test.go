@@ -1317,7 +1317,7 @@ func (s *snapmgrTestSuite) TestDisableForbiddenSnapTypes(c *C) {
 	defer s.state.Unlock()
 
 	for _, typ := range []snap.Type{snap.TypeGadget, snap.TypeKernel, snap.TypeOS, snap.TypeBase} {
-		restore := snapstate.MockSnapReadInfo(func(string, *snap.SideInfo) (*snap.Info, error) {
+		restore := snapstate.MockSnapReadInfo(func(naming.InstanceName, *snap.SideInfo) (*snap.Info, error) {
 			return &snap.Info{
 				SnapType: typ,
 			}, nil
@@ -1366,7 +1366,7 @@ func (s *snapmgrTestSuite) TestDoUpdateHadSlots(c *C) {
 		SnapType: "app",
 	})
 
-	snapstate.MockSnapReadInfo(func(name string, si *snap.SideInfo) (*snap.Info, error) {
+	snapstate.MockSnapReadInfo(func(name naming.InstanceName, si *snap.SideInfo) (*snap.Info, error) {
 		if name != "some-snap" {
 			return s.fakeBackend.ReadInfo(name, si)
 		}
@@ -2795,7 +2795,7 @@ func (s *snapmgrTestSuite) TestRevertFromCore22WithSetFlagKeepMigration(c *C) {
 		Revision: snap.R(2),
 	}
 
-	restore := snapstate.MockSnapReadInfo(func(_ string, si *snap.SideInfo) (*snap.Info, error) {
+	restore := snapstate.MockSnapReadInfo(func(_ naming.InstanceName, si *snap.SideInfo) (*snap.Info, error) {
 		info := &snap.Info{
 			SideInfo: *si,
 		}
@@ -2860,7 +2860,7 @@ func (s *snapmgrTestSuite) TestRevertToCore22WithoutFlagSet(c *C) {
 		Revision: snap.R(2),
 	}
 
-	restore := snapstate.MockSnapReadInfo(func(_ string, si *snap.SideInfo) (*snap.Info, error) {
+	restore := snapstate.MockSnapReadInfo(func(_ naming.InstanceName, si *snap.SideInfo) (*snap.Info, error) {
 		return &snap.Info{
 			SideInfo: *si,
 			Base:     "core22",
@@ -2927,7 +2927,7 @@ func (s *snapmgrTestSuite) testRevertToCore22AfterRevertedMigration(c *C, migrat
 		Revision: snap.R(2),
 	}
 
-	restore := snapstate.MockSnapReadInfo(func(_ string, si *snap.SideInfo) (*snap.Info, error) {
+	restore := snapstate.MockSnapReadInfo(func(_ naming.InstanceName, si *snap.SideInfo) (*snap.Info, error) {
 		if si.Revision == si1.Revision {
 			return &snap.Info{
 				SideInfo: *si,
@@ -3004,7 +3004,7 @@ func (s *snapmgrTestSuite) testUndoRevertToCore22AfterRevertedMigration(c *C, mi
 		Revision: snap.R(2),
 	}
 
-	restore := snapstate.MockSnapReadInfo(func(_ string, si *snap.SideInfo) (*snap.Info, error) {
+	restore := snapstate.MockSnapReadInfo(func(_ naming.InstanceName, si *snap.SideInfo) (*snap.Info, error) {
 		if si.Revision == si1.Revision {
 			return &snap.Info{
 				SideInfo: *si,
