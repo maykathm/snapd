@@ -33,6 +33,7 @@ import (
 	"github.com/snapcore/snapd/logger"
 	"github.com/snapcore/snapd/osutil"
 	"github.com/snapcore/snapd/snap"
+	"github.com/snapcore/snapd/snap/naming"
 )
 
 var runinhibitWaitWhileInhibited = runinhibit.WaitWhileInhibited
@@ -129,7 +130,7 @@ func waitWhileInhibited(ctx context.Context, cli *client.Client, snapName string
 }
 
 func getInfoAndApp(snapName, appName string, rev snap.Revision) (*snap.Info, *snap.AppInfo, error) {
-	info, err := getSnapInfo(snapName, rev)
+	info, err := getSnapInfo(naming.InstanceName(snapName), rev)
 	// Differentiate between snap not existing and missing current symlink.
 	if errors.As(err, &snap.NotFoundError{}) {
 		exists, isDir, dirErr := osutil.DirExists(filepath.Join(dirs.SnapMountDir, snapName))

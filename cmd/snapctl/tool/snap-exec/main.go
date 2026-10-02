@@ -35,6 +35,7 @@ import (
 	"github.com/snapcore/snapd/logger"
 	"github.com/snapcore/snapd/osutil"
 	"github.com/snapcore/snapd/snap"
+	"github.com/snapcore/snapd/snap/naming"
 	"github.com/snapcore/snapd/snap/snapenv"
 
 	// sets up the snap.NewContainerFromDir hook from snapdir
@@ -183,7 +184,7 @@ func execApp(snapTarget, revision, command string, args []string) error {
 	}
 
 	snapName, appName := snap.SplitSnapApp(snapTarget)
-	info, err := snap.ReadInfo(snapName, &snap.SideInfo{
+	info, err := snap.ReadInfo(naming.InstanceName(snapName), &snap.SideInfo{
 		Revision: rev,
 	})
 	if err != nil {
@@ -272,14 +273,14 @@ func getComponentInfo(name string, snapInfo *snap.Info) (*snap.ComponentInfo, er
 
 // execHook executes a snap hook.
 func execHook(snapTarget string, revision, hookName string) error {
-	snapName, componentName := snap.SplitSnapComponentInstanceName(snapTarget)
+	instanceName, componentName := snap.SplitSnapComponentInstanceName(snapTarget)
 
 	rev, err := snap.ParseRevision(revision)
 	if err != nil {
 		return err
 	}
 
-	info, err := snap.ReadInfo(snapName, &snap.SideInfo{
+	info, err := snap.ReadInfo(instanceName, &snap.SideInfo{
 		Revision: rev,
 	})
 	if err != nil {
@@ -304,7 +305,7 @@ func execHook(snapTarget string, revision, hookName string) error {
 	}
 
 	if hook == nil {
-		return fmt.Errorf("cannot find hook %q in %q", hookName, snapName)
+		return fmt.Errorf("cannot find hook %q in %q", hookName, instanceName)
 	}
 
 	// build the environment

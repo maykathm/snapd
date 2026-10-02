@@ -412,7 +412,7 @@ func antialias(snapApp string, args []string) (string, []string) {
 	return actualApp, argsOut
 }
 
-func getSnapInfo(snapName string, revision snap.Revision) (info *snap.Info, err error) {
+func getSnapInfo(snapName naming.InstanceName, revision snap.Revision) (info *snap.Info, err error) {
 	if revision.Unset() {
 		info, err = snap.ReadCurrentInfo(naming.InstanceName(snapName))
 	} else {
@@ -710,7 +710,7 @@ func (x *cmdRun) snapRunHook(snapTarget string) error {
 		return err
 	}
 
-	info, err := getSnapInfo(snapInstance, revision)
+	info, err := getSnapInfo(naming.InstanceName(snapInstance), revision)
 	if err != nil {
 		return err
 	}
