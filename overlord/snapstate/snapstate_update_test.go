@@ -13749,7 +13749,7 @@ func (s *snapmgrTestSuite) testUpdateDowngradeBlockedByOtherChanges(old, new str
 		Revision: snap.R(3),
 	}
 
-	restore := snapstate.MockSnapReadInfo(func(name string, si *snap.SideInfo) (*snap.Info, error) {
+	restore := snapstate.MockSnapReadInfo(func(name naming.InstanceName, si *snap.SideInfo) (*snap.Info, error) {
 		var version string
 		switch name {
 		case "snapd":
@@ -13764,7 +13764,7 @@ func (s *snapmgrTestSuite) testUpdateDowngradeBlockedByOtherChanges(old, new str
 			version = "1.0"
 		}
 		return &snap.Info{
-			SuggestedName: name,
+			SuggestedName: name.String(),
 			Version:       version,
 			Architectures: []string{"all"},
 			SideInfo:      *si,
@@ -13849,7 +13849,7 @@ func (s *snapmgrTestSuite) testUpdateNotAllowedWhileDowngrading(c *C, old, new s
 		Channel:  "channel-for-7",
 	}
 
-	restore := snapstate.MockSnapReadInfo(func(name string, si *snap.SideInfo) (*snap.Info, error) {
+	restore := snapstate.MockSnapReadInfo(func(name naming.InstanceName, si *snap.SideInfo) (*snap.Info, error) {
 		var version string
 		switch name {
 		case "snapd":
@@ -13864,7 +13864,7 @@ func (s *snapmgrTestSuite) testUpdateNotAllowedWhileDowngrading(c *C, old, new s
 			version = "1.0"
 		}
 		return &snap.Info{
-			SuggestedName: name,
+			SuggestedName: name.String(),
 			Version:       version,
 			Architectures: []string{"all"},
 			SideInfo:      *si,
@@ -14124,7 +14124,7 @@ func (s *snapmgrTestSuite) TestSnapdRefreshForRemodel(c *C) {
 		SnapType: "app",
 	})
 
-	restore := snapstate.MockSnapReadInfo(func(name string, si *snap.SideInfo) (*snap.Info, error) {
+	restore := snapstate.MockSnapReadInfo(func(name naming.InstanceName, si *snap.SideInfo) (*snap.Info, error) {
 		var version string
 		switch name {
 		case "snapd":
@@ -14138,7 +14138,7 @@ func (s *snapmgrTestSuite) TestSnapdRefreshForRemodel(c *C) {
 			version = "1.0"
 		}
 		return &snap.Info{
-			SuggestedName: name,
+			SuggestedName: name.String(),
 			Version:       version,
 			Architectures: []string{"all"},
 			SideInfo:      *si,
@@ -17076,7 +17076,7 @@ func (s *snapmgrTestSuite) testUpdateWithComponentsRunThrough(c *C, opts updateW
 		newSnapRev = currentSnapRev
 	}
 
-	instanceName := snap.InstanceName(snapName, opts.instanceKey).String()
+	instanceName := snap.InstanceName(snapName, opts.instanceKey)
 
 	if opts.postRefreshComponents == nil {
 		opts.postRefreshComponents = opts.components
@@ -17096,7 +17096,7 @@ func (s *snapmgrTestSuite) testUpdateWithComponentsRunThrough(c *C, opts updateW
 	}
 
 	s.fakeStore.snapResourcesFn = func(info *snap.Info) []store.SnapResourceResult {
-		c.Assert(info.InstanceName().String(), DeepEquals, instanceName)
+		c.Assert(info.InstanceName(), DeepEquals, instanceName)
 		var results []store.SnapResourceResult
 		for _, compName := range opts.postRefreshComponents {
 			results = append(results, store.SnapResourceResult{
@@ -17122,7 +17122,7 @@ func (s *snapmgrTestSuite) testUpdateWithComponentsRunThrough(c *C, opts updateW
 		SnapID:   snapID,
 		Channel:  channel,
 	}
-	snaptest.MockSnapInstance(c, instanceName, fmt.Sprintf("name: %s\ntype: %s\n",
+	snaptest.MockSnapInstance(c, instanceName.String(), fmt.Sprintf("name: %s\ntype: %s\n",
 		snapName, opts.snapType), &si)
 	fi, err := os.Stat(snap.MountFile(instanceName, si.Revision))
 	c.Assert(err, IsNil)
@@ -17207,7 +17207,7 @@ func (s *snapmgrTestSuite) testUpdateWithComponentsRunThrough(c *C, opts updateW
 		}, nil
 	}))
 
-	snapstate.Set(s.state, instanceName, &snapstate.SnapState{
+	snapstate.Set(s.state, instanceName.String(), &snapstate.SnapState{
 		Active:          true,
 		Sequence:        currentSeq,
 		Current:         si.Revision,
@@ -17222,7 +17222,7 @@ func (s *snapmgrTestSuite) testUpdateWithComponentsRunThrough(c *C, opts updateW
 	}
 
 	ts, err := snapstate.UpdateOne(context.Background(), s.state, snapstate.StoreUpdateGoal(snapstate.StoreUpdate{
-		InstanceName:         instanceName,
+		InstanceName:         instanceName.String(),
 		RevOpts:              revOpts,
 		AdditionalComponents: opts.additionalComponents,
 	}), nil, snapstate.Options{
@@ -17351,7 +17351,7 @@ func (s *snapmgrTestSuite) testUpdateWithComponentsRunThrough(c *C, opts updateW
 			{
 				op: "storesvc-snap-action",
 				curSnaps: []store.CurrentSnap{{
-					InstanceName:    instanceName,
+					InstanceName:    instanceName.String(),
 					SnapID:          snapID,
 					Revision:        currentSnapRev,
 					TrackingChannel: channel,
@@ -17365,7 +17365,7 @@ func (s *snapmgrTestSuite) testUpdateWithComponentsRunThrough(c *C, opts updateW
 				op: "storesvc-snap-action:action",
 				action: store.SnapAction{
 					Action:       "refresh",
-					InstanceName: instanceName,
+					InstanceName: instanceName.String(),
 					SnapID:       snapID,
 					Channel:      channel,
 					Flags:        store.SnapActionEnforceValidation,
@@ -17379,7 +17379,7 @@ func (s *snapmgrTestSuite) testUpdateWithComponentsRunThrough(c *C, opts updateW
 			},
 			{
 				op:    "validate-snap:Doing",
-				name:  instanceName,
+				name:  instanceName.String(),
 				revno: newSnapRev,
 			},
 		}
@@ -17394,7 +17394,7 @@ func (s *snapmgrTestSuite) testUpdateWithComponentsRunThrough(c *C, opts updateW
 				name: cs.SideInfo.Component.String(),
 			}, {
 				op:                "validate-component:Doing",
-				name:              instanceName,
+				name:              instanceName.String(),
 				revno:             newSnapRev,
 				componentName:     compName,
 				componentPath:     filepath.Join(dirs.SnapBlobDir, filename),
@@ -17406,7 +17406,7 @@ func (s *snapmgrTestSuite) testUpdateWithComponentsRunThrough(c *C, opts updateW
 		expected = append(expected, []fakeOp{
 			{
 				op:  "current",
-				old: filepath.Join(dirs.SnapMountDir, instanceName, currentSnapRev.String()),
+				old: filepath.Join(dirs.SnapMountDir, instanceName.String(), currentSnapRev.String()),
 			},
 			{
 				op:   "open-snap-file",
@@ -17420,7 +17420,7 @@ func (s *snapmgrTestSuite) testUpdateWithComponentsRunThrough(c *C, opts updateW
 			},
 			{
 				op:    "setup-snap",
-				name:  instanceName,
+				name:  instanceName.String(),
 				path:  filepath.Join(dirs.SnapBlobDir, fmt.Sprintf("%s_%v.snap", instanceName, newSnapRev)),
 				revno: newSnapRev,
 			},
@@ -17437,7 +17437,7 @@ func (s *snapmgrTestSuite) testUpdateWithComponentsRunThrough(c *C, opts updateW
 				name: cs.SideInfo.Component.String(),
 			}, {
 				op:                "validate-component:Doing",
-				name:              instanceName,
+				name:              instanceName.String(),
 				revno:             newSnapRev,
 				componentName:     compName,
 				componentPath:     filepath.Join(dirs.SnapBlobDir, filename),
@@ -17463,16 +17463,16 @@ func (s *snapmgrTestSuite) testUpdateWithComponentsRunThrough(c *C, opts updateW
 	expected = append(expected, fakeOps{
 		{
 			op:          "run-inhibit-snap-for-unlink",
-			name:        instanceName,
+			name:        instanceName.String(),
 			inhibitHint: "refresh",
 		},
 		{
 			op:   "discard-namespace-locked",
-			name: instanceName,
+			name: instanceName.String(),
 		},
 		{
 			op:                 "unlink-snap",
-			path:               filepath.Join(dirs.SnapMountDir, instanceName, currentSnapRev.String()),
+			path:               filepath.Join(dirs.SnapMountDir, instanceName.String(), currentSnapRev.String()),
 			unlinkSkipBinaries: true,
 			inhibitHint:        "refresh",
 		}}...)
@@ -17481,26 +17481,26 @@ func (s *snapmgrTestSuite) testUpdateWithComponentsRunThrough(c *C, opts updateW
 			op: "prepare-kernel-snap",
 		}, fakeOp{
 			op:    "update-gadget-assets:Doing",
-			name:  instanceName,
+			name:  instanceName.String(),
 			revno: newSnapRev,
 		})
 	}
 	expected = append(expected, fakeOps{
 		{
 			op:   "copy-data",
-			path: filepath.Join(dirs.SnapMountDir, instanceName, newSnapRev.String()),
-			old:  filepath.Join(dirs.SnapMountDir, instanceName, currentSnapRev.String()),
+			path: filepath.Join(dirs.SnapMountDir, instanceName.String(), newSnapRev.String()),
+			old:  filepath.Join(dirs.SnapMountDir, instanceName.String(), currentSnapRev.String()),
 		},
 		{
 			op:   "setup-snap-save-data",
-			path: filepath.Join(dirs.SnapDataSaveDir, instanceName),
+			path: filepath.Join(dirs.SnapDataSaveDir, instanceName.String()),
 		},
 	}...)
 
 	expected = append(expected, fakeOps{
 		{
 			op:    "setup-profiles:Doing",
-			name:  instanceName,
+			name:  instanceName.String(),
 			revno: newSnapRev,
 		},
 		{
@@ -17514,7 +17514,7 @@ func (s *snapmgrTestSuite) testUpdateWithComponentsRunThrough(c *C, opts updateW
 		},
 		{
 			op:                  "link-snap",
-			path:                filepath.Join(dirs.SnapMountDir, instanceName, newSnapRev.String()),
+			path:                filepath.Join(dirs.SnapMountDir, instanceName.String(), newSnapRev.String()),
 			requireSnapdTooling: true,
 		},
 	}...)
@@ -17545,7 +17545,7 @@ func (s *snapmgrTestSuite) testUpdateWithComponentsRunThrough(c *C, opts updateW
 	expected = append(expected, fakeOps{
 		{
 			op:    "auto-connect:Doing",
-			name:  instanceName,
+			name:  instanceName.String(),
 			revno: newSnapRev,
 		},
 		{
@@ -17593,7 +17593,7 @@ func (s *snapmgrTestSuite) testUpdateWithComponentsRunThrough(c *C, opts updateW
 
 	if opts.undo {
 		expected = append(expected,
-			undoOps(instanceName, opts.snapType, expectedSideState, originalSideState)...)
+			undoOps(instanceName.String(), opts.snapType, expectedSideState, originalSideState)...)
 		if !opts.useSameSnapRev {
 			expected = append(expected, fakeOp{
 				op:   "storesvc-cleanup-download-artifacts",
@@ -17604,7 +17604,7 @@ func (s *snapmgrTestSuite) testUpdateWithComponentsRunThrough(c *C, opts updateW
 	} else {
 		expected = append(expected, fakeOp{
 			op:    "cleanup-trash",
-			name:  instanceName,
+			name:  instanceName.String(),
 			revno: newSnapRev,
 		})
 	}
@@ -17700,7 +17700,7 @@ func (s *snapmgrTestSuite) testUpdateWithComponentsRunThrough(c *C, opts updateW
 
 	// verify snaps in the system state
 	var snapst snapstate.SnapState
-	err = snapstate.Get(s.state, instanceName, &snapst)
+	err = snapstate.Get(s.state, instanceName.String(), &snapst)
 	c.Assert(err, IsNil)
 
 	if !opts.undo {
@@ -18456,7 +18456,7 @@ func (s *snapmgrTestSuite) testUpdateWithComponentsFromPathRunThrough(c *C, inst
 
 	currentSnapRev := snap.R(7)
 	newSnapRev := snap.R(11)
-	instanceName := snap.InstanceName(snapName, instanceKey).String()
+	instanceName := snap.InstanceName(snapName, instanceKey)
 
 	sort.Strings(compNames)
 
@@ -18467,7 +18467,7 @@ func (s *snapmgrTestSuite) testUpdateWithComponentsFromPathRunThrough(c *C, inst
 		Channel:  channel,
 	}
 
-	snaptest.MockSnapInstance(c, instanceName, fmt.Sprintf("name: %s\ntype: %s\n", snapName, snapType), &si)
+	snaptest.MockSnapInstance(c, instanceName.String(), fmt.Sprintf("name: %s\ntype: %s\n", snapName, snapType), &si)
 
 	bl := boottest.MockUC20RunBootenv(bootloadertest.Mock("mock", c.MkDir()))
 	bl.SetBootVars(map[string]string{"snap_kernel": snapName, "snap_core": "core24_2.snap"})
@@ -18557,7 +18557,7 @@ func (s *snapmgrTestSuite) testUpdateWithComponentsFromPathRunThrough(c *C, inst
 		}, nil
 	}))
 
-	snapstate.Set(s.state, instanceName, &snapstate.SnapState{
+	snapstate.Set(s.state, instanceName.String(), &snapstate.SnapState{
 		Active:          true,
 		Sequence:        currentSeq,
 		Current:         si.Revision,
@@ -18613,7 +18613,7 @@ components:
 
 	goal := snapstate.PathUpdateGoal(snapstate.PathSnap{
 		Path:         snapPath,
-		InstanceName: instanceName,
+		InstanceName: instanceName.String(),
 		SideInfo:     &newSI,
 		Components:   components,
 	})
@@ -18670,7 +18670,7 @@ components:
 		compRev := cs.SideInfo.Revision
 		expected = append(expected, fakeOp{
 			op:                              "validate-component:Doing",
-			name:                            instanceName,
+			name:                            instanceName.String(),
 			revno:                           newSnapRev,
 			componentName:                   compName,
 			componentPath:                   componentPaths[cs.SideInfo.Component.ComponentName],
@@ -18683,11 +18683,11 @@ components:
 	expected = append(expected, fakeOps{
 		{
 			op:  "current",
-			old: filepath.Join(dirs.SnapMountDir, instanceName, currentSnapRev.String()),
+			old: filepath.Join(dirs.SnapMountDir, instanceName.String(), currentSnapRev.String()),
 		},
 		{
 			op:    "setup-snap",
-			name:  instanceName,
+			name:  instanceName.String(),
 			path:  snapPath,
 			revno: newSnapRev,
 		},
@@ -18709,16 +18709,16 @@ components:
 	expected = append(expected, fakeOps{
 		{
 			op:          "run-inhibit-snap-for-unlink",
-			name:        instanceName,
+			name:        instanceName.String(),
 			inhibitHint: "refresh",
 		},
 		{
 			op:   "discard-namespace-locked",
-			name: instanceName,
+			name: instanceName.String(),
 		},
 		{
 			op:                 "unlink-snap",
-			path:               filepath.Join(dirs.SnapMountDir, instanceName, currentSnapRev.String()),
+			path:               filepath.Join(dirs.SnapMountDir, instanceName.String(), currentSnapRev.String()),
 			unlinkSkipBinaries: true,
 			inhibitHint:        "refresh",
 		}}...)
@@ -18728,26 +18728,26 @@ components:
 				op: "prepare-kernel-snap",
 			}, fakeOp{
 				op:    "update-gadget-assets:Doing",
-				name:  instanceName,
+				name:  instanceName.String(),
 				revno: newSnapRev,
 			})
 	}
 	expected = append(expected, fakeOps{
 		{
 			op:   "copy-data",
-			path: filepath.Join(dirs.SnapMountDir, instanceName, newSnapRev.String()),
-			old:  filepath.Join(dirs.SnapMountDir, instanceName, currentSnapRev.String()),
+			path: filepath.Join(dirs.SnapMountDir, instanceName.String(), newSnapRev.String()),
+			old:  filepath.Join(dirs.SnapMountDir, instanceName.String(), currentSnapRev.String()),
 		},
 		{
 			op:   "setup-snap-save-data",
-			path: filepath.Join(dirs.SnapDataSaveDir, instanceName),
+			path: filepath.Join(dirs.SnapDataSaveDir, instanceName.String()),
 		},
 	}...)
 
 	expected = append(expected, fakeOps{
 		{
 			op:    "setup-profiles:Doing",
-			name:  instanceName,
+			name:  instanceName.String(),
 			revno: snap.R(11),
 		},
 		{
@@ -18761,7 +18761,7 @@ components:
 		},
 		{
 			op:                  "link-snap",
-			path:                filepath.Join(dirs.SnapMountDir, instanceName, newSnapRev.String()),
+			path:                filepath.Join(dirs.SnapMountDir, instanceName.String(), newSnapRev.String()),
 			requireSnapdTooling: true,
 		},
 	}...)
@@ -18798,7 +18798,7 @@ components:
 	expected = append(expected, fakeOps{
 		{
 			op:    "auto-connect:Doing",
-			name:  instanceName,
+			name:  instanceName.String(),
 			revno: snap.R(11),
 		},
 		{
@@ -18823,11 +18823,11 @@ components:
 	}
 
 	if undo {
-		expected = append(expected, undoOps(instanceName, snapType, expectedSideState, originalSideState)...)
+		expected = append(expected, undoOps(instanceName.String(), snapType, expectedSideState, originalSideState)...)
 	} else {
 		expected = append(expected, fakeOp{
 			op:    "cleanup-trash",
-			name:  instanceName,
+			name:  instanceName.String(),
 			revno: newSnapRev,
 		})
 	}
@@ -18882,7 +18882,7 @@ components:
 
 	// verify snaps in the system state
 	var snapst snapstate.SnapState
-	err = snapstate.Get(s.state, instanceName, &snapst)
+	err = snapstate.Get(s.state, instanceName.String(), &snapst)
 	c.Assert(err, IsNil)
 
 	if !undo {
@@ -19338,7 +19338,7 @@ func (s *snapmgrTestSuite) testUpdateWithComponentsRunThroughOnlyComponentUpdate
 		snapID: currentSnapRev,
 	}
 
-	instanceName := snap.InstanceName(snapName, opts.instanceKey).String()
+	instanceName := snap.InstanceName(snapName, opts.instanceKey)
 
 	sort.Strings(opts.components)
 
@@ -19353,7 +19353,7 @@ func (s *snapmgrTestSuite) testUpdateWithComponentsRunThroughOnlyComponentUpdate
 	}
 
 	s.fakeStore.snapResourcesFn = func(info *snap.Info) []store.SnapResourceResult {
-		c.Assert(info.InstanceName().String(), DeepEquals, instanceName)
+		c.Assert(info.InstanceName(), DeepEquals, instanceName)
 		var results []store.SnapResourceResult
 		for _, compName := range opts.components {
 			results = append(results, store.SnapResourceResult{
@@ -19380,7 +19380,7 @@ func (s *snapmgrTestSuite) testUpdateWithComponentsRunThroughOnlyComponentUpdate
 		Channel:  channel,
 	}
 
-	snaptest.MockSnapInstance(c, instanceName,
+	snaptest.MockSnapInstance(c, instanceName.String(),
 		fmt.Sprintf("name: %s\ntype: %s\n", snapName, opts.snapType), &si)
 	fi, err := os.Stat(snap.MountFile(instanceName, si.Revision))
 	c.Assert(err, IsNil)
@@ -19449,7 +19449,7 @@ func (s *snapmgrTestSuite) testUpdateWithComponentsRunThroughOnlyComponentUpdate
 		}, nil
 	}))
 
-	snapstate.Set(s.state, instanceName, &snapstate.SnapState{
+	snapstate.Set(s.state, instanceName.String(), &snapstate.SnapState{
 		Active:          true,
 		Sequence:        currentSeq,
 		Current:         si.Revision,
@@ -19458,7 +19458,7 @@ func (s *snapmgrTestSuite) testUpdateWithComponentsRunThroughOnlyComponentUpdate
 		InstanceKey:     opts.instanceKey,
 	})
 
-	ts, err := snapstate.Update(s.state, instanceName, nil, s.user.ID, snapstate.Flags{})
+	ts, err := snapstate.Update(s.state, instanceName.String(), nil, s.user.ID, snapstate.Flags{})
 	c.Assert(err, IsNil)
 
 	chg := s.state.NewChange("refresh", "refresh a snap")
@@ -19503,7 +19503,7 @@ func (s *snapmgrTestSuite) testUpdateWithComponentsRunThroughOnlyComponentUpdate
 		{
 			op: "storesvc-snap-action",
 			curSnaps: []store.CurrentSnap{{
-				InstanceName:    instanceName,
+				InstanceName:    instanceName.String(),
 				SnapID:          snapID,
 				Revision:        currentSnapRev,
 				TrackingChannel: channel,
@@ -19517,7 +19517,7 @@ func (s *snapmgrTestSuite) testUpdateWithComponentsRunThroughOnlyComponentUpdate
 			op: "storesvc-snap-action:action",
 			action: store.SnapAction{
 				Action:       "refresh",
-				InstanceName: instanceName,
+				InstanceName: instanceName.String(),
 				SnapID:       snapID,
 				Channel:      channel,
 				Flags:        store.SnapActionEnforceValidation,
@@ -19538,7 +19538,7 @@ func (s *snapmgrTestSuite) testUpdateWithComponentsRunThroughOnlyComponentUpdate
 			name: cs.SideInfo.Component.String(),
 		}, {
 			op:                "validate-component:Doing",
-			name:              instanceName,
+			name:              instanceName.String(),
 			revno:             currentSnapRev,
 			componentName:     compName,
 			componentPath:     filepath.Join(dirs.SnapBlobDir, filename),
@@ -19566,16 +19566,16 @@ func (s *snapmgrTestSuite) testUpdateWithComponentsRunThroughOnlyComponentUpdate
 	expected = append(expected,
 		fakeOp{
 			op:          "run-inhibit-snap-for-unlink",
-			name:        instanceName,
+			name:        instanceName.String(),
 			inhibitHint: "refresh",
 		},
 		fakeOp{
 			op:   "discard-namespace-locked",
-			name: instanceName,
+			name: instanceName.String(),
 		},
 		fakeOp{
 			op:                 "unlink-snap",
-			path:               filepath.Join(dirs.SnapMountDir, instanceName, currentSnapRev.String()),
+			path:               filepath.Join(dirs.SnapMountDir, instanceName.String(), currentSnapRev.String()),
 			unlinkSkipBinaries: true,
 			inhibitHint:        "refresh",
 		})
@@ -19593,19 +19593,19 @@ func (s *snapmgrTestSuite) testUpdateWithComponentsRunThroughOnlyComponentUpdate
 	expected = append(expected, fakeOps{
 		{
 			op:   "copy-data",
-			path: filepath.Join(dirs.SnapMountDir, instanceName, currentSnapRev.String()),
-			old:  filepath.Join(dirs.SnapMountDir, instanceName, currentSnapRev.String()),
+			path: filepath.Join(dirs.SnapMountDir, instanceName.String(), currentSnapRev.String()),
+			old:  filepath.Join(dirs.SnapMountDir, instanceName.String(), currentSnapRev.String()),
 		},
 		{
 			op:   "setup-snap-save-data",
-			path: filepath.Join(dirs.SnapDataSaveDir, instanceName),
+			path: filepath.Join(dirs.SnapDataSaveDir, instanceName.String()),
 		},
 	}...)
 
 	expected = append(expected, fakeOps{
 		{
 			op:    "setup-profiles:Doing",
-			name:  instanceName,
+			name:  instanceName.String(),
 			revno: currentSnapRev,
 		},
 		{
@@ -19619,7 +19619,7 @@ func (s *snapmgrTestSuite) testUpdateWithComponentsRunThroughOnlyComponentUpdate
 		},
 		{
 			op:                  "link-snap",
-			path:                filepath.Join(dirs.SnapMountDir, instanceName, currentSnapRev.String()),
+			path:                filepath.Join(dirs.SnapMountDir, instanceName.String(), currentSnapRev.String()),
 			requireSnapdTooling: true,
 		},
 	}...)
@@ -19658,7 +19658,7 @@ func (s *snapmgrTestSuite) testUpdateWithComponentsRunThroughOnlyComponentUpdate
 	expected = append(expected, fakeOps{
 		{
 			op:    "auto-connect:Doing",
-			name:  instanceName,
+			name:  instanceName.String(),
 			revno: currentSnapRev,
 		},
 		{
@@ -19705,11 +19705,11 @@ func (s *snapmgrTestSuite) testUpdateWithComponentsRunThroughOnlyComponentUpdate
 	originalSideState := currentSeq.Revisions[0]
 
 	if opts.undo {
-		expected = append(expected, undoOps(instanceName, opts.snapType, expectedSideState, originalSideState)...)
+		expected = append(expected, undoOps(instanceName.String(), opts.snapType, expectedSideState, originalSideState)...)
 	} else {
 		expected = append(expected, fakeOp{
 			op:    "cleanup-trash",
-			name:  instanceName,
+			name:  instanceName.String(),
 			revno: currentSnapRev,
 		})
 	}
@@ -19766,7 +19766,7 @@ func (s *snapmgrTestSuite) testUpdateWithComponentsRunThroughOnlyComponentUpdate
 
 	// verify snaps in the system state
 	var snapst snapstate.SnapState
-	err = snapstate.Get(s.state, instanceName, &snapst)
+	err = snapstate.Get(s.state, instanceName.String(), &snapst)
 	c.Assert(err, IsNil)
 
 	if !opts.undo {

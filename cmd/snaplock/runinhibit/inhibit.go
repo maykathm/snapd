@@ -161,7 +161,7 @@ func LockWithHint(instanceName naming.InstanceName, hint Hint, info InhibitInfo,
 	if err := os.MkdirAll(InhibitDir, 0755); err != nil {
 		return err
 	}
-	flock, err := openHintFileLock(snapName)
+	flock, err := openHintFileLock(instanceName)
 	if err != nil {
 		return err
 	}
@@ -177,7 +177,7 @@ func LockWithHint(instanceName naming.InstanceName, hint Hint, info InhibitInfo,
 	if err != nil {
 		return err
 	}
-	if err := os.WriteFile(InhibitInfoFile(snapName, hint), buf, 0644); err != nil {
+	if err := os.WriteFile(InhibitInfoFile(instanceName, hint), buf, 0644); err != nil {
 		return err
 	}
 	// Write hint
@@ -209,7 +209,7 @@ func Unlock(instanceName naming.InstanceName, unlocker Unlocker) error {
 		defer relock()
 	}
 
-	flock, err := openHintFileLock(snapName)
+	flock, err := openHintFileLock(instanceName)
 	if os.IsNotExist(err) {
 		return nil
 	}
@@ -232,7 +232,7 @@ func Unlock(instanceName naming.InstanceName, unlocker Unlocker) error {
 		return err
 	}
 	// Remove inhibit info file
-	if err := removeInhibitInfoFiles(snapName); err != nil {
+	if err := removeInhibitInfoFiles(instanceName.String()); err != nil {
 		return err
 	}
 
@@ -254,7 +254,7 @@ func IsLocked(instanceName naming.InstanceName, unlocker Unlocker) (Hint, Inhibi
 		defer relock()
 	}
 
-	hintFlock, err := osutil.OpenExistingLockForReading(HintFile(snapName))
+	hintFlock, err := osutil.OpenExistingLockForReading(HintFile(instanceName.String()))
 	if os.IsNotExist(err) {
 		return "", InhibitInfo{}, nil
 	}
@@ -277,7 +277,7 @@ func IsLocked(instanceName naming.InstanceName, unlocker Unlocker) (Hint, Inhibi
 		return hint, InhibitInfo{}, nil
 	}
 	// Read inhibit info
-	info, err := readInhibitInfo(snapName, hint)
+	info, err := readInhibitInfo(instanceName, hint)
 	if err != nil {
 		return "", InhibitInfo{}, err
 	}
@@ -373,7 +373,7 @@ var WaitWhileInhibited = func(ctx context.Context, instanceName naming.InstanceN
 	}()
 
 	for {
-		flock, err = osutil.OpenExistingLockForReading(HintFile(snapName))
+		flock, err = osutil.OpenExistingLockForReading(HintFile(instanceName.String()))
 		// We must return flock alongside errors so that cleanup defer can close it.
 		if os.IsNotExist(err) {
 			if notInhibited != nil {
@@ -409,7 +409,7 @@ var WaitWhileInhibited = func(ctx context.Context, instanceName naming.InstanceN
 			return flock, nil
 		} else {
 			if inhibited != nil {
-				inhibitInfo, err := readInhibitInfo(snapName, hint)
+				inhibitInfo, err := readInhibitInfo(instanceName, hint)
 				if err != nil {
 					return flock, err
 				}
