@@ -1106,7 +1106,7 @@ func (m *SnapManager) doUnlinkCurrentSnap(t *state.Task, _ *tomb.Tomb) (retErr e
 		defer lock.Close()
 		defer func() {
 			if retErr != nil {
-				if unlockErr := runinhibit.Unlock(snapsup.InstanceName().String(), nil); unlockErr != nil {
+				if unlockErr := runinhibit.Unlock(snapsup.InstanceName(), nil); unlockErr != nil {
 					t.Logf("cannot unlock run inhibition: %v", unlockErr)
 				}
 			}
@@ -3206,7 +3206,7 @@ func (m *SnapManager) doKillSnapApps(t *state.Task, _ *tomb.Tomb) (retErr error)
 	}
 
 	inhibitInfo := runinhibit.InhibitInfo{Previous: snapsup.Revision()}
-	if err := runinhibit.LockWithHint(instanceName.String(), hint, inhibitInfo, st.Unlocker()); err != nil {
+	if err := runinhibit.LockWithHint(instanceName, hint, inhibitInfo, st.Unlocker()); err != nil {
 		return err
 	}
 
@@ -3222,7 +3222,7 @@ func (m *SnapManager) doKillSnapApps(t *state.Task, _ *tomb.Tomb) (retErr error)
 		// avoid keeping the snap stuck at this inhibited state.
 		if retErr != nil {
 			// state is unlocked, it is okay to pass nil here
-			runinhibit.Unlock(instanceName.String(), nil)
+			runinhibit.Unlock(instanceName, nil)
 		}
 	}()
 
@@ -3267,7 +3267,7 @@ func (m *SnapManager) undoKillSnapApps(t *state.Task, _ *tomb.Tomb) error {
 		return err
 	}
 
-	if err := runinhibit.Unlock(snapsup.InstanceName().String(), st.Unlocker()); err != nil {
+	if err := runinhibit.Unlock(snapsup.InstanceName(), st.Unlocker()); err != nil {
 		return err
 	}
 
@@ -3316,7 +3316,7 @@ func (m *SnapManager) doUnlinkSnap(t *state.Task, _ *tomb.Tomb) (retErr error) {
 	}
 	defer func() {
 		if retErr != nil {
-			if unlockErr := runinhibit.Unlock(snapsup.InstanceName().String(), st.Unlocker()); unlockErr != nil {
+			if unlockErr := runinhibit.Unlock(snapsup.InstanceName(), st.Unlocker()); unlockErr != nil {
 				t.Logf("cannot unlock run inhibition: %v", unlockErr)
 			}
 		}
