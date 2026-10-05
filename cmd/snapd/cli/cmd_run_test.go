@@ -324,7 +324,7 @@ func (s *RunSuite) TestSnapRunAppRunsChecksRefreshInhibitionLock(c *check.C) {
 	var called int
 	restore := snaprun.MockWaitWhileInhibited(func(ctx context.Context, instanceName naming.InstanceName, notInhibited func(ctx context.Context) error, inhibited func(ctx context.Context, hint runinhibit.Hint, inhibitInfo *runinhibit.InhibitInfo) (cont bool, err error), interval time.Duration) (flock *osutil.FileLock, retErr error) {
 		called++
-		c.Check(instanceName, check.Equals, "snapname")
+		c.Check(instanceName.String(), check.Equals, "snapname")
 		c.Check(ctx, check.NotNil)
 
 		var err error
@@ -416,7 +416,7 @@ func (s *RunSuite) TestSnapRunAppNewRevisionAfterInhibition(c *check.C) {
 	var called bool
 	restore := snaprun.MockWaitWhileInhibited(func(ctx context.Context, instanceName naming.InstanceName, notInhibited func(ctx context.Context) error, inhibited func(ctx context.Context, hint runinhibit.Hint, inhibitInfo *runinhibit.InhibitInfo) (cont bool, err error), interval time.Duration) (flock *osutil.FileLock, retErr error) {
 		called = true
-		c.Check(instanceName, check.Equals, "snapname")
+		c.Check(instanceName.String(), check.Equals, "snapname")
 
 		var err error
 		flock, err = openHintFileLock(instanceName)
@@ -475,7 +475,7 @@ apps:
 	var called bool
 	restore := snaprun.MockWaitWhileInhibited(func(ctx context.Context, instanceName naming.InstanceName, notInhibited func(ctx context.Context) error, inhibited func(ctx context.Context, hint runinhibit.Hint, inhibitInfo *runinhibit.InhibitInfo) (cont bool, err error), interval time.Duration) (flock *osutil.FileLock, retErr error) {
 		called = true
-		c.Check(instanceName, check.Equals, "snapname")
+		c.Check(instanceName.String(), check.Equals, "snapname")
 
 		// snap is inhibited
 		cont, err := inhibited(ctx, runinhibit.HintInhibitedForRefresh, &runinhibit.InhibitInfo{Previous: snap.R("x2")})
@@ -561,7 +561,7 @@ func (s *RunSuite) TestSnapRunAppRuninhibitSkipsServices(c *check.C) {
 	var called int
 	restore := snaprun.MockWaitWhileInhibited(func(ctx context.Context, instanceName naming.InstanceName, notInhibited func(ctx context.Context) error, inhibited func(ctx context.Context, hint runinhibit.Hint, inhibitInfo *runinhibit.InhibitInfo) (cont bool, err error), interval time.Duration) (flock *osutil.FileLock, retErr error) {
 		called++
-		c.Check(instanceName, check.Equals, "snapname")
+		c.Check(instanceName.String(), check.Equals, "snapname")
 
 		var err error
 		flock, err = openHintFileLock(instanceName)
@@ -723,7 +723,7 @@ func (s *RunSuite) testSnapRunAppRetryNoInhibitHintFileThenOngoingRefresh(c *che
 	restore = snaprun.MockWaitWhileInhibited(func(ctx context.Context, instanceName naming.InstanceName, notInhibited func(ctx context.Context) error, inhibited func(ctx context.Context, hint runinhibit.Hint, inhibitInfo *runinhibit.InhibitInfo) (cont bool, err error), interval time.Duration) (flock *osutil.FileLock, retErr error) {
 		waitWhileInhibitedCalled++
 
-		c.Check(instanceName, check.Equals, "snapname")
+		c.Check(instanceName.String(), check.Equals, "snapname")
 		if waitWhileInhibitedCalled == 1 {
 			err := notInhibited(ctx)
 			c.Assert(err, check.IsNil)
@@ -850,7 +850,7 @@ func (s *RunSuite) testSnapRunAppRetryNoInhibitHintFileThenOngoingRemoveOrDisabl
 	restore = snaprun.MockWaitWhileInhibited(func(ctx context.Context, instanceName naming.InstanceName, notInhibited func(ctx context.Context) error, inhibited func(ctx context.Context, hint runinhibit.Hint, inhibitInfo *runinhibit.InhibitInfo) (cont bool, err error), interval time.Duration) (flock *osutil.FileLock, retErr error) {
 		waitWhileInhibitedCalled++
 
-		c.Check(instanceName, check.Equals, "snapname")
+		c.Check(instanceName.String(), check.Equals, "snapname")
 		err := notInhibited(ctx)
 		c.Assert(err, check.IsNil)
 
@@ -973,7 +973,7 @@ func (s *RunSuite) TestSnapRunAppRetryNoInhibitHintFileThenOngoingRefreshMissing
 	restore = snaprun.MockWaitWhileInhibited(func(ctx context.Context, instanceName naming.InstanceName, notInhibited func(ctx context.Context) error, inhibited func(ctx context.Context, hint runinhibit.Hint, inhibitInfo *runinhibit.InhibitInfo) (cont bool, err error), interval time.Duration) (flock *osutil.FileLock, retErr error) {
 		waitWhileInhibitedCalled++
 
-		c.Check(instanceName, check.Equals, "snapname")
+		c.Check(instanceName.String(), check.Equals, "snapname")
 		if waitWhileInhibitedCalled == 1 {
 			err := notInhibited(ctx)
 			// mock edge case where we started without a hint lock file
@@ -1068,7 +1068,7 @@ func (s *RunSuite) TestSnapRunAppMaxRetry(c *check.C) {
 	var called int
 	restore = snaprun.MockWaitWhileInhibited(func(ctx context.Context, instanceName naming.InstanceName, notInhibited func(ctx context.Context) error, inhibited func(ctx context.Context, hint runinhibit.Hint, inhibitInfo *runinhibit.InhibitInfo) (cont bool, err error), interval time.Duration) (flock *osutil.FileLock, retErr error) {
 		called++
-		c.Check(instanceName, check.Equals, "snapname")
+		c.Check(instanceName.String(), check.Equals, "snapname")
 
 		err := notInhibited(ctx)
 		c.Assert(err, check.IsNil)

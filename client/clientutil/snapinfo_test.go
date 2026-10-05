@@ -149,7 +149,7 @@ func (*cmdSuite) TestClientSnapFromSnapInfo(c *C) {
 	checker("", x)
 
 	// check some values
-	c.Check(ci.Name, Equals, "the-snap_insta")
+	c.Check(ci.Name.String(), Equals, "the-snap_insta")
 	c.Check(ci.Type, Equals, "app")
 	c.Check(ci.ID, Equals, si.ID())
 	c.Check(ci.Revision, Equals, snap.R(99))
@@ -210,7 +210,7 @@ func (*cmdSuite) TestClientSnapFromSnapInfoAppsInactive(c *C) {
 	ci, err := clientutil.ClientSnapFromSnapInfo(si, sd)
 	c.Check(err, IsNil)
 
-	c.Check(ci.Name, Equals, "the-snap_insta")
+	c.Check(ci.Name.String(), Equals, "the-snap_insta")
 	c.Check(ci.Apps, DeepEquals, []client.AppInfo{
 		{
 			Snap:        "the-snap_insta",
@@ -254,7 +254,7 @@ func (*cmdSuite) TestClientSnapFromSnapInfoAppsActive(c *C) {
 	ci, err := clientutil.ClientSnapFromSnapInfo(si, sd)
 	c.Check(err, IsNil)
 	// ... service status
-	c.Check(ci.Name, Equals, "the-snap_insta")
+	c.Check(ci.Name.String(), Equals, "the-snap_insta")
 	c.Check(ci.Apps, DeepEquals, []client.AppInfo{
 		{
 			Snap:        "the-snap_insta",
