@@ -1944,7 +1944,7 @@ func (s *autorefreshGatingSuite) TestUnholdSnaps(c *C) {
 
 func fakeReadInfo(name naming.InstanceName, si *snap.SideInfo) (*snap.Info, error) {
 	info := &snap.Info{
-		SuggestedName: name.String(),
+		SuggestedName: name.SnapName().String(),
 		SideInfo:      *si,
 		Architectures: []string{"all"},
 		SnapType:      snap.TypeApp,
