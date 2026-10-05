@@ -39,7 +39,7 @@ import (
 
 // SnapAndApp holds a snap name and an application name
 type SnapAndApp struct {
-	Snap   string
+	Snap   naming.InstanceName
 	App    string
 	hasDot bool
 }
@@ -48,7 +48,7 @@ func (sa *SnapAndApp) FullName() string {
 	if sa.hasDot {
 		return fmt.Sprint(sa.Snap, ".", sa.App)
 	} else {
-		return sa.Snap
+		return sa.Snap.String()
 	}
 }
 
@@ -64,9 +64,9 @@ func (sa *SnapAndApp) UnmarshalFlag(value string) error {
 	sa.hasDot = false
 	switch len(parts) {
 	case 1:
-		sa.Snap = parts[0]
+		sa.Snap = naming.InstanceName(parts[0])
 	case 2:
-		sa.Snap = parts[0]
+		sa.Snap = naming.InstanceName(parts[0])
 		sa.App = parts[1]
 		sa.hasDot = true // allows to know if it is "snap." or "snap.XXXX"
 	}
@@ -87,7 +87,7 @@ func (s SnapAndApp) Complete(match string) []flags.Completion {
 		}
 		var ret []flags.Completion
 		for _, installedSnap := range installedSnaps {
-			if !strings.HasPrefix(installedSnap.Name, matchSnap.Snap) {
+			if !strings.HasPrefix(installedSnap.Name.String(), matchSnap.Snap.String()) {
 				continue
 			}
 			info, err := snap.ReadCurrentInfo(naming.InstanceName(installedSnap.Name))
@@ -97,7 +97,7 @@ func (s SnapAndApp) Complete(match string) []flags.Completion {
 			if len(info.Apps) == 0 {
 				continue
 			}
-			ret = append(ret, flags.Completion{Item: installedSnap.Name})
+			ret = append(ret, flags.Completion{Item: installedSnap.Name.String()})
 		}
 		// take into account not only if there are more than one match, but also
 		// if there are zero matches
@@ -105,19 +105,19 @@ func (s SnapAndApp) Complete(match string) []flags.Completion {
 			return ret
 		}
 		// if there is only one option, then use it to find all the internal apps
-		matchSnap.Snap = ret[0].Item
+		matchSnap.Snap = naming.InstanceName(ret[0].Item)
 	}
 	// A dot in match, or only one option: complete with the apps inside the specified snap
-	info, err := snap.ReadCurrentInfo(naming.InstanceName(matchSnap.Snap))
+	info, err := snap.ReadCurrentInfo(matchSnap.Snap)
 	if err != nil {
 		return nil
 	}
 	ret := make([]flags.Completion, 0, len(info.Apps))
 	for _, app := range info.Apps {
 		if strings.HasPrefix(app.Name, matchSnap.App) {
-			if app.Name == matchSnap.Snap {
+			if app.Name == matchSnap.Snap.String() {
 				// if the app name is the same than the snap, only the snap name is required
-				ret = append(ret, flags.Completion{Item: matchSnap.Snap})
+				ret = append(ret, flags.Completion{Item: matchSnap.Snap.String()})
 			} else {
 				ret = append(ret, flags.Completion{Item: fmt.Sprint(matchSnap.Snap, ".", app.Name)})
 			}
@@ -136,8 +136,8 @@ func (s installedSnapName) Complete(match string) []flags.Completion {
 
 	ret := make([]flags.Completion, 0, len(snaps))
 	for _, snap := range snaps {
-		if strings.HasPrefix(snap.Name, match) {
-			ret = append(ret, flags.Completion{Item: snap.Name})
+		if strings.HasPrefix(snap.Name.String(), match) {
+			ret = append(ret, flags.Completion{Item: snap.Name.String()})
 		}
 	}
 
@@ -205,7 +205,7 @@ func (s remoteSnapName) Complete(match string) []flags.Completion {
 	}
 	ret := make([]flags.Completion, len(snaps))
 	for i, snap := range snaps {
-		ret[i] = flags.Completion{Item: snap.Name}
+		ret[i] = flags.Completion{Item: snap.Name.String()}
 	}
 	return ret
 }

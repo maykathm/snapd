@@ -94,14 +94,14 @@ func (x *cmdRoutineFileAccess) Execute(args []string) error {
 
 	// Check whether the snap has home or removable-media plugs connected
 	connections, err := x.client.Connections(&client.ConnectionOptions{
-		Snap: snap.Name,
+		Snap: snap.Name.String(),
 	})
 	if err != nil {
 		return fmt.Errorf("cannot get connections for snap %q: %v", snap.Name, err)
 	}
 	var hasHome, hasRemovableMedia, hasSystemPackagesDoc bool
 	for _, conn := range connections.Established {
-		if conn.Plug.Snap != snap.Name {
+		if conn.Plug.Snap != snap.Name.String() {
 			continue
 		}
 		switch conn.Interface {
@@ -205,7 +205,7 @@ func (x *cmdRoutineFileAccess) checkAccess(snap *client.Snap, hasHome, hasRemova
 	}
 
 	// Snaps have access to $SNAP_DATA and $SNAP_COMMON
-	if pathHasPrefix(pathParts, []string{"var", "snap", snap.Name}) {
+	if pathHasPrefix(pathParts, []string{"var", "snap", snap.Name.String()}) {
 		if len(pathParts) == 3 {
 			return FileAccessReadOnly, nil
 		}
@@ -248,7 +248,7 @@ func (x *cmdRoutineFileAccess) checkAccess(snap *client.Snap, hasHome, hasRemova
 		pathInHome := pathParts[len(home):]
 		// Snaps have access to $SNAP_USER_DATA and $SNAP_USER_COMMON
 		if pathHasPrefix(pathInHome, []string{"snap"}) {
-			if !pathHasPrefix(pathInHome, []string{"snap", snap.Name}) {
+			if !pathHasPrefix(pathInHome, []string{"snap", snap.Name.String()}) {
 				return FileAccessHidden, nil
 			}
 			if len(pathInHome) < 3 {

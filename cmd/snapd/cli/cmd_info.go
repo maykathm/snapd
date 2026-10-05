@@ -492,7 +492,7 @@ func (iw *infoWriter) maybePrintCommands() {
 			continue
 		}
 
-		cmdStr := snap.JoinSnapApp(iw.theSnap.Name, app.Name)
+		cmdStr := snap.JoinSnapApp(iw.theSnap.Name.String(), app.Name)
 		commands = append(commands, cmdStr)
 	}
 	if len(commands) == 0 {
@@ -527,7 +527,7 @@ func (iw *infoWriter) maybePrintServices() {
 		} else {
 			enabled = "disabled"
 		}
-		services = append(services, fmt.Sprintf("  %s:\t%s, %s, %s", snap.JoinSnapApp(iw.theSnap.Name, app.Name), app.Daemon, enabled, active))
+		services = append(services, fmt.Sprintf("  %s:\t%s, %s, %s", snap.JoinSnapApp(iw.theSnap.Name.String(), app.Name), app.Daemon, enabled, active))
 	}
 	if len(services) == 0 {
 		return

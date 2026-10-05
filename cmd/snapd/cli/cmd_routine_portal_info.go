@@ -79,7 +79,7 @@ func (x *cmdRoutinePortalInfo) Execute(args []string) error {
 
 	// Try to identify the application name from AppArmor
 	var app *client.AppInfo
-	if snapName, appName, _, err := apparmorSnapAppFromPid(x.PortalInfoOptions.Pid); err == nil && snapName == snap.Name && appName != "" {
+	if snapName, appName, _, err := apparmorSnapAppFromPid(x.PortalInfoOptions.Pid); err == nil && snapName == snap.Name.String() && appName != "" {
 		for i := range snap.Apps {
 			if snap.Apps[i].Name == appName {
 				app = &snap.Apps[i]
@@ -91,7 +91,7 @@ func (x *cmdRoutinePortalInfo) Execute(args []string) error {
 	// the app named identically to the snap.
 	if app == nil {
 		for i := range snap.Apps {
-			if snap.Apps[i].DesktopFile != "" && (app == nil || snap.Apps[i].Name == snap.Name) {
+			if snap.Apps[i].DesktopFile != "" && (app == nil || snap.Apps[i].Name == snap.Name.String()) {
 				app = &snap.Apps[i]
 			}
 		}
@@ -111,7 +111,7 @@ func (x *cmdRoutinePortalInfo) Execute(args []string) error {
 	// TODO: use direct API for asking about interface being connected if
 	// that becomes available
 	connections, err := x.client.Connections(&client.ConnectionOptions{
-		Snap:      snap.Name,
+		Snap:      snap.Name.String(),
 		Interface: "network-status",
 	})
 	if err != nil {
@@ -122,7 +122,7 @@ func (x *cmdRoutinePortalInfo) Execute(args []string) error {
 	// network despite the 'network' interface being disconnected
 	var hasNetworkStatus bool
 	for _, conn := range connections.Established {
-		if conn.Plug.Snap == snap.Name && conn.Interface == "network-status" {
+		if conn.Plug.Snap == snap.Name.String() && conn.Interface == "network-status" {
 			hasNetworkStatus = true
 			break
 		}
