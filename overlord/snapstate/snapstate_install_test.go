@@ -7265,7 +7265,7 @@ func (s *snapmgrTestSuite) testInstallComponentsRunThrough(c *C, opts testInstal
 	snapRevision := snap.R(11)
 	const channel = "channel-for-components"
 
-	instanceName := snap.InstanceName(opts.snapName, opts.instanceKey).String()
+	instanceName := snap.InstanceName(opts.snapName, opts.instanceKey)
 
 	// we start without the auxiliary store info
 	c.Check(backend.AuxStoreInfoFilename(snapID), testutil.FileAbsent)
@@ -7279,7 +7279,7 @@ func (s *snapmgrTestSuite) testInstallComponentsRunThrough(c *C, opts testInstal
 	}
 
 	s.fakeStore.snapResourcesFn = func(info *snap.Info) []store.SnapResourceResult {
-		c.Assert(info.InstanceName().String(), DeepEquals, instanceName)
+		c.Assert(info.InstanceName(), DeepEquals, instanceName)
 		var results []store.SnapResourceResult
 		for _, cs := range componentStates {
 			results = append(results, store.SnapResourceResult{
@@ -7297,7 +7297,7 @@ func (s *snapmgrTestSuite) testInstallComponentsRunThrough(c *C, opts testInstal
 	}
 
 	target := snapstate.StoreInstallGoal(snapstate.StoreSnap{
-		InstanceName: instanceName,
+		InstanceName: instanceName.String(),
 		Components:   opts.components,
 		RevOpts:      snapstate.RevisionOptions{Channel: channel},
 	})
@@ -7307,7 +7307,7 @@ func (s *snapmgrTestSuite) testInstallComponentsRunThrough(c *C, opts testInstal
 	})
 	c.Assert(err, IsNil)
 
-	c.Check(info.InstanceName().String(), Equals, instanceName)
+	c.Check(info.InstanceName(), Equals, instanceName)
 	c.Check(info.Channel, Equals, channel)
 	c.Check(info.Revision, Equals, snapRevision)
 
@@ -7317,7 +7317,7 @@ func (s *snapmgrTestSuite) testInstallComponentsRunThrough(c *C, opts testInstal
 		for _, cs := range componentStates {
 			compName := cs.SideInfo.Component.ComponentName
 			compRev := cs.SideInfo.Revision
-			if compMntDir == snap.ComponentMountDir(compName, compRev, naming.InstanceName(instanceName)) {
+			if compMntDir == snap.ComponentMountDir(compName, compRev, instanceName) {
 				return &snap.ComponentInfo{}, nil
 			}
 		}
@@ -7372,7 +7372,7 @@ func (s *snapmgrTestSuite) testInstallComponentsRunThrough(c *C, opts testInstal
 		op: "storesvc-snap-action:action",
 		action: store.SnapAction{
 			Action:       "install",
-			InstanceName: instanceName,
+			InstanceName: instanceName.String(),
 			Channel:      channel,
 		},
 		revno:  snapRevision,
@@ -7382,7 +7382,7 @@ func (s *snapmgrTestSuite) testInstallComponentsRunThrough(c *C, opts testInstal
 		name: opts.snapName,
 	}, {
 		op:    "validate-snap:Doing",
-		name:  instanceName,
+		name:  instanceName.String(),
 		revno: snapRevision,
 	}}
 
@@ -7398,7 +7398,7 @@ func (s *snapmgrTestSuite) testInstallComponentsRunThrough(c *C, opts testInstal
 			name: cs.SideInfo.Component.String(),
 		}, {
 			op:                "validate-component:Doing",
-			name:              instanceName,
+			name:              instanceName.String(),
 			revno:             snapRevision,
 			componentName:     compName,
 			componentPath:     filepath.Join(dirs.SnapBlobDir, filename),
@@ -7421,7 +7421,7 @@ func (s *snapmgrTestSuite) testInstallComponentsRunThrough(c *C, opts testInstal
 		},
 	}, {
 		op:    "setup-snap",
-		name:  instanceName,
+		name:  instanceName.String(),
 		path:  filepath.Join(dirs.SnapBlobDir, snapFileName),
 		revno: snapRevision,
 	}}...)
@@ -7444,21 +7444,21 @@ func (s *snapmgrTestSuite) testInstallComponentsRunThrough(c *C, opts testInstal
 			op: "prepare-kernel-snap",
 		}, {
 			op:    "update-gadget-assets:Doing",
-			name:  instanceName,
+			name:  instanceName.String(),
 			revno: snapRevision,
 		}}...)
 	}
 
 	expected = append(expected, []fakeOp{{
 		op:   "copy-data",
-		path: filepath.Join(dirs.SnapMountDir, filepath.Join(instanceName, snapRevision.String())),
+		path: filepath.Join(dirs.SnapMountDir, filepath.Join(instanceName.String(), snapRevision.String())),
 		old:  "<no-old>",
 	}, {
 		op:   "setup-snap-save-data",
-		path: filepath.Join(dirs.SnapDataSaveDir, instanceName),
+		path: filepath.Join(dirs.SnapDataSaveDir, instanceName.String()),
 	}, {
 		op:    "setup-profiles:Doing",
-		name:  instanceName,
+		name:  instanceName.String(),
 		revno: snapRevision,
 	}, {
 		op: "candidate",
@@ -7470,7 +7470,7 @@ func (s *snapmgrTestSuite) testInstallComponentsRunThrough(c *C, opts testInstal
 		},
 	}, {
 		op:                  "link-snap",
-		path:                filepath.Join(dirs.SnapMountDir, filepath.Join(instanceName, snapRevision.String())),
+		path:                filepath.Join(dirs.SnapMountDir, filepath.Join(instanceName.String(), snapRevision.String())),
 		requireSnapdTooling: true,
 	}}...)
 
@@ -7497,14 +7497,14 @@ func (s *snapmgrTestSuite) testInstallComponentsRunThrough(c *C, opts testInstal
 		compRev := cs.SideInfo.Revision
 		expected = append(expected, []fakeOp{{
 			op:   "link-component",
-			path: snap.ComponentMountDir(compName, compRev, naming.InstanceName(instanceName)),
+			path: snap.ComponentMountDir(compName, compRev, instanceName),
 		}}...)
 	}
 
 	// ops that follow linking components
 	expected = append(expected, []fakeOp{{
 		op:    "auto-connect:Doing",
-		name:  instanceName,
+		name:  instanceName.String(),
 		revno: snapRevision,
 	}, {
 		op: "update-aliases",
@@ -7535,16 +7535,16 @@ func (s *snapmgrTestSuite) testInstallComponentsRunThrough(c *C, opts testInstal
 	}, componentStates)
 
 	if opts.undo {
-		expected = append(expected, undoOps(instanceName, opts.snapType, expectedSeq, nil)...)
+		expected = append(expected, undoOps(instanceName.String(), opts.snapType, expectedSeq, nil)...)
 		expected = append(expected, fakeOp{
 			op:   "storesvc-cleanup-download-artifacts",
 			sha3: "",
-			path: snap.MountFile(naming.InstanceName(instanceName), snapRevision),
+			path: snap.MountFile(instanceName, snapRevision),
 		})
 	} else {
 		expected = append(expected, fakeOp{
 			op:    "cleanup-trash",
-			name:  instanceName,
+			name:  instanceName.String(),
 			revno: snapRevision,
 		})
 	}
@@ -7574,14 +7574,14 @@ func (s *snapmgrTestSuite) testInstallComponentsRunThrough(c *C, opts testInstal
 
 	if opts.undo {
 		var snapst snapstate.SnapState
-		err = snapstate.Get(s.state, instanceName, &snapst)
+		err = snapstate.Get(s.state, instanceName.String(), &snapst)
 		c.Assert(err, testutil.ErrorIs, state.ErrNoState)
 
 		c.Check(backend.AuxStoreInfoFilename(snapID), testutil.FileAbsent)
 	} else {
 		// verify snap in the system state
 		var snapst snapstate.SnapState
-		err = snapstate.Get(s.state, instanceName, &snapst)
+		err = snapstate.Get(s.state, instanceName.String(), &snapst)
 		c.Assert(err, IsNil)
 
 		c.Check(snapst.Active, Equals, true)
@@ -7710,7 +7710,7 @@ func (s *snapmgrTestSuite) testSeedingGoalWithComponentsRunThrough(c *C, opts te
 		snapRevision = snap.R(-1)
 	}
 
-	instanceName := snap.InstanceName(opts.snapName, opts.instanceKey).String()
+	instanceName := snap.InstanceName(opts.snapName, opts.instanceKey)
 
 	components := make([]snapstate.PathComponent, 0, len(opts.components))
 	compPaths := make(map[string]string, len(opts.components))
@@ -7756,7 +7756,7 @@ version: 1.0
 		compMntDir string, snapInfo *snap.Info, csi *snap.ComponentSideInfo,
 	) (*snap.ComponentInfo, error) {
 		for _, compName := range opts.components {
-			if compMntDir == snap.ComponentMountDir(compName, compRevs[compName], naming.InstanceName(instanceName)) {
+			if compMntDir == snap.ComponentMountDir(compName, compRevs[compName], instanceName) {
 				return &snap.ComponentInfo{}, nil
 			}
 		}
@@ -7799,7 +7799,7 @@ components:
 	}
 
 	goal := snapstate.SeedingGoal(snapstate.PathSnap{
-		InstanceName: instanceName,
+		InstanceName: instanceName.String(),
 		Path:         snapPath,
 		SideInfo:     si,
 		Components:   components,
@@ -7812,7 +7812,7 @@ components:
 		},
 	})
 	c.Assert(err, IsNil)
-	c.Check(info.InstanceName().String(), Equals, instanceName)
+	c.Check(info.InstanceName(), Equals, instanceName)
 	c.Check(info.Revision, Equals, si.Revision)
 
 	chg.AddAll(ts)
@@ -7841,7 +7841,7 @@ components:
 		if !opts.unasserted {
 			expected = append(expected, fakeOp{
 				op:                              "validate-component:Doing",
-				name:                            instanceName,
+				name:                            instanceName.String(),
 				revno:                           snapRevision,
 				componentName:                   compName,
 				componentPath:                   compPaths[compName],
@@ -7857,7 +7857,7 @@ components:
 		old: "<no-current>",
 	}, {
 		op:    "setup-snap",
-		name:  instanceName,
+		name:  instanceName.String(),
 		path:  snapPath,
 		revno: snapRevision,
 	}}...)
@@ -7878,20 +7878,20 @@ components:
 			op: "prepare-kernel-snap",
 		}, fakeOp{
 			op:    "update-gadget-assets:Doing",
-			name:  instanceName,
+			name:  instanceName.String(),
 			revno: snapRevision,
 		})
 	}
 	expected = append(expected, []fakeOp{{
 		op:   "copy-data",
-		path: filepath.Join(dirs.SnapMountDir, filepath.Join(instanceName, snapRevision.String())),
+		path: filepath.Join(dirs.SnapMountDir, filepath.Join(instanceName.String(), snapRevision.String())),
 		old:  "<no-old>",
 	}, {
 		op:   "setup-snap-save-data",
-		path: filepath.Join(dirs.SnapDataSaveDir, instanceName),
+		path: filepath.Join(dirs.SnapDataSaveDir, instanceName.String()),
 	}, {
 		op:    "setup-profiles:Doing",
-		name:  instanceName,
+		name:  instanceName.String(),
 		revno: snapRevision,
 	}, {
 		op: "candidate",
@@ -7902,7 +7902,7 @@ components:
 		},
 	}, {
 		op:                  "link-snap",
-		path:                filepath.Join(dirs.SnapMountDir, filepath.Join(instanceName, snapRevision.String())),
+		path:                filepath.Join(dirs.SnapMountDir, filepath.Join(instanceName.String(), snapRevision.String())),
 		requireSnapdTooling: true,
 	}}...)
 
@@ -7922,13 +7922,13 @@ components:
 	for _, compName := range opts.components {
 		expected = append(expected, fakeOp{
 			op:   "link-component",
-			path: snap.ComponentMountDir(compName, compRevs[compName], naming.InstanceName(instanceName)),
+			path: snap.ComponentMountDir(compName, compRevs[compName], instanceName),
 		})
 	}
 
 	expected = append(expected, []fakeOp{{
 		op:    "auto-connect:Doing",
-		name:  instanceName,
+		name:  instanceName.String(),
 		revno: snapRevision,
 	}, {
 		op: "update-aliases",
@@ -7947,11 +7947,11 @@ components:
 	expectedSeq := sequence.NewRevisionSideState(si, componentStates)
 
 	if opts.undo {
-		expected = append(expected, undoOps(instanceName, opts.snapType, expectedSeq, nil)...)
+		expected = append(expected, undoOps(instanceName.String(), opts.snapType, expectedSeq, nil)...)
 	} else {
 		expected = append(expected, fakeOp{
 			op:    "cleanup-trash",
-			name:  instanceName,
+			name:  instanceName.String(),
 			revno: snapRevision,
 		})
 	}
@@ -7979,12 +7979,12 @@ components:
 
 	if opts.undo {
 		var snapst snapstate.SnapState
-		err = snapstate.Get(s.state, instanceName, &snapst)
+		err = snapstate.Get(s.state, instanceName.String(), &snapst)
 		c.Assert(err, testutil.ErrorIs, state.ErrNoState)
 	} else {
 		// verify snap in the system state
 		var snapst snapstate.SnapState
-		err = snapstate.Get(s.state, instanceName, &snapst)
+		err = snapstate.Get(s.state, instanceName.String(), &snapst)
 		c.Assert(err, IsNil)
 
 		c.Check(snapst.Active, Equals, true)
@@ -8378,7 +8378,7 @@ func (s *validationSetsSuite) testUpdateComponentsValidationSets(c *C, opts test
 		instanceKey = "key"
 		channel     = "channel-for-components"
 	)
-	instanceName := snap.InstanceName(snapName, instanceKey).String()
+	instanceName := snap.InstanceName(snapName, instanceKey)
 
 	snapID := snaptest.AssertedSnapID(snapName)
 
@@ -8394,7 +8394,7 @@ func (s *validationSetsSuite) testUpdateComponentsValidationSets(c *C, opts test
 		snap.TestComponent,
 	)})
 
-	snapstate.Set(s.state, instanceName, &snapstate.SnapState{
+	snapstate.Set(s.state, instanceName.String(), &snapstate.SnapState{
 		Active:      true,
 		Sequence:    sequence.SnapSequence{Revisions: []*sequence.RevisionSideState{revisionSideState}},
 		Current:     snap.R(7),
@@ -8444,7 +8444,7 @@ func (s *validationSetsSuite) testUpdateComponentsValidationSets(c *C, opts test
 	defer restore()
 
 	s.fakeStore.snapResourcesFn = func(info *snap.Info) []store.SnapResourceResult {
-		c.Assert(info.InstanceName().String(), DeepEquals, instanceName)
+		c.Assert(info.InstanceName(), DeepEquals, instanceName)
 		results := make([]store.SnapResourceResult, 0, len(opts.comps))
 		for _, c := range opts.comps {
 			results = append(results, store.SnapResourceResult{
@@ -8462,7 +8462,7 @@ func (s *validationSetsSuite) testUpdateComponentsValidationSets(c *C, opts test
 	}
 
 	goal := snapstate.StoreUpdateGoal(snapstate.StoreUpdate{
-		InstanceName: instanceName,
+		InstanceName: instanceName.String(),
 		RevOpts:      snapstate.RevisionOptions{Channel: channel},
 	})
 
@@ -8473,7 +8473,7 @@ func (s *validationSetsSuite) testUpdateComponentsValidationSets(c *C, opts test
 		c.Assert(err, ErrorMatches, opts.err)
 
 		goal := snapstate.StoreUpdateGoal(snapstate.StoreUpdate{
-			InstanceName: instanceName,
+			InstanceName: instanceName.String(),
 			RevOpts:      snapstate.RevisionOptions{Channel: channel},
 		})
 

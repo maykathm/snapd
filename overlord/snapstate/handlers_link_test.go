@@ -1476,7 +1476,7 @@ func (s *linkSnapSuite) TestDoLinkSnapSuccessRebootForKernelClassicWithModes(c *
 	defer r()
 
 	snapstate.MockSnapReadInfo(func(name naming.InstanceName, si *snap.SideInfo) (*snap.Info, error) {
-		c.Assert(name, Equals, "kernel")
+		c.Assert(name.String(), Equals, "kernel")
 		info := &snap.Info{SuggestedName: name.String(), SideInfo: *si, SnapType: snap.TypeKernel}
 		return info, nil
 	})
@@ -1909,7 +1909,7 @@ func (s *linkSnapSuite) TestDoLinkSnapdDiscardsNsOnDowngrade(c *C) {
 
 	// pretend we have an installed snapd
 	snapstate.MockSnapReadInfo(func(name naming.InstanceName, si *snap.SideInfo) (*snap.Info, error) {
-		c.Check(name, Equals, "snapd")
+		c.Check(name.String(), Equals, "snapd")
 		info := &snap.Info{Version: "2.56", SideInfo: *si, SnapType: snap.TypeSnapd}
 		return info, nil
 	})
@@ -1988,7 +1988,7 @@ func (s *linkSnapSuite) TestDoLinkSnapdRemovesAppArmorProfilesOnSnapdDowngrade(c
 	restore = apparmor.MockFeatures([]string{}, nil, []string{"snapd-internal"}, nil)
 	defer restore()
 	snapstate.MockSnapReadInfo(func(name naming.InstanceName, si *snap.SideInfo) (*snap.Info, error) {
-		c.Check(name, Equals, "snapd")
+		c.Check(name.String(), Equals, "snapd")
 		info := &snap.Info{Version: "2.56", SideInfo: *si, SnapType: snap.TypeSnapd}
 		return info, nil
 	})
@@ -3174,7 +3174,7 @@ func (s *linkSnapSuite) testDoKillSnapApps(c *C, svc bool) {
 	})
 
 	restore := snapstate.MockSnapReadInfo(func(name naming.InstanceName, si *snap.SideInfo) (*snap.Info, error) {
-		c.Assert(name, Equals, "some-snap")
+		c.Assert(name.String(), Equals, "some-snap")
 		info := &snap.Info{SuggestedName: name.String(), SideInfo: *si, SnapType: snap.TypeApp}
 		if svc {
 			info.Apps = map[string]*snap.AppInfo{
@@ -3254,7 +3254,7 @@ func (s *linkSnapSuite) TestDoKillSnapAppsErrorsIfHintNotUpdatedBasedOnReason(c 
 	})
 
 	restore := snapstate.MockSnapReadInfo(func(name naming.InstanceName, si *snap.SideInfo) (*snap.Info, error) {
-		c.Assert(name, Equals, "some-snap")
+		c.Assert(name.String(), Equals, "some-snap")
 		info := &snap.Info{SuggestedName: name.String(), SideInfo: *si, SnapType: snap.TypeApp}
 		return info, nil
 	})
@@ -3391,7 +3391,7 @@ func (s *linkSnapSuite) testDoUndoKillSnapApps(c *C, svc bool) {
 	})
 
 	restore := snapstate.MockSnapReadInfo(func(name naming.InstanceName, si *snap.SideInfo) (*snap.Info, error) {
-		c.Assert(name, Equals, "some-snap")
+		c.Assert(name.String(), Equals, "some-snap")
 		info := &snap.Info{SuggestedName: name.String(), SideInfo: *si, SnapType: snap.TypeApp}
 		if svc {
 			info.Apps = map[string]*snap.AppInfo{
