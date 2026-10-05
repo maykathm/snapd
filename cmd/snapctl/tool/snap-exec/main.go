@@ -183,17 +183,17 @@ func execApp(snapTarget, revision, command string, args []string) error {
 		return fmt.Errorf("cannot parse revision %q: %s", revision, err)
 	}
 
-	snapName, appName := snap.SplitSnapApp(snapTarget)
-	info, err := snap.ReadInfo(naming.InstanceName(snapName), &snap.SideInfo{
+	instanceName, appName := snap.SplitSnapApp(snapTarget)
+	info, err := snap.ReadInfo(naming.InstanceName(instanceName), &snap.SideInfo{
 		Revision: rev,
 	})
 	if err != nil {
-		return fmt.Errorf("cannot read info for %q: %s", snapName, err)
+		return fmt.Errorf("cannot read info for %q: %s", instanceName, err)
 	}
 
 	app := info.Apps[appName]
 	if app == nil {
-		return fmt.Errorf("cannot find app %q in %q", appName, snapName)
+		return fmt.Errorf("cannot find app %q in %q", appName, instanceName)
 	}
 
 	cmdAndArgs, err := findCommand(app, command)

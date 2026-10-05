@@ -85,7 +85,7 @@ func (s *RunSuite) TestWaitWhileInhibitedRunThrough(c *C) {
 		err := notInhibited(ctx)
 		c.Assert(err, IsNil)
 
-		flock, err = openHintFileLock(instanceName.String())
+		flock, err = openHintFileLock(instanceName)
 		c.Assert(err, IsNil)
 		err = flock.ReadLock()
 		c.Assert(err, IsNil)
@@ -174,7 +174,7 @@ func (s *RunSuite) TestWaitWhileInhibitedErrorOnFinishNotification(c *C) {
 		err := notInhibited(ctx)
 		c.Assert(err, IsNil)
 
-		flock, err = openHintFileLock(instanceName.String())
+		flock, err = openHintFileLock(instanceName)
 		c.Assert(err, IsNil)
 		err = flock.ReadLock()
 		c.Assert(err, IsNil)
@@ -261,7 +261,7 @@ func (s *RunSuite) TestWaitWhileInhibitedGateRefreshNoNotification(c *C) {
 		err := notInhibited(ctx)
 		c.Assert(err, IsNil)
 
-		flock, err = openHintFileLock(instanceName.String())
+		flock, err = openHintFileLock(instanceName)
 		c.Assert(err, IsNil)
 		err = flock.ReadLock()
 		c.Assert(err, IsNil)

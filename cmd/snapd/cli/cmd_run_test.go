@@ -286,15 +286,15 @@ func (s *RunSuite) TestSnapRunAppIntegration(c *check.C) {
 	c.Check(execEnv, testutil.Contains, fmt.Sprintf("TMPDIR=%s", tmpdir))
 }
 
-func checkHintFileNotLocked(c *check.C, snapName string) {
-	flock, err := openHintFileLock(snapName)
+func checkHintFileNotLocked(c *check.C, instanceName naming.InstanceName) {
+	flock, err := openHintFileLock(instanceName)
 	c.Assert(err, check.IsNil)
 	c.Check(flock.TryLock(), check.IsNil)
 	flock.Close()
 }
 
-func checkHintFileLocked(c *check.C, snapName string) {
-	flock, err := openHintFileLock(snapName)
+func checkHintFileLocked(c *check.C, instanceName naming.InstanceName) {
+	flock, err := openHintFileLock(instanceName)
 	c.Assert(err, check.IsNil)
 	c.Check(flock.TryLock(), check.Equals, osutil.ErrAlreadyLocked)
 	flock.Close()
@@ -328,7 +328,7 @@ func (s *RunSuite) TestSnapRunAppRunsChecksRefreshInhibitionLock(c *check.C) {
 		c.Check(ctx, check.NotNil)
 
 		var err error
-		flock, err = openHintFileLock(instanceName.String())
+		flock, err = openHintFileLock(instanceName)
 		c.Assert(err, check.IsNil)
 		// mock held lock and check that it is released after snap run finishes
 		c.Assert(flock.ReadLock(), check.IsNil)
@@ -419,7 +419,7 @@ func (s *RunSuite) TestSnapRunAppNewRevisionAfterInhibition(c *check.C) {
 		c.Check(instanceName, check.Equals, "snapname")
 
 		var err error
-		flock, err = openHintFileLock(instanceName.String())
+		flock, err = openHintFileLock(instanceName)
 		c.Assert(err, check.IsNil)
 		c.Assert(flock.ReadLock(), check.IsNil)
 
@@ -564,7 +564,7 @@ func (s *RunSuite) TestSnapRunAppRuninhibitSkipsServices(c *check.C) {
 		c.Check(instanceName, check.Equals, "snapname")
 
 		var err error
-		flock, err = openHintFileLock(instanceName.String())
+		flock, err = openHintFileLock(instanceName)
 		c.Assert(err, check.IsNil)
 		c.Assert(flock.ReadLock(), check.IsNil)
 
@@ -738,7 +738,7 @@ func (s *RunSuite) testSnapRunAppRetryNoInhibitHintFileThenOngoingRefresh(c *che
 		} else {
 			var err error
 
-			flock, err = openHintFileLock(instanceName.String())
+			flock, err = openHintFileLock(instanceName)
 			c.Assert(err, check.IsNil)
 			c.Assert(flock.ReadLock(), check.IsNil)
 
@@ -985,7 +985,7 @@ func (s *RunSuite) TestSnapRunAppRetryNoInhibitHintFileThenOngoingRefreshMissing
 		} else {
 			var err error
 
-			flock, err = openHintFileLock(instanceName.String())
+			flock, err = openHintFileLock(instanceName)
 			c.Assert(err, check.IsNil)
 			c.Assert(flock.ReadLock(), check.IsNil)
 
@@ -3184,8 +3184,8 @@ func (s *RunSuite) TestRunGdbserverNoGdbserver(c *check.C) {
 	c.Assert(err, check.ErrorMatches, "please install gdbserver on your system")
 }
 
-func openHintFileLock(snapName string) (*osutil.FileLock, error) {
-	return osutil.NewFileLockWithMode(runinhibit.HintFile(snapName), 0644)
+func openHintFileLock(instanceName naming.InstanceName) (*osutil.FileLock, error) {
+	return osutil.NewFileLockWithMode(runinhibit.HintFile(instanceName.String()), 0644)
 }
 
 func (s *RunSuite) TestCreateSnapDirPermissions(c *check.C) {
