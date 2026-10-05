@@ -81,8 +81,8 @@ func (hint Hint) validate() error {
 }
 
 // HintFile returns the full path of the run inhibition lock file for the given snap.
-func HintFile(snapName string) string {
-	return filepath.Join(InhibitDir, fmt.Sprintf("%s.%s", snapName, hintFilePostfix))
+func HintFile(instanceName naming.InstanceName) string {
+	return filepath.Join(InhibitDir, fmt.Sprintf("%s.%s", instanceName, hintFilePostfix))
 }
 
 func InhibitInfoFile(instanceName naming.InstanceName, hint Hint) string {
@@ -90,7 +90,7 @@ func InhibitInfoFile(instanceName naming.InstanceName, hint Hint) string {
 }
 
 func openHintFileLock(instanceName naming.InstanceName) (*osutil.FileLock, error) {
-	return osutil.NewFileLockWithMode(HintFile(instanceName.String()), 0644)
+	return osutil.NewFileLockWithMode(HintFile(instanceName), 0644)
 }
 
 // InhibitInfo holds data of the previous snap revision that will be needed by
@@ -107,14 +107,14 @@ func (info InhibitInfo) validate() error {
 	return nil
 }
 
-func removeInhibitInfoFiles(snapName string) error {
-	infoGlob := filepath.Join(InhibitDir, snapName+".*")
+func removeInhibitInfoFiles(instanceName naming.InstanceName) error {
+	infoGlob := filepath.Join(InhibitDir, instanceName.String()+".*")
 	// There should be one file only, but just in case
 	files, err := filepath.Glob(infoGlob)
 	if err != nil {
 		return err
 	}
-	hintFile := filepath.Base(HintFile(snapName))
+	hintFile := filepath.Base(HintFile(instanceName))
 	for _, f := range files {
 		// Don't remove hint
 		if filepath.Base(f) == hintFile {
@@ -232,7 +232,7 @@ func Unlock(instanceName naming.InstanceName, unlocker Unlocker) error {
 		return err
 	}
 	// Remove inhibit info file
-	if err := removeInhibitInfoFiles(instanceName.String()); err != nil {
+	if err := removeInhibitInfoFiles(instanceName); err != nil {
 		return err
 	}
 
@@ -254,7 +254,7 @@ func IsLocked(instanceName naming.InstanceName, unlocker Unlocker) (Hint, Inhibi
 		defer relock()
 	}
 
-	hintFlock, err := osutil.OpenExistingLockForReading(HintFile(instanceName.String()))
+	hintFlock, err := osutil.OpenExistingLockForReading(HintFile(instanceName))
 	if os.IsNotExist(err) {
 		return "", InhibitInfo{}, nil
 	}
@@ -297,14 +297,14 @@ func IsLocked(instanceName naming.InstanceName, unlocker Unlocker) (Hint, Inhibi
 // If unlocker is passed it indicates that the global state needs to be unlocked
 // before taking the inhibition hint file lock. It is the responsibility of the
 // caller to make sure state is locked if a non-nil unlocker is passed.
-func RemoveLockFile(snapName string, unlocker Unlocker) error {
+func RemoveLockFile(instanceName naming.InstanceName, unlocker Unlocker) error {
 	if unlocker != nil {
 		// unlock/relock global state
 		relock := unlocker()
 		defer relock()
 	}
 
-	hintFlock, err := osutil.OpenExistingLockForReading(HintFile(snapName))
+	hintFlock, err := osutil.OpenExistingLockForReading(HintFile(instanceName))
 	if os.IsNotExist(err) {
 		return nil
 	}
@@ -319,11 +319,11 @@ func RemoveLockFile(snapName string, unlocker Unlocker) error {
 		return err
 	}
 	// Remove inhibit info files
-	if err := removeInhibitInfoFiles(snapName); err != nil {
+	if err := removeInhibitInfoFiles(instanceName); err != nil {
 		return err
 	}
 	// Remove hint file
-	err = os.Remove(HintFile(snapName))
+	err = os.Remove(HintFile(instanceName))
 	if err != nil && !os.IsNotExist(err) {
 		return err
 	}
@@ -373,7 +373,7 @@ var WaitWhileInhibited = func(ctx context.Context, instanceName naming.InstanceN
 	}()
 
 	for {
-		flock, err = osutil.OpenExistingLockForReading(HintFile(instanceName.String()))
+		flock, err = osutil.OpenExistingLockForReading(HintFile(instanceName))
 		// We must return flock alongside errors so that cleanup defer can close it.
 		if os.IsNotExist(err) {
 			if notInhibited != nil {
