@@ -1912,7 +1912,7 @@ func (s *infoSuite) TestComponentFromSnapComponentInstance(c *C) {
 
 	for _, t := range tests {
 		snapInstance, component := snap.SplitSnapComponentInstanceName(t.input)
-		c.Check(snapInstance, Equals, t.snapInstance)
+		c.Check(snapInstance.String(), Equals, t.snapInstance)
 		c.Check(component, Equals, t.component)
 	}
 }

@@ -339,7 +339,7 @@ func (s *killSnapAppsErrorSuite) TestDoKillSnapAppsErrorBackendKillSnapApps(c *C
 
 	// Mock error in snapst.CurrentInfo
 	restore = snapstate.MockSnapReadInfo(func(name naming.InstanceName, si *snap.SideInfo) (*snap.Info, error) {
-		c.Assert(name, Equals, snapName)
+		c.Assert(name.String(), Equals, snapName)
 		return nil, fmt.Errorf("mock SnapReadInfo error")
 	})
 	defer restore()

@@ -443,7 +443,7 @@ func (s *linkSnapSuite) TestDoUnlinkCurrentSnapWithIgnoreRunning(c *C) {
 
 	// With an app belonging to the snap that is apparently running.
 	snapstate.MockSnapReadInfo(func(name naming.InstanceName, si *snap.SideInfo) (*snap.Info, error) {
-		c.Assert(name, Equals, "pkg")
+		c.Assert(name.String(), Equals, "pkg")
 		info := &snap.Info{SuggestedName: name.String(), SideInfo: *si, SnapType: snap.TypeApp}
 		info.Apps = map[string]*snap.AppInfo{
 			"app": {Snap: info, Name: "app"},
@@ -517,7 +517,7 @@ func (s *linkSnapSuite) testDoUnlinkCurrentSnapWithAppsOrServices(c *C, opts tes
 
 	// With an app belonging to the snap that is apparently running.
 	snapstate.MockSnapReadInfo(func(name naming.InstanceName, si *snap.SideInfo) (*snap.Info, error) {
-		c.Assert(name, Equals, "pkg")
+		c.Assert(name.String(), Equals, "pkg")
 		info := &snap.Info{
 			SuggestedName: name.String(), SideInfo: *si,
 			SnapType: snap.TypeApp,
@@ -678,7 +678,7 @@ func (s *linkSnapSuite) TestDoUnlinkCurrentSnapWithKernelModulesComponents(c *C)
 	})
 
 	snapstate.MockSnapReadInfo(func(name naming.InstanceName, si *snap.SideInfo) (*snap.Info, error) {
-		c.Assert(name, Equals, "pkg")
+		c.Assert(name.String(), Equals, "pkg")
 		info := &snap.Info{SuggestedName: name.String(), SideInfo: *si, SnapType: snap.TypeApp}
 		info.Apps = map[string]*snap.AppInfo{
 			"app": {Snap: info, Name: "app"},
@@ -1138,7 +1138,7 @@ func (s *linkSnapSuite) TestDoUnlinkCurrentSnapRelinksOnFailure(c *C) {
 
 	// With an app belonging to the snap that is apparently running.
 	snapstate.MockSnapReadInfo(func(name naming.InstanceName, si *snap.SideInfo) (*snap.Info, error) {
-		c.Assert(name, Equals, "foo")
+		c.Assert(name.String(), Equals, "foo")
 		info := &snap.Info{SuggestedName: name.String(), SideInfo: *si, SnapType: snap.TypeApp}
 		info.Apps = map[string]*snap.AppInfo{
 			"app": {Snap: info, Name: "app"},
