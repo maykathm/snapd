@@ -5069,6 +5069,7 @@ func (s *snapmgrQuerySuite) TestSnapStateCurrentInfoBrokenParallelInstall(c *C) 
 	c.Assert(os.WriteFile(filepath.Join(binDir, "foo_bar"), nil, 0644), IsNil)
 	c.Assert(os.WriteFile(filepath.Join(binDir, "foo_bar.app"), nil, 0644), IsNil)
 
+	// Simulate missing snap metadata
 	restore := snapstate.MockSnapReadInfo(func(name naming.InstanceName, si *snap.SideInfo) (*snap.Info, error) {
 		c.Check(name.String(), Equals, "foo_bar")
 		return nil, snap.NotFoundError{Snap: name, Revision: si.Revision}
@@ -5077,6 +5078,8 @@ func (s *snapmgrQuerySuite) TestSnapStateCurrentInfoBrokenParallelInstall(c *C) 
 
 	info, err := snapst.CurrentInfo()
 	c.Assert(err, IsNil)
+	// The SuggestedName must be a snap name, not an instance name,
+	// to correctly find apps in GuessAppsForBroken.
 	c.Check(info.SuggestedName, Equals, "foo")
 	c.Check(info.InstanceKey, Equals, "bar")
 	c.Check(info.InstanceName().String(), Equals, "foo_bar")
