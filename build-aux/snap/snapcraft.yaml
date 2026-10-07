@@ -264,6 +264,15 @@ parts:
       fi
       craftctl set version="$VERSION"
 
+      if [ -f fips-build ]; then
+        echo "Antithesis instrumentation is not supported for FIPS builds" >&2
+        exit 1
+      fi
+      snap refresh --channel=1.26/stable go
+      ANTITHESIS_SDK_VERSION=v0.8.0
+      GOBIN="${CRAFT_PART_SRC}/.antithesis/bin" GOFLAGS= go install \
+        "github.com/antithesishq/antithesis-sdk-go/tools/antithesis-go-toolexec@${ANTITHESIS_SDK_VERSION}"
+
       ./get-deps.sh --skip-unused-check
     override-build: |
       VERSION="$(craftctl get version)"
@@ -273,6 +282,12 @@ parts:
       # double check the toolchain
       echo "--- go version $(go version)"
       echo "--- go is at $(which go)"
+
+      ANTITHESIS_SDK_VERSION=v0.8.0
+      export ANTITHESIS_SDK_MODULE_DIR="$(go env GOMODCACHE)/github.com/antithesishq/antithesis-sdk-go@${ANTITHESIS_SDK_VERSION}"
+      export ANTITHESIS_SYMBOLS_DIR="${CRAFT_PART_INSTALL}/catalog"
+      export GOFLAGS="${GOFLAGS:+$GOFLAGS }-toolexec=${CRAFT_PART_SRC}/.antithesis/bin/antithesis-go-toolexec"
+      mkdir -p "$ANTITHESIS_SYMBOLS_DIR"
 
       cd "${CRAFT_PART_BUILD}/cmd"
 
@@ -320,8 +335,8 @@ parts:
            # instead we should allow apps to access dynamic linkers
            # and libraries from snapd.
            lib/snapd/snapctl)
-             export CGO_ENABLED=0
-             GO_LD_FLAGS=()
+             export CGO_ENABLED=1
+             GO_LD_FLAGS=(-ldflags '-extldflags "-static"')
              CHECK_STATIC=1
              ;;
            lib/snapd/snap-update-ns)
@@ -380,7 +395,7 @@ parts:
          esac
 
         output="${CRAFT_PART_INSTALL}/usr/${cmd}"
-        go build -mod=vendor -tags "${TAGS[*]}" "${GO_LD_FLAGS[@]}" ${EXTRA_GO_FLAGS-} -o "${output}" "github.com/snapcore/snapd/cmd/$(basename ${cmd})"
+        go build -mod=mod -tags "${TAGS[*]}" "${GO_LD_FLAGS[@]}" ${EXTRA_GO_FLAGS-} -o "${output}" "github.com/snapcore/snapd/cmd/$(basename ${cmd})"
         if [ "${CHECK_STATIC-}" = 1 ]; then
           if objdump -p "${output}" | grep INTERP; then
             echo "${output} is not static!" 1>&2

@@ -731,6 +731,23 @@ func (s *storeTestSuite) TestAssertionsEndpointNotFound(c *C) {
 	c.Check(respObj["error-list"], DeepEquals, []any{map[string]any{"code": "not-found", "message": "not found"}})
 }
 
+func (s *storeTestSuite) TestCollectAssertionsReadsAssertionStreams(c *C) {
+	var stream bytes.Buffer
+	encoder := asserts.NewEncoder(&stream)
+	for _, assertion := range []asserts.Assertion{
+		systestkeys.TestRootAccount,
+		systestkeys.TestRootAccountKey,
+	} {
+		c.Assert(encoder.WriteEncoded(asserts.Encode(assertion)), IsNil)
+	}
+
+	err := os.WriteFile(filepath.Join(s.store.assertDir, "bundle.assert"), stream.Bytes(), 0644)
+	c.Assert(err, IsNil)
+
+	_, err = s.store.collectAssertions()
+	c.Assert(err, IsNil)
+}
+
 func (s *storeTestSuite) TestSnapActionEndpoint(c *C) {
 	snapFn := s.makeTestSnap(c, "name: test-snapd-tools\nversion: 1")
 

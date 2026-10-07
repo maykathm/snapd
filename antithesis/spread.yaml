@@ -1,0 +1,34 @@
+project: snapd-antithesis
+
+backends:
+    adhoc:
+        type: adhoc
+        # Must match the password of the systems below.
+        allocate: |
+            address=$(./incus-allocate.sh) || exit $?
+            ADDRESS "$address"
+        discard: |
+            ./incus-discard.sh "$SPREAD_SYSTEM_ADDRESS"
+        systems:
+            - ubuntu-26.04-64:
+                username: 'ubuntu'
+                password: 'ubuntu'
+
+environment:
+    TESTING_TARBALL_PATH: '$(HOST: echo "$TESTING_TARBALL_PATH")'
+    FAKE_STORE_TARBALL_PATH: '$(HOST: echo "$FAKE_STORE_TARBALL_PATH")'
+    SPREAD_PASSWORD: 'ubuntu'
+
+path: /home/gopath/src/github.com/snapcore/snapd-antithesis
+
+repack: |
+    tmpdir=$(mktemp -d)
+    trap 'rm -rf "$tmpdir"' EXIT
+    tar -x --no-same-owner -C "$tmpdir" <&3
+    tar -c --owner=1000 --group=1000 --numeric-owner -C "$tmpdir" . >&4
+
+restore: rm -r /home/gopath
+
+suites:
+    tests/:
+        summary: Tests for snapd under Antithesis
