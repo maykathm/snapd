@@ -63,7 +63,7 @@ func ClientSnapFromSnapInfo(snapInfo *snap.Info, decorator StatusDecorator) (*cl
 		Icon:        snapInfo.Media.IconURL(),
 		ID:          snapInfo.ID(),
 		InstallDate: snapInfo.InstallDate(),
-		Name:        snapInfo.InstanceName().String(),
+		Name:        snapInfo.InstanceName(),
 		Revision:    snapInfo.Revision,
 		Summary:     snapInfo.Summary(),
 		Type:        string(snapInfo.Type()),

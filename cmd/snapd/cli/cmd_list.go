@@ -123,7 +123,7 @@ func (x *cmdList) Execute(args []string) error {
 	for _, snap := range snaps {
 		// doing it this way because otherwise it's a sea of %s\t%s\t%s
 		line := []string{
-			snap.Name,
+			snap.Name.String(),
 			fmtVersion(snap.Version),
 			snap.Revision.String(),
 			fmtChannel(snap.TrackingChannel),

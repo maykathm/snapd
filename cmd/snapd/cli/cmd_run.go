@@ -612,7 +612,7 @@ func checkSnapRunInhibitionConflict(app *snap.AppInfo) error {
 	// - Or, A refresh was started and finished
 	// Let's retry to avoid either existing with an error due to missing current
 	// symlink or worse starting with the wrong revision.
-	if osutil.FileExists(runinhibit.HintFile(instanceName.String())) {
+	if osutil.FileExists(runinhibit.HintFile(instanceName)) {
 		// errSnapRefreshConflict should trigger a retry
 		return errSnapRefreshConflict
 	}
@@ -710,7 +710,7 @@ func (x *cmdRun) snapRunHook(snapTarget string) error {
 		return err
 	}
 
-	info, err := getSnapInfo(snapInstance, revision)
+	info, err := getSnapInfo(naming.InstanceName(snapInstance), revision)
 	if err != nil {
 		return err
 	}

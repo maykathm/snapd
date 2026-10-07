@@ -352,7 +352,7 @@ func (b Backend) RemoveSnapInhibitLock(instanceName string, stateUnlocker runinh
 	if stateUnlocker == nil {
 		return errors.New("internal error: stateUnlocker cannot be nil")
 	}
-	return runinhibit.RemoveLockFile(instanceName, stateUnlocker)
+	return runinhibit.RemoveLockFile(naming.InstanceName(instanceName), stateUnlocker)
 }
 
 // SetupKernelModulesComponents changes kernel-modules configuration by

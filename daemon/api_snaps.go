@@ -132,7 +132,7 @@ func injectSnapIconURL(result *client.Snap) *client.Snap {
 
 	route := snapIconCmd.d.router.Get(snapIconCmd.Path)
 	if route != nil {
-		url, err := route.URL("name", result.Name)
+		url, err := route.URL("name", result.Name.String())
 		if err == nil {
 			result.Icon = url.String()
 		}

@@ -3185,7 +3185,7 @@ func (s *RunSuite) TestRunGdbserverNoGdbserver(c *check.C) {
 }
 
 func openHintFileLock(instanceName naming.InstanceName) (*osutil.FileLock, error) {
-	return osutil.NewFileLockWithMode(runinhibit.HintFile(instanceName.String()), 0644)
+	return osutil.NewFileLockWithMode(runinhibit.HintFile(instanceName), 0644)
 }
 
 func (s *RunSuite) TestCreateSnapDirPermissions(c *check.C) {

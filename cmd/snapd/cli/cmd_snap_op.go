@@ -600,7 +600,7 @@ func showDone(cli *client.Client, chg *client.Change, snapsData *changedSnapsDat
 		}
 		switch op {
 		case "install":
-			if notOnlyComps[snap.Name] {
+			if notOnlyComps[snap.Name.String()] {
 				if needsPathWarning {
 					head := i18n.G("Warning:")
 					warn := fill(fmt.Sprintf(i18n.G("%s was not found in your $PATH. If you've not restarted your session since you installed snapd, try doing that. Please see https://forum.snapcraft.io/t/9469 for more details."), dirs.SnapBinariesDir), utf8.RuneCountInString(head)+1) // +1 for the space
@@ -618,15 +618,15 @@ func showDone(cli *client.Client, chg *client.Change, snapsData *changedSnapsDat
 
 				showDoneSnap(snap, channelStr, "installed", esc)
 			}
-			if comps, ok := snapsData.comps[snap.Name]; ok {
+			if comps, ok := snapsData.comps[snap.Name.String()]; ok {
 				showDoneComps(snap, comps, channelStr, "installed")
 			}
 		case "refresh":
-			if notOnlyComps[snap.Name] {
+			if notOnlyComps[snap.Name.String()] {
 				showDoneSnap(snap, channelStr, "refreshed", esc)
 
 			}
-			if comps, ok := snapsData.comps[snap.Name]; ok {
+			if comps, ok := snapsData.comps[snap.Name.String()]; ok {
 				showDoneComps(snap, comps, channelStr, "refreshed")
 			}
 		case "revert":
@@ -1250,7 +1250,7 @@ func (x *cmdRefresh) trackRefreshes() (err error) {
 			channelPtr = &val
 		}
 
-		config[snap.Name] = snapChannel{
+		config[snap.Name.String()] = snapChannel{
 			Channel: channelPtr,
 		}
 	}
