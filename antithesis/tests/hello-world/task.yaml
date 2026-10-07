@@ -1,0 +1,8 @@
+summary: Run the hello-world snap
+
+details: |
+    Hello world
+
+execute: |
+    snap install hello-world
+    snap run hello-world | MATCH '^Hello World!$'

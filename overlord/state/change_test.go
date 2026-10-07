@@ -155,6 +155,16 @@ func (cs *changeSuite) TestAddAll(c *C) {
 	c.Check(t2.Change(), Equals, chg)
 }
 
+func (cs *changeSuite) TestInitialStatusHold(c *C) {
+	st := state.New(nil)
+	st.Lock()
+	defer st.Unlock()
+
+	chg := st.NewChange("install", "...")
+	c.Assert(chg.Status(), Equals, state.HoldStatus)
+	c.Assert(chg.IsReady(), Equals, false)
+}
+
 func (cs *changeSuite) TestStatusExplicitlyDefined(c *C) {
 	st := state.New(nil)
 	st.Lock()
@@ -170,6 +180,8 @@ func (cs *changeSuite) TestStatusExplicitlyDefined(c *C) {
 	c.Assert(chg.Status(), Equals, state.DoingStatus)
 	chg.SetStatus(state.ErrorStatus)
 	c.Assert(chg.Status(), Equals, state.ErrorStatus)
+	chg.SetStatus(state.HoldStatus)
+	c.Assert(chg.Status(), Equals, state.HoldStatus)
 }
 
 func (cs *changeSuite) TestLaneTasks(c *C) {

@@ -21,11 +21,13 @@ package store
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net"
 	"net/http"
 	"net/url"
@@ -999,12 +1001,17 @@ func (s *Store) collectAssertions() (asserts.Backstore, error) {
 			return nil, err
 		}
 
-		a, err := asserts.Decode(b)
-		if err != nil {
-			return nil, err
+		decoder := asserts.NewDecoder(bytes.NewReader(b))
+		for {
+			a, err := decoder.Decode()
+			if err == io.EOF {
+				break
+			}
+			if err != nil {
+				return nil, fmt.Errorf("cannot decode assertion stream %q: %v", fn, err)
+			}
+			add(a)
 		}
-
-		add(a)
 	}
 
 	return bs, nil
