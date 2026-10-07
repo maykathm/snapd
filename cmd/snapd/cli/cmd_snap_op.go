@@ -982,19 +982,20 @@ type cmdRefresh struct {
 	channelMixin
 	modeMixin
 
-	Amend            bool                   `long:"amend"`
-	Revision         string                 `long:"revision"`
-	Cohort           string                 `long:"cohort"`
-	LeaveCohort      bool                   `long:"leave-cohort"`
-	List             bool                   `long:"list"`
-	Time             bool                   `long:"time"`
-	IgnoreValidation bool                   `long:"ignore-validation"`
-	IgnoreRunning    bool                   `long:"ignore-running" hidden:"yes"`
-	Tracking         bool                   `long:"tracking"`
-	Transaction      client.TransactionType `long:"transaction" default:"per-snap" choice:"all-snaps" choice:"per-snap"`
-	Hold             string                 `long:"hold" optional:"yes" optional-value:"forever"`
-	Unhold           bool                   `long:"unhold"`
-	Positional       struct {
+	Amend                bool                   `long:"amend"`
+	Revision             string                 `long:"revision"`
+	Cohort               string                 `long:"cohort"`
+	LeaveCohort          bool                   `long:"leave-cohort"`
+	List                 bool                   `long:"list"`
+	Time                 bool                   `long:"time"`
+	IgnoreValidation     bool                   `long:"ignore-validation"`
+	IgnoreInstanceErrors bool                   `long:"ignore-instance-errors"`
+	IgnoreRunning        bool                   `long:"ignore-running" hidden:"yes"`
+	Tracking             bool                   `long:"tracking"`
+	Transaction          client.TransactionType `long:"transaction" default:"per-snap" choice:"all-snaps" choice:"per-snap"`
+	Hold                 string                 `long:"hold" optional:"yes" optional-value:"forever"`
+	Unhold               bool                   `long:"unhold"`
+	Positional           struct {
 		Snaps []installedSnapName `positional-arg-name:"<snap>"`
 	} `positional-args:"yes"`
 }
@@ -1174,7 +1175,7 @@ func (x *cmdRefresh) Execute([]string) error {
 
 	otherFlags := x.Amend || x.Revision != "" || x.Cohort != "" ||
 		x.LeaveCohort || x.List || x.Time || x.IgnoreValidation || x.IgnoreRunning ||
-		x.Transaction != client.TransactionPerSnap
+		x.IgnoreInstanceErrors || x.Transaction != client.TransactionPerSnap
 
 	switch {
 	case x.Tracking:
@@ -1197,23 +1198,25 @@ func (x *cmdRefresh) Execute([]string) error {
 	names := installedSnapNames(x.Positional.Snaps)
 	if len(names) == 1 {
 		opts := &client.SnapOptions{
-			Amend:            x.Amend,
-			Channel:          x.Channel,
-			IgnoreValidation: x.IgnoreValidation,
-			IgnoreRunning:    x.IgnoreRunning,
-			Revision:         x.Revision,
-			CohortKey:        x.Cohort,
-			LeaveCohort:      x.LeaveCohort,
-			Transaction:      x.Transaction,
+			Amend:                x.Amend,
+			Channel:              x.Channel,
+			IgnoreValidation:     x.IgnoreValidation,
+			IgnoreInstanceErrors: x.IgnoreInstanceErrors,
+			IgnoreRunning:        x.IgnoreRunning,
+			Revision:             x.Revision,
+			CohortKey:            x.Cohort,
+			LeaveCohort:          x.LeaveCohort,
+			Transaction:          x.Transaction,
 		}
 		x.setModes(opts)
 		return x.refreshOne(names[0], opts)
 	}
-	// transaction flag and ignore-running flags are the only ones with meaning when
-	// refreshing many snaps
+	// transaction, ignore-running and ignore-instance-errors flags are the
+	// only ones with meaning when refreshing many snaps
 	opts := &client.SnapOptions{
-		IgnoreRunning: x.IgnoreRunning,
-		Transaction:   x.Transaction,
+		IgnoreRunning:        x.IgnoreRunning,
+		IgnoreInstanceErrors: x.IgnoreInstanceErrors,
+		Transaction:          x.Transaction,
 	}
 
 	if x.asksForMode() || x.asksForChannel() {
@@ -1672,6 +1675,8 @@ func init() {
 			"time": i18n.G("Show auto refresh information but do not perform a refresh"),
 			// TRANSLATORS: This should not start with a lowercase letter.
 			"ignore-validation": i18n.G("Ignore validation by other snaps blocking the refresh"),
+			// TRANSLATORS: This should not start with a lowercase letter.
+			"ignore-instance-errors": i18n.G("Ignore parallel instance plug and slot compatibility errors"),
 			// TRANSLATORS: This should not start with a lowercase letter.
 			"ignore-running": i18n.G("Ignore running hooks or applications blocking the refresh"),
 			// TRANSLATORS: This should not start with a lowercase letter.

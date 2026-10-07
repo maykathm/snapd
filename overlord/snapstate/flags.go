@@ -49,7 +49,8 @@ type Flags struct {
 	IgnoreValidation bool `json:"ignore-validation,omitempty"`
 
 	// IgnoreInstanceErrors is set when the user requested to install
-	// parallel instances of snaps with unsupported interfaces
+	// parallel instances of snaps with unsupported interfaces. Once set it is
+	// persisted in SnapState and honoured on subsequent refreshes.
 	IgnoreInstanceErrors bool `json:"ignore-instance-errors,omitempty"`
 
 	// IgnoreRunning is set to indicate that running apps or hooks should be
@@ -138,7 +139,6 @@ func (f Flags) ForSnapSetup() Flags {
 	f.NoReRefresh = false
 	f.RequireTypeBase = false
 	f.ApplySnapDevMode = false
-	f.IgnoreInstanceErrors = false
 	f.Lane = 0
 	return f
 }

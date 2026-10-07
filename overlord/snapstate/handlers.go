@@ -1882,6 +1882,11 @@ func (m *SnapManager) doLinkSnap(t *state.Task, _ *tomb.Tomb) (retErr error) {
 	if snapsup.Required { // set only on install and left alone on refresh
 		snapst.Required = true
 	}
+	oldIgnoreInstanceErrors := snapst.IgnoreInstanceErrors
+	// sticky: never cleared by later operations that don't carry the flag
+	if snapsup.IgnoreInstanceErrors {
+		snapst.IgnoreInstanceErrors = true
+	}
 	oldRefreshInhibitedTime := snapst.RefreshInhibitedTime
 	oldLastRefreshTime := snapst.LastRefreshTime
 	// only set userID if unset or logged out in snapst and if we
@@ -2063,6 +2068,7 @@ func (m *SnapManager) doLinkSnap(t *state.Task, _ *tomb.Tomb) (retErr error) {
 	t.Set("old-jailmode", oldJailMode)
 	t.Set("old-classic", oldClassic)
 	t.Set("old-ignore-validation", oldIgnoreValidation)
+	t.Set("old-ignore-instance-errors", oldIgnoreInstanceErrors)
 	t.Set("old-channel", oldChannel)
 	t.Set("old-current", oldCurrent)
 	t.Set("old-candidate-index", oldCandidateIndex)
@@ -2463,6 +2469,12 @@ func (m *SnapManager) undoLinkSnap(t *state.Task, _ *tomb.Tomb) error {
 	if err != nil && !errors.Is(err, state.ErrNoState) {
 		return err
 	}
+	// tasks created by older snapd don't have it, keep the current value then
+	oldIgnoreInstanceErrors := snapst.IgnoreInstanceErrors
+	err = t.Get("old-ignore-instance-errors", &oldIgnoreInstanceErrors)
+	if err != nil && !errors.Is(err, state.ErrNoState) {
+		return err
+	}
 	var oldTryMode bool
 	err = t.Get("old-trymode", &oldTryMode)
 	if err != nil {
@@ -2566,6 +2578,7 @@ func (m *SnapManager) undoLinkSnap(t *state.Task, _ *tomb.Tomb) error {
 	snapst.Active = false
 	snapst.TrackingChannel = oldChannel
 	snapst.IgnoreValidation = oldIgnoreValidation
+	snapst.IgnoreInstanceErrors = oldIgnoreInstanceErrors
 	snapst.TryMode = oldTryMode
 	snapst.DevMode = oldDevMode
 	snapst.JailMode = oldJailMode
