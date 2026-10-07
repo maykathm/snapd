@@ -1303,6 +1303,48 @@ func (m *SnapManager) ensureForceDevmodeDropsDevmodeFromState() error {
 	return nil
 }
 
+// parallelInstancesMigratedKey marks that existing parallel instances were
+// evaluated once support checks on refresh were introduced
+const parallelInstancesMigratedKey = "parallel-instances-ignore-errors-migrated"
+
+// MigrateParallelInstancesIgnoreInstanceErrors sets IgnoreInstanceErrors on
+// parallel instances installed before support was checked on refresh that
+// use interfaces not supporting parallel instances, so their refreshes are
+// not blocked. It does its work only once. It must be called with the state
+// locked and after the interface repository has been set up.
+func MigrateParallelInstancesIgnoreInstanceErrors(st *state.State) error {
+	var done bool
+	if err := st.Get(parallelInstancesMigratedKey, &done); err != nil && !errors.Is(err, state.ErrNoState) {
+		return err
+	}
+	if done {
+		return nil
+	}
+
+	all, err := All(st)
+	if err != nil {
+		return err
+	}
+	for name, snapst := range all {
+		if snapst.InstanceKey == "" || snapst.IgnoreInstanceErrors {
+			continue
+		}
+		info, err := snapst.CurrentInfo()
+		if err != nil {
+			logger.Noticef("cannot check parallel instance support of snap %q: %v", name, err)
+			continue
+		}
+		if err := checkParallelInstancesSupport(st, info); err == nil {
+			continue
+		}
+		snapst.IgnoreInstanceErrors = true
+		Set(st, name, snapst)
+	}
+
+	st.Set(parallelInstancesMigratedKey, true)
+	return nil
+}
+
 // changeInFlight returns true if there is any change in the state
 // in non-ready state.
 func changeInFlight(st *state.State) bool {
