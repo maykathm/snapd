@@ -1,0 +1,11 @@
+[Unit]
+Description=snap mount directory mount
+ConditionPathExistsGlob=!/run/snapd/ns/*.mnt
+
+[Mount]
+What=@SNAP_MOUNT_DIR@
+Where=@SNAP_MOUNT_DIR@
+Options=bind
+
+[Install]
+WantedBy=snapd.mounts.target

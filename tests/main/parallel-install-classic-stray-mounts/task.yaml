@@ -1,0 +1,106 @@
+summary: Parallel instances of classic snaps leave no stray mounts behind
+
+details: |
+    When a classic snap is invoked as a parallel instance, snap-confine performs
+    extra mount work in the host mount namespace: it makes SNAP_MOUNT_DIR and
+    /var/snap into shared mount points, recursively bind mounting them onto
+    themselves if needed. A recursive bind mount duplicates every snap mount
+    underneath, so a careless implementation leaves behind a shadow set of
+    mounts which is never torn down when the snaps are removed.
+
+    The test turns SNAP_MOUNT_DIR and /var/snap into proper mount points with
+    dedicated mount units, reboots so that those units are established before
+    any snap is ever run, then records the set of snap related mounts. It
+    installs and runs both a plain and a parallel instance of a classic snap,
+    removes them again and verifies that the set of snap related mounts is back
+    to exactly what it was and that no preserved mount namespace is left over.
+
+# classic confinement is not supported on Ubuntu Core
+systems: [-ubuntu-core-*]
+
+environment:
+    SNAP_NAME: test-snapd-classic-confinement
+    INSTANCE_NAME: test-snapd-classic-confinement_foo
+
+prepare: |
+    SNAP_MOUNT_DIR="$(os.paths snap-mount-dir)"
+
+    for dir in "$SNAP_MOUNT_DIR" /var/snap; do
+        # /var/snap -> var-snap.mount
+        unit="${dir#/}"
+        unit="${unit//\//-}.mount"
+        sed -e "s,@SNAP_MOUNT_DIR@,$dir," snap-dir.mount.template > "/etc/systemd/system/$unit"
+        systemctl enable "$unit"
+    done
+    systemctl daemon-reload
+
+restore: |
+    SNAP_MOUNT_DIR="$(os.paths snap-mount-dir)"
+
+    snap remove --purge "$INSTANCE_NAME" || true
+    snap remove --purge "$SNAP_NAME" || true
+    snap unset system experimental.parallel-instances
+
+    for dir in "$SNAP_MOUNT_DIR" /var/snap; do
+        unit="${dir#/}"
+        unit="${unit//\//-}.mount"
+        systemctl disable --now "$unit" || true
+        rm -f "/etc/systemd/system/$unit"
+    done
+    systemctl daemon-reload
+
+debug: |
+    cat /proc/self/mountinfo || true
+    ls -l /run/snapd/ns/ || true
+    systemctl --no-pager status 'snap.mount' 'var-lib-snapd-snap.mount' 'var-snap.mount' || true
+
+execute: |
+
+    if [ "$SPREAD_REBOOT" = 0 ]; then
+        # the mount units must be in place before any snap is run, so that the
+        # mount namespace of the host is in its intended shape from the start
+        REBOOT
+    fi
+
+    SNAP_MOUNT_DIR="$(os.paths snap-mount-dir)"
+
+    SNAP_MOUNT_UNIT="${SNAP_MOUNT_DIR#/}"
+    SNAP_MOUNT_UNIT="${SNAP_MOUNT_UNIT//\//-}.mount"
+    systemctl is-active "$SNAP_MOUNT_UNIT"
+    systemctl is-active var-snap.mount
+
+    # List the mount points of all entries in the host mount namespace that live
+    # at or below SNAP_MOUNT_DIR or /var/snap. Field 5 of mountinfo is the mount
+    # point.
+    snap_related_mounts() {
+        awk -v dir="$SNAP_MOUNT_DIR" '
+            $5 == dir || index($5, dir "/") == 1 ||
+            $5 == "/var/snap" || index($5, "/var/snap/") == 1 { print $5 }
+        ' /proc/self/mountinfo | sort
+    }
+
+    snap set system experimental.parallel-instances=true
+
+    snap_related_mounts > before.txt
+
+    "$TESTSTOOLS"/snaps-state install-local-as "$SNAP_NAME" "$INSTANCE_NAME" --classic
+    "${INSTANCE_NAME}.sh" -c 'echo hello-from-instance' | MATCH hello-from-instance
+
+    "$TESTSTOOLS"/snaps-state install-local "$SNAP_NAME" --classic
+    "${SNAP_NAME}.sh" -c 'echo hello-from-snap' | MATCH hello-from-snap
+
+    snap remove --purge "$SNAP_NAME"
+    snap remove --purge "$INSTANCE_NAME"
+
+    # no mount of either snap may be left anywhere in the host mount namespace
+    not grep -F "$SNAP_NAME" /proc/self/mountinfo
+
+    # and the set of snap related mounts is back to what it was
+    snap_related_mounts > after.txt
+    diff -u before.txt after.txt
+
+    # no preserved mount namespace is left behind either
+    if ls /run/snapd/ns/*.mnt >/dev/null 2>&1; then
+        echo "stray preserved mount namespaces found"
+        exit 1
+    fi
