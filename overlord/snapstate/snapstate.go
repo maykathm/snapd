@@ -350,21 +350,21 @@ func FinishRestart(task *state.Task, snapsup *SnapSetup, opts FinishRestartOptio
 		// get the name of the name relevant for booting
 		// based on the given type
 		model := deviceCtx.Model()
-		var bootName string
+		var bootName naming.InstanceName
 		switch snapsup.Type {
 		case snap.TypeKernel:
 			bootName = model.Kernel()
 		case snap.TypeOS, snap.TypeBase:
-			bootName = "core"
+			bootName = naming.Core
 			if model.Base() != "" {
-				bootName = model.Base()
+				bootName = naming.InstanceName(model.Base())
 			}
 		default:
 			return nil
 		}
 		// if it is not a snap related to our booting we are not
 		// interested
-		if snapsup.InstanceName().String() != bootName {
+		if snapsup.InstanceName() != bootName {
 			return nil
 		}
 
@@ -1228,7 +1228,7 @@ func ResolveValidationSetsEnforcementError(ctx context.Context, st *state.State,
 		comps = append(comps, keys(cerr.MissingComponents)...)
 		comps = append(comps, keys(cerr.WrongRevisionComponents)...)
 
-		info, err := CurrentInfo(st, snapName)
+		info, err := CurrentInfo(st, naming.InstanceName(snapName))
 		if err != nil {
 			return nil, nil, err
 		}
@@ -1987,10 +1987,10 @@ func resolveChannel(snapName, oldChannel, newChannel string, deviceCtx DeviceCon
 	model := deviceCtx.Model()
 
 	var pinnedTrack, which string
-	if snapName == model.Kernel() && model.KernelTrack() != "" {
+	if naming.InstanceName(snapName) == model.Kernel() && model.KernelTrack() != "" {
 		pinnedTrack, which = model.KernelTrack(), "kernel"
 	}
-	if snapName == model.Gadget() && model.GadgetTrack() != "" {
+	if naming.InstanceName(snapName) == model.Gadget() && model.GadgetTrack() != "" {
 		pinnedTrack, which = model.GadgetTrack(), "gadget"
 	}
 
@@ -2090,7 +2090,7 @@ func Switch(st *state.State, name string, opts *RevisionOptions, prqt PrereqTrac
 	}
 
 	var snapst SnapState
-	err := Get(st, name, &snapst)
+	err := Get(st, naming.InstanceName(name), &snapst)
 	if err != nil && !errors.Is(err, state.ErrNoState) {
 		return nil, err
 	}
@@ -2707,7 +2707,7 @@ func MigrateHome(st *state.State, snaps []string) ([]*state.TaskSet, error) {
 // present. Thus, the prepare-kernel-snap task would be redundant.
 func LinkNewBaseOrKernel(st *state.State, name string, fromChange string, deviceCtx DeviceContext) (*state.TaskSet, error) {
 	var snapst SnapState
-	err := Get(st, name, &snapst)
+	err := Get(st, naming.InstanceName(name), &snapst)
 	if errors.Is(err, state.ErrNoState) {
 		return nil, &snap.NotInstalledError{Snap: name}
 	}
@@ -2867,7 +2867,7 @@ func AddLinkNewBaseOrKernel(st *state.State, ts *state.TaskSet, deviceCtx Device
 	}
 
 	var snapst SnapState
-	if err := Get(st, snapsup.InstanceName().String(), &snapst); err != nil {
+	if err := Get(st, snapsup.InstanceName(), &snapst); err != nil {
 		return nil, err
 	}
 
@@ -2892,7 +2892,7 @@ func AddLinkNewBaseOrKernel(st *state.State, ts *state.TaskSet, deviceCtx Device
 // for remodel.
 func SwitchToNewGadget(st *state.State, name string, fromChange string) (*state.TaskSet, error) {
 	var snapst SnapState
-	err := Get(st, name, &snapst)
+	err := Get(st, naming.InstanceName(name), &snapst)
 	if errors.Is(err, state.ErrNoState) {
 		return nil, &snap.NotInstalledError{Snap: name}
 	}
@@ -2980,7 +2980,7 @@ func AddGadgetAssetsTasks(st *state.State, ts *state.TaskSet) (*state.TaskSet, e
 // Enable sets a snap to the active state
 func Enable(st *state.State, name string) (*state.TaskSet, error) {
 	var snapst SnapState
-	err := Get(st, name, &snapst)
+	err := Get(st, naming.InstanceName(name), &snapst)
 	if errors.Is(err, state.ErrNoState) {
 		return nil, &snap.NotInstalledError{Snap: name}
 	}
@@ -3036,7 +3036,7 @@ func Enable(st *state.State, name string) (*state.TaskSet, error) {
 // Disable sets a snap to the inactive state
 func Disable(st *state.State, name string) (*state.TaskSet, error) {
 	var snapst SnapState
-	err := Get(st, name, &snapst)
+	err := Get(st, naming.InstanceName(name), &snapst)
 	if errors.Is(err, state.ErrNoState) {
 		return nil, &snap.NotInstalledError{Snap: name}
 	}
@@ -3165,7 +3165,7 @@ type RemoveFlags struct {
 
 // Remove returns a set of tasks for removing snap.
 // Note that the state must be locked by the caller.
-func Remove(st *state.State, name string, revision snap.Revision, flags *RemoveFlags) (*state.TaskSet, error) {
+func Remove[T string | naming.InstanceName](st *state.State, name T, revision snap.Revision, flags *RemoveFlags) (*state.TaskSet, error) {
 	if flags == nil {
 		flags = &RemoveFlags{}
 	}
@@ -3180,7 +3180,7 @@ func Remove(st *state.State, name string, revision snap.Revision, flags *RemoveF
 	}
 
 	if !snapst.IsInstalled() {
-		return nil, &snap.NotInstalledError{Snap: name, Rev: snap.R(0)}
+		return nil, &snap.NotInstalledError{Snap: snapNameString(name), Rev: snap.R(0)}
 	}
 
 	removals := map[string]bool{snapst.InstanceName().String(): true}
@@ -3198,7 +3198,7 @@ func Remove(st *state.State, name string, revision snap.Revision, flags *RemoveF
 			if _, ok := err.(*osutil.NotEnoughDiskSpaceError); ok {
 				return nil, &InsufficientSpaceError{
 					Path:       path,
-					Snaps:      []string{name},
+					Snaps:      []string{snapNameString(name)},
 					ChangeKind: "remove",
 					Message:    fmt.Sprintf("cannot create automatic snapshot when removing last revision of the snap: %v", err)}
 			}
@@ -3570,7 +3570,7 @@ func RemoveMany(st *state.State, names []string, flags *RemoveFlags) ([]string, 
 	snapsts := make([]SnapState, 0, len(names))
 	for _, name := range names {
 		var snapst SnapState
-		if err := Get(st, name, &snapst); err != nil && !errors.Is(err, state.ErrNoState) {
+		if err := Get(st, naming.InstanceName(name), &snapst); err != nil && !errors.Is(err, state.ErrNoState) {
 			return nil, nil, err
 		}
 
@@ -3670,7 +3670,7 @@ func validateSnapNames(names []string) error {
 // Note that the state must be locked by the caller.
 func Revert(st *state.State, name string, flags Flags, fromChange string) (*state.TaskSet, error) {
 	var snapst SnapState
-	err := Get(st, name, &snapst)
+	err := Get(st, naming.InstanceName(name), &snapst)
 	if err != nil && !errors.Is(err, state.ErrNoState) {
 		return nil, err
 	}
@@ -3735,7 +3735,7 @@ func RevertToRevision(st *state.State, name string, rev snap.Revision, flags Fla
 
 func revertToRevisionTaskSet(st *state.State, name string, rev snap.Revision, flags Flags, fromChange string, noRestartBoundaries bool) (snapInstallTaskSet, error) {
 	var snapst SnapState
-	err := Get(st, name, &snapst)
+	err := Get(st, naming.InstanceName(name), &snapst)
 	if err != nil && !errors.Is(err, state.ErrNoState) {
 		return snapInstallTaskSet{}, err
 	}
@@ -3813,7 +3813,7 @@ func revertToRevisionTaskSet(st *state.State, name string, rev snap.Revision, fl
 // - no data needs to be copied
 // - all interfaces are absolutely identical on both new and old
 // Do not use this as a general way to transition from snap A to snap B.
-func TransitionCore(st *state.State, oldName, newName string) ([]*state.TaskSet, error) {
+func TransitionCore[T string | naming.InstanceName](st *state.State, oldName, newName T) ([]*state.TaskSet, error) {
 	var oldSnapst, newSnapst SnapState
 	err := Get(st, oldName, &oldSnapst)
 	if err != nil && !errors.Is(err, state.ErrNoState) {
@@ -3836,7 +3836,7 @@ func TransitionCore(st *state.State, oldName, newName string) ([]*state.TaskSet,
 		}
 
 		result, err := sendOneInstallAction(context.TODO(), st, StoreSnap{
-			InstanceName: newName,
+			InstanceName: snapNameString(newName),
 			RevOpts: RevisionOptions{
 				Channel:        oldSnapst.TrackingChannel,
 				ValidationSets: enforced,
@@ -3875,7 +3875,7 @@ func TransitionCore(st *state.State, oldName, newName string) ([]*state.TaskSet,
 	// FIXME: this is just here for the tests
 	transIf.Set("snap-setup", &SnapSetup{
 		SideInfo: &snap.SideInfo{
-			RealName: oldName,
+			RealName: snapNameString(oldName),
 		},
 	})
 
@@ -3908,7 +3908,7 @@ func Installing(st *state.State) bool {
 // Works also for a mounted candidate snap in the process of being installed.
 func Info(st *state.State, name string, revision snap.Revision) (*snap.Info, error) {
 	var snapst SnapState
-	err := Get(st, name, &snapst)
+	err := Get(st, naming.InstanceName(name), &snapst)
 	if errors.Is(err, state.ErrNoState) {
 		return nil, &snap.NotInstalledError{Snap: name}
 	}
@@ -3927,7 +3927,7 @@ func Info(st *state.State, name string, revision snap.Revision) (*snap.Info, err
 }
 
 // CurrentInfo returns the information about the current revision of a snap with the given name.
-func CurrentInfo(st *state.State, name string) (*snap.Info, error) {
+func CurrentInfo[T string | naming.InstanceName](st *state.State, name T) (*snap.Info, error) {
 	var snapst SnapState
 	err := Get(st, name, &snapst)
 	if err != nil && !errors.Is(err, state.ErrNoState) {
@@ -3935,13 +3935,24 @@ func CurrentInfo(st *state.State, name string) (*snap.Info, error) {
 	}
 	info, err := snapst.CurrentInfo()
 	if err == ErrNoCurrent {
-		return nil, &snap.NotInstalledError{Snap: name}
+		return nil, &snap.NotInstalledError{Snap: snapNameString(name)}
 	}
 	return info, err
 }
 
+func snapNameString[T string | naming.InstanceName](name T) string {
+	switch name := any(name).(type) {
+	case string:
+		return name
+	case naming.InstanceName:
+		return name.String()
+	default:
+		panic("internal error: unsupported snap name type")
+	}
+}
+
 // Get retrieves the SnapState of the given snap.
-func Get(st *state.State, name string, snapst *SnapState) error {
+func Get[T string | naming.InstanceName](st *state.State, name T, snapst *SnapState) error {
 	if snapst == nil {
 		return fmt.Errorf("internal error: snapst is nil")
 	}
@@ -3958,7 +3969,7 @@ func Get(st *state.State, name string, snapst *SnapState) error {
 	if err != nil {
 		return err
 	}
-	raw, ok := snaps[name]
+	raw, ok := snaps[snapNameString(name)]
 	if !ok {
 		return state.ErrNoState
 	}
@@ -4035,7 +4046,7 @@ func NumSnaps(st *state.State) (int, error) {
 // Set sets the SnapState of the given snap, overwriting any earlier state.
 // Note that a SnapState with an empty Sequence will be treated as if snapst was
 // nil and name will be deleted from the state.
-func Set(st *state.State, name string, snapst *SnapState) {
+func Set[T string | naming.InstanceName](st *state.State, name T, snapst *SnapState) {
 	var snaps map[string]*json.RawMessage
 	err := st.Get("snaps", &snaps)
 	if err != nil && !errors.Is(err, state.ErrNoState) {
@@ -4045,14 +4056,14 @@ func Set(st *state.State, name string, snapst *SnapState) {
 		snaps = make(map[string]*json.RawMessage)
 	}
 	if snapst == nil || (len(snapst.Sequence.Revisions) == 0) {
-		delete(snaps, name)
+		delete(snaps, snapNameString(name))
 	} else {
 		data, err := json.Marshal(snapst)
 		if err != nil {
 			panic("internal error: cannot marshal snap state: " + err.Error())
 		}
 		raw := json.RawMessage(data)
-		snaps[name] = &raw
+		snaps[snapNameString(name)] = &raw
 	}
 	st.Set("snaps", snaps)
 }
@@ -4129,7 +4140,7 @@ func infosForType(st *state.State, snapType snap.Type) ([]*snap.Info, error) {
 	return res, nil
 }
 
-func infoForDeviceSnap(st *state.State, deviceCtx DeviceContext, whichName func(*asserts.Model) string) (*snap.Info, error) {
+func infoForDeviceSnap(st *state.State, deviceCtx DeviceContext, whichName func(*asserts.Model) naming.InstanceName) (*snap.Info, error) {
 	if deviceCtx == nil {
 		return nil, fmt.Errorf("internal error: unset deviceCtx")
 	}
@@ -4158,12 +4169,12 @@ func KernelInfo(st *state.State, deviceCtx DeviceContext) (*snap.Info, error) {
 
 // BootBaseInfo finds the boot base snap's info for the given device context.
 func BootBaseInfo(st *state.State, deviceCtx DeviceContext) (*snap.Info, error) {
-	baseName := func(mod *asserts.Model) string {
+	baseName := func(mod *asserts.Model) naming.InstanceName {
 		base := mod.Base()
 		if base == "" {
-			return "core"
+			return naming.Core
 		}
-		return base
+		return naming.InstanceName(base)
 	}
 	return infoForDeviceSnap(st, deviceCtx, baseName)
 }
@@ -4204,7 +4215,7 @@ func coreInfo(st *state.State) (*snap.Info, error) {
 // ConfigDefaults returns the configuration defaults for the snap as
 // specified in the gadget for the given device context.
 // If gadget is absent or the snap has no snap-id it returns ErrNoState.
-func ConfigDefaults(st *state.State, deviceCtx DeviceContext, snapName string) (map[string]any, error) {
+func ConfigDefaults[T string | naming.InstanceName](st *state.State, deviceCtx DeviceContext, snapName T) (map[string]any, error) {
 	info, err := GadgetInfo(st, deviceCtx)
 	if err != nil {
 		return nil, err
@@ -4212,7 +4223,7 @@ func ConfigDefaults(st *state.State, deviceCtx DeviceContext, snapName string) (
 
 	// system configuration is kept under "core" so apply its defaults when
 	// configuring "core"
-	isSystemDefaults := snapName == defaultCoreSnapName
+	isSystemDefaults := snapNameString(snapName) == defaultCoreSnapName
 	var snapst SnapState
 	if err := Get(st, snapName, &snapst); err != nil && !errors.Is(err, state.ErrNoState) {
 		return nil, err

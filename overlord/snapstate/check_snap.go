@@ -279,7 +279,7 @@ func checkCoreName(st *state.State, snapInfo, curInfo *snap.Info, _ snap.Contain
 func checkGadgetOrKernel(st *state.State, snapInfo, curInfo *snap.Info, snapf snap.Container, flags Flags, deviceCtx DeviceContext) error {
 	typ := snapInfo.Type()
 	kind := ""
-	var whichName func(*asserts.Model) string
+	var whichName func(*asserts.Model) naming.InstanceName
 	switch typ {
 	case snap.TypeGadget:
 		kind = "gadget"
@@ -305,7 +305,7 @@ func checkGadgetOrKernel(st *state.State, snapInfo, curInfo *snap.Info, snapf sn
 	if errors.Is(err, state.ErrNoState) {
 		// check if we are in the remodel case
 		if deviceCtx != nil && deviceCtx.ForRemodeling() {
-			if whichName(deviceCtx.Model()) == snapInfo.InstanceName().String() {
+			if whichName(deviceCtx.Model()) == snapInfo.InstanceName() {
 				return nil
 			}
 		}

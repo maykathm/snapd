@@ -35,9 +35,9 @@ func init() {
 func For(typ snap.Type, model *asserts.Model) snapstate.Policy {
 	switch typ {
 	case snap.TypeKernel:
-		return &kernelPolicy{modelKernel: model.Kernel()}
+		return &kernelPolicy{modelKernel: model.Kernel().String()}
 	case snap.TypeGadget:
-		return &gadgetPolicy{modelGadget: model.Gadget()}
+		return &gadgetPolicy{modelGadget: model.Gadget().String()}
 	case snap.TypeOS:
 		return &osPolicy{modelBase: model.Base()}
 	case snap.TypeBase:

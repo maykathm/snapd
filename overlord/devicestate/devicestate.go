@@ -210,7 +210,7 @@ func canAutoRefresh(st *state.State) (bool, error) {
 func checkGadgetOrKernel(st *state.State, snapInfo, curInfo *snap.Info, _ snap.Container, flags snapstate.Flags, deviceCtx snapstate.DeviceContext) error {
 	kind := ""
 	var snapType snap.Type
-	var getName func(*asserts.Model) string
+	var getName func(*asserts.Model) naming.InstanceName
 	switch snapInfo.Type() {
 	case snap.TypeGadget:
 		kind = "gadget"
@@ -263,7 +263,7 @@ func checkGadgetOrKernel(st *state.State, snapInfo, curInfo *snap.Info, _ snap.C
 		return fmt.Errorf("cannot install %q, parallel installation of kernel or gadget snaps is not supported", snapInfo.InstanceName())
 	}
 
-	if snapInfo.InstanceName().String() != expectedName {
+	if snapInfo.InstanceName() != expectedName {
 		return fmt.Errorf("cannot install %s %q, model assertion requests %q", kind, snapInfo.InstanceName(), expectedName)
 	}
 
@@ -525,7 +525,7 @@ func (r *remodeler) maybeInstallOrUpdate(ctx context.Context, st *state.State, r
 	}
 
 	var snapst snapstate.SnapState
-	if err := snapstate.Get(st, rt.name, &snapst); err != nil {
+	if err := snapstate.Get(st, naming.InstanceName(rt.name), &snapst); err != nil {
 		if !errors.Is(err, state.ErrNoState) {
 			return 0, nil, err
 		}
@@ -743,7 +743,7 @@ func (r *remodeler) installedRevisionUpdateGoal(
 	constraints snapasserts.SnapPresenceConstraints,
 ) (snapstate.UpdateGoal, error) {
 	var snapst snapstate.SnapState
-	if err := snapstate.Get(st, sn.name, &snapst); err != nil {
+	if err := snapstate.Get(st, naming.InstanceName(sn.name), &snapst); err != nil {
 		return nil, err
 	}
 
@@ -1005,9 +1005,9 @@ func tasksForEssentialSnap(
 	var currentModelSnap, newModelSnap *asserts.ModelSnap
 	switch snapType {
 	case "kernel":
-		currentSnap = current.Kernel()
+		currentSnap = current.Kernel().String()
 		currentModelSnap = current.KernelSnap()
-		newSnap = new.Kernel()
+		newSnap = new.Kernel().String()
 		newModelSnap = new.KernelSnap()
 	case "base", "core":
 		currentSnap = current.Base()
@@ -1015,9 +1015,9 @@ func tasksForEssentialSnap(
 		newSnap = new.Base()
 		newModelSnap = new.BaseSnap()
 	case "gadget":
-		currentSnap = current.Gadget()
+		currentSnap = current.Gadget().String()
 		currentModelSnap = current.GadgetSnap()
-		newSnap = new.Gadget()
+		newSnap = new.Gadget().String()
 		newModelSnap = new.GadgetSnap()
 	default:
 		return nil, fmt.Errorf("internal error: unexpected type %q", snapType)
@@ -2488,7 +2488,7 @@ func CreateRecoverySystem(st *state.State, label string, opts CreateRecoverySyst
 					return nil, err
 				}
 
-				info, err = snapstate.CurrentInfo(st, sn.Name)
+				info, err = snapstate.CurrentInfo(st, naming.InstanceName(sn.Name))
 				if err != nil {
 					return nil, err
 				}
@@ -2516,7 +2516,7 @@ func CreateRecoverySystem(st *state.State, label string, opts CreateRecoverySyst
 			// online case, but the currently installed snap revision is valid
 			// in the given validation sets.
 
-			info, err := snapstate.CurrentInfo(st, sn.Name)
+			info, err := snapstate.CurrentInfo(st, naming.InstanceName(sn.Name))
 			if err != nil {
 				return nil, err
 			}
@@ -2676,7 +2676,7 @@ func offlineComponentInfo(cref naming.ComponentRef, rev snap.Revision, comps []s
 
 func installedSnapRevision(st *state.State, name string) (bool, snap.Revision, error) {
 	var snapst snapstate.SnapState
-	if err := snapstate.Get(st, name, &snapst); err != nil {
+	if err := snapstate.Get(st, naming.InstanceName(name), &snapst); err != nil {
 		if errors.Is(err, state.ErrNoState) {
 			return false, snap.Revision{}, nil
 		}
@@ -2687,7 +2687,7 @@ func installedSnapRevision(st *state.State, name string) (bool, snap.Revision, e
 
 func installedComponentRevision(st *state.State, snapName, compName string) (bool, snap.Revision, error) {
 	var snapst snapstate.SnapState
-	if err := snapstate.Get(st, snapName, &snapst); err != nil {
+	if err := snapstate.Get(st, naming.InstanceName(snapName), &snapst); err != nil {
 		if errors.Is(err, state.ErrNoState) {
 			return false, snap.Revision{}, nil
 		}

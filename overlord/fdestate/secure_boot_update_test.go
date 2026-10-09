@@ -428,8 +428,8 @@ func (s *fdeMgrSuite) testEFISecurebootPrepareConflictSnapChangesForKind(
 	snapstate.Set(st, model.Kernel(), &snapstate.SnapState{
 		Active: true,
 		Sequence: snapstatetest.NewSequenceFromSnapSideInfos([]*snap.SideInfo{
-			{RealName: model.Kernel(), Revision: snap.R(1)},
-			{RealName: model.Kernel(), Revision: snap.R(2)},
+			{RealName: model.Kernel().String(), Revision: snap.R(1)},
+			{RealName: model.Kernel().String(), Revision: snap.R(2)},
 		}),
 		Current:  snap.R(2),
 		SnapType: "kernel",
@@ -1610,8 +1610,8 @@ type: app
 		name       string
 		noConflict bool
 	}{
-		{snapYaml: gadgetSnapYamlContent, name: model.Gadget()},
-		{snapYaml: kernelSnapYamlContent, name: model.Kernel()},
+		{snapYaml: gadgetSnapYamlContent, name: model.Gadget().String()},
+		{snapYaml: kernelSnapYamlContent, name: model.Kernel().String()},
 		{snapYaml: baseSnapYamlContent, name: model.Base()},
 		{snapYaml: appSnapYamlContent, name: "apps", noConflict: true},
 	} {

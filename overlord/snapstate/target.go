@@ -1002,7 +1002,7 @@ func SeedingGoal(sn PathSnap) InstallGoal {
 // toInstall returns the data needed to setup the snap from disk.
 func (p *seedingGoal) toInstall(ctx context.Context, st *state.State, opts Options) ([]target, error) {
 	var snapst SnapState
-	if err := Get(st, p.snap.InstanceName, &snapst); err != nil && !errors.Is(err, state.ErrNoState) {
+	if err := Get(st, naming.InstanceName(p.snap.InstanceName), &snapst); err != nil && !errors.Is(err, state.ErrNoState) {
 		return nil, err
 	}
 
@@ -1623,7 +1623,7 @@ func (p *pathUpdateGoal) toUpdate(_ context.Context, st *state.State, opts Optio
 
 	for _, sn := range p.updates {
 		var snapst SnapState
-		if err := Get(st, sn.InstanceName, &snapst); err != nil && !errors.Is(err, state.ErrNoState) {
+		if err := Get(st, naming.InstanceName(sn.InstanceName), &snapst); err != nil && !errors.Is(err, state.ErrNoState) {
 			return updatePlan{}, err
 		}
 

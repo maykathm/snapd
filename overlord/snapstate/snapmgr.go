@@ -1073,7 +1073,7 @@ func affectsRunningHooks(cand *state.Task, running []*state.Task) (block bool) {
 		}
 
 		var hookSnapst SnapState
-		if err := Get(st, hooksup.Snap, &hookSnapst); err != nil {
+		if err := Get(st, naming.InstanceName(hooksup.Snap), &hookSnapst); err != nil {
 			logger.Noticef("internal error: cannot get snapstate for %q: %v", hooksup.Snap, err)
 			return false
 		}
@@ -1156,7 +1156,7 @@ func (m *SnapManager) ensureVulnerableSnapRemoved(name string) error {
 		return nil
 	}
 	var snapSt SnapState
-	err := Get(m.state, name, &snapSt)
+	err := Get(m.state, naming.InstanceName(name), &snapSt)
 	if err != nil && !errors.Is(err, state.ErrNoState) {
 		return err
 	}
@@ -1209,7 +1209,7 @@ func (m *SnapManager) ensureVulnerableSnapRemoved(name string) error {
 
 	// remove all the inactive vulnerable revisions
 	for _, rev := range inactiveVulnRevisions {
-		tss, err := Remove(m.state, name, rev, nil)
+		tss, err := Remove(m.state, naming.InstanceName(name), rev, nil)
 
 		if err != nil {
 			// in case of conflict, just trigger another ensure in a little
@@ -1291,7 +1291,7 @@ func (m *SnapManager) ensureForceDevmodeDropsDevmodeFromState() error {
 
 	for _, name := range []string{"core", "ubuntu-core"} {
 		var snapst SnapState
-		if err := Get(m.state, name, &snapst); errors.Is(err, state.ErrNoState) {
+		if err := Get(m.state, naming.InstanceName(name), &snapst); errors.Is(err, state.ErrNoState) {
 			// nothing to see here
 			continue
 		} else if err != nil {
@@ -1302,7 +1302,7 @@ func (m *SnapManager) ensureForceDevmodeDropsDevmodeFromState() error {
 			continue
 		}
 		snapst.DevMode = false
-		Set(m.state, name, &snapst)
+		Set(m.state, naming.InstanceName(name), &snapst)
 	}
 	m.state.Set("fix-forced-devmode", 1)
 

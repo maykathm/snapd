@@ -85,7 +85,7 @@ func (m *DeviceManager) doSetModel(t *state.Task, _ *tomb.Tomb) (err error) {
 		// clean required flag if no-longer needed
 		if snapst.Flags.Required && !requiredSnaps.Contains(naming.Snap(snapName)) {
 			snapst.Flags.Required = false
-			snapstate.Set(st, snapName, snapst)
+			snapstate.Set(st, naming.InstanceName(snapName), snapst)
 			cleanedRequiredSnaps = append(cleanedRequiredSnaps, snapName)
 		}
 		// TODO: clean "required" flag of "core" if a remodel
@@ -99,9 +99,9 @@ func (m *DeviceManager) doSetModel(t *state.Task, _ *tomb.Tomb) (err error) {
 		}
 		var snapst snapstate.SnapState
 		for _, snapName := range cleanedRequiredSnaps {
-			if err := snapstate.Get(st, snapName, &snapst); err == nil {
+			if err := snapstate.Get(st, naming.InstanceName(snapName), &snapst); err == nil {
 				snapst.Flags.Required = true
-				snapstate.Set(st, snapName, &snapst)
+				snapstate.Set(st, naming.InstanceName(snapName), &snapst)
 			}
 		}
 	}()

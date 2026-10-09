@@ -40,6 +40,7 @@ import (
 	"github.com/snapcore/snapd/overlord/state"
 	"github.com/snapcore/snapd/progress"
 	"github.com/snapcore/snapd/snap"
+	"github.com/snapcore/snapd/snap/naming"
 	"github.com/snapcore/snapd/snap/quota"
 	"github.com/snapcore/snapd/strutil"
 	"github.com/snapcore/snapd/systemd"
@@ -182,7 +183,7 @@ func serviceControlTs(st *state.State, appInfos []*snap.AppInfo, inst *Instructi
 	var prev *state.Task
 	for _, snapName := range sortedNames {
 		var snapst snapstate.SnapState
-		if err := snapstate.Get(st, snapName, &snapst); err != nil {
+		if err := snapstate.Get(st, naming.InstanceName(snapName), &snapst); err != nil {
 			if errors.Is(err, state.ErrNoState) {
 				return nil, fmt.Errorf("snap not found: %s", snapName)
 			}

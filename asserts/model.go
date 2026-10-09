@@ -662,11 +662,11 @@ func (mod *Model) GadgetSnap() *ModelSnap {
 }
 
 // Gadget returns the gadget snap the model uses.
-func (mod *Model) Gadget() string {
+func (mod *Model) Gadget() naming.InstanceName {
 	if mod.gadgetSnap == nil {
 		return ""
 	}
-	return mod.gadgetSnap.Name
+	return naming.InstanceName(mod.gadgetSnap.Name)
 }
 
 // GadgetTrack returns the gadget track the model uses.
@@ -685,11 +685,11 @@ func (mod *Model) KernelSnap() *ModelSnap {
 
 // Kernel returns the kernel snap the model uses.
 // XXX this should go away
-func (mod *Model) Kernel() string {
+func (mod *Model) Kernel() naming.InstanceName {
 	if mod.kernelSnap == nil {
 		return ""
 	}
-	return mod.kernelSnap.Name
+	return naming.InstanceName(mod.kernelSnap.Name)
 }
 
 // KernelTrack returns the kernel track the model uses.

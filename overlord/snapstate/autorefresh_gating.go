@@ -38,6 +38,7 @@ import (
 	"github.com/snapcore/snapd/overlord/state"
 	"github.com/snapcore/snapd/release"
 	"github.com/snapcore/snapd/snap"
+	"github.com/snapcore/snapd/snap/naming"
 	"github.com/snapcore/snapd/strutil"
 )
 
@@ -66,7 +67,7 @@ var timeNow = func() time.Time {
 
 func lastRefreshed(st *state.State, snapName string) (time.Time, error) {
 	var snapst SnapState
-	if err := Get(st, snapName, &snapst); err != nil {
+	if err := Get(st, naming.InstanceName(snapName), &snapst); err != nil {
 		return time.Time{}, fmt.Errorf("internal error, cannot get snap %q: %v", snapName, err)
 	}
 	// try to get last refresh time from snapstate, but it may not be present

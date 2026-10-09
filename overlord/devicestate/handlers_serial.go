@@ -45,6 +45,7 @@ import (
 	"github.com/snapcore/snapd/overlord/hookstate"
 	"github.com/snapcore/snapd/overlord/snapstate"
 	"github.com/snapcore/snapd/overlord/state"
+	"github.com/snapcore/snapd/snap/naming"
 	"github.com/snapcore/snapd/snapdenv"
 	"github.com/snapcore/snapd/strutil"
 	"github.com/snapcore/snapd/timings"
@@ -213,7 +214,7 @@ func (rc *initialRegistrationContext) Model() *asserts.Model {
 }
 
 func (rc *initialRegistrationContext) GadgetForSerialRequestConfig() string {
-	return rc.model.Gadget()
+	return rc.model.Gadget().String()
 }
 
 func (rc *initialRegistrationContext) SerialRequestExtraHeaders() map[string]any {
@@ -638,7 +639,7 @@ func getSerialRequestConfig(t *state.Task, regCtx registrationContext, client *h
 	// gadget is optional on classic
 	if gadgetName != "" {
 		var gadgetSt snapstate.SnapState
-		if err := snapstate.Get(st, gadgetName, &gadgetSt); err != nil {
+		if err := snapstate.Get(st, naming.InstanceName(gadgetName), &gadgetSt); err != nil {
 			return nil, fmt.Errorf("cannot find gadget snap %q: %v", gadgetName, err)
 		}
 
@@ -958,7 +959,7 @@ func (m *DeviceManager) maybeRunPrepareSerialRequestHook(st *state.State, reques
 		return nil, nil
 	}
 
-	gadgetInfo, err := snapstate.CurrentInfo(st, gadgetName)
+	gadgetInfo, err := snapstate.CurrentInfo(st, naming.InstanceName(gadgetName))
 	if err != nil {
 		return nil, err
 	}

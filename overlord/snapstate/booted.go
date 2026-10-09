@@ -67,7 +67,7 @@ func UpdateBootRevisions(st *state.State) error {
 		if err != nil {
 			return fmt.Errorf(errorPrefix+"%s", err)
 		}
-		info, err := CurrentInfo(st, actual.SnapName().String())
+		info, err := CurrentInfo(st, actual.SnapName().AsInstanceName())
 		if err != nil {
 			logger.Noticef("cannot get info for %q: %s", actual.SnapName(), err)
 			continue

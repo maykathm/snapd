@@ -653,7 +653,7 @@ func instanceNameFromTask(t *state.Task) (string, bool) {
 
 func isInstalled(st *state.State, snapName string) (bool, error) {
 	var snapState SnapState
-	err := Get(st, snapName, &snapState)
+	err := Get(st, naming.InstanceName(snapName), &snapState)
 	if err != nil && !errors.Is(err, state.ErrNoState) {
 		return false, err
 	}

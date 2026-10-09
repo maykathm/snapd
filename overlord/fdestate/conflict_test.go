@@ -137,8 +137,8 @@ type: base
 		snapYaml string
 		name     string
 	}{
-		{snapYaml: gadgetSnapYamlContent, name: model.Gadget()},
-		{snapYaml: kernelSnapYamlContent, name: model.Kernel()},
+		{snapYaml: gadgetSnapYamlContent, name: model.Gadget().String()},
+		{snapYaml: kernelSnapYamlContent, name: model.Kernel().String()},
 		{snapYaml: baseSnapYamlContent, name: model.Base()},
 	} {
 		path := snaptest.MakeTestSnapWithFiles(c, sn.snapYaml, nil)

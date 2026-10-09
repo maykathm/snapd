@@ -520,7 +520,7 @@ func (rc *reregRemodelContext) Device() (*auth.DeviceState, error) {
 }
 
 func (rc *reregRemodelContext) GadgetForSerialRequestConfig() string {
-	return rc.origModel.Gadget()
+	return rc.origModel.Gadget().String()
 }
 
 func (rc *reregRemodelContext) SerialRequestExtraHeaders() map[string]any {

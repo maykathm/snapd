@@ -525,7 +525,7 @@ func snapServiceNames(info *snap.Info) []string {
 func affectedSnapServices(st *state.State, grp *quota.Group, opts *ensureSnapServicesForGroupOptions) (map[*snap.Info]*wrappers.SnapServiceOptions, []string, error) {
 	snapSvcMap := map[*snap.Info]*wrappers.SnapServiceOptions{}
 	addSnapToMap := func(sn string) (*snap.Info, error) {
-		info, err := snapstate.CurrentInfo(st, sn)
+		info, err := snapstate.CurrentInfo(st, naming.InstanceName(sn))
 		if err != nil {
 			return nil, err
 		}
@@ -836,7 +836,7 @@ func validateSnapForAddingToGroup(st *state.State, snaps []string, group string,
 
 	for _, name := range snaps {
 		// validate that the snap exists
-		_, err := snapstate.CurrentInfo(st, name)
+		_, err := snapstate.CurrentInfo(st, naming.InstanceName(name))
 		if err != nil {
 			return fmt.Errorf("cannot use snap %q in group %q: %v", name, group, err)
 		}
@@ -867,7 +867,7 @@ func splitSnapServiceName(name string) (string, string, error) {
 // ensureAppReferenceIsService returns whether the service referred to in the
 // snap is actually a service.
 func ensureAppReferenceIsService(st *state.State, snap, service string) error {
-	snapInfo, err := snapstate.CurrentInfo(st, snap)
+	snapInfo, err := snapstate.CurrentInfo(st, naming.InstanceName(snap))
 	if err != nil {
 		return err
 	}

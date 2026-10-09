@@ -38,11 +38,12 @@ import (
 	"github.com/snapcore/snapd/overlord/snapstate"
 	"github.com/snapcore/snapd/overlord/state"
 	"github.com/snapcore/snapd/snap"
+	"github.com/snapcore/snapd/snap/naming"
 )
 
 var (
 	osRemove             = os.Remove
-	snapstateCurrentInfo = snapstate.CurrentInfo
+	snapstateCurrentInfo = snapshotCurrentInfo
 	configGetSnapConfig  = config.GetSnapConfig
 	configSetSnapConfig  = config.SetSnapConfig
 	backendOpen          = backend.Open
@@ -61,6 +62,10 @@ var (
 
 	backendMapSnapDataDirToSnapVar = backend.MapSnapDataDirToSnapVar
 )
+
+func snapshotCurrentInfo(st *state.State, name string) (*snap.Info, error) {
+	return snapstate.CurrentInfo(st, naming.InstanceName(name))
+}
 
 // SnapshotManager takes snapshots of active snaps
 type SnapshotManager struct {

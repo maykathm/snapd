@@ -97,7 +97,7 @@ func (dc groundDeviceContext) Classic() bool {
 }
 
 func (dc groundDeviceContext) Kernel() string {
-	return dc.model.Kernel()
+	return dc.model.Kernel().String()
 }
 
 func (dc groundDeviceContext) Base() string {
@@ -105,7 +105,7 @@ func (dc groundDeviceContext) Base() string {
 }
 
 func (dc groundDeviceContext) Gadget() string {
-	return dc.model.Gadget()
+	return dc.model.Gadget().String()
 }
 
 func (dc groundDeviceContext) RunMode() bool {

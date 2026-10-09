@@ -290,7 +290,7 @@ func (mods *modelSuite) TestDecodeOK(c *C) {
 		Modes:    []string{"run"},
 		Presence: "required",
 	})
-	c.Check(model.Gadget(), Equals, "brand-gadget")
+	c.Check(model.Gadget(), Equals, naming.InstanceName("brand-gadget"))
 	c.Check(model.GadgetTrack(), Equals, "")
 	c.Check(model.KernelSnap(), DeepEquals, &asserts.ModelSnap{
 		Name:     "baz-linux",
@@ -298,7 +298,7 @@ func (mods *modelSuite) TestDecodeOK(c *C) {
 		Modes:    []string{"run"},
 		Presence: "required",
 	})
-	c.Check(model.Kernel(), Equals, "baz-linux")
+	c.Check(model.Kernel(), Equals, naming.InstanceName("baz-linux"))
 	c.Check(model.KernelTrack(), Equals, "")
 	c.Check(model.Base(), Equals, "core18")
 	baseCoreVersion, err := model.BaseCoreVersion()
@@ -517,7 +517,7 @@ func (mods modelSuite) TestDecodeValidSnapNames(c *C) {
 		a, err := asserts.Decode([]byte(encoded))
 		c.Assert(err, IsNil)
 		model := a.(*asserts.Model)
-		c.Check(model.Kernel(), Equals, name)
+		c.Check(model.Kernel(), Equals, naming.InstanceName(name))
 	}
 	invalidNames := []string{
 		// name cannot be empty, never reaches snap name validation
@@ -624,7 +624,7 @@ func (mods *modelSuite) TestDecodeKernelTrack(c *C) {
 		PinnedTrack: "18",
 		Presence:    "required",
 	})
-	c.Check(model.Kernel(), Equals, "baz-linux")
+	c.Check(model.Kernel(), Equals, naming.InstanceName("baz-linux"))
 	c.Check(model.KernelTrack(), Equals, "18")
 }
 
@@ -641,7 +641,7 @@ func (mods *modelSuite) TestDecodeGadgetTrack(c *C) {
 		PinnedTrack: "18",
 		Presence:    "required",
 	})
-	c.Check(model.Gadget(), Equals, "brand-gadget")
+	c.Check(model.Gadget(), Equals, naming.InstanceName("brand-gadget"))
 	c.Check(model.GadgetTrack(), Equals, "18")
 }
 
@@ -758,9 +758,9 @@ func (mods *modelSuite) TestClassicDecodeOK(c *C) {
 		Modes:    []string{"run"},
 		Presence: "required",
 	})
-	c.Check(model.Gadget(), Equals, "brand-gadget")
+	c.Check(model.Gadget(), Equals, naming.InstanceName("brand-gadget"))
 	c.Check(model.KernelSnap(), IsNil)
-	c.Check(model.Kernel(), Equals, "")
+	c.Check(model.Kernel(), Equals, naming.InstanceName(""))
 	c.Check(model.KernelTrack(), Equals, "")
 	c.Check(model.Base(), Equals, "")
 	c.Check(model.BaseSnap(), IsNil)
@@ -833,7 +833,7 @@ func (mods *modelSuite) TestClassicDecodeGadgetAndArchOptional(c *C) {
 	c.Check(model.Distribution(), Equals, "")
 	c.Check(model.Architecture(), Equals, "")
 	c.Check(model.GadgetSnap(), IsNil)
-	c.Check(model.Gadget(), Equals, "")
+	c.Check(model.Gadget(), Equals, naming.InstanceName(""))
 	c.Check(model.GadgetTrack(), Equals, "")
 }
 
@@ -879,7 +879,7 @@ func (mods *modelSuite) testWithSnapsDecodeOK(c *C, modelRaw string, isClassic b
 		DefaultChannel: "latest/stable",
 		Presence:       "required",
 	})
-	c.Check(model.Gadget(), Equals, "brand-gadget")
+	c.Check(model.Gadget(), Equals, naming.InstanceName("brand-gadget"))
 	c.Check(model.GadgetTrack(), Equals, "")
 	c.Check(model.KernelSnap(), DeepEquals, &asserts.ModelSnap{
 		Name:           "baz-linux",
@@ -889,7 +889,7 @@ func (mods *modelSuite) testWithSnapsDecodeOK(c *C, modelRaw string, isClassic b
 		DefaultChannel: "20",
 		Presence:       "required",
 	})
-	c.Check(model.Kernel(), Equals, "baz-linux")
+	c.Check(model.Kernel(), Equals, naming.InstanceName("baz-linux"))
 	c.Check(model.KernelTrack(), Equals, "")
 	c.Check(model.Base(), Equals, "core20")
 	c.Check(model.BaseSnap(), DeepEquals, &asserts.ModelSnap{
@@ -1260,7 +1260,7 @@ func (mods *modelSuite) TestClassicWithSnapsMinimalDecodeOK(c *C) {
 		c.Check(model.Base(), Equals, "core20")
 		// no kernel
 		c.Check(model.KernelSnap(), IsNil)
-		c.Check(model.Kernel(), Equals, "")
+		c.Check(model.Kernel(), Equals, naming.InstanceName(""))
 		c.Check(model.KernelTrack(), Equals, "")
 		c.Check(model.BaseSnap(), DeepEquals, &asserts.ModelSnap{
 			Name:           "core20",
@@ -1282,12 +1282,13 @@ func (mods *modelSuite) TestClassicWithSnapsMinimalDecodeOK(c *C) {
 				DefaultChannel: "latest/stable",
 				Presence:       "required",
 			})
-			c.Check(model.Gadget(), Equals, "brand-gadget")
+			c.Check(model.Gadget(), Equals, naming.InstanceName("brand-gadget"))
 			c.Check(model.GadgetTrack(), Equals, "")
 			expectedEssSnap = append(expectedEssSnap, model.GadgetSnap())
 		} else {
 			c.Check(model.GadgetSnap(), IsNil)
-			c.Check(model.Gadget(), Equals, "")
+			c.Check(model.Gadget(), Equals, naming.InstanceName(""))
+			c.Check(model.Gadget(), Equals, naming.InstanceName(""))
 			c.Check(model.GadgetTrack(), Equals, "")
 		}
 		c.Check(model.Grade(), Equals, asserts.ModelSecured)
@@ -1589,7 +1590,8 @@ func (mods *modelSuite) TestDecodeWithComponentsOK(c *C) {
 		Presence:       "required",
 		DefaultChannel: "latest/stable",
 	})
-	c.Check(model.Gadget(), Equals, "brand-gadget")
+	c.Check(model.Gadget(), Equals, naming.InstanceName("brand-gadget"))
+	c.Check(model.Kernel(), Equals, naming.InstanceName("baz-linux"))
 	c.Check(model.GadgetTrack(), Equals, "")
 	c.Check(model.KernelSnap(), DeepEquals, &asserts.ModelSnap{
 		Name:           "baz-linux",
@@ -1599,7 +1601,7 @@ func (mods *modelSuite) TestDecodeWithComponentsOK(c *C) {
 		Presence:       "required",
 		DefaultChannel: "20",
 	})
-	c.Check(model.Kernel(), Equals, "baz-linux")
+	c.Check(model.Kernel(), Equals, naming.InstanceName("baz-linux"))
 	c.Check(model.KernelTrack(), Equals, "")
 	c.Check(model.Base(), Equals, "core24")
 	c.Check(model.BaseSnap(), DeepEquals, &asserts.ModelSnap{

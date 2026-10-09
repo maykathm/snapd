@@ -335,13 +335,13 @@ func (s *seed16) loadEssentialMeta(essentialTypes []snap.Type, required *naming.
 	}
 
 	if kernelName := model.Kernel(); kernelName != "" {
-		if _, err := addEssential(kernelName, model.KernelTrack(), snap.TypeKernel); err != nil {
+		if _, err := addEssential(kernelName.String(), model.KernelTrack(), snap.TypeKernel); err != nil {
 			return err
 		}
 	}
 
 	if gadgetName := model.Gadget(); gadgetName != "" {
-		gadget, err := addEssential(gadgetName, model.GadgetTrack(), snap.TypeGadget)
+		gadget, err := addEssential(gadgetName.String(), model.GadgetTrack(), snap.TypeGadget)
 		if err != nil {
 			return err
 		}

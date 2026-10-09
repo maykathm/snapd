@@ -71,7 +71,7 @@ func mockDeviceWithModes(mode string, model *asserts.Model, isClassic bool) snap
 		}
 	}
 	return &mockDevice{
-		bootSnap:  model.Kernel(),
+		bootSnap:  model.Kernel().String(),
 		mode:      mode,
 		hasModes:  true,
 		isClassic: isClassic,
@@ -126,7 +126,7 @@ func (d *mockDevice) Base() string {
 }
 func (d *mockDevice) Gadget() string {
 	if d.model != nil {
-		return d.model.Gadget()
+		return d.model.Gadget().String()
 	}
 	return d.bootSnap
 }

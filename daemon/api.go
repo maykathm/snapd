@@ -199,7 +199,7 @@ var (
 	snapstateStoreUpdateGoal                = snapstate.StoreUpdateGoal
 	snapstateUpdateWithGoal                 = snapstate.UpdateWithGoal
 	snapstateUpdateOne                      = snapstate.UpdateOne
-	snapstateRemove                         = snapstate.Remove
+	snapstateRemove                         = snapstate.Remove[string]
 	snapstateRemoveMany                     = snapstate.RemoveMany
 	snapstateResolveValSetsEnforcementError = snapstate.ResolveValidationSetsEnforcementError
 	snapstateRevert                         = snapstate.Revert

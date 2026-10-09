@@ -745,7 +745,7 @@ func (m *DeviceManager) ensureOperationalAfterSeed(deviceCtx snapstate.DeviceCon
 	gadget := model.Gadget()
 	storeID := model.Store()
 
-	willRequestSerial, err := shouldRequestSerial(m.state, gadget)
+	willRequestSerial, err := shouldRequestSerial(m.state, gadget.String())
 	if err != nil {
 		return err
 	}
@@ -822,7 +822,7 @@ func (m *DeviceManager) ensureOperationalAfterSeed(deviceCtx snapstate.DeviceCon
 	if hasPrepareDeviceHook {
 		summary := i18n.G("Run prepare-device hook")
 		hooksup := &hookstate.HookSetup{
-			Snap: gadget,
+			Snap: gadget.String(),
 			Hook: "prepare-device",
 		}
 		prepareDevice = hookstate.HookTask(m.state, summary, hooksup, nil)
@@ -1529,7 +1529,7 @@ func (m *DeviceManager) installDeviceHookTask(model *asserts.Model) *state.Task 
 	summary := i18n.G("Run install-device hook")
 	hooksup := &hookstate.HookSetup{
 		// TODO: add a reasonable timeout for the install-device hook
-		Snap: model.Gadget(),
+		Snap: model.Gadget().String(),
 		Hook: "install-device",
 	}
 	return hookstate.HookTask(m.state, summary, hooksup, nil)

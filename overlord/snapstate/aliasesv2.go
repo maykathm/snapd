@@ -167,7 +167,7 @@ func autoAliasesDelta(st *state.State, names []string) (changed map[string][]str
 		snapStates = make(map[string]*SnapState, len(names))
 		for _, name := range names {
 			var snapst SnapState
-			err := Get(st, name, &snapst)
+			err := Get(st, naming.InstanceName(name), &snapst)
 			if err != nil {
 				return nil, nil, err
 			}
@@ -530,7 +530,7 @@ func (m *SnapManager) ensureAliasesV2() error {
 				snapst.AutoAliasesDisabled = true
 			}
 		}
-		Set(m.state, instanceName, snapst)
+		Set(m.state, naming.InstanceName(instanceName), snapst)
 	}
 
 	m.state.Set("aliases", nil)
@@ -544,7 +544,7 @@ func Alias(st *state.State, instanceName naming.InstanceName, app, alias string)
 	}
 
 	var snapst SnapState
-	err := Get(st, instanceName.String(), &snapst)
+	err := Get(st, instanceName, &snapst)
 	if errors.Is(err, state.ErrNoState) {
 		return nil, &snap.NotInstalledError{Snap: instanceName.String()}
 	}
@@ -601,7 +601,7 @@ func manualAlias(info *snap.Info, curAliases map[string]*AliasTarget, target, al
 // DisableAllAliases disables all aliases of a snap, removing all manual ones.
 func DisableAllAliases(st *state.State, instanceName naming.InstanceName) (*state.TaskSet, error) {
 	var snapst SnapState
-	err := Get(st, instanceName.String(), &snapst)
+	err := Get(st, instanceName, &snapst)
 	if errors.Is(err, state.ErrNoState) {
 		return nil, &snap.NotInstalledError{Snap: instanceName.String()}
 	}
@@ -688,7 +688,7 @@ func manualUnalias(curAliases map[string]*AliasTarget, alias string) (newAliases
 // of other snaps whose aliases will be disabled (removed for manual ones).
 func Prefer(st *state.State, name naming.InstanceName) (*state.TaskSet, error) {
 	var snapst SnapState
-	err := Get(st, name.String(), &snapst)
+	err := Get(st, name, &snapst)
 	if errors.Is(err, state.ErrNoState) {
 		return nil, &snap.NotInstalledError{Snap: name.String()}
 	}

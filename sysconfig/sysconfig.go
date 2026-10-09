@@ -84,7 +84,7 @@ func (d *configedDevice) Classic() bool {
 }
 
 func (d *configedDevice) Kernel() string {
-	return d.model.Kernel()
+	return d.model.Kernel().String()
 }
 
 func (d *configedDevice) Base() string {

@@ -59,7 +59,7 @@ func (dc *TrivialDeviceContext) Classic() bool {
 }
 
 func (dc *TrivialDeviceContext) Kernel() string {
-	return dc.DeviceModel.Kernel()
+	return dc.DeviceModel.Kernel().String()
 }
 
 func (dc *TrivialDeviceContext) Base() string {
@@ -67,7 +67,7 @@ func (dc *TrivialDeviceContext) Base() string {
 }
 
 func (dc *TrivialDeviceContext) Gadget() string {
-	return dc.DeviceModel.Gadget()
+	return dc.DeviceModel.Gadget().String()
 }
 
 func (dc *TrivialDeviceContext) HasModeenv() bool {

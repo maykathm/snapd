@@ -31,6 +31,7 @@ import (
 	"github.com/snapcore/snapd/overlord/state"
 	"github.com/snapcore/snapd/snap"
 	"github.com/snapcore/snapd/snap/integrity"
+	"github.com/snapcore/snapd/snap/naming"
 	"github.com/snapcore/snapd/store"
 	"github.com/snapcore/snapd/strutil"
 )
@@ -816,7 +817,7 @@ func installActionsForAmend(st *state.State, updates map[string]StoreUpdate, opt
 	var localAmends []string
 	for _, up := range updates {
 		var snapst SnapState
-		if err := Get(st, up.InstanceName, &snapst); err != nil {
+		if err := Get(st, naming.InstanceName(up.InstanceName), &snapst); err != nil {
 			if errors.Is(err, state.ErrNoState) {
 				continue
 			}

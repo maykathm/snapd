@@ -130,10 +130,10 @@ func connect(st *state.State, plugSnap naming.InstanceName, plugName string, slo
 	}
 
 	var plugSnapst, slotSnapst snapstate.SnapState
-	if err = snapstate.Get(st, plugSnap.String(), &plugSnapst); err != nil {
+	if err = snapstate.Get(st, naming.InstanceName(plugSnap), &plugSnapst); err != nil {
 		return nil, err
 	}
-	if err = snapstate.Get(st, slotSnap.String(), &slotSnapst); err != nil {
+	if err = snapstate.Get(st, naming.InstanceName(slotSnap), &slotSnapst); err != nil {
 		return nil, err
 	}
 	plugSnapInfo, err := plugSnapst.CurrentInfo()
@@ -288,7 +288,7 @@ func connect(st *state.State, plugSnap naming.InstanceName, plugName string, slo
 func initialConnectAttributes(st *state.State, plugSnapInfo *snap.Info, plugSnap string, plugName string, slotSnapInfo *snap.Info, slotSnap string, slotName string) (plugStatic, slotStatic map[string]any, err error) {
 	var plugSnapst snapstate.SnapState
 
-	if err = snapstate.Get(st, plugSnap, &plugSnapst); err != nil {
+	if err = snapstate.Get(st, naming.InstanceName(plugSnap), &plugSnapst); err != nil {
 		return nil, nil, err
 	}
 
@@ -303,7 +303,7 @@ func initialConnectAttributes(st *state.State, plugSnapInfo *snap.Info, plugSnap
 
 	var slotSnapst snapstate.SnapState
 
-	if err = snapstate.Get(st, slotSnap, &slotSnapst); err != nil {
+	if err = snapstate.Get(st, naming.InstanceName(slotSnap), &slotSnapst); err != nil {
 		return nil, nil, err
 	}
 
@@ -395,10 +395,10 @@ func disconnectTasks(st *state.State, conn *interfaces.Connection, flags disconn
 	slotName := conn.Slot.Name()
 
 	var plugSnapst, slotSnapst snapstate.SnapState
-	if err := snapstate.Get(st, slotSnap.String(), &slotSnapst); err != nil {
+	if err := snapstate.Get(st, slotSnap, &slotSnapst); err != nil {
 		return nil, err
 	}
-	if err := snapstate.Get(st, plugSnap.String(), &plugSnapst); err != nil {
+	if err := snapstate.Get(st, plugSnap, &plugSnapst); err != nil {
 		return nil, err
 	}
 
@@ -582,7 +582,7 @@ func OnSnapLinkageChanged(st *state.State, snapsup *snapstate.SnapSetup) error {
 	instanceName := snapsup.InstanceName()
 
 	var snapst snapstate.SnapState
-	if err := snapstate.Get(st, instanceName.String(), &snapst); err != nil && !errors.Is(err, state.ErrNoState) {
+	if err := snapstate.Get(st, instanceName, &snapst); err != nil && !errors.Is(err, state.ErrNoState) {
 		return err
 	}
 	if !snapst.IsInstalled() {
@@ -601,7 +601,7 @@ func OnSnapLinkageChanged(st *state.State, snapsup *snapstate.SnapSetup) error {
 			Components: snapst.CurrentComponentSideInfos(),
 		}
 	}
-	snapstate.Set(st, instanceName.String(), &snapst)
+	snapstate.Set(st, instanceName, &snapst)
 	return nil
 }
 
@@ -635,7 +635,7 @@ func InterfacesRequestsControlHandlerServices(st *state.State) ([]*snap.AppInfo,
 		}
 
 		sn := connRef.PlugRef.Snap
-		si, err := snapstate.CurrentInfo(st, sn.String())
+		si, err := snapstate.CurrentInfo(st, sn)
 		if err != nil {
 			return nil, err
 		}
