@@ -3574,7 +3574,7 @@ func (m *SnapManager) doDiscardSnap(t *state.Task, _ *tomb.Tomb) error {
 			return err
 		}
 
-		if err := pruneRefreshCandidates(st, snapsup.InstanceName().String()); err != nil {
+		if err := pruneRefreshCandidates(st, snapsup.InstanceName()); err != nil {
 			return err
 		}
 		if err := pruneSnapsHold(st, snapsup.InstanceName().String()); err != nil {
@@ -3701,7 +3701,7 @@ func (m *SnapManager) doSetAutoAliases(t *state.Task, _ *tomb.Tomb) error {
 	if err != nil {
 		return err
 	}
-	_, err = checkAliasesConflicts(st, instanceName.String(), snapst.AutoAliasesDisabled, newAliases, nil)
+	_, err = checkAliasesConflicts(st, instanceName, snapst.AutoAliasesDisabled, newAliases, nil)
 	if err != nil {
 		return err
 	}
@@ -3924,7 +3924,7 @@ func (m *SnapManager) doRefreshAliases(t *state.Task, _ *tomb.Tomb) error {
 	if err != nil {
 		return err
 	}
-	_, err = checkAliasesConflicts(st, instanceName.String(), autoDisabled, newAliases, nil)
+	_, err = checkAliasesConflicts(st, instanceName, autoDisabled, newAliases, nil)
 	if err != nil {
 		return err
 	}
@@ -3965,13 +3965,13 @@ func (m *SnapManager) undoRefreshAliases(t *state.Task, _ *tomb.Tomb) error {
 		return err
 	}
 
-	var otherSnapDisabled map[string]*otherDisabledAliases
+	var otherSnapDisabled map[naming.InstanceName]*otherDisabledAliases
 	if err = t.Get("other-disabled-aliases", &otherSnapDisabled); err != nil && !errors.Is(err, state.ErrNoState) {
 		return err
 	}
 
 	// check if the old states creates conflicts now
-	_, err = checkAliasesConflicts(st, instanceName.String(), autoDisabled, oldAliases, nil)
+	_, err = checkAliasesConflicts(st, instanceName, autoDisabled, oldAliases, nil)
 	if _, ok := err.(*AliasConflictError); ok {
 		// best we can do is reinstate with all aliases disabled
 		t.Errorf("cannot reinstate alias state because of conflicts, disabling: %v", err)
@@ -4017,7 +4017,7 @@ func (m *SnapManager) undoRefreshAliases(t *state.Task, _ *tomb.Tomb) error {
 	otherCurSnapStates := make(map[string]*SnapState, len(otherSnapDisabled))
 	for otherSnap, otherDisabled := range otherSnapDisabled {
 		var otherSnapState SnapState
-		err := Get(st, otherSnap, &otherSnapState)
+		err := Get(st, otherSnap.String(), &otherSnapState)
 		if err != nil {
 			return err
 		}
@@ -4026,7 +4026,7 @@ func (m *SnapManager) undoRefreshAliases(t *state.Task, _ *tomb.Tomb) error {
 			return err
 		}
 
-		otherCurSnapStates[otherSnap] = &otherSnapState
+		otherCurSnapStates[otherSnap.String()] = &otherSnapState
 
 		autoDisabled := otherSnapState.AutoAliasesDisabled
 		if otherDisabled.Auto {
@@ -4038,7 +4038,7 @@ func (m *SnapManager) undoRefreshAliases(t *state.Task, _ *tomb.Tomb) error {
 		// re-enabled aliases
 		conflicts, err := checkAliasesConflicts(st, otherSnap, autoDisabled, otherAliases, newSnapStates)
 		if _, ok := err.(*AliasConflictError); ok {
-			conflicting[otherSnap] = true
+			conflicting[otherSnap.String()] = true
 			for conflictSnap := range conflicts {
 				conflicting[conflictSnap] = true
 			}
@@ -4049,7 +4049,7 @@ func (m *SnapManager) undoRefreshAliases(t *state.Task, _ *tomb.Tomb) error {
 		newSnapState := otherSnapState
 		newSnapState.Aliases = otherAliases
 		newSnapState.AutoAliasesDisabled = autoDisabled
-		newSnapStates[otherSnap] = &newSnapState
+		newSnapStates[otherSnap.String()] = &newSnapState
 	}
 
 	// apply non-conflicting other
@@ -4180,7 +4180,7 @@ func (m *SnapManager) doAlias(t *state.Task, _ *tomb.Tomb) error {
 	if err != nil {
 		return err
 	}
-	_, err = checkAliasesConflicts(st, instanceName.String(), autoDisabled, newAliases, nil)
+	_, err = checkAliasesConflicts(st, instanceName, autoDisabled, newAliases, nil)
 	if err != nil {
 		return err
 	}
@@ -4291,7 +4291,7 @@ func (m *SnapManager) doPreferAliases(t *state.Task, _ *tomb.Tomb) error {
 	}
 
 	curAliases := snapst.Aliases
-	aliasConflicts, err := checkAliasesConflicts(st, instanceName.String(), autoEn, curAliases, nil)
+	aliasConflicts, err := checkAliasesConflicts(st, instanceName, autoEn, curAliases, nil)
 	conflErr, isConflErr := err.(*AliasConflictError)
 	if err != nil && !isConflErr {
 		return err
@@ -4382,7 +4382,7 @@ func changeReadyUpToTask(task *state.Task, considerTasks map[string]bool) bool {
 // finds, ignoring tasks in considerTasks (e.g., unrelated tasks in split refresh).
 // It stops when finding the given task, and resetting things when finding a different
 // re-refresh task (that indicates the end of a batch that isn't the given one).
-func refreshedSnaps(reTask *state.Task, considerTasks map[string]bool) (snapNames []string, failed bool, err error) {
+func refreshedSnaps(reTask *state.Task, considerTasks map[string]bool) (snapNames []naming.InstanceName, failed bool, err error) {
 	// NOTE nothing requires reTask to be a check-rerefresh task, nor even to be in
 	// a refresh-ish change, but it doesn't make much sense to call this otherwise.
 	tid := reTask.ID()
@@ -4441,7 +4441,7 @@ func refreshedSnaps(reTask *state.Task, considerTasks map[string]bool) (snapName
 		}
 	}
 
-	snapNames = make([]string, 0, len(laneSnaps))
+	snapNames = make([]naming.InstanceName, 0, len(laneSnaps))
 	for lane, snaps := range laneSnaps {
 		// Is it one of the failed lanes?
 		if failedLanes[lane] {
@@ -4449,7 +4449,7 @@ func refreshedSnaps(reTask *state.Task, considerTasks map[string]bool) (snapName
 			continue
 		}
 		for name := range snaps {
-			snapNames = append(snapNames, name)
+			snapNames = append(snapNames, naming.InstanceName(name))
 		}
 	}
 	return snapNames, failed, nil
@@ -4781,7 +4781,7 @@ func (m *SnapManager) doEnforceValidationSets(t *state.Task, _ *tomb.Tomb) error
 // validation sets and - if necessary - creates tasksets to revert some or all
 // of the refreshed snaps to their previous revisions to satisfy the restored
 // validation sets tracking.
-var maybeRestoreValidationSetsAndRevertSnaps = func(st *state.State, refreshedSnaps []string, fromChange string) ([]*state.TaskSet, error) {
+var maybeRestoreValidationSetsAndRevertSnaps = func(st *state.State, refreshedSnaps []naming.InstanceName, fromChange string) ([]*state.TaskSet, error) {
 	enforcedSets, err := EnforcedValidationSets(st)
 	if err != nil {
 		return nil, err
@@ -4861,15 +4861,15 @@ var maybeRestoreValidationSetsAndRevertSnaps = func(st *state.State, refreshedSn
 	// revert some or all snaps
 	var tss []*state.TaskSet
 	for _, snapName := range refreshedSnaps {
-		if verr.WrongRevisionSnaps[snapName] != nil {
+		if verr.WrongRevisionSnaps[snapName.String()] != nil {
 			// XXX: should we be extra paranoid and use RevertToRevision with
 			// the specific revision from verr.WrongRevisionSnaps?
-			ts, err := Revert(st, snapName, Flags{RevertStatus: NotBlocked}, fromChange)
+			ts, err := Revert(st, snapName.String(), Flags{RevertStatus: NotBlocked}, fromChange)
 			if err != nil {
 				return nil, fmt.Errorf("cannot revert snap %q: %v", snapName, err)
 			}
 			tss = append(tss, ts)
-			delete(verr.WrongRevisionSnaps, snapName)
+			delete(verr.WrongRevisionSnaps, snapName.String())
 		}
 	}
 
