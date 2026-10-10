@@ -1,5 +1,13 @@
 snapd (2.78) xenial; urgency=medium
 
+  * New upstream release, LP: #12345
+    - First news item
+    - Second news item
+
+ -- Katie May <katie.may@canonical.com>  Sat, 10 Oct 2026 12:21:55 +0000
+
+snapd (2.78) xenial; urgency=medium
+
   * New upstream release, LP: #2166403
     - FDE: update keyring after reprovision
     - FDE: set new state after reprovision

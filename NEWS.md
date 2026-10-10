@@ -1,5 +1,10 @@
 # New in snapd 2.78
 
+* First news item
+* Second news item
+
+# New in snapd 2.78
+
 * FDE: update keyring after reprovision
 * FDE: set new state after reprovision
 * FDE: complete the decision for auto-repair/reprovision
