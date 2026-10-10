@@ -37,6 +37,7 @@ import (
 	"github.com/snapcore/snapd/overlord/snapstate/snapstatetest"
 	"github.com/snapcore/snapd/overlord/state"
 	"github.com/snapcore/snapd/snap"
+	"github.com/snapcore/snapd/snap/naming"
 	"github.com/snapcore/snapd/snap/snaptest"
 	. "github.com/snapcore/snapd/testutil"
 )
@@ -509,7 +510,7 @@ func (s *refreshSuite) TestMaybeRestoreValidationSetsAndRevertSnaps(c *C) {
 	st.Lock()
 	defer st.Unlock()
 
-	refreshedSnaps := []string{"foo", "bar"}
+	refreshedSnaps := []naming.InstanceName{"foo", "bar"}
 	// nothing to do with no enforced validation sets
 	ts, err := snapstate.MaybeRestoreValidationSetsAndRevertSnaps(st, refreshedSnaps, "")
 	c.Assert(err, IsNil)
@@ -619,7 +620,7 @@ func (s *validationSetsSuite) TestMaybeRestoreValidationSetsAndRevertSnapsOneRev
 	chg.AddTask(t2)
 
 	// some-snap2 failed to refresh
-	refreshedSnaps := []string{"some-snap1", "some-snap3"}
+	refreshedSnaps := []naming.InstanceName{"some-snap1", "some-snap3"}
 	// pass change id to make sure revert doesn't conflict
 	ts, err := snapstate.MaybeRestoreValidationSetsAndRevertSnaps(st, refreshedSnaps, chg.ID())
 	c.Assert(err, IsNil)
@@ -775,7 +776,7 @@ func (s *validationSetsSuite) TestMaybeRestoreValidationSetsAndRevertJustValidat
 	})
 	snaptest.MockSnap(c, `name: some-snap2`, si3)
 
-	refreshedSnaps := []string{"some-snap2"}
+	refreshedSnaps := []naming.InstanceName{"some-snap2"}
 	ts, err := snapstate.MaybeRestoreValidationSetsAndRevertSnaps(st, refreshedSnaps, "")
 	c.Assert(err, IsNil)
 
@@ -844,7 +845,7 @@ func (s *validationSetsSuite) TestMaybeRestoreValidationSetsAndRevertStillValid(
 
 	// pretend that some-snap1 was refreshed (and some-snap2 failed), some-snap1 is now at revision 3; validation set
 	// with sequence 3 is still valid though so no snap reverts.
-	refreshedSnaps := []string{"some-snap1"}
+	refreshedSnaps := []naming.InstanceName{"some-snap1"}
 	ts, err := snapstate.MaybeRestoreValidationSetsAndRevertSnaps(st, refreshedSnaps, "")
 	c.Assert(err, IsNil)
 

@@ -1174,7 +1174,7 @@ func (s *snapmgrTestSuite) TestInstallManySnapOneWithDefaultTrack(c *C) {
 	s.state.Lock()
 	defer s.state.Unlock()
 
-	snapNames := []string{"some-snap", "some-snap-with-default-track"}
+	snapNames := []naming.InstanceName{"some-snap", "some-snap-with-default-track"}
 	installed, tss, err := snapstate.InstallMany(s.state, snapNames, nil, s.user.ID, nil)
 	c.Assert(err, IsNil)
 	c.Assert(installed, DeepEquals, snapNames)
