@@ -1,3 +1,8 @@
+# New in snapd 2.76
+
+* First news item
+* Second news item
+
 # New in snapd 2.78
 
 * FDE: update keyring after reprovision

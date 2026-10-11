@@ -1,3 +1,11 @@
+snapd (2.76) xenial; urgency=medium
+
+  * New upstream release, LP: #12345
+    - First news item
+    - Second news item
+
+ -- Katie May <katie.may@canonical.com>  Sun, 11 Oct 2026 12:49:28 +0000
+
 snapd (2.78) xenial; urgency=medium
 
   * New upstream release, LP: #2166403
