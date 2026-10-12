@@ -346,7 +346,7 @@ func (m *SnapManager) doDownloadSnap(t *state.Task, tomb *tomb.Tomb) error {
 		// of snapd that did not store the DownloadInfo in the state
 		// yet. Therefore do not worry about DeviceContext.
 		result, err = sendOneInstallActionUnlocked(context.TODO(), st, StoreSnap{
-			InstanceName: snapsup.InstanceName().String(),
+			InstanceName: snapsup.InstanceName(),
 			RevOpts: RevisionOptions{
 				Channel:        snapsup.Channel,
 				CohortKey:      snapsup.CohortKey,
@@ -4386,7 +4386,7 @@ func refreshedSnaps(reTask *state.Task, considerTasks map[string]bool) (snapName
 	// NOTE nothing requires reTask to be a check-rerefresh task, nor even to be in
 	// a refresh-ish change, but it doesn't make much sense to call this otherwise.
 	tid := reTask.ID()
-	laneSnaps := make(map[int]map[string]bool)
+	laneSnaps := make(map[int]map[naming.InstanceName]bool)
 	failedLanes := make(map[int]bool)
 	// change.Tasks() preserves the order tasks were added, otherwise it all falls apart
 	for _, task := range reTask.Change().Tasks() {
@@ -4397,7 +4397,7 @@ func refreshedSnaps(reTask *state.Task, considerTasks map[string]bool) (snapName
 		if task.Kind() == "check-rerefresh" {
 			// we've reached a previous check-rerefresh (but not ourselves).
 			// Only snaps in tasks after this point are of interest.
-			laneSnaps = make(map[int]map[string]bool)
+			laneSnaps = make(map[int]map[naming.InstanceName]bool)
 		}
 
 		// Ignore tasks on '0' lane, they are not refreshes anyway.
@@ -4435,9 +4435,9 @@ func refreshedSnaps(reTask *state.Task, considerTasks map[string]bool) (snapName
 		for _, l := range taskLanes {
 			// Add the snap to list of snaps for this lane.
 			if snaps := laneSnaps[l]; snaps == nil {
-				laneSnaps[l] = make(map[string]bool)
+				laneSnaps[l] = make(map[naming.InstanceName]bool)
 			}
-			laneSnaps[l][snapsup.InstanceName().String()] = true
+			laneSnaps[l][snapsup.InstanceName()] = true
 		}
 	}
 
@@ -4449,7 +4449,7 @@ func refreshedSnaps(reTask *state.Task, considerTasks map[string]bool) (snapName
 			continue
 		}
 		for name := range snaps {
-			snapNames = append(snapNames, naming.InstanceName(name))
+			snapNames = append(snapNames, name)
 		}
 	}
 	return snapNames, failed, nil

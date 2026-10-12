@@ -1955,7 +1955,7 @@ func autoAliasesUpdate(st *state.State, requested []naming.InstanceName, updates
 	// and not updated OR the source of transfers
 	mustPrune = make(map[naming.InstanceName][]string, len(dropped))
 	for instanceName := range transferSources {
-		mustPrune[instanceName] = dropped[naming.InstanceName(instanceName)]
+		mustPrune[instanceName] = dropped[instanceName]
 	}
 	if refreshAll {
 		for instanceName, aliases := range dropped {

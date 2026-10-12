@@ -95,7 +95,7 @@ func (s *reRefreshSuite) TestDoCheckReRefreshFailsWithoutReRefreshSetup(c *C) {
 }
 
 func (s *reRefreshSuite) TestDoCheckReRefreshFailsIfUpdateFails(c *C) {
-	defer snapstate.MockReRefreshUpdateMany(func(context.Context, *state.State, []string, []*snapstate.RevisionOptions, int, snapstate.UpdateFilter, *snapstate.Flags, string) ([]string, *snapstate.UpdateTaskSets, error) {
+	defer snapstate.MockReRefreshUpdateMany(func(context.Context, *state.State, []naming.InstanceName, []*snapstate.RevisionOptions, int, snapstate.UpdateFilter, *snapstate.Flags, string) ([]string, *snapstate.UpdateTaskSets, error) {
 		return nil, nil, errors.New("bzzt")
 	})()
 
@@ -118,7 +118,7 @@ func (s *reRefreshSuite) TestDoCheckReRefreshFailsIfUpdateFails(c *C) {
 
 func (s *reRefreshSuite) TestDoCheckReRefreshNoReRefreshes(c *C) {
 	updaterCalled := false
-	defer snapstate.MockReRefreshUpdateMany(func(context.Context, *state.State, []string, []*snapstate.RevisionOptions, int, snapstate.UpdateFilter, *snapstate.Flags, string) ([]string, *snapstate.UpdateTaskSets, error) {
+	defer snapstate.MockReRefreshUpdateMany(func(context.Context, *state.State, []naming.InstanceName, []*snapstate.RevisionOptions, int, snapstate.UpdateFilter, *snapstate.Flags, string) ([]string, *snapstate.UpdateTaskSets, error) {
 		updaterCalled = true
 		return nil, nil, nil
 	})()
@@ -143,11 +143,11 @@ func (s *reRefreshSuite) TestDoCheckReRefreshNoReRefreshes(c *C) {
 
 func (s *reRefreshSuite) TestDoCheckReRefreshPassesReRefreshSetupData(c *C) {
 	var chgID string
-	defer snapstate.MockReRefreshUpdateMany(func(_ context.Context, _ *state.State, snaps []string, _ []*snapstate.RevisionOptions, userID int, _ snapstate.UpdateFilter, flags *snapstate.Flags, changeID string) ([]string, *snapstate.UpdateTaskSets, error) {
+	defer snapstate.MockReRefreshUpdateMany(func(_ context.Context, _ *state.State, snaps []naming.InstanceName, _ []*snapstate.RevisionOptions, userID int, _ snapstate.UpdateFilter, flags *snapstate.Flags, changeID string) ([]string, *snapstate.UpdateTaskSets, error) {
 		c.Check(changeID, Equals, chgID)
-		expected := []string{"foo", "bar", "baz"}
-		sort.Strings(expected)
-		sort.Strings(snaps)
+		expected := []naming.InstanceName{"foo", "bar", "baz"}
+		sort.Slice(expected, func(i, j int) bool { return expected[i] < expected[j] })
+		sort.Slice(snaps, func(i, j int) bool { return snaps[i] < snaps[j] })
 		c.Check(snaps, DeepEquals, expected)
 		c.Check(userID, Equals, 42)
 		c.Check(flags, DeepEquals, &snapstate.Flags{
@@ -180,10 +180,10 @@ func (s *reRefreshSuite) TestDoCheckReRefreshPassesReRefreshSetupData(c *C) {
 }
 
 func (s *reRefreshSuite) TestDoCheckReRefreshAddsNewTasks(c *C) {
-	defer snapstate.MockReRefreshUpdateMany(func(_ context.Context, st *state.State, snaps []string, _ []*snapstate.RevisionOptions, _ int, _ snapstate.UpdateFilter, _ *snapstate.Flags, _ string) ([]string, *snapstate.UpdateTaskSets, error) {
-		expected := []string{"foo", "bar", "baz"}
-		sort.Strings(expected)
-		sort.Strings(snaps)
+	defer snapstate.MockReRefreshUpdateMany(func(_ context.Context, st *state.State, snaps []naming.InstanceName, _ []*snapstate.RevisionOptions, _ int, _ snapstate.UpdateFilter, _ *snapstate.Flags, _ string) ([]string, *snapstate.UpdateTaskSets, error) {
+		expected := []naming.InstanceName{"foo", "bar", "baz"}
+		sort.Slice(expected, func(i, j int) bool { return expected[i] < expected[j] })
+		sort.Slice(snaps, func(i, j int) bool { return snaps[i] < snaps[j] })
 		c.Check(snaps, DeepEquals, expected)
 
 		task := st.NewTask("witness", "witness")
@@ -284,8 +284,12 @@ func (s *reRefreshSuite) TestDoCheckReRefreshWaitOnPendingRestart(c *C) {
 func refreshedSnaps(c *C, task *state.Task) string {
 	snaps, _, err := snapstate.RefreshedSnaps(task, nil)
 	c.Assert(err, IsNil)
-	sort.Strings(snaps)
-	return strings.Join(snaps, ",")
+	sort.Slice(snaps, func(i, j int) bool { return snaps[i] < snaps[j] })
+	names := make([]string, len(snaps))
+	for i, name := range snaps {
+		names[i] = name.String()
+	}
+	return strings.Join(names, ",")
 }
 
 // add a lane with two tasks to chg, the first one with a SnapSetup

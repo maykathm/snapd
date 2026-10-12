@@ -554,7 +554,7 @@ func storeUpdatePlanCore(
 	}
 
 	for _, name := range localAmends {
-		hasLocalRevision[name] = allSnaps[naming.InstanceName(name)]
+		hasLocalRevision[name] = allSnaps[name]
 	}
 
 	for id, actions := range amendActionsByUserID {
@@ -568,11 +568,11 @@ func storeUpdatePlanCore(
 	}
 
 	for _, name := range noStoreUpdates {
-		snapst, ok := allSnaps[naming.InstanceName(name)]
+		snapst, ok := allSnaps[name]
 		if !ok {
 			// if the caller explicitly requested an installation, we should
 			// fail if we can't make it happen
-			if updates[naming.InstanceName(name)].InstallIfMissing {
+			if updates[name].InstallIfMissing {
 				return updatePlan{}, fmt.Errorf("cannot install snap %q: %w", name, store.ErrSnapNotFound)
 			}
 			continue
@@ -618,7 +618,7 @@ func storeUpdatePlanCore(
 	// consider snaps that already have a local copy of the revision that we are
 	// trying to install, skipping a trip to the store
 	for name, snapst := range hasLocalRevision {
-		up, ok := updates[naming.InstanceName(name)]
+		up, ok := updates[name]
 		if !ok {
 			return updatePlan{}, fmt.Errorf("internal error: unexpected update to local revision: %q", snapst.InstanceName())
 		}
@@ -699,8 +699,8 @@ func collectCurrentSnapsAndActions(
 	requested []naming.InstanceName,
 	opts Options,
 	fallbackID int,
-) (actionsByUserID map[int][]*store.SnapAction, hasLocalRevision map[string]*SnapState, current []*store.CurrentSnap, err error) {
-	hasLocalRevision = make(map[string]*SnapState)
+) (actionsByUserID map[int][]*store.SnapAction, hasLocalRevision map[naming.InstanceName]*SnapState, current []*store.CurrentSnap, err error) {
+	hasLocalRevision = make(map[naming.InstanceName]*SnapState)
 	actionsByUserID = make(map[int][]*store.SnapAction)
 	refreshAll := len(requested) == 0
 
@@ -725,7 +725,7 @@ func collectCurrentSnapsAndActions(
 		}
 
 		if !req.RevOpts.Revision.Unset() && snapst.LastIndex(req.RevOpts.Revision) != -1 {
-			hasLocalRevision[snapst.InstanceName().String()] = snapst
+			hasLocalRevision[snapst.InstanceName()] = snapst
 			return nil
 		}
 
@@ -753,7 +753,7 @@ func collectCurrentSnapsAndActions(
 		// consider this snap for a store update, but we still should return it
 		// as a target for potentially switching channels or cohort keys
 		if !action.Revision.Unset() && action.Revision == installed.Revision {
-			hasLocalRevision[installed.InstanceName.String()] = snapst
+			hasLocalRevision[installed.InstanceName] = snapst
 			return nil
 		}
 
@@ -812,9 +812,9 @@ func collectCurrentSnapsAndActions(
 	return actionsByUserID, hasLocalRevision, current, nil
 }
 
-func installActionsForAmend(st *state.State, updates map[naming.InstanceName]StoreUpdate, opts Options, fallbackID int) (map[int][]*store.SnapAction, []string, error) {
+func installActionsForAmend(st *state.State, updates map[naming.InstanceName]StoreUpdate, opts Options, fallbackID int) (map[int][]*store.SnapAction, []naming.InstanceName, error) {
 	actionsByUserID := make(map[int][]*store.SnapAction)
-	var localAmends []string
+	var localAmends []naming.InstanceName
 	for _, up := range updates {
 		var snapst SnapState
 		if err := Get(st, up.InstanceName.String(), &snapst); err != nil {
@@ -833,7 +833,7 @@ func installActionsForAmend(st *state.State, updates map[naming.InstanceName]Sto
 		// we allow changing snap revisions of a local-only snap without the
 		// --amend flag as long as we already have had the revision installed
 		if !up.RevOpts.Revision.Unset() && snapst.LastIndex(up.RevOpts.Revision) != -1 {
-			localAmends = append(localAmends, snapst.InstanceName().String())
+			localAmends = append(localAmends, snapst.InstanceName())
 			continue
 		}
 
@@ -874,7 +874,7 @@ func installActionsForAmend(st *state.State, updates map[naming.InstanceName]Sto
 	return actionsByUserID, localAmends, nil
 }
 
-func sendActionsByUserID(ctx context.Context, st *state.State, actionsByUserID map[int][]*store.SnapAction, current []*store.CurrentSnap, refreshOpts *store.RefreshOptions, opts Options) (sars []store.SnapActionResult, noUpdatesAvailable []string, err error) {
+func sendActionsByUserID(ctx context.Context, st *state.State, actionsByUserID map[int][]*store.SnapAction, current []*store.CurrentSnap, refreshOpts *store.RefreshOptions, opts Options) (sars []store.SnapActionResult, noUpdatesAvailable []naming.InstanceName, err error) {
 	actionsForUser := make(map[*auth.UserState][]*store.SnapAction, len(actionsByUserID))
 	noUserActions := actionsByUserID[0]
 	for userID, actions := range actionsByUserID {
@@ -932,7 +932,7 @@ func sendActionsByUserID(ctx context.Context, st *state.State, actionsByUserID m
 					return nil, nil, err
 				}
 
-				noUpdatesAvailable = append(noUpdatesAvailable, name)
+				noUpdatesAvailable = append(noUpdatesAvailable, naming.InstanceName(name))
 			}
 
 			logger.Noticef("%v", saErr)

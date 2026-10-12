@@ -303,7 +303,7 @@ func updateRefreshCandidates(st *state.State, hints map[string]*refreshCandidate
 			// XXX we rely on the new hint preserving the state
 			oldHints[oldHintName] = newHint
 		} else {
-			if dropAllOld || strutil.ListContains(canDropOldNames, oldHintName) {
+			if dropAllOld || strutil.ListContains(canDropOldNames, naming.InstanceName(oldHintName)) {
 				// we have no new hint for this snap
 				deleted = append(deleted, oldHintName)
 				delete(oldHints, oldHintName)
