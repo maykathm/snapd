@@ -1,3 +1,11 @@
+snapd (1.0-1) unstable; urgency=medium
+
+  * New upstream release, LP: #12345
+    - First news item
+    - Second news item
+
+ -- Katie May <katie.may@canonical.com>  Tue, 13 Oct 2026 17:09:40 +0000
+
 snapd (2.78-1) unstable; urgency=medium
 
   * New upstream release, LP: #2166403
