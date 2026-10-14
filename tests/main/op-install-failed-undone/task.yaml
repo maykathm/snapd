@@ -23,7 +23,8 @@ execute: |
     mkdir -p "$SNAP_MOUNT_DIR/test-snapd-sh/current/foo"
 
     echo "And we try to install it"
-    if "$TESTSTOOLS"/snaps-state install-local test-snapd-sh; then
+    failed_task_id=$("$TESTSTOOLS"/snaps-state install-local test-snapd-sh --no-wait)
+    if snap watch "$failed_task_id"; then
         echo "A snap shouldn't be installable if its mount point is busy"
         exit 1
     fi
@@ -32,11 +33,7 @@ execute: |
     not snap list test-snapd-sh
 
     echo "And the installation task is reported as an error"
-    failed_task_id=$(snap changes | perl -ne 'print $1 if /(\d+) +Error.*?Install \"test-snapd-sh\" snap/')
-    if [ -z "$failed_task_id" ]; then
-        echo "Installation task should be reported as error"
-        exit 1
-    fi
+    snap changes | MATCH "^${failed_task_id}[[:space:]]+Error[[:space:]]"
 
     echo "And the Mount subtask is actually undone"
     snap change "$failed_task_id" | grep -Pq "Undone +.*?Mount snap \"test-snapd-sh\""
