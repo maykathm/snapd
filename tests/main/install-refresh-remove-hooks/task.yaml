@@ -89,7 +89,9 @@ execute: |
     fi
 
     echo "Installing a snap with broken install hook aborts the installation"
-    if "$TESTSTOOLS"/snaps-state install-local snap-hook-broken; then
+    if "$TESTSTOOLS"/snaps-state install-local snap-hooks-bad-install > install-failed.log 2>&1; then
         echo "Expected installation to fail"
         exit 1
     fi
+    MATCH 'Run install hook of "snap-hooks-bad-install" snap if present' < install-failed.log
+    not snap list snap-hooks-bad-install
