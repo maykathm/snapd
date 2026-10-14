@@ -632,18 +632,18 @@ func (s *snapsSuite) TestPostSnapsRemoveManyWithPurge(c *check.C) {
 
 func (s *snapsSuite) TestPostSnapsOptionsClean(c *check.C) {
 	var snapshotSaveCalled int
-	defer daemon.MockSnapshotSave(func(s *state.State, snaps, users []string,
+	defer daemon.MockSnapshotSave(func(s *state.State, snaps []naming.InstanceName, users []string,
 		options map[string]*snap.SnapshotOptions) (uint64, []string, *state.TaskSet, error) {
 		snapshotSaveCalled++
 
 		c.Check(snaps, check.HasLen, 3)
-		c.Check(snaps, check.DeepEquals, []string{"foo", "bar", "baz"})
+		c.Check(snaps, check.DeepEquals, []naming.InstanceName{"foo", "bar", "baz"})
 		c.Check(options, check.HasLen, 1)
 		c.Check(options, check.DeepEquals, map[string]*snap.SnapshotOptions{
 			"foo": {Exclude: []string{"$SNAP_DATA/foo-path-1"}},
 		})
 		t := s.NewTask("fake-snapshot-2", "Snapshot two")
-		return 1, snaps, state.NewTaskSet(t), nil
+		return 1, []string{snaps[0].String(), snaps[1].String(), snaps[2].String()}, state.NewTaskSet(t), nil
 	})()
 
 	s.daemonWithOverlordMockAndStore()

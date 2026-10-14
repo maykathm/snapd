@@ -28,6 +28,7 @@ import (
 	"github.com/snapcore/snapd/overlord/servicestate/internal"
 	"github.com/snapcore/snapd/overlord/snapstate"
 	"github.com/snapcore/snapd/overlord/state"
+	"github.com/snapcore/snapd/snap/naming"
 	"github.com/snapcore/snapd/snap/quota"
 	"github.com/snapcore/snapd/snapdenv"
 	"github.com/snapcore/snapd/systemd"
@@ -37,6 +38,17 @@ var (
 	systemdVersionOnce  sync.Once
 	systemdVersionError error
 )
+
+func instanceNamesFromStrings(names []string) []naming.InstanceName {
+	if names == nil {
+		return nil
+	}
+	instanceNames := make([]naming.InstanceName, len(names))
+	for index, name := range names {
+		instanceNames[index] = naming.InstanceName(name)
+	}
+	return instanceNames
+}
 
 func checkSystemdVersion() {
 	systemdVersionError = systemd.EnsureAtLeast(230)
@@ -168,7 +180,7 @@ func CreateQuota(st *state.State, name string, createOpts CreateQuotaOptions) (*
 	if err := CheckQuotaChangeConflictMany(st, []string{name}); err != nil {
 		return nil, err
 	}
-	if err := snapstate.CheckChangeConflictMany(st, createOpts.Snaps, ""); err != nil {
+	if err := snapstate.CheckChangeConflictMany(st, instanceNamesFromStrings(createOpts.Snaps), ""); err != nil {
 		return nil, err
 	}
 
@@ -221,7 +233,7 @@ func RemoveQuota(st *state.State, name string) (*state.TaskSet, error) {
 	if err := CheckQuotaChangeConflictMany(st, []string{name}); err != nil {
 		return nil, err
 	}
-	if err := snapstate.CheckChangeConflictMany(st, grp.Snaps, ""); err != nil {
+	if err := snapstate.CheckChangeConflictMany(st, instanceNamesFromStrings(grp.Snaps), ""); err != nil {
 		return nil, err
 	}
 
@@ -307,7 +319,7 @@ func UpdateQuota(st *state.State, name string, updateOpts UpdateQuotaOptions) (*
 	if err := CheckQuotaChangeConflictMany(st, []string{name}); err != nil {
 		return nil, err
 	}
-	if err := snapstate.CheckChangeConflictMany(st, updateOpts.AddSnaps, ""); err != nil {
+	if err := snapstate.CheckChangeConflictMany(st, instanceNamesFromStrings(updateOpts.AddSnaps), ""); err != nil {
 		return nil, err
 	}
 

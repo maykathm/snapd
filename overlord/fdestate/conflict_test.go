@@ -31,6 +31,7 @@ import (
 	"github.com/snapcore/snapd/overlord/snapstate"
 	"github.com/snapcore/snapd/overlord/state"
 	"github.com/snapcore/snapd/snap"
+	"github.com/snapcore/snapd/snap/naming"
 	"github.com/snapcore/snapd/snap/snaptest"
 )
 
@@ -103,7 +104,7 @@ func (s *fdeMgrSuite) TestAddPlatformKeysAffectedSnaps(c *C) {
 
 	names, err := fdestate.AddPlatformKeysAffectedSnaps(tsk)
 	c.Assert(err, IsNil)
-	c.Check(names, DeepEquals, []string{
+	c.Check(names, DeepEquals, []naming.InstanceName{
 		"pc",        // gadget
 		"pc-kernel", // kernel
 		"core20",    // base

@@ -25,6 +25,7 @@ import (
 	"github.com/snapcore/snapd/logger"
 	"github.com/snapcore/snapd/overlord/snapstate"
 	"github.com/snapcore/snapd/overlord/state"
+	"github.com/snapcore/snapd/snap/naming"
 )
 
 func isFDETask(t *state.Task) bool {
@@ -94,7 +95,7 @@ func CheckFDEChangeConflict(st *state.State) error {
 	return nil
 }
 
-func dbxUpdateAffectedSnaps(t *state.Task) ([]string, error) {
+func dbxUpdateAffectedSnaps(t *state.Task) ([]naming.InstanceName, error) {
 	// TODO:FDEM: check if we have sealed keys at all
 
 	// Secureboot updates can cause a reseal, so any snaps
@@ -145,7 +146,7 @@ func checkSecurebootChangeConflicts(st *state.State, db EFISecurebootKeyDatabase
 	return snapstate.CheckChangeConflictMany(st, snaps, "")
 }
 
-func addPlatformKeysAffectedSnaps(t *state.Task) ([]string, error) {
+func addPlatformKeysAffectedSnaps(t *state.Task) ([]naming.InstanceName, error) {
 	// adding a TPM protected key requires populating the role parameters
 	// in the FDE state (ensureParametersLoaded), those parameters could
 	// be updated as a result of a reseal caused by a refresh of any snap

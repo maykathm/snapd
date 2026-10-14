@@ -1575,12 +1575,12 @@ func systemSnapInfo(st *state.State) (*snap.Info, error) {
 	return snapstate.CurrentInfo(st, SystemSnapName().String())
 }
 
-func connectDisconnectAffectedSnaps(t *state.Task) ([]string, error) {
+func connectDisconnectAffectedSnaps(t *state.Task) ([]naming.InstanceName, error) {
 	plugRef, slotRef, err := getPlugAndSlotRefs(t)
 	if err != nil {
 		return nil, fmt.Errorf("internal error: cannot obtain plug/slot data from task: %s", t.Summary())
 	}
-	return []string{plugRef.Snap.String(), slotRef.Snap.String()}, nil
+	return []naming.InstanceName{plugRef.Snap, slotRef.Snap}, nil
 }
 
 func checkSystemSnapIsPresent(st *state.State) bool {

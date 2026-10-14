@@ -42,6 +42,7 @@ import (
 	"github.com/snapcore/snapd/secboot"
 	"github.com/snapcore/snapd/seed"
 	"github.com/snapcore/snapd/snap"
+	"github.com/snapcore/snapd/snap/naming"
 	"github.com/snapcore/snapd/snap/snaptest"
 	"github.com/snapcore/snapd/testutil"
 	"github.com/snapcore/snapd/timings"
@@ -1525,7 +1526,7 @@ func (s *fdeMgrSuite) TestEFISecurebootUpdateAffectedSnaps(c *C) {
 
 	names, err := fdestate.SecurebootUpdateAffectedSnaps(tsk)
 	c.Assert(err, IsNil)
-	c.Check(names, DeepEquals, []string{
+	c.Check(names, DeepEquals, []naming.InstanceName{
 		"pc",        // gadget
 		"pc-kernel", // kernel
 		"core20",    // base

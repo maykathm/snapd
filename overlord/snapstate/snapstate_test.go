@@ -6932,12 +6932,12 @@ func (s *snapmgrTestSuite) TestConflictManyIgnoresConfdbChanges(c *C) {
 	s.state.Lock()
 	defer s.state.Unlock()
 
-	snapstate.RegisterAffectedSnapsByAttr("hook-setup", func(t *state.Task) ([]string, error) {
+	snapstate.RegisterAffectedSnapsByAttr("hook-setup", func(t *state.Task) ([]naming.InstanceName, error) {
 		var hooksup hookstate.HookSetup
 		if err := t.Get("hook-setup", &hooksup); err != nil {
 			return nil, fmt.Errorf("internal error: cannot obtain hook data from task: %s", t.Summary())
 		}
-		return []string{hooksup.Snap}, nil
+		return []naming.InstanceName{naming.InstanceName(hooksup.Snap)}, nil
 	})
 
 	type testcase struct {
@@ -6968,7 +6968,7 @@ func (s *snapmgrTestSuite) TestConflictManyIgnoresConfdbChanges(c *C) {
 			chg.AddTask(hookstate.HookTask(s.state, "summary", hookSup, nil))
 		}
 
-		err := snapstate.CheckChangeConflictMany(s.state, []string{"some-snap"}, "")
+		err := snapstate.CheckChangeConflictMany(s.state, []naming.InstanceName{"some-snap"}, "")
 		cmt := Commentf("testcase %d (0-indexed)", i)
 		if tc.fails {
 			c.Assert(err, FitsTypeOf, &snapstate.ChangeConflictError{}, cmt)
@@ -6999,7 +6999,7 @@ func (s *snapmgrTestSuite) TestConflictMany(c *C) {
 	}
 
 	// things that should be ok:
-	for _, m := range [][]string{
+	for _, m := range [][]naming.InstanceName{
 		{}, //nothing
 		{"c-snap"},
 		{"c-snap", "d-snap", "e-snap", "f-snap"},
@@ -7008,7 +7008,7 @@ func (s *snapmgrTestSuite) TestConflictMany(c *C) {
 	}
 
 	// things that should not be ok:
-	for _, m := range [][]string{
+	for _, m := range [][]naming.InstanceName{
 		{"a-snap"},
 		{"a-snap", "b-snap"},
 		{"a-snap", "c-snap"},
@@ -7043,7 +7043,7 @@ func (s *snapmgrTestSuite) TestConflictChangeId(c *C) {
 	}
 
 	for i, name := range snaps {
-		err := snapstate.CheckChangeConflictMany(s.state, []string{name.String()}, "")
+		err := snapstate.CheckChangeConflictMany(s.state, []naming.InstanceName{name}, "")
 		c.Assert(err, FitsTypeOf, &snapstate.ChangeConflictError{})
 
 		conflictErr := err.(*snapstate.ChangeConflictError)
@@ -7058,7 +7058,7 @@ func (s *snapmgrTestSuite) TestConflictRemodeling(c *C) {
 	chg := s.state.NewChange("remodel", "...")
 	chg.SetStatus(state.DoingStatus)
 
-	err := snapstate.CheckChangeConflictMany(s.state, []string{"a-snap"}, "")
+	err := snapstate.CheckChangeConflictMany(s.state, []naming.InstanceName{"a-snap"}, "")
 	c.Check(err, FitsTypeOf, &snapstate.ChangeConflictError{})
 	c.Check(err, ErrorMatches, `remodeling in progress, no other changes allowed until this is done`)
 
@@ -7079,7 +7079,7 @@ func (s *snapmgrTestSuite) TestConflictCreateRecovery(c *C) {
 	c.Check(chg.IsReady(), Equals, false)
 	chg.SetStatus(state.DoingStatus)
 
-	err := snapstate.CheckChangeConflictMany(s.state, []string{"a-snap"}, "")
+	err := snapstate.CheckChangeConflictMany(s.state, []naming.InstanceName{"a-snap"}, "")
 	c.Check(err, FitsTypeOf, &snapstate.ChangeConflictError{})
 	c.Check(err, ErrorMatches, `creating recovery system in progress, no other changes allowed until this is done`)
 
@@ -7101,7 +7101,7 @@ func (s *snapmgrTestSuite) TestConflictSeedRefresh(c *C) {
 		chg.AddTask(s.state.NewTask("create-recovery-system", "..."))
 		chg.SetStatus(state.DoingStatus)
 
-		err := snapstate.CheckChangeConflictMany(s.state, []string{"a-snap"}, "")
+		err := snapstate.CheckChangeConflictMany(s.state, []naming.InstanceName{"a-snap"}, "")
 		c.Check(err, FitsTypeOf, &snapstate.ChangeConflictError{}, Commentf("change kind: %s", kind))
 		c.Check(err, ErrorMatches, `seed refresh in progress, no other changes allowed until this is done`, Commentf("change kind: %s", kind))
 

@@ -34,6 +34,7 @@ import (
 	"github.com/snapcore/snapd/overlord/snapshotstate"
 	"github.com/snapcore/snapd/overlord/state"
 	"github.com/snapcore/snapd/overlord/swfeats"
+	"github.com/snapcore/snapd/snap/naming"
 	"github.com/snapcore/snapd/strutil"
 )
 
@@ -135,7 +136,7 @@ func changeSnapshots(c *Command, r *http.Request, user *auth.UserState) Response
 		return BadRequest("snapshot operation requires action")
 	}
 
-	var affected []string
+	var affected []naming.InstanceName
 	var ts *state.TaskSet
 	var err error
 
@@ -170,8 +171,15 @@ func changeSnapshots(c *Command, r *http.Request, user *auth.UserState) Response
 		return InternalError("%v", err)
 	}
 
-	chg := newChange(st, changeKind, action.String(), []*state.TaskSet{ts}, affected)
-	chg.Set("api-data", map[string]any{"snap-names": affected})
+	var affectedNames []string
+	if affected != nil {
+		affectedNames = make([]string, len(affected))
+		for index, name := range affected {
+			affectedNames[index] = name.String()
+		}
+	}
+	chg := newChange(st, changeKind, action.String(), []*state.TaskSet{ts}, affectedNames)
+	chg.Set("api-data", map[string]any{"snap-names": affectedNames})
 	ensureStateSoon(st)
 
 	return AsyncResponse(nil, chg.ID())
@@ -230,7 +238,14 @@ func doSnapshotImport(c *Command, r *http.Request, user *auth.UserState) Respons
 }
 
 func snapshotMany(_ context.Context, inst *snapInstruction, st *state.State) (*snapInstructionResult, error) {
-	setID, snapshotted, ts, err := snapshotSave(st, inst.Snaps, inst.Users, inst.SnapshotOptions)
+	var instanceNames []naming.InstanceName
+	if inst.Snaps != nil {
+		instanceNames = make([]naming.InstanceName, len(inst.Snaps))
+		for index, name := range inst.Snaps {
+			instanceNames[index] = naming.InstanceName(name)
+		}
+	}
+	setID, snapshotted, ts, err := snapshotSave(st, instanceNames, inst.Users, inst.SnapshotOptions)
 	if err != nil {
 		return nil, err
 	}

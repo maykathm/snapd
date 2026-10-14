@@ -82,7 +82,7 @@ func MockSnapstateCurrentInfo(f func(*state.State, string) (*snap.Info, error)) 
 	return testutil.Mock(&snapstateCurrentInfo, f)
 }
 
-func MockSnapstateCheckChangeConflictMany(f func(*state.State, []string, string) error) (restore func()) {
+func MockSnapstateCheckChangeConflictMany(f func(*state.State, []naming.InstanceName, string) error) (restore func()) {
 	return testutil.Mock(&snapstateCheckChangeConflictMany, f)
 }
 

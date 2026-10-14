@@ -62,7 +62,7 @@ func (e *ChangeConflictError) Is(err error) bool {
 }
 
 // An AffectedSnapsFunc returns a list of affected snap names for the given supported task.
-type AffectedSnapsFunc func(*state.Task) ([]string, error)
+type AffectedSnapsFunc func(*state.Task) ([]naming.InstanceName, error)
 
 var (
 	affectedSnapsByAttr = make(map[string]AffectedSnapsFunc)
@@ -84,14 +84,14 @@ func RegisterAffectedSnapsByKind(kind string, f AffectedSnapsFunc) {
 }
 
 // SnapsAffectedByTask returns a list of names of snaps affected by the given task.
-func SnapsAffectedByTask(t *state.Task) ([]string, error) {
+func SnapsAffectedByTask(t *state.Task) ([]naming.InstanceName, error) {
 	// snapstate's own styled tasks
 	if t.Has("snap-setup") || t.Has("snap-setup-task") {
 		snapsup, err := TaskSnapSetup(t)
 		if err != nil {
 			return nil, fmt.Errorf("internal error: cannot obtain snap setup from task: %s", t.Summary())
 		}
-		return []string{snapsup.InstanceName().String()}, nil
+		return []naming.InstanceName{snapsup.InstanceName()}, nil
 	}
 
 	if f := affectedSnapsByKind[t.Kind()]; f != nil {
@@ -299,12 +299,12 @@ func isIrrelevantChange(chg *state.Change, opts ConflictOptions) bool {
 //
 // It's like CheckChangeConflict, but for multiple snaps, and does not
 // check snapst.
-func CheckChangeConflictMany(st *state.State, instanceNames []string, ignoreChangeID string) error {
+func CheckChangeConflictMany(st *state.State, instanceNames []naming.InstanceName, ignoreChangeID string) error {
 	return checkChangeConflictManyWithOptions(st, instanceNames, ConflictOptions{FromChange: ignoreChangeID})
 }
 
-func checkChangeConflictManyWithOptions(st *state.State, instanceNames []string, opts ConflictOptions) error {
-	snapMap := make(map[string]bool, len(instanceNames))
+func checkChangeConflictManyWithOptions(st *state.State, instanceNames []naming.InstanceName, opts ConflictOptions) error {
+	snapMap := make(map[naming.InstanceName]bool, len(instanceNames))
 	for _, k := range instanceNames {
 		snapMap[k] = true
 	}
@@ -328,7 +328,7 @@ func checkChangeConflictManyWithOptions(st *state.State, instanceNames []string,
 		for _, snap := range snaps {
 			if snapMap[snap] {
 				return &ChangeConflictError{
-					Snap:       snap,
+					Snap:       snap.String(),
 					ChangeKind: chg.Kind(),
 					ChangeID:   chg.ID(),
 				}
@@ -348,7 +348,7 @@ func CheckChangeConflict(st *state.State, instanceName naming.InstanceName, snap
 }
 
 func checkChangeConflictIgnoringOneChange(st *state.State, instanceName naming.InstanceName, snapst *SnapState, opts ConflictOptions) error {
-	if err := checkChangeConflictManyWithOptions(st, []string{instanceName.String()}, opts); err != nil {
+	if err := checkChangeConflictManyWithOptions(st, []naming.InstanceName{instanceName}, opts); err != nil {
 		return err
 	}
 

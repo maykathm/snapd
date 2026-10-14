@@ -799,12 +799,12 @@ func createGateAutoRefreshHooks(st *state.State, affectedSnaps []string) *state.
 	return ts
 }
 
-func conditionalAutoRefreshAffectedSnaps(t *state.Task) ([]string, error) {
-	var snaps map[string]*json.RawMessage
+func conditionalAutoRefreshAffectedSnaps(t *state.Task) ([]naming.InstanceName, error) {
+	var snaps map[naming.InstanceName]*json.RawMessage
 	if err := t.Get("snaps", &snaps); err != nil {
 		return nil, fmt.Errorf("internal error: cannot get snaps to update for %s task %s", t.Kind(), t.ID())
 	}
-	names := make([]string, 0, len(snaps))
+	names := make([]naming.InstanceName, 0, len(snaps))
 	for sn := range snaps {
 		// TODO: drop snaps once we know the outcome of gate-auto-refresh hooks.
 		names = append(names, sn)

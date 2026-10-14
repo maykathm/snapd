@@ -85,19 +85,19 @@ func newSnapshotSetID(st *state.State) (uint64, error) {
 	return lastSetID, nil
 }
 
-func allActiveSnapNames(st *state.State) ([]string, error) {
+func allActiveSnapNames(st *state.State) ([]naming.InstanceName, error) {
 	all, err := snapstateAll(st)
 	if err != nil {
 		return nil, err
 	}
-	names := make([]string, 0, len(all))
+	names := make([]naming.InstanceName, 0, len(all))
 	for name, snapst := range all {
 		if snapst.Active {
-			names = append(names, name.String())
+			names = append(names, name)
 		}
 	}
 
-	sort.Strings(names)
+	sort.Slice(names, func(first, second int) bool { return names[first] < names[second] })
 
 	return names, nil
 }
@@ -220,10 +220,10 @@ func expiredSnapshotSets(st *state.State, cutoffTime time.Time) (map[uint64]bool
 // snapshot set when deciding whether to check/forget/restore it.
 type snapshotSnapSummaries []*snapshotSnapSummary
 
-func (summaries snapshotSnapSummaries) snapNames() []string {
-	names := make([]string, len(summaries))
+func (summaries snapshotSnapSummaries) snapNames() []naming.InstanceName {
+	names := make([]naming.InstanceName, len(summaries))
 	for i, summary := range summaries {
-		names[i] = summary.snap
+		names[i] = naming.InstanceName(summary.snap)
 	}
 	return names
 }
@@ -381,7 +381,7 @@ func Import(ctx context.Context, st *state.State, r io.Reader) (setID uint64, sn
 
 // Save creates a taskset for taking snapshots of snaps' data.
 // Note that the state must be locked by the caller.
-func Save(st *state.State, instanceNames []string, users []string, options map[string]*snap.SnapshotOptions) (setID uint64, snapsSaved []string, ts *state.TaskSet, err error) {
+func Save(st *state.State, instanceNames []naming.InstanceName, users []string, options map[string]*snap.SnapshotOptions) (setID uint64, snapsSaved []string, ts *state.TaskSet, err error) {
 	if len(instanceNames) == 0 {
 		instanceNames, err = allActiveSnapNames(st)
 		if err != nil {
@@ -394,8 +394,8 @@ func Save(st *state.State, instanceNames []string, users []string, options map[s
 		}
 
 		for _, name := range instanceNames {
-			if _, ok := installedSnaps[naming.InstanceName(name)]; !ok {
-				return 0, nil, nil, &snap.NotInstalledError{Snap: name}
+			if _, ok := installedSnaps[name]; !ok {
+				return 0, nil, nil, &snap.NotInstalledError{Snap: name.String()}
 			}
 		}
 	}
@@ -411,6 +411,7 @@ func Save(st *state.State, instanceNames []string, users []string, options map[s
 	}
 
 	ts = state.NewTaskSet()
+	snapsSaved = make([]string, 0, len(instanceNames))
 
 	for _, name := range instanceNames {
 		// TODO: add tasks to stop snap's applications and services
@@ -420,9 +421,9 @@ func Save(st *state.State, instanceNames []string, users []string, options map[s
 
 		snapshot := snapshotSetup{
 			SetID:   setID,
-			Snap:    name,
+			Snap:    name.String(),
 			Users:   users,
-			Options: options[name],
+			Options: options[name.String()],
 		}
 
 		task.Set("snapshot-setup", &snapshot)
@@ -438,11 +439,12 @@ func Save(st *state.State, instanceNames []string, users []string, options map[s
 		// Also note we aren't promising this behaviour; we can change
 		// it if we find it to be wrong.
 		ts.AddTask(task)
+		snapsSaved = append(snapsSaved, name.String())
 
 		// TODO: add task to restart snap's services
 	}
 
-	return setID, instanceNames, ts, nil
+	return setID, snapsSaved, ts, nil
 }
 
 func AutomaticSnapshot(st *state.State, snapName string) (ts *state.TaskSet, err error) {
@@ -479,7 +481,7 @@ func AutomaticSnapshot(st *state.State, snapName string) (ts *state.TaskSet, err
 
 // Restore creates a taskset for restoring a snapshot's data.
 // Note that the state must be locked by the caller.
-func Restore(st *state.State, setID uint64, snapNames []string, users []string) (snapsFound []string, ts *state.TaskSet, err error) {
+func Restore(st *state.State, setID uint64, snapNames []string, users []string) (snapsFound []naming.InstanceName, ts *state.TaskSet, err error) {
 	summaries, err := snapSummariesInSnapshotSet(setID, snapNames)
 	if err != nil {
 		return nil, nil, err
@@ -554,7 +556,7 @@ func Restore(st *state.State, setID uint64, snapNames []string, users []string) 
 
 // Check creates a taskset for checking a snapshot's data.
 // Note that the state must be locked by the caller.
-func Check(st *state.State, setID uint64, snapNames []string, users []string) (snapsFound []string, ts *state.TaskSet, err error) {
+func Check(st *state.State, setID uint64, snapNames []string, users []string) (snapsFound []naming.InstanceName, ts *state.TaskSet, err error) {
 	// check needs to conflict with forget of itself
 	if err := checkSnapshotConflict(st, setID, "forget-snapshot"); err != nil {
 		return nil, nil, err
@@ -585,7 +587,7 @@ func Check(st *state.State, setID uint64, snapNames []string, users []string) (s
 
 // Forget creates a taskset for deletinig a snapshot.
 // Note that the state must be locked by the caller.
-func Forget(st *state.State, setID uint64, snapNames []string) (snapsFound []string, ts *state.TaskSet, err error) {
+func Forget(st *state.State, setID uint64, snapNames []string) (snapsFound []naming.InstanceName, ts *state.TaskSet, err error) {
 	// forget needs to conflict with check, restore, import and export.
 	if err := checkSnapshotConflict(st, setID, "export-snapshot",
 		"check-snapshot", "restore-snapshot"); err != nil {

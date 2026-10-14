@@ -36,6 +36,7 @@ import (
 	"github.com/snapcore/snapd/overlord/snapshotstate"
 	"github.com/snapcore/snapd/overlord/state"
 	"github.com/snapcore/snapd/snap"
+	"github.com/snapcore/snapd/snap/naming"
 )
 
 var _ = check.Suite(&snapshotSuite{})
@@ -52,12 +53,12 @@ func (s *snapshotSuite) SetUpTest(c *check.C) {
 }
 
 func (s *snapshotSuite) TestSnapshotManyOptionsNone(c *check.C) {
-	defer daemon.MockSnapshotSave(func(s *state.State, snaps, users []string,
+	defer daemon.MockSnapshotSave(func(s *state.State, snaps []naming.InstanceName, users []string,
 		options map[string]*snap.SnapshotOptions) (uint64, []string, *state.TaskSet, error) {
 		c.Check(snaps, check.HasLen, 2)
 		c.Check(options, check.IsNil)
 		t := s.NewTask("fake-snapshot-2", "Snapshot two")
-		return 1, snaps, state.NewTaskSet(t), nil
+		return 1, []string{snaps[0].String(), snaps[1].String()}, state.NewTaskSet(t), nil
 	})()
 
 	inst := daemon.MustUnmarshalSnapInstruction(c, `{"action": "snapshot", "snaps": ["foo", "bar"]}`)
@@ -73,7 +74,7 @@ func (s *snapshotSuite) TestSnapshotManyOptionsNone(c *check.C) {
 
 func (s *snapshotSuite) TestSnapshotManyOptionsFull(c *check.C) {
 	var snapshotSaveCalled int
-	defer daemon.MockSnapshotSave(func(s *state.State, snaps, users []string,
+	defer daemon.MockSnapshotSave(func(s *state.State, snaps []naming.InstanceName, users []string,
 		options map[string]*snap.SnapshotOptions) (uint64, []string, *state.TaskSet, error) {
 		snapshotSaveCalled++
 		c.Check(snaps, check.HasLen, 2)
@@ -83,7 +84,7 @@ func (s *snapshotSuite) TestSnapshotManyOptionsFull(c *check.C) {
 			"bar": {Exclude: []string{"bar-path-1", "bar-path-2"}},
 		})
 		t := s.NewTask("fake-snapshot-2", "Snapshot two")
-		return 1, snaps, state.NewTaskSet(t), nil
+		return 1, []string{snaps[0].String(), snaps[1].String()}, state.NewTaskSet(t), nil
 	})()
 
 	inst := daemon.MustUnmarshalSnapInstruction(c, `{"action": "snapshot", "snaps": ["foo", "bar"],
@@ -100,7 +101,7 @@ func (s *snapshotSuite) TestSnapshotManyOptionsFull(c *check.C) {
 }
 
 func (s *snapshotSuite) TestSnapshotManyError(c *check.C) {
-	defer daemon.MockSnapshotSave(func(s *state.State, snaps, users []string,
+	defer daemon.MockSnapshotSave(func(s *state.State, snaps []naming.InstanceName, users []string,
 		options map[string]*snap.SnapshotOptions) (uint64, []string, *state.TaskSet, error) {
 		c.Check(snaps, check.HasLen, 2)
 		return 0, nil, nil, &snap.NotInstalledError{Snap: "foo"}
@@ -253,15 +254,15 @@ func (s *snapshotSuite) TestChangeSnapshots400(c *check.C) {
 func (s *snapshotSuite) TestChangeSnapshots404(c *check.C) {
 	var done string
 	expectedError := errors.New("bzzt")
-	defer daemon.MockSnapshotCheck(func(*state.State, uint64, []string, []string) ([]string, *state.TaskSet, error) {
+	defer daemon.MockSnapshotCheck(func(*state.State, uint64, []string, []string) ([]naming.InstanceName, *state.TaskSet, error) {
 		done = "check"
 		return nil, nil, expectedError
 	})()
-	defer daemon.MockSnapshotRestore(func(*state.State, uint64, []string, []string) ([]string, *state.TaskSet, error) {
+	defer daemon.MockSnapshotRestore(func(*state.State, uint64, []string, []string) ([]naming.InstanceName, *state.TaskSet, error) {
 		done = "restore"
 		return nil, nil, expectedError
 	})()
-	defer daemon.MockSnapshotForget(func(*state.State, uint64, []string) ([]string, *state.TaskSet, error) {
+	defer daemon.MockSnapshotForget(func(*state.State, uint64, []string) ([]naming.InstanceName, *state.TaskSet, error) {
 		done = "forget"
 		return nil, nil, expectedError
 	})()
@@ -284,15 +285,15 @@ func (s *snapshotSuite) TestChangeSnapshots404(c *check.C) {
 func (s *snapshotSuite) TestChangeSnapshots500(c *check.C) {
 	var done string
 	expectedError := errors.New("bzzt")
-	defer daemon.MockSnapshotCheck(func(*state.State, uint64, []string, []string) ([]string, *state.TaskSet, error) {
+	defer daemon.MockSnapshotCheck(func(*state.State, uint64, []string, []string) ([]naming.InstanceName, *state.TaskSet, error) {
 		done = "check"
 		return nil, nil, expectedError
 	})()
-	defer daemon.MockSnapshotRestore(func(*state.State, uint64, []string, []string) ([]string, *state.TaskSet, error) {
+	defer daemon.MockSnapshotRestore(func(*state.State, uint64, []string, []string) ([]naming.InstanceName, *state.TaskSet, error) {
 		done = "restore"
 		return nil, nil, expectedError
 	})()
-	defer daemon.MockSnapshotForget(func(*state.State, uint64, []string) ([]string, *state.TaskSet, error) {
+	defer daemon.MockSnapshotForget(func(*state.State, uint64, []string) ([]naming.InstanceName, *state.TaskSet, error) {
 		done = "forget"
 		return nil, nil, expectedError
 	})()
@@ -311,17 +312,17 @@ func (s *snapshotSuite) TestChangeSnapshots500(c *check.C) {
 
 func (s *snapshotSuite) TestChangeSnapshot(c *check.C) {
 	var done string
-	defer daemon.MockSnapshotCheck(func(*state.State, uint64, []string, []string) ([]string, *state.TaskSet, error) {
+	defer daemon.MockSnapshotCheck(func(*state.State, uint64, []string, []string) ([]naming.InstanceName, *state.TaskSet, error) {
 		done = "check"
-		return []string{"foo"}, state.NewTaskSet(), nil
+		return []naming.InstanceName{"foo"}, state.NewTaskSet(), nil
 	})()
-	defer daemon.MockSnapshotRestore(func(*state.State, uint64, []string, []string) ([]string, *state.TaskSet, error) {
+	defer daemon.MockSnapshotRestore(func(*state.State, uint64, []string, []string) ([]naming.InstanceName, *state.TaskSet, error) {
 		done = "restore"
-		return []string{"foo"}, state.NewTaskSet(), nil
+		return []naming.InstanceName{"foo"}, state.NewTaskSet(), nil
 	})()
-	defer daemon.MockSnapshotForget(func(*state.State, uint64, []string) ([]string, *state.TaskSet, error) {
+	defer daemon.MockSnapshotForget(func(*state.State, uint64, []string) ([]naming.InstanceName, *state.TaskSet, error) {
 		done = "forget"
-		return []string{"foo"}, state.NewTaskSet(), nil
+		return []naming.InstanceName{"foo"}, state.NewTaskSet(), nil
 	})()
 
 	st := s.d.Overlord().State()

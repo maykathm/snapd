@@ -58,6 +58,7 @@ import (
 	"github.com/snapcore/snapd/release"
 	"github.com/snapcore/snapd/secboot"
 	"github.com/snapcore/snapd/secboot/keys"
+	"github.com/snapcore/snapd/snap/naming"
 	"github.com/snapcore/snapd/snapdenv"
 	"github.com/snapcore/snapd/systemd/fdstore"
 	"github.com/snapcore/snapd/testutil"
@@ -1345,7 +1346,7 @@ func (s *fdeMgrSuite) TestEFIDBXUpdateTaskAffectedSnaps(c *C) {
 	tsk := s.st.NewTask("efi-secureboot-db-update", "")
 	snaps, err := snapstate.SnapsAffectedByTask(tsk)
 	c.Assert(err, IsNil)
-	c.Assert(snaps, DeepEquals, []string{"pc", "pc-kernel", "core20"})
+	c.Assert(snaps, DeepEquals, []naming.InstanceName{"pc", "pc-kernel", "core20"})
 }
 
 func (s *fdeMgrSuite) TestAddPlatformKeysTaskAffectedSnaps(c *C) {
@@ -1361,7 +1362,7 @@ func (s *fdeMgrSuite) TestAddPlatformKeysTaskAffectedSnaps(c *C) {
 	tsk := s.st.NewTask("fde-add-platform-keys", "")
 	snaps, err := snapstate.SnapsAffectedByTask(tsk)
 	c.Assert(err, IsNil)
-	c.Assert(snaps, DeepEquals, []string{"pc", "pc-kernel", "core20"})
+	c.Assert(snaps, DeepEquals, []naming.InstanceName{"pc", "pc-kernel", "core20"})
 }
 
 func (s *fdeMgrSuite) TestManagerVerifyPrimaryKey(c *C) {

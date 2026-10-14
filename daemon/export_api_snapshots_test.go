@@ -30,9 +30,10 @@ import (
 	"github.com/snapcore/snapd/overlord/snapshotstate"
 	"github.com/snapcore/snapd/overlord/state"
 	"github.com/snapcore/snapd/snap"
+	"github.com/snapcore/snapd/snap/naming"
 )
 
-func MockSnapshotSave(newSave func(*state.State, []string, []string, map[string]*snap.SnapshotOptions) (uint64, []string, *state.TaskSet, error)) (restore func()) {
+func MockSnapshotSave(newSave func(*state.State, []naming.InstanceName, []string, map[string]*snap.SnapshotOptions) (uint64, []string, *state.TaskSet, error)) (restore func()) {
 	oldSave := snapshotSave
 	snapshotSave = newSave
 	return func() {
@@ -56,7 +57,7 @@ func MockSnapshotExport(newExport func(context.Context, *state.State, uint64) (*
 	}
 }
 
-func MockSnapshotCheck(newCheck func(*state.State, uint64, []string, []string) ([]string, *state.TaskSet, error)) (restore func()) {
+func MockSnapshotCheck(newCheck func(*state.State, uint64, []string, []string) ([]naming.InstanceName, *state.TaskSet, error)) (restore func()) {
 	oldCheck := snapshotCheck
 	snapshotCheck = newCheck
 	return func() {
@@ -64,7 +65,7 @@ func MockSnapshotCheck(newCheck func(*state.State, uint64, []string, []string) (
 	}
 }
 
-func MockSnapshotRestore(newRestore func(*state.State, uint64, []string, []string) ([]string, *state.TaskSet, error)) (restore func()) {
+func MockSnapshotRestore(newRestore func(*state.State, uint64, []string, []string) ([]naming.InstanceName, *state.TaskSet, error)) (restore func()) {
 	oldRestore := snapshotRestore
 	snapshotRestore = newRestore
 	return func() {
@@ -72,7 +73,7 @@ func MockSnapshotRestore(newRestore func(*state.State, uint64, []string, []strin
 	}
 }
 
-func MockSnapshotForget(newForget func(*state.State, uint64, []string) ([]string, *state.TaskSet, error)) (restore func()) {
+func MockSnapshotForget(newForget func(*state.State, uint64, []string) ([]naming.InstanceName, *state.TaskSet, error)) (restore func()) {
 	oldForget := snapshotForget
 	snapshotForget = newForget
 	return func() {

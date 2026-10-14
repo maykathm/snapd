@@ -38,6 +38,7 @@ import (
 	"github.com/snapcore/snapd/overlord/snapstate"
 	"github.com/snapcore/snapd/overlord/state"
 	"github.com/snapcore/snapd/snap"
+	"github.com/snapcore/snapd/snap/naming"
 )
 
 var (
@@ -152,7 +153,7 @@ func (mgr *SnapshotManager) forgetExpiredSnapshots() error {
 	return nil
 }
 
-func (SnapshotManager) affectedSnaps(t *state.Task) ([]string, error) {
+func (SnapshotManager) affectedSnaps(t *state.Task) ([]naming.InstanceName, error) {
 	if k := t.Kind(); k == "check-snapshot" || k == "forget-snapshot" {
 		// check and forget don't affect snaps
 		// (this could also be written k != save && k != restore, but it's safer this way around)
@@ -163,7 +164,7 @@ func (SnapshotManager) affectedSnaps(t *state.Task) ([]string, error) {
 		return nil, taskGetErrMsg(t, err, "snapshot")
 	}
 
-	return []string{snapshot.Snap}, nil
+	return []naming.InstanceName{naming.InstanceName(snapshot.Snap)}, nil
 }
 
 type snapshotSetup struct {

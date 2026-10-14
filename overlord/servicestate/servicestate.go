@@ -40,6 +40,7 @@ import (
 	"github.com/snapcore/snapd/overlord/state"
 	"github.com/snapcore/snapd/progress"
 	"github.com/snapcore/snapd/snap"
+	"github.com/snapcore/snapd/snap/naming"
 	"github.com/snapcore/snapd/snap/quota"
 	"github.com/snapcore/snapd/strutil"
 	"github.com/snapcore/snapd/systemd"
@@ -295,13 +296,13 @@ func Control(st *state.State, appInfos []*snap.AppInfo, inst *Instruction, cu *u
 	}
 
 	svcs := make([]string, 0, len(appInfos))
-	snapNames := make([]string, 0, len(appInfos))
-	lastName := ""
+	snapNames := make([]naming.InstanceName, 0, len(appInfos))
+	var lastName naming.InstanceName
 	names := make([]string, len(appInfos))
 	for i, svc := range appInfos {
 		svcs = append(svcs, svc.ServiceName())
-		instanceName := svc.Snap.InstanceName().String()
-		names[i] = instanceName + "." + svc.Name
+		instanceName := svc.Snap.InstanceName()
+		names[i] = instanceName.String() + "." + svc.Name
 		if instanceName != lastName {
 			snapNames = append(snapNames, instanceName)
 			lastName = instanceName

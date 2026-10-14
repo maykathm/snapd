@@ -943,7 +943,7 @@ func affectedQuotasForQuotaControl(t *state.Task) (quotas []string, err error) {
 	return quotas, nil
 }
 
-func affectedSnapsForQuotaControl(t *state.Task) (snaps []string, err error) {
+func affectedSnapsForQuotaControl(t *state.Task) (snaps []naming.InstanceName, err error) {
 	qcs := []QuotaControlAction{}
 	if err := t.Get("quota-control-actions", &qcs); err != nil {
 		return nil, fmt.Errorf("internal error: cannot get quota-control-actions: %v", err)
@@ -954,7 +954,7 @@ func affectedSnapsForQuotaControl(t *state.Task) (snaps []string, err error) {
 		if err != nil {
 			return nil, err
 		}
-		return snaps, nil
+		return instanceNamesFromStrings(snaps), nil
 	}
 
 	st := t.State()
@@ -968,7 +968,7 @@ func affectedSnapsForQuotaControl(t *state.Task) (snaps []string, err error) {
 				return nil, err
 			}
 			if err == nil {
-				snaps = append(snaps, grp.Snaps...)
+				snaps = append(snaps, instanceNamesFromStrings(grp.Snaps)...)
 			}
 		default:
 			// create and update affects only the snaps
@@ -976,7 +976,7 @@ func affectedSnapsForQuotaControl(t *state.Task) (snaps []string, err error) {
 			// TODO: this will cease to be true
 			// if we support reparenting or orphaning
 			// of quota groups
-			snaps = append(snaps, qc.AddSnaps...)
+			snaps = append(snaps, instanceNamesFromStrings(qc.AddSnaps)...)
 		}
 	}
 	return snaps, nil

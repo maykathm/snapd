@@ -150,7 +150,7 @@ func (snapshotSuite) TestAllActiveSnapNames(c *check.C) {
 	for i := 0; i < 100; i++ {
 		names, err := snapshotstate.AllActiveSnapNames(nil)
 		c.Assert(err, check.IsNil)
-		c.Check(names, check.DeepEquals, []string{"a-snap", "c-snap"})
+		c.Check(names, check.DeepEquals, []naming.InstanceName{"a-snap", "c-snap"})
 	}
 }
 
@@ -432,7 +432,7 @@ func (s snapshotSuite) TestSaveChecksSnapstateConflict(c *check.C) {
 	st, restore := s.createConflictingChange(c)
 	defer restore()
 
-	_, _, _, err := snapshotstate.Save(st, []string{"foo"}, nil, nil)
+	_, _, _, err := snapshotstate.Save(st, []naming.InstanceName{"foo"}, nil, nil)
 	c.Assert(err, check.NotNil)
 	c.Check(err, check.FitsTypeOf, &snapstate.ChangeConflictError{})
 }
@@ -477,7 +477,7 @@ func (snapshotSuite) TestSaveConflictsWithSnapstate(c *check.C) {
 }
 
 func (snapshotSuite) TestSaveChecksSnapstateConflictError(c *check.C) {
-	defer snapshotstate.MockSnapstateCheckChangeConflictMany(func(*state.State, []string, string) error {
+	defer snapshotstate.MockSnapstateCheckChangeConflictMany(func(*state.State, []naming.InstanceName, string) error {
 		return errors.New("bzzt")
 	})()
 
@@ -516,7 +516,7 @@ func (snapshotSuite) TestSaveSnapNotInstalled(c *check.C) {
 	st.Lock()
 	defer st.Unlock()
 
-	setID, saved, taskset, err := snapshotstate.Save(st, []string{"foo"}, nil, nil)
+	setID, saved, taskset, err := snapshotstate.Save(st, []naming.InstanceName{"foo"}, nil, nil)
 	c.Assert(err, check.ErrorMatches, `snap "foo" is not installed`)
 	c.Check(setID, check.Equals, uint64(0))
 	c.Check(saved, check.HasLen, 0)
@@ -588,7 +588,7 @@ func (s snapshotSuite) TestSaveOneSnap(c *check.C) {
 		Current: snap.R(1),
 	})
 
-	setID, saved, taskset, err := snapshotstate.Save(st, []string{"a-snap"}, []string{"a-user"}, nil)
+	setID, saved, taskset, err := snapshotstate.Save(st, []naming.InstanceName{"a-snap"}, []string{"a-user"}, nil)
 	c.Assert(err, check.IsNil)
 	c.Check(setID, check.Equals, uint64(1))
 	c.Check(saved, check.DeepEquals, []string{"a-snap"})
@@ -1153,7 +1153,7 @@ func (snapshotSuite) TestRestoreWorksWithCompatibleEpoch(c *check.C) {
 
 	found, taskset, err := snapshotstate.Restore(st, 42, nil, nil)
 	c.Assert(err, check.IsNil)
-	c.Check(found, check.DeepEquals, []string{"a-snap"})
+	c.Check(found, check.DeepEquals, []naming.InstanceName{"a-snap"})
 	tasks := taskset.Tasks()
 	c.Assert(tasks, check.HasLen, 2)
 	c.Check(tasks[0].Kind(), check.Equals, "restore-snapshot")
@@ -1190,7 +1190,7 @@ func (snapshotSuite) TestRestore(c *check.C) {
 
 	found, taskset, err := snapshotstate.Restore(st, 42, []string{"a-snap", "b-snap"}, []string{"a-user"})
 	c.Assert(err, check.IsNil)
-	c.Check(found, check.DeepEquals, []string{"a-snap"})
+	c.Check(found, check.DeepEquals, []naming.InstanceName{"a-snap"})
 	tasks := taskset.Tasks()
 	c.Assert(tasks, check.HasLen, 2)
 	c.Check(tasks[0].Kind(), check.Equals, "restore-snapshot")
@@ -1281,8 +1281,8 @@ func testRestoreIntegration(c *check.C, snapDataDir string, opts *dirs.SnapDirOp
 
 	found, taskset, err := snapshotstate.Restore(st, 42, nil, []string{"a-user", "b-user"})
 	c.Assert(err, check.IsNil)
-	sort.Strings(found)
-	c.Check(found, check.DeepEquals, []string{"one-snap", "too-snap", "tri-snap"})
+	sort.Slice(found, func(first, second int) bool { return found[first] < found[second] })
+	c.Check(found, check.DeepEquals, []naming.InstanceName{"one-snap", "too-snap", "tri-snap"})
 
 	change := st.NewChange("restore-snapshot", "...")
 	change.AddAll(taskset)
@@ -1361,8 +1361,8 @@ func (snapshotSuite) TestRestoreIntegrationFails(c *check.C) {
 
 	found, taskset, err := snapshotstate.Restore(st, 42, nil, []string{"a-user"})
 	c.Assert(err, check.IsNil)
-	sort.Strings(found)
-	c.Check(found, check.DeepEquals, []string{"one-snap", "too-snap", "tri-snap"})
+	sort.Slice(found, func(first, second int) bool { return found[first] < found[second] })
+	c.Check(found, check.DeepEquals, []naming.InstanceName{"one-snap", "too-snap", "tri-snap"})
 
 	change := st.NewChange("restore-snapshot", "...")
 	change.AddAll(taskset)
@@ -1475,7 +1475,7 @@ func (snapshotSuite) TestCheck(c *check.C) {
 
 	found, taskset, err := snapshotstate.Check(st, 42, []string{"a-snap", "b-snap"}, []string{"a-user"})
 	c.Assert(err, check.IsNil)
-	c.Check(found, check.DeepEquals, []string{"a-snap"})
+	c.Check(found, check.DeepEquals, []naming.InstanceName{"a-snap"})
 	tasks := taskset.Tasks()
 	c.Assert(tasks, check.HasLen, 1)
 	c.Check(tasks[0].Kind(), check.Equals, "check-snapshot")
@@ -1613,7 +1613,7 @@ func (snapshotSuite) TestForget(c *check.C) {
 
 	found, taskset, err := snapshotstate.Forget(st, 42, []string{"a-snap", "b-snap"})
 	c.Assert(err, check.IsNil)
-	c.Check(found, check.DeepEquals, []string{"a-snap"})
+	c.Check(found, check.DeepEquals, []naming.InstanceName{"a-snap"})
 	tasks := taskset.Tasks()
 	c.Assert(tasks, check.HasLen, 1)
 	c.Check(tasks[0].Kind(), check.Equals, "forget-snapshot")

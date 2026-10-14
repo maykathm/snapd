@@ -253,7 +253,7 @@ func (m *HookManager) RegisterHijack(hookName, instanceName string, f hijackFunc
 	m.hijackMap[hijackKey{hookName, instanceName}] = f
 }
 
-func (m *HookManager) hookAffectedSnaps(t *state.Task) ([]string, error) {
+func (m *HookManager) hookAffectedSnaps(t *state.Task) ([]naming.InstanceName, error) {
 	var hooksup HookSetup
 	if err := t.Get("hook-setup", &hooksup); err != nil {
 		return nil, fmt.Errorf("internal error: cannot obtain hook data from task: %s", t.Summary())
@@ -266,7 +266,7 @@ func (m *HookManager) hookAffectedSnaps(t *state.Task) ([]string, error) {
 		return nil, nil
 	}
 
-	return []string{hooksup.Snap}, nil
+	return []naming.InstanceName{naming.InstanceName(hooksup.Snap)}, nil
 }
 
 func (m *HookManager) ephemeralContext(cookieID string) (context *Context, err error) {

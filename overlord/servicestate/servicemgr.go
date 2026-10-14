@@ -37,6 +37,7 @@ import (
 	"github.com/snapcore/snapd/overlord/swfeats"
 	"github.com/snapcore/snapd/progress"
 	"github.com/snapcore/snapd/snap"
+	"github.com/snapcore/snapd/snap/naming"
 	"github.com/snapcore/snapd/snap/quota"
 	"github.com/snapcore/snapd/snapdenv"
 	"github.com/snapcore/snapd/systemd"
@@ -217,12 +218,12 @@ func delayedCrossMgrInit() {
 	snapstate.EnsureSnapAbsentFromQuotaGroup = EnsureSnapAbsentFromQuota
 }
 
-func serviceControlAffectedSnaps(t *state.Task) ([]string, error) {
+func serviceControlAffectedSnaps(t *state.Task) ([]naming.InstanceName, error) {
 	var serviceAction ServiceAction
 	if err := t.Get("service-action", &serviceAction); err != nil {
 		return nil, fmt.Errorf("internal error: cannot obtain service action from task: %s", t.Summary())
 	}
-	return []string{serviceAction.SnapName}, nil
+	return []naming.InstanceName{naming.InstanceName(serviceAction.SnapName)}, nil
 }
 
 func getBootTime() (time.Time, error) {

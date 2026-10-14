@@ -94,7 +94,7 @@ type connectOpts struct {
 
 // Connect returns a set of tasks for connecting an interface.
 func Connect(st *state.State, plugSnap, plugName, slotSnap, slotName string) (*state.TaskSet, error) {
-	if err := snapstate.CheckChangeConflictMany(st, []string{plugSnap, slotSnap}, ""); err != nil {
+	if err := snapstate.CheckChangeConflictMany(st, []naming.InstanceName{naming.InstanceName(plugSnap), naming.InstanceName(slotSnap)}, ""); err != nil {
 		return nil, err
 	}
 
@@ -323,7 +323,7 @@ func initialConnectAttributes(st *state.State, plugSnapInfo *snap.Info, plugSnap
 func Disconnect(st *state.State, conn *interfaces.Connection) (*state.TaskSet, error) {
 	plugSnap := conn.Plug.Snap().InstanceName()
 	slotSnap := conn.Slot.Snap().InstanceName()
-	if err := snapstate.CheckChangeConflictMany(st, []string{plugSnap.String(), slotSnap.String()}, ""); err != nil {
+	if err := snapstate.CheckChangeConflictMany(st, []naming.InstanceName{plugSnap, slotSnap}, ""); err != nil {
 		return nil, err
 	}
 
@@ -337,7 +337,7 @@ func Disconnect(st *state.State, conn *interfaces.Connection) (*state.TaskSet, e
 // If the interface is already disconnected, it will be removed from the state
 // (forgotten).
 func Forget(st *state.State, repo *interfaces.Repository, connRef *interfaces.ConnRef) (*state.TaskSet, error) {
-	if err := snapstate.CheckChangeConflictMany(st, []string{connRef.PlugRef.Snap.String(), connRef.SlotRef.Snap.String()}, ""); err != nil {
+	if err := snapstate.CheckChangeConflictMany(st, []naming.InstanceName{connRef.PlugRef.Snap, connRef.SlotRef.Snap}, ""); err != nil {
 		return nil, err
 	}
 

@@ -25,6 +25,7 @@ import (
 	"github.com/snapcore/snapd/overlord/snapstate"
 	"github.com/snapcore/snapd/overlord/state"
 	"github.com/snapcore/snapd/snap"
+	"github.com/snapcore/snapd/snap/naming"
 	"github.com/snapcore/snapd/testutil"
 )
 
@@ -61,15 +62,15 @@ func (s *conflictSuite) TestSnapsAffectedByTaskKind(c *C) {
 
 	// register kind callback
 	restore := snapstate.MockAffectedSnapsByKind(map[string]snapstate.AffectedSnapsFunc{
-		"test-task": func(t *state.Task) ([]string, error) {
-			return []string{"some-snap"}, nil
+		"test-task": func(t *state.Task) ([]naming.InstanceName, error) {
+			return []naming.InstanceName{"some-snap"}, nil
 		},
 	})
 	defer restore()
 	// affected snaps calculated by callback
 	snaps, err = snapstate.SnapsAffectedByTask(t)
 	c.Assert(err, IsNil)
-	c.Check(snaps, DeepEquals, []string{"some-snap"})
+	c.Check(snaps, DeepEquals, []naming.InstanceName{"some-snap"})
 }
 
 func (s *conflictSuite) TestSnapsAffectedByTaskAttr(c *C) {
@@ -86,15 +87,15 @@ func (s *conflictSuite) TestSnapsAffectedByTaskAttr(c *C) {
 
 	// register kind callback
 	restore := snapstate.MockAffectedSnapsByAttr(map[string]snapstate.AffectedSnapsFunc{
-		"test-attr": func(t *state.Task) ([]string, error) {
-			return []string{"some-snap"}, nil
+		"test-attr": func(t *state.Task) ([]naming.InstanceName, error) {
+			return []naming.InstanceName{"some-snap"}, nil
 		},
 	})
 	defer restore()
 	// affected snaps calculated by callback
 	snaps, err = snapstate.SnapsAffectedByTask(t)
 	c.Assert(err, IsNil)
-	c.Check(snaps, DeepEquals, []string{"some-snap"})
+	c.Check(snaps, DeepEquals, []naming.InstanceName{"some-snap"})
 }
 
 func (s *conflictSuite) TestSnapsAffectedByTaskSnapSetup(c *C) {
@@ -111,5 +112,5 @@ func (s *conflictSuite) TestSnapsAffectedByTaskSnapSetup(c *C) {
 	// affected snap based on snap setup
 	snaps, err := snapstate.SnapsAffectedByTask(t)
 	c.Assert(err, IsNil)
-	c.Check(snaps, DeepEquals, []string{"some-snap"})
+	c.Check(snaps, DeepEquals, []naming.InstanceName{"some-snap"})
 }

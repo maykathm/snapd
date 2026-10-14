@@ -37,6 +37,7 @@ import (
 	"github.com/snapcore/snapd/overlord/snapstate"
 	"github.com/snapcore/snapd/overlord/state"
 	"github.com/snapcore/snapd/secboot"
+	"github.com/snapcore/snapd/snap/naming"
 )
 
 var (
@@ -583,14 +584,14 @@ func withFdeState(st *state.State, op func(fdeSt *FdeState) (modified bool, err 
 // fdeRelevantSnaps returns a list of snaps that are relevant in the context of
 // FDE and associated boot policies. Specifically this includes the kernel,
 // gadget and base snaps.
-func fdeRelevantSnaps(st *state.State) ([]string, error) {
+func fdeRelevantSnaps(st *state.State) ([]naming.InstanceName, error) {
 	devCtx, err := snapstate.DeviceCtx(st, nil, nil)
 	if err != nil {
 		return nil, err
 	}
 
 	// these snaps, or either their content is measured during boot
-	return []string{devCtx.Gadget(), devCtx.Kernel(), devCtx.Base()}, nil
+	return []naming.InstanceName{naming.InstanceName(devCtx.Gadget()), naming.InstanceName(devCtx.Kernel()), naming.InstanceName(devCtx.Base())}, nil
 }
 
 func MockGetPrimaryKeyDigest(f func(devicePath string, alg crypto.Hash) ([]byte, []byte, error)) (restore func()) {
