@@ -8,7 +8,7 @@
 # Environment:
 #   TESTING_TARBALL_PATH     unified incus image tarball for the testing container
 #   FAKE_STORE_TARBALL_PATH  unified incus image tarball for the fake store container
-#   SPREAD_PASSWORD          password to set for the ubuntu user used by spread
+#   SPREAD_PASSWORD          password for the test user used by spread
 set -eu -o pipefail
 
 # Keep stdout clean for the address, everything else goes to stderr.
@@ -17,7 +17,7 @@ exec 3>&1 1>&2
 : "${TESTING_TARBALL_PATH:?TESTING_TARBALL_PATH must be set}"
 : "${FAKE_STORE_TARBALL_PATH:?FAKE_STORE_TARBALL_PATH must be set}"
 
-SPREAD_PASSWORD="${SPREAD_PASSWORD:-ubuntu}"
+SPREAD_PASSWORD="${SPREAD_PASSWORD:-test}"
 
 for f in "$TESTING_TARBALL_PATH" "$FAKE_STORE_TARBALL_PATH"; do
     if [[ ! -f "$f" ]]; then

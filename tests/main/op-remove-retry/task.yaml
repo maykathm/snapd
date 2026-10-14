@@ -11,6 +11,8 @@ details: |
 # ubuntu-14.04: systemd-run not supported
 systems: [-ubuntu-14.04*]
 
+kill-timeout: 5m
+
 restore: |
     kill %1 || true
     # sleep was started from a snap by the unmount-blocker unit, normally

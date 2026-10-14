@@ -44,7 +44,7 @@ wget https://github.com/canonical/spread-plus/releases/download/2026.09.22/sprea
 tar -xf spread-plus-amd64.tar.gz -C "$PREP_DIR"
 
 cp "$script_dir"/spread.yaml "$PREP_DIR"
-cp -r "$script_dir"/tests "$PREP_DIR"
+cp -rL "$script_dir"/tests "$PREP_DIR"
 cp "$script_dir"/incus-allocate.sh "$PREP_DIR"
 cp "$script_dir"/incus-discard.sh "$PREP_DIR"
 cp "$script_dir"/run.sh "$PREP_DIR"
