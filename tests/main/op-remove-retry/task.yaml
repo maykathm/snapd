@@ -14,7 +14,7 @@ systems: [-ubuntu-14.04*]
 kill-timeout: 5m
 
 restore: |
-    kill %1 || true
+    systemctl stop unmount-blocker || true
     # sleep was started from a snap by the unmount-blocker unit, normally
     # it should be enough to kill the whole unit, however since that process
     # was started from a snap, it got moved to a separate snap-specific transient
@@ -22,12 +22,6 @@ restore: |
     pkill -f "sleep 9999" || true
 
 execute: |
-    wait_for_remove_state(){
-        local state=$1
-        local expected="(?s)$state.*?Remove \"test-snapd-tools\" snap"
-        while ! snap changes | grep -Pq "$expected"; do sleep 1; done
-    }
-
     echo "Given a snap is installed"
     "$TESTSTOOLS"/snaps-state install-local test-snapd-tools
 
@@ -44,10 +38,11 @@ execute: |
     retry -n 20 --wait 1 sh -c "test -f $MARKER"
 
     echo "When we try to remove the snap"
-    snap remove --purge test-snapd-tools &
+    remove_change_id=$(snap remove --purge --no-wait test-snapd-tools)
 
     echo "Then the remove retry succeeds"
-    wait_for_remove_state Done
+    snap watch "$remove_change_id"
+    snap changes | MATCH "^${remove_change_id}[[:space:]]+Done[[:space:]]"
 
     echo "And the snap is removed"
     retry -n 30 --wait 1 sh -c 'snap list | NOMATCH test-snapd-tools'
