@@ -20,9 +20,11 @@
 package state
 
 import (
+	"fmt"
 	"sync"
 	"time"
 
+	"github.com/antithesishq/antithesis-sdk-go/assert"
 	"gopkg.in/tomb.v2"
 
 	"github.com/snapcore/snapd/logger"
@@ -254,6 +256,20 @@ func (r *TaskRunner) run(t *Task) {
 			}
 		}
 
+		wasAborted := t.Status() == AbortStatus
+		expectedAbortStatus := ErrorStatus
+		if wasAborted {
+			switch err.(type) {
+			case nil:
+				expectedAbortStatus = UndoStatus
+			case *Retry, *Wait:
+				expectedAbortStatus = UndoStatus
+				if r.handlerPair(t).undo == nil {
+					expectedAbortStatus = HoldStatus
+				}
+			}
+		}
+
 		switch x := err.(type) {
 		case *Retry:
 			// Handler asked to be called again later.
@@ -305,6 +321,18 @@ func (r *TaskRunner) run(t *Task) {
 			if r.taskErrorCallback != nil {
 				r.taskErrorCallback(err)
 			}
+		}
+
+		if wasAborted {
+			assert.AlwaysOrUnreachable(t.Status() == expectedAbortStatus,
+				"aborted handler completion follows cancellation transition", map[string]any{
+					"task-id":         t.id,
+					"change-id":       t.change,
+					"kind":            t.kind,
+					"status":          t.Status().String(),
+					"expected-status": expectedAbortStatus.String(),
+					"completion-type": fmt.Sprintf("%T", err),
+				})
 		}
 
 		return nil

@@ -4,7 +4,9 @@
 
 Scope answer (verbatim): "just this directory". External references: `[]`.
 Evidence revision: `e88ec08852fbc8af019dc39e22097e5720aa6dfd` (2026-10-13).
-Focus: concurrency, lifecycle and replay; evidence only.
+Source implementation follow-up: HEAD `47c5d1a904a84975393d03359ded48d78d2840f6`
+plus working-tree changes (2026-10-14).
+Focus: concurrency, lifecycle and replay; source-only cancellation checks.
 
 Priority: **P0 (critical)**. Type: **Safety**. Confidence: **high** for the
 locked transition contract; this does not prove rollback eventually succeeds.
@@ -50,9 +52,9 @@ Abort into its defined undo/hold/error path rather than ordinary success.
   `TestUndoSingleLane`: an explicit Done attempt in a slow handler races with
   lane failure; final tasks are Undone/Hold except the failing task's Error.
 
-## Proposed SDK Checks and Safe Condition
+## SDK Checks and Safe Condition
 
-Use distinct `AlwaysOrUnreachable` checks on these optional race encounters:
+Implemented distinct `AlwaysOrUnreachable` checks on these optional race encounters:
 
 - `AlwaysOrUnreachable(postStatus == AbortStatus, "aborted task rejects competing
   done commit", details)` after SetStatus's Abort/Done guard.
@@ -62,7 +64,7 @@ Use distinct `AlwaysOrUnreachable` checks on these optional race encounters:
   follows cancellation transition", details)` after run's completion switch,
   conditioned on its locked pre-finalization status being Abort.
 
-These are proposed predicates. Optional safety fits better than Sometimes:
+Optional safety fits better than Sometimes:
 each encountered race must be safe, but an ordinary workload may never encounter
 it. A distinct Reachable checkpoint for a nil completion consuming Abort can
 guide the cancellation window without pretending it proves progress.
@@ -93,25 +95,34 @@ Repeat with and without undo handlers; restart from a persisted Abort separately
 The fault angle is an unlocked-effect/locked-commit interleaving. Lost cancellation
 can leave work reported as successful without taking its required undo path.
 
-Cheap discriminating check: compare the two task guard tests and sequence-test
-Hold expectation with the exact normalized-error branches. Expectations were
-inspected, not executed; no new defect is alleged.
+Cheap discriminating check: the two task guard tests and sequence-test Hold
+expectations agree with the exact normalized-error branches. These now pass,
+along with a fourteen-case completion matrix covering nil, Retry, Wait, ordinary
+error, shutdown-normalized error and explicit Done/Wait commits, each with and
+without an undo handler. No new snapd defect is alleged.
 
 ## Instrumentation Status
 
-**Present but invalid as a general premise**:
-[overlord/state/change.go](../../../overlord/state/change.go#L451) already calls
-`Always(new != HoldStatus, "change never enters hold status", ...)`.
-[antithesis/scratchbook/existing-assertions.md](../existing-assertions.md)
-documents it. Legitimate explicit Hold is tested at
-[overlord/state/change_test.go](../../../overlord/state/change_test.go#L168), and pending
-abort produces Hold. This assertion is not cancellation correctness coverage.
-Do **not** add another copy or recommend a global no-Hold invariant. A future
-implementation should correct/replace that broad premise with scoped checks.
+**Implemented safety**: the invalid broad no-Hold assertion has been removed.
+The three scoped optional assertions are present in `Task.SetStatus`,
+`Task.SetToWait` and `TaskRunner.run`; the inventory records their exact locations
+and messages. Setter postconditions run before returning while state remains
+locked. Wait checks both Abort and the unchanged waited-status. Runner expected
+status is derived from the effective normalized tomb result before finalization.
+Existing locking, callbacks, status transitions and Ensure requests are unchanged.
 
-**Missing**: the three scoped race assertions and nil/Abort replay checkpoint.
-SUT-side pre/post observations are necessary: settled change status alone loses
-the transition ordering. Existing unit assertions are not Antithesis SDK checks.
+**Validated locally**: the full `overlord/state` suite passed with
+`LANG=C.UTF-8 go test -mod=readonly -race -count=1 ./overlord/state`. Local
+`ANTITHESIS_SDK_LOCAL_OUTPUT` events contained exactly the three scoped optional
+messages with true conditions and `must_hit: false`. Ordinary test execution
+does not establish actual harness cataloging or tenant reporting.
+
+**Deferred**: a dedicated cancellation workload and its accepted-cancellation
+Reachable outcome anchor, cataloged harness-binary verification and campaign
+validation. Do not add mandatory outcome coverage to unrelated workloads.
+The user approved a source-only correction and unit tests while preserving the
+existing Incus/Spread harness. `snouty` 0.7.2 was installed user-locally, but no
+runnable Compose configuration exists for workload-skill validation.
 
 ## Open Questions
 

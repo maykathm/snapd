@@ -1,7 +1,7 @@
 ---
 sut_path: /home/katie.may@canonical.com/source/snapd
-commit: e88ec08852fbc8af019dc39e22097e5720aa6dfd
-updated: 2026-10-13
+commit: 47c5d1a904a84975393d03359ded48d78d2840f6
+updated: 2026-10-14
 external_references: []
 ---
 
@@ -13,16 +13,25 @@ Scope answer (verbatim): "just this directory".
 
 | File and line | Function | Type | Exact message |
 | --- | --- | --- | --- |
-| `overlord/state/change.go:451` | `Change.notifyStatusChange` | `Always` | `change never enters hold status` |
+| `overlord/state/task.go:273` | `Task.SetStatus` deferred postcondition | `AlwaysOrUnreachable` | `aborted task rejects competing done commit` |
+| `overlord/state/task.go:306` | `Task.SetToWait` deferred postcondition | `AlwaysOrUnreachable` | `aborted task rejects competing wait commit` |
+| `overlord/state/taskrunner.go:327` | `TaskRunner.run` locked finalization | `AlwaysOrUnreachable` | `aborted handler completion follows cancellation transition` |
 
-The predicate is `new != HoldStatus`; details include change ID, kind, and
-status. This is existing instrumentation, not a proposed addition. Its premise
-is too broad: `Change.SetStatus(HoldStatus)` is supported, and aborting an
-all-pending change produces aggregate Hold through task-status notifications.
-See `overlord/state/change.go:408`, `:800`, `overlord/state/change_test.go:158`,
-`:168`, `:475`, and `overlord/state/taskrunner.go:366`. Empty-change construction
-alone need not encounter the assertion. Do not generalize it to tasks; replace
-its premise with scoped cancellation invariants in an implementation pass.
+The source-only follow-up removes the broad `change never enters hold status`
+assertion. Explicit Hold and aborting pending work are supported outcomes, not
+correctness failures. The replacements observe immediate cancellation
+transitions under the existing state lock; none promises eventual rollback or
+forbids a later legal Done status.
+
+The setter checks retain Abort after a competing Done or Wait request; Wait also
+preserves its previous waited-status. Runner finalization checks the normalized
+tomb result: nil requires Undo, Retry/Wait requires Undo or no-undo Hold, and
+other errors require Error. Shutdown error normalization precedes the check.
+
+Validation: the full state package passed with `-mod=readonly -race -count=1`.
+Structured local SDK output reported successful encounters of exactly these
+three optional assertions. This does not verify catalogs or reporting from the
+actual harness binary, or demonstrate campaign coverage.
 
 `go.mod:41` already requires `github.com/antithesishq/antithesis-sdk-go v0.8.0`.
 `build-aux/snap/snapcraft.yaml` contains Antithesis Go tool-exec build support.
@@ -39,3 +48,5 @@ SDK package presence does not imply every build produces an assertion catalog.
 ## Open Questions
 
 Confirm assertion catalog generation for the actual harness binary before a run.
+The existing Incus/Spread harness is unchanged; no runnable Compose configuration
+or dedicated cancellation test template was added in this source-only pass.

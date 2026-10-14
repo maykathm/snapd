@@ -1,14 +1,16 @@
 ---
 sut_path: /home/katie.may@canonical.com/source/snapd
-commit: e88ec08852fbc8af019dc39e22097e5720aa6dfd
-updated: 2026-10-13
+commit: 47c5d1a904a84975393d03359ded48d78d2840f6
+updated: 2026-10-14
 external_references: []
 ---
 
 # Assertion Placement Recommendations
 
 Scope answer (verbatim): "just this directory". Examples are proposed sketches,
-not applied code. SDK signatures were checked against cached v0.8.0.
+not applied code. SDK signatures were checked against cached v0.8.0. A later
+source-only follow-up implemented the scoped cancellation checks described below;
+the other placements remain proposals.
 
 ## First: Dirty State Must Be Checkpointed
 
@@ -143,8 +145,12 @@ fixture/ledger data from SUT writes, and test the checker on synthetic wrong
 snapshots. Terminal progress deadlines run outside SUT locks and the snapshot
 barrier so a blocked barrier cannot suppress a failure.
 
-The existing `change never enters hold status` assertion is already present and
-too broad for legitimate aborts. Correct it rather than adding a duplicate.
+The source-only cancellation follow-up removed the invalid
+`change never enters hold status` assertion. Three `AlwaysOrUnreachable` checks
+now observe competing Done/Wait commits and normalized runner completion after
+Abort. Unit tests and local SDK event checks pass; dedicated workload outcome
+coverage and actual harness cataloging/reporting remain deferred. See the
+`abort-wins-completion-race` evidence file and assertion inventory.
 
 ## SDK Semantics and Sources
 

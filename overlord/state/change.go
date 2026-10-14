@@ -27,8 +27,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/antithesishq/antithesis-sdk-go/assert"
-
 	"github.com/snapcore/snapd/logger"
 )
 
@@ -448,11 +446,6 @@ func shouldSkipChangeUpdateNotice(old, new Status) bool {
 }
 
 func (c *Change) notifyStatusChange(new Status) {
-	assert.Always(new != HoldStatus, "change never enters hold status", map[string]any{
-		"change-id": c.id,
-		"kind":      c.kind,
-		"status":    new.String(),
-	})
 	if c.lastObservedStatus != new {
 		c.state.notifyChangeStatusChangedHandlers(c, c.lastObservedStatus, new)
 		c.lastObservedStatus = new
