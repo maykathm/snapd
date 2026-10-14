@@ -736,7 +736,7 @@ func snapEnable(_ context.Context, inst *snapInstruction, st *state.State) (*sna
 	if !inst.Revision.Unset() {
 		return nil, errors.New("enable takes no revision")
 	}
-	ts, err := snapstate.Enable(st, inst.Snaps[0])
+	ts, err := snapstate.Enable(st, naming.InstanceName(inst.Snaps[0]))
 	if err != nil {
 		return nil, err
 	}
@@ -753,7 +753,7 @@ func snapDisable(_ context.Context, inst *snapInstruction, st *state.State) (*sn
 	if !inst.Revision.Unset() {
 		return nil, errors.New("disable takes no revision")
 	}
-	ts, err := snapstate.Disable(st, inst.Snaps[0])
+	ts, err := snapstate.Disable(st, naming.InstanceName(inst.Snaps[0]))
 	if err != nil {
 		return nil, err
 	}

@@ -3011,11 +3011,11 @@ func AddGadgetAssetsTasks(st *state.State, ts *state.TaskSet) (*state.TaskSet, e
 }
 
 // Enable sets a snap to the active state
-func Enable(st *state.State, name string) (*state.TaskSet, error) {
+func Enable(st *state.State, name naming.InstanceName) (*state.TaskSet, error) {
 	var snapst SnapState
-	err := Get(st, name, &snapst)
+	err := Get(st, name.String(), &snapst)
 	if errors.Is(err, state.ErrNoState) {
-		return nil, &snap.NotInstalledError{Snap: name}
+		return nil, &snap.NotInstalledError{Snap: name.String()}
 	}
 	if err != nil {
 		return nil, err
@@ -3067,11 +3067,11 @@ func Enable(st *state.State, name string) (*state.TaskSet, error) {
 }
 
 // Disable sets a snap to the inactive state
-func Disable(st *state.State, name string) (*state.TaskSet, error) {
+func Disable(st *state.State, name naming.InstanceName) (*state.TaskSet, error) {
 	var snapst SnapState
-	err := Get(st, name, &snapst)
+	err := Get(st, name.String(), &snapst)
 	if errors.Is(err, state.ErrNoState) {
-		return nil, &snap.NotInstalledError{Snap: name}
+		return nil, &snap.NotInstalledError{Snap: name.String()}
 	}
 	if err != nil {
 		return nil, err
@@ -3080,7 +3080,7 @@ func Disable(st *state.State, name string) (*state.TaskSet, error) {
 		return nil, fmt.Errorf("snap %q already disabled", name)
 	}
 
-	info, err := Info(st, name, snapst.Current)
+	info, err := Info(st, name.String(), snapst.Current)
 	if err != nil {
 		return nil, err
 	}
@@ -3094,7 +3094,7 @@ func Disable(st *state.State, name string) (*state.TaskSet, error) {
 
 	snapsup := &SnapSetup{
 		SideInfo: &snap.SideInfo{
-			RealName: snap.InstanceSnap(name),
+			RealName: name.SnapName().String(),
 			Revision: snapst.Current,
 		},
 		Type:        info.Type(),

@@ -6983,10 +6983,10 @@ func (s *snapmgrTestSuite) TestConflictMany(c *C) {
 	s.state.Lock()
 	defer s.state.Unlock()
 
-	for _, instanceName := range []string{"a-snap", "b-snap"} {
-		snapstate.Set(s.state, instanceName, &snapstate.SnapState{
+	for _, instanceName := range []naming.InstanceName{"a-snap", "b-snap"} {
+		snapstate.Set(s.state, instanceName.String(), &snapstate.SnapState{
 			Sequence: snapstatetest.NewSequenceFromSnapSideInfos([]*snap.SideInfo{
-				{RealName: instanceName, Revision: snap.R(11)},
+				{RealName: instanceName.SnapName().String(), Revision: snap.R(11)},
 			}),
 			Current: snap.R(11),
 			Active:  false,
@@ -7024,13 +7024,13 @@ func (s *snapmgrTestSuite) TestConflictChangeId(c *C) {
 	s.state.Lock()
 	defer s.state.Unlock()
 
-	snaps := []string{"a", "b", "c"}
+	snaps := []naming.InstanceName{"a", "b", "c"}
 	changes := make([]*state.Change, len(snaps))
 
 	for i, name := range snaps {
-		snapstate.Set(s.state, name, &snapstate.SnapState{
+		snapstate.Set(s.state, name.String(), &snapstate.SnapState{
 			Sequence: snapstatetest.NewSequenceFromSnapSideInfos([]*snap.SideInfo{
-				{RealName: name, Revision: snap.R(11)},
+				{RealName: name.SnapName().String(), Revision: snap.R(11)},
 			}),
 			Current: snap.R(11),
 		})
@@ -7043,7 +7043,7 @@ func (s *snapmgrTestSuite) TestConflictChangeId(c *C) {
 	}
 
 	for i, name := range snaps {
-		err := snapstate.CheckChangeConflictMany(s.state, []string{name}, "")
+		err := snapstate.CheckChangeConflictMany(s.state, []string{name.String()}, "")
 		c.Assert(err, FitsTypeOf, &snapstate.ChangeConflictError{})
 
 		conflictErr := err.(*snapstate.ChangeConflictError)
