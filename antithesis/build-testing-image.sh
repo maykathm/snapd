@@ -67,20 +67,35 @@ incus launch "$BASE_IMAGE" "$builder"
 wait_for_boot
 wait_for_network
 incus exec "$builder" -- env DEBIAN_FRONTEND=noninteractive sh -ec \
-    'apt update && apt upgrade -y && apt install -y snapd sudo apparmor squashfs-tools liblzo2-2 gnupg ssh'
+    'apt update && apt upgrade -y && apt install -y snapd sudo apparmor squashfs-tools liblzo2-2 gnupg ssh wget'
 incus exec "$builder" -- sh -ec '
-    if ! id ubuntu >/dev/null 2>&1; then
-        useradd --create-home --shell /bin/bash ubuntu
+    if ! id test >/dev/null 2>&1; then
+        groupadd --gid 12345 test
+        useradd --create-home --uid 12345 --gid 12345 --shell /bin/bash test
     fi
-    echo "ubuntu:ubuntu" | chpasswd
-    usermod -aG sudo ubuntu
-    printf "%s\n" "ubuntu ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/90-spread-ubuntu
-    chmod 0440 /etc/sudoers.d/90-spread-ubuntu
-    visudo -cf /etc/sudoers.d/90-spread-ubuntu
+    echo "test:test" | chpasswd
+    usermod -aG sudo test
+    if getent group systemd-journal >/dev/null; then
+        usermod -aG systemd-journal test
+    fi
+    printf "%s\n" "test ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/90-spread-test
+    chmod 0440 /etc/sudoers.d/90-spread-test
+    visudo -cf /etc/sudoers.d/90-spread-test
     mkdir -p /etc/ssh/sshd_config.d
     echo "PasswordAuthentication yes" > /etc/ssh/sshd_config.d/spread.conf
 '
-incus file push --uid 1000 --gid 1000 "$SNAPD_SNAP_PATH" "$builder/tmp/snapd.snap"
+incus exec "$builder" -- mkdir -p /opt/snapd-test-support
+tar -C "$script_dir/../tests" -cf - lib bin | incus exec "$builder" -- \
+    tar --no-same-owner -C /opt/snapd-test-support -xf -
+incus exec "$builder" -- sh -ec '
+    support_dir=/opt/snapd-test-support
+    cp -f "$support_dir"/lib/external/snapd-testing-tools/tools/* "$support_dir/lib/tools/"
+    wget -O /tmp/gojq.tar.gz https://github.com/itchyny/gojq/releases/download/v0.12.16/gojq_v0.12.16_linux_amd64.tar.gz
+    tar -xf /tmp/gojq.tar.gz -C "$support_dir/bin" --strip-components=1 --wildcards "*/gojq"
+    test -x "$support_dir/bin/gojq"
+    rm -f /tmp/gojq.tar.gz
+'
+incus file push --uid 12345 --gid 12345 "$SNAPD_SNAP_PATH" "$builder/tmp/snapd.snap"
 incus exec "$builder" -- unsquashfs -no-progress -d /tmp/snapd-root /tmp/snapd.snap catalog
 incus exec "$builder" -- sh -ec '
     test -d /tmp/snapd-root/catalog
