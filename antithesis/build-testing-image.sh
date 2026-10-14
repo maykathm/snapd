@@ -96,13 +96,6 @@ incus exec "$builder" -- sh -ec '
     rm -f /tmp/gojq.tar.gz
 '
 incus file push --uid 12345 --gid 12345 "$SNAPD_SNAP_PATH" "$builder/tmp/snapd.snap"
-incus exec "$builder" -- unsquashfs -no-progress -d /tmp/snapd-root /tmp/snapd.snap catalog
-incus exec "$builder" -- sh -ec '
-    test -d /tmp/snapd-root/catalog
-    test -n "$(find /tmp/snapd-root/catalog -type f -name "*.sym.tsv" -print -quit)"
-    mkdir -p /catalog
-    cp -a /tmp/snapd-root/catalog/. /catalog/
-'
 incus exec "$builder" -- snap install --dangerous /tmp/snapd.snap
 incus exec "$builder" -- sh -ec '
     mkdir -p /etc/systemd/system/snapd.service.d
@@ -116,7 +109,7 @@ EOF
     systemctl daemon-reload
     systemctl restart snapd.service
 ' sh "$FAKE_STORE_PORT" "$SNAPD_DEBUG_HTTP"
-incus exec "$builder" -- rm -rf /tmp/snapd-root /tmp/snapd.snap
+incus exec "$builder" -- rm -f /tmp/snapd.snap
 
 incus stop "$builder"
 incus publish "$builder" --alias "$alias" --compression gzip
