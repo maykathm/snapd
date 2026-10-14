@@ -1,6 +1,6 @@
 ---
 sut_path: /home/katie.may@canonical.com/source/snapd
-commit: 47c5d1a904a84975393d03359ded48d78d2840f6
+commit: 5c611563419407fb3920cd0c992640fd56216d5e
 updated: 2026-10-14
 external_references: []
 ---
@@ -8,9 +8,9 @@ external_references: []
 # Assertion Placement Recommendations
 
 Scope answer (verbatim): "just this directory". Examples are proposed sketches,
-not applied code. SDK signatures were checked against cached v0.8.0. A later
-source-only follow-up implemented the scoped cancellation checks described below;
-the other placements remain proposals.
+not applied code. SDK signatures were checked against cached v0.8.0. Source-only
+follow-ups implemented the dirty-Unlock guard and scoped cancellation checks
+described below; the other placements remain proposals.
 
 ## First: Dirty State Must Be Checkpointed
 
@@ -38,6 +38,12 @@ Set `checkpointSucceeded = true` in the successful Checkpoint branch and set
 `returnedNormally = true` before each ordinary return. Register this defer after
 `defer s.unlock()`. Nil backend and panic/crash exits are excluded. This tests
 control flow only; it does not establish that the backend wrote the right file.
+
+**Implemented:** the source guard is registered after the existing
+clean/nil-backend gate and before mutex release. It records attempt count and
+excludes panic exits. Focused tests, six local SDK encounter checks and the full
+state race suite pass. The sketch above illustrates the contract, not the exact
+implemented gating. Instrumented harness cataloging/reporting remains unverified.
 
 Independent check: in `overlord/backend.go:33`, after AtomicWriteFile succeeds
 and before returning to Unlock, a test-only readback can compare file bytes to

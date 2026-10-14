@@ -31,6 +31,8 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/antithesishq/antithesis-sdk-go/assert"
+
 	"github.com/snapcore/snapd/logger"
 	"github.com/snapcore/snapd/osutil"
 )
@@ -298,12 +300,27 @@ func (s *State) Unlock() {
 		return
 	}
 
+	checkpointSucceeded := false
+	returnedNormally := false
+	attempts := 0
+	defer func() {
+		if returnedNormally {
+			assert.Always(checkpointSucceeded && !s.modified,
+				"dirty unlock completes checkpoint before releasing state lock", map[string]any{
+					"attempts": attempts,
+				})
+		}
+	}()
+
 	data := s.checkpointData()
 	var err error
 	start := time.Now()
 	for time.Since(start) <= unlockCheckpointRetryMaxTime {
+		attempts++
 		if err = s.backend.Checkpoint(data); err == nil {
+			checkpointSucceeded = true
 			s.modified = false
+			returnedNormally = true
 			return
 		}
 		time.Sleep(unlockCheckpointRetryInterval)

@@ -307,6 +307,43 @@ func (ss *stateSuite) TestImplicitCheckpointRetry(c *C) {
 	st.Unlock()
 
 	c.Check(retries, Equals, 2)
+	c.Assert(b.checkpoints, HasLen, 2)
+	c.Check(b.checkpoints[1], DeepEquals, b.checkpoints[0])
+	st.Lock()
+	c.Check(st.Modified(), Equals, false)
+	st.Unlock()
+	c.Check(retries, Equals, 2)
+}
+
+func (ss *stateSuite) TestImplicitCheckpointClean(c *C) {
+	backend := &fakeStateBackend{}
+	st, err := state.ReadState(backend, bytes.NewBufferString(`{"data":{}}`))
+	c.Assert(err, IsNil)
+	st.Lock()
+	c.Check(st.Modified(), Equals, false)
+	st.Unlock()
+	c.Check(backend.checkpoints, HasLen, 0)
+}
+
+func (ss *stateSuite) TestImplicitCheckpointBackendPanic(c *C) {
+	backend := &fakeStateBackend{error: func() error { panic("checkpoint backend panic") }}
+	st := state.New(backend)
+	st.Lock()
+	st.Set("value", "preserved")
+	c.Assert(func() { st.Unlock() }, PanicMatches, "checkpoint backend panic")
+
+	st.Lock()
+	c.Check(st.Modified(), Equals, true)
+	backend.error = nil
+	st.Unlock()
+	st.Lock()
+	c.Check(st.Modified(), Equals, false)
+	var value string
+	c.Check(st.Get("value", &value), IsNil)
+	c.Check(value, Equals, "preserved")
+	st.Unlock()
+	c.Assert(backend.checkpoints, HasLen, 2)
+	c.Check(backend.checkpoints[1], DeepEquals, backend.checkpoints[0])
 }
 
 func (ss *stateSuite) TestImplicitCheckpointPanicsAfterFailedRetries(c *C) {
