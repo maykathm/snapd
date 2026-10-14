@@ -1,6 +1,6 @@
 ---
 sut_path: /home/katie.may@canonical.com/source/snapd
-commit: 47c5d1a904a84975393d03359ded48d78d2840f6
+commit: 5c611563419407fb3920cd0c992640fd56216d5e
 updated: 2026-10-14
 external_references: []
 ---
@@ -8,8 +8,9 @@ external_references: []
 # Targeted Property Catalog
 
 Scope answer (verbatim): "just this directory". Nineteen cataloged properties;
-cancellation safety now has source instrumentation and unit tests, but no
-dedicated workload or campaign validation. The other properties remain proposed.
+dirty-Unlock control flow and cancellation safety now have source instrumentation
+and unit tests, but no dedicated workload or campaign validation. The other
+properties remain proposed.
 P0 means integrity/recovery-critical,
 P1 supporting progress or consistency. Confidence is high for named code
 boundaries; the harness predicates/barrier still need implementation and testing.
@@ -36,6 +37,12 @@ and failure recovery.
 | Invariant | `Always(checkpointSucceeded && !modified)` on eligible normal returns, while locked; every encounter must satisfy it. |
 | Antithesis Angle | Pauses and checkpoint retries between mutation, acknowledgment and unlock. |
 | Why It Matters | Avoid losing durable changes and undo metadata. |
+
+**Implementation:** The source guard and focused tests are implemented. Local
+SDK checks verified success/retry encounters and clean/nil-backend/panic-exit
+gating; the full state suite passed under the race detector. Actual harness
+cataloging/reporting remains unverified. This is a control-flow safeguard, not
+independent evidence of correct file contents or crash durability.
 
 **Open Questions:** None.
 
