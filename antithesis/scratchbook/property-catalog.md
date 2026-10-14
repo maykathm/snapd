@@ -1,22 +1,25 @@
 ---
 sut_path: /home/katie.may@canonical.com/source/snapd
-commit: e88ec08852fbc8af019dc39e22097e5720aa6dfd
-updated: 2026-10-13
+commit: 47c5d1a904a84975393d03359ded48d78d2840f6
+updated: 2026-10-14
 external_references: []
 ---
 
 # Targeted Property Catalog
 
-Scope answer (verbatim): "just this directory". Nineteen proposed properties;
-none are implemented by this research. P0 means integrity/recovery-critical,
+Scope answer (verbatim): "just this directory". Nineteen cataloged properties;
+cancellation safety now has source instrumentation and unit tests, but no
+dedicated workload or campaign validation. The other properties remain proposed.
+P0 means integrity/recovery-critical,
 P1 supporting progress or consistency. Confidence is high for named code
 boundaries; the harness predicates/barrier still need implementation and testing.
 Evidence is in `properties/{slug}.md`. See `assertion-placement.md` for sketches.
 
 Start with dirty unlock, independent checkpoint readback, active links after
 stable successful operations, ensure visitation, and replay-safe semantic effects.
-Then add scheduling, rollback isolation and cohort progress. Existing Hold
-instrumentation needs correction, not duplication; see `existing-assertions.md`.
+Then add scheduling, rollback isolation and cohort progress. The invalid Hold
+instrumentation has been replaced with scoped cancellation checks; see
+`existing-assertions.md`.
 
 ## Persistence and Content Integrity
 
@@ -239,7 +242,13 @@ lifecycle and cross-cutting recovery.
 | Property | Concurrent successful completion does not erase an accepted task cancellation. |
 | Invariant | `AlwaysOrUnreachable(correctCancellationTransition)` on optional races, including Abort-to-Done/Wait suppression and scoped lane propagation; Hold is legal. |
 | Antithesis Angle | Abort against handler return or explicit terminal commit. |
-| Why It Matters | Preserve cancellation and undo obligations; replace the existing invalid broad Hold premise. |
+| Why It Matters | Preserve cancellation and undo obligations without rejecting legitimate Hold outcomes. |
+
+**Implementation:** Partial. Three optional SUT-side safety assertions and a
+fourteen-case deterministic completion matrix are implemented. The full state
+suite passed under the race detector, and all three assertions emitted successful
+local SDK encounters. Dedicated cancellation workload, outcome coverage anchors,
+actual harness cataloging/reporting and campaign validation remain deferred.
 
 **Open Questions:** None.
 

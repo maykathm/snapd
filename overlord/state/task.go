@@ -24,6 +24,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/antithesishq/antithesis-sdk-go/assert"
+
 	"github.com/snapcore/snapd/logger"
 )
 
@@ -266,6 +268,17 @@ func (t *Task) SetStatus(new Status) {
 
 	t.state.writing()
 	old := t.status
+	if old == AbortStatus && new == DoneStatus {
+		defer func() {
+			assert.AlwaysOrUnreachable(t.status == AbortStatus,
+				"aborted task rejects competing done commit", map[string]any{
+					"task-id":   t.id,
+					"change-id": t.change,
+					"kind":      t.kind,
+					"status":    t.status.String(),
+				})
+		}()
+	}
 	if new == DoneStatus && old == AbortStatus {
 		// if the task is in AbortStatus (because some other task ran
 		// in parallel and had an error so the change is aborted) and
@@ -287,6 +300,19 @@ func (t *Task) SetToWait(resultStatus Status) {
 
 	t.state.writing()
 	old := t.status
+	if old == AbortStatus {
+		waitedStatus := t.waitedStatus
+		defer func() {
+			assert.AlwaysOrUnreachable(t.status == AbortStatus && t.waitedStatus == waitedStatus,
+				"aborted task rejects competing wait commit", map[string]any{
+					"task-id":          t.id,
+					"change-id":        t.change,
+					"kind":             t.kind,
+					"status":           t.status.String(),
+					"requested-status": resultStatus.String(),
+				})
+		}()
+	}
 	if old == AbortStatus {
 		// if the task is in AbortStatus (because some other task ran
 		// in parallel and had an error so the change is aborted) and
