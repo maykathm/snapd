@@ -578,6 +578,84 @@ func (ts *taskRunnerSuite) TestExternalAbort(c *C) {
 	ensureChange(c, r, sb, chg)
 }
 
+func (ts *taskRunnerSuite) TestAbortCompletionTransitions(c *C) {
+	for _, withUndo := range []bool{false, true} {
+		for _, test := range []struct {
+			name             string
+			result           error
+			commit           func(*state.Task)
+			stopping         bool
+			expectedNoUndo   state.Status
+			expectedWithUndo state.Status
+		}{
+			{name: "success", expectedNoUndo: state.UndoStatus, expectedWithUndo: state.UndoStatus},
+			{name: "retry", result: &state.Retry{After: time.Hour}, expectedNoUndo: state.HoldStatus, expectedWithUndo: state.UndoStatus},
+			{name: "wait", result: &state.Wait{WaitedStatus: state.DoneStatus}, expectedNoUndo: state.HoldStatus, expectedWithUndo: state.UndoStatus},
+			{name: "error", result: errors.New("cannot complete aborted task"), expectedNoUndo: state.ErrorStatus, expectedWithUndo: state.ErrorStatus},
+			{name: "shutdown-error", result: errors.New("cannot complete stopped task"), stopping: true, expectedNoUndo: state.HoldStatus, expectedWithUndo: state.UndoStatus},
+			{name: "explicit-done", commit: func(task *state.Task) { task.SetStatus(state.DoneStatus) }, expectedNoUndo: state.UndoStatus, expectedWithUndo: state.UndoStatus},
+			{name: "explicit-wait", commit: func(task *state.Task) { task.SetToWait(state.DoneStatus) }, expectedNoUndo: state.UndoStatus, expectedWithUndo: state.UndoStatus},
+		} {
+			c.Logf("completion: %s, undo: %v", test.name, withUndo)
+			sb := &stateBackend{ensureBefore: time.Hour}
+			st := state.New(sb)
+			runner := state.NewTaskRunner(st)
+			defer runner.Stop()
+			started := make(chan struct{})
+			release := make(chan struct{})
+			var undo state.HandlerFunc
+			if withUndo {
+				undo = func(task *state.Task, tb *tomb.Tomb) error { return nil }
+			}
+			runner.AddHandler("blocking", func(task *state.Task, tb *tomb.Tomb) error {
+				close(started)
+				select {
+				case <-release:
+				case <-tb.Dying():
+				}
+				if test.commit != nil {
+					st.Lock()
+					test.commit(task)
+					st.Unlock()
+				}
+				return test.result
+			}, undo)
+
+			st.Lock()
+			chg := st.NewChange("install", "...")
+			task := st.NewTask("blocking", "...")
+			chg.AddTask(task)
+			st.Unlock()
+			c.Assert(runner.Ensure(), IsNil)
+			<-started
+			st.Lock()
+			chg.Abort()
+			c.Check(task.Status(), Equals, state.AbortStatus)
+			st.Unlock()
+			if test.stopping {
+				runner.Stop()
+			} else {
+				close(release)
+				runner.Wait()
+			}
+
+			expected := test.expectedNoUndo
+			if withUndo {
+				expected = test.expectedWithUndo
+			}
+			st.Lock()
+			c.Check(task.Status(), Equals, expected)
+			c.Check(task.AtTime().IsZero(), Equals, true)
+			c.Check(task.WaitedStatus(), Equals, state.DefaultStatus)
+			st.Unlock()
+			if expected == state.UndoStatus {
+				c.Check(sb.ensureBefore, Equals, time.Duration(0))
+			}
+			runner.Stop()
+		}
+	}
+}
+
 func (ts *taskRunnerSuite) TestUndoSingleLane(c *C) {
 	sb := &stateBackend{}
 	st := state.New(sb)
