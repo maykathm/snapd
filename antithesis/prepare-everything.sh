@@ -25,6 +25,14 @@ trap 'rm -rf "$tmpdir"' EXIT
 
 pushd "$PREP_DIR"
 
+unsquashfs -no-progress -d "$tmpdir/snapd-root" "$SNAPD_SNAP_PATH" catalog
+test -d "$tmpdir/snapd-root/catalog"
+test -n "$(find "$tmpdir/snapd-root/catalog" -type f -name "*.sym.tsv" -print -quit)"
+rm -rf "$PREP_DIR/symbols"
+mkdir -p "$PREP_DIR/symbols"
+cp -a "$tmpdir/snapd-root/catalog/." "$PREP_DIR/symbols/"
+rm -rf "$tmpdir/snapd-root"
+
 FAKESTORE_DATA="$tmpdir" bash "$script_dir/download-snaps.sh"
 FAKESTORE_DATA="$tmpdir" bash "$script_dir/build-fakestore-image.sh" "$PREP_DIR/fakestore-image.tar.gz"
 cat > "$PREP_DIR"/fakestore.dockerfile << EOF
@@ -37,6 +45,7 @@ bash "$script_dir/build-testing-image.sh" "$SNAPD_SNAP_PATH" "$PREP_DIR/testing-
 cat > "$PREP_DIR"/testing-image.dockerfile << EOF
 FROM scratch
 COPY testing-image.tar.gz /testing-image.tar.gz
+COPY symbols /symbols
 EOF
 docker build -t snapd-testing-image -f "$PREP_DIR"/testing-image.dockerfile .
 
