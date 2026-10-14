@@ -31,23 +31,43 @@ Discovery lenses: data integrity and failure recovery, targeted to persistence.
 
 ## Assertion and Placement
 
-Proposed message: `dirty unlock completes checkpoint before releasing state lock`.
-Use `assert.Always(condition, message, details)` with SDK v0.8.0's
+Implemented message: `dirty unlock completes checkpoint before releasing state lock`.
+Uses `assert.Always(condition, message, details)` with SDK v0.8.0's
 `bool, string, map[string]any` signature. The condition is successful-checkpoint
 observed AND dirty flag cleared, gated by the entry dirty/backend conditions and
 normal return. `Always` is universal over these required encounters; neither an
 existential `Sometimes` nor an unconditional no-panic property matches it.
 
-New observational locals must distinguish normal return from panic unwinding.
-Register an observer defer after the existing unlock defer so the check runs
-before mutex release. Expected checkpoint errors remain retry outcomes, not
-assertion failures. Record attempt count and a test-only payload identifier in
-details; no new production state or helper API is implied.
+Observational locals distinguish normal return from panic unwinding. The
+observer defer is registered after the existing unlock defer, past the
+clean/nil-backend gate, so the assertion runs before mutex release. Expected
+checkpoint errors remain retry outcomes, not assertion failures. Details record
+attempt count; no payload serialization, digest, readback, new persistent state
+or helper API is added for instrumentation.
 
-**Instrumentation status: missing.** The
-[assertion inventory](../existing-assertions.md#L11) lists only the existing
-change-Hold assertion, not this checkpoint assertion. Unit tests are not SDK
-instrumentation. This file proposes instrumentation; none is implemented here.
+**Instrumentation status: source implemented**, on HEAD
+`5c611563419407fb3920cd0c992640fd56216d5e` plus working-tree changes (2026-10-14).
+The [assertion inventory](../existing-assertions.md) records the callsite.
+Actual instrumented harness cataloging/reporting and campaign coverage remain
+unverified; the existing Incus/Spread harness is unchanged.
+
+## Local Validation
+
+The full state suite passed with
+`LANG=C.UTF-8 go test -mod=readonly -race -count=1 ./overlord/state`.
+Focused tests cover successful checkpoint/read, retry-success, clean restored
+state, nil backend, retry exhaustion and backend panic followed by recovery.
+The retry test additionally verifies identical payload bytes across attempts,
+cleared dirty state and no extra checkpoint on a following clean Unlock.
+The backend-panic test checks retained dirty data and successful relocking and
+checkpointing after the panic.
+
+Six isolated `ANTITHESIS_SDK_LOCAL_OUTPUT` checks verified one passing mandatory
+event for initial success (one attempt), retry-success (two attempts), and the
+successful checkpoint after backend panic (one attempt). Clean state, nil backend
+and retry exhaustion emitted no checkpoint assertion encounters. No scenario
+emitted a failed checkpoint assertion. These checks do not validate production
+file contents or process-crash recovery.
 
 ## Workload, Fault Timing, and Boundaries
 
