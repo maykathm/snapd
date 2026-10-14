@@ -11,13 +11,23 @@ backends:
             ./incus-discard.sh "$SPREAD_SYSTEM_ADDRESS"
         systems:
             - ubuntu-26.04-64:
-                username: 'ubuntu'
-                password: 'ubuntu'
+                username: 'test'
+                password: 'test'
 
 environment:
+    PROJECT_PATH: /home/gopath/src/github.com/snapcore/snapd-antithesis
+    TESTSLIB: /opt/snapd-test-support/lib
+    TESTSTOOLS: $TESTSLIB/tools
+    TESTSTMP: /var/tmp/snapd-tools
+    RUNTIME_STATE_PATH: $TESTSTMP/runtime-state
+    PATH: /opt/snapd-test-support/bin:/snap/bin:$PATH:/var/lib/snapd/snap/bin
+    TRUST_TEST_KEYS: 'true'
+    SNAPPY_TESTING: '1'
+    SNAPPY_USE_STAGING_STORE: '0'
+    REMOTE_STORE: production
     TESTING_TARBALL_PATH: '$(HOST: echo "$TESTING_TARBALL_PATH")'
     FAKE_STORE_TARBALL_PATH: '$(HOST: echo "$FAKE_STORE_TARBALL_PATH")'
-    SPREAD_PASSWORD: 'ubuntu'
+    SPREAD_PASSWORD: 'test'
 
 path: /home/gopath/src/github.com/snapcore/snapd-antithesis
 
@@ -25,10 +35,22 @@ repack: |
     tmpdir=$(mktemp -d)
     trap 'rm -rf "$tmpdir"' EXIT
     tar -x --no-same-owner -C "$tmpdir" <&3
-    tar -c --owner=1000 --group=1000 --numeric-owner -C "$tmpdir" . >&4
+    tar -c --owner=12345 --group=12345 --numeric-owner -C "$tmpdir" . >&4
+
+prepare: |
+    mkdir -p "$RUNTIME_STATE_PATH"
+    touch "$RUNTIME_STATE_PATH/journalctl_cursor"
+    type MATCH | tail -n +2 > "$TESTSLIB/spread-funcs.sh"
+    type NOMATCH | tail -n +2 >> "$TESTSLIB/spread-funcs.sh"
+    type REBOOT | tail -n +2 >> "$TESTSLIB/spread-funcs.sh"
 
 restore: rm -r /home/gopath
 
 suites:
     tests/:
         summary: Tests for snapd under Antithesis
+        prepare-each: |
+            "$TESTSTOOLS/journal-state" start-new-log
+        restore-each: |
+            tests.cleanup restore
+            "$TESTSTOOLS/snaps.cleanup" --skip core --skip core24
