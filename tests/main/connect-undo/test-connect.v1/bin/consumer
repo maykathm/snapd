@@ -1,2 +1,2 @@
 #!/bin/sh
-exec nc -h > /dev/null
+exec nc -u -q 0 -w 1 127.0.0.1 9 < /dev/null
