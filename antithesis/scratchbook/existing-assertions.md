@@ -1,7 +1,7 @@
 ---
 sut_path: /home/katie.may@canonical.com/source/snapd
-commit: 7f3fc9ae5896ba6fda2b3b29638b4a07ea298d2d
-updated: 2026-10-14
+commit: 91b61e2873e9621b6300906b31ababe8861ca248
+updated: 2026-10-15
 external_references: []
 ---
 
@@ -17,6 +17,7 @@ Scope answer (verbatim): "just this directory".
 | `overlord/state/task.go:273` | `Task.SetStatus` deferred postcondition | `AlwaysOrUnreachable` | `aborted task rejects competing done commit` |
 | `overlord/state/task.go:306` | `Task.SetToWait` deferred postcondition | `AlwaysOrUnreachable` | `aborted task rejects competing wait commit` |
 | `overlord/state/taskrunner.go:327` | `TaskRunner.run` locked finalization | `AlwaysOrUnreachable` | `aborted handler completion follows cancellation transition` |
+| `overlord/snapstate/snapstate.go:4064` | `Set` locked SnapState replacement | `Always` | `committed app current belongs to its revision sequence` |
 
 The source-only follow-up removes the broad `change never enters hold status`
 assertion. Explicit Hold and aborting pending work are supported outcomes, not
@@ -32,6 +33,14 @@ other errors require Error. Shutdown error normalization precedes the check.
 The dirty-Unlock check runs before mutex release, only for dirty state with a
 backend and a normal return. It records checkpoint success, cleared dirty state
 and attempt count. It does not independently validate stored bytes or durability.
+
+The Current/Sequence check observes explicitly typed app states outside try-mode
+at the shared `snapstate.Set` boundary, after successful serialization and before
+the replacement is written under the state lock. Every nonempty eligible entry
+requires a set Current present in its Sequence, including disabled instances.
+Deletion, untyped/non-app entries and try-mode are excluded. A false condition
+does not change serialization, reject the write or panic. This does not prove
+the intended revision was selected or that installed resources match state.
 
 Validation: the full state package passed with `-mod=readonly -race -count=1`.
 Cancellation validation reported successful local SDK encounters of all three
@@ -50,9 +59,10 @@ Generated artifacts and external binaries are not treated as SUT source.
 
 ## Current Coverage Assessment
 
-The 2026-10-14 source rescan still finds exactly four SDK assertion callsites,
-all in `overlord/state`: one dirty-checkpoint control-flow assertion and three
-optional cancellation-transition assertions. No SUT `Sometimes`, `Reachable`
+The source inventory now includes five SDK assertion callsites: one dirty-
+checkpoint control-flow assertion, three optional cancellation-transition
+assertions in `overlord/state`, and the Current/Sequence membership assertion in
+`overlord/snapstate`. No SUT `Sometimes`, `Reachable`
 or `Unreachable` callsites were found. This is narrow internal instrumentation,
 not implementation of the nineteen-property portfolio in `property-catalog.md`.
 
@@ -73,9 +83,10 @@ the older first-series/future-campaign recommendations in the topology notes:
 `op-remove-retry`, and `connect-undo`. Selection is not evidence of execution.
 
 Important proposed checks remain absent: independent checkpoint readback,
-committed Current/Sequence consistency, stable active links/resources, manager
-visitation, and replay-safe lifecycle effects. Source assertions do not currently
-independently verify rollback isolation, mounted resources or crash recovery.
+stable active links/resources, manager visitation, and replay-safe lifecycle
+effects. Current/Sequence consistency has a source write-boundary check, but no
+independent recovered-state or intended-revision oracle. Source assertions do
+not currently independently verify rollback isolation, mounted resources or crash recovery.
 The dirty-Unlock assertion observes the same checkpoint-success branch it guards;
 it cannot by itself catch incorrect bytes written by a successful backend.
 
@@ -83,15 +94,23 @@ Artifact preparation now stages extracted catalog data at `/symbols` in the
 `snapd-testing-image` scratch image, rather than extracting `/catalog` into the
 Incus container. The existing local snap failed the earlier catalog extraction
 check because it contained no catalog directory. Build wiring therefore does not
-establish that the actual artifact has cataloged these four messages or reports
+establish that the actual artifact has cataloged these five messages or reports
 them in Antithesis. Rebuild and inspect the instrumented snap and then verify
 runtime encounters before treating the campaign as assertion-enabled.
 
-This targeted status pass refreshes the inventory only: it adds no properties
-or source instrumentation and does not repeat portfolio evaluation. Earlier
-unit/SDK validation above is historical evidence, not an Antithesis run result.
-External SUT scope remains exactly "just this directory"; no new external
-documentation claims are needed for this source inventory.
+The 2026-10-15 source follow-up implements the existing membership property; it
+does not add property IDs or repeat portfolio evaluation. The new tests inspect
+actual SDK-local successful/failed encounters, diagnostic details and gating,
+and verify unchanged serialization/deletion behavior. Earlier unit/SDK evidence
+above concerns the checkpoint/cancellation changes, not an Antithesis run.
+External SUT scope remains exactly "just this directory".
+
+Validation for this follow-up: the thirteen-case SDK-output matrix and selected
+sequence/link/unlink/discard/enable/disable tests passed under the race detector.
+Lifecycle SDK-local output contained a successful membership encounter and no
+membership failure event. Nearby state tests also passed with
+`-tags=no_antithesis_sdk`. Tests used `GODEBUG=rsa1024min=0` for the repository's
+existing small RSA test keys on the current Go toolchain.
 
 ## Assumptions
 
