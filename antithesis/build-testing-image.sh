@@ -95,7 +95,7 @@ incus exec "$builder" -- sh -ec '
     test -x "$support_dir/bin/gojq"
     rm -f /tmp/gojq.tar.gz
 '
-incus file push --uid 12345 --gid 12345 "$SNAPD_SNAP_PATH" "$builder/tmp/snapd.snap"
+incus file push --uid 12346 --gid 12346 "$SNAPD_SNAP_PATH" "$builder/tmp/snapd.snap"
 incus exec "$builder" -- snap install --dangerous /tmp/snapd.snap
 incus exec "$builder" -- sh -ec '
     mkdir -p /etc/systemd/system/snapd.service.d
