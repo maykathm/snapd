@@ -30,6 +30,8 @@ restore: |
     tests.session -u test restore
 
 execute: |
+    set -o pipefail
+
     "$TESTSTOOLS"/snaps-state install-local test-snapd-sh
     "$TESTSTOOLS"/snaps-state install-local-as test-snapd-sh test-snapd-sh_foo
 
@@ -41,7 +43,7 @@ execute: |
     tests.session -u test exec sh -c 'test -d ~/snap/test-snapd-sh_foo'
 
     # instance environment variables are correctly set up
-    tests.session -u test exec sh -c 'snap run test-snapd-sh_foo.sh -c "env"' test > snap_foo-env.txt
+    tests.session -u test exec sh -c 'snap run test-snapd-sh_foo.sh -c "env"' test | cat > snap_foo-env.txt
     MATCH 'SNAP_INSTANCE_NAME=test-snapd-sh_foo'                         < snap_foo-env.txt
     MATCH 'SNAP_NAME=test-snapd-sh'                                      < snap_foo-env.txt
     MATCH 'SNAP_INSTANCE_KEY=foo'                                        < snap_foo-env.txt
@@ -52,7 +54,7 @@ execute: |
     MATCH 'SNAP_USER_COMMON=/home/test/snap/test-snapd-sh_foo/common'    < snap_foo-env.txt
 
     # and non-instance one's are too
-    tests.session -u test exec sh -c 'test-snapd-sh.sh -c env' test > snap-env.txt
+    tests.session -u test exec sh -c 'test-snapd-sh.sh -c env' test | cat > snap-env.txt
     MATCH 'SNAP_INSTANCE_NAME=test-snapd-sh'              < snap-env.txt
     MATCH 'SNAP_NAME=test-snapd-sh'                       < snap-env.txt
     MATCH 'SNAP_INSTANCE_KEY=$'                           < snap-env.txt
