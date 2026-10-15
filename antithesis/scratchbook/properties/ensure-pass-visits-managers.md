@@ -3,8 +3,8 @@
 ## Scope and Property
 
 Scope answer (verbatim): "just this directory". External references: `[]`.
-Evidence revision: `e88ec08852fbc8af019dc39e22097e5720aa6dfd` (2026-10-13).
-Focus: concurrency and lifecycle; evidence only, no production edits.
+Evidence revision: `114df3f4470d29b961205b33b56574dcb468514b` (2026-10-15).
+Focus: concurrency and lifecycle; source assertion now implemented.
 
 Priority: **P1 (high)**. Type: **Safety**. Confidence: **high** for the
 dispatch contract, not proof of useful work inside each manager.
@@ -34,13 +34,16 @@ passes returning aggregated manager errors.
   omit work. Top-level visitation is not unconditional visitation of every
   internal ensure helper, nor successful task completion.
 
-## Proposed SDK Check and Safe Condition
+## SDK Check and Safe Condition
 
 `Always(allSlotsEnteredAndReturnedExactlyOnce, "completed ensure pass visits
 every registered manager", details)` checks a safety condition on every admitted
-normal completion. This is a proposed predicate, not an existing helper. Keep
-the message fixed; details carry engine incarnation, pass generation, slot index,
-entry/return counts and manager errors.
+normal completion. The implementation computes this predicate in a defer; no
+separate helper is introduced. Details carry process-local engine pointer
+identity, admitted pass number, expected slot count and per-slot entry/return
+counts. The pointer is not a durable cross-process incarnation ID. Manager
+error count is included; errors retain their existing logging and aggregation
+behavior.
 
 Freeze the expected list after the lifecycle rejection guards, under `mgrLock`.
 Increment entry immediately before each call and return immediately after it.
@@ -68,16 +71,33 @@ can starve an entire manager and its tasks despite apparent loop activity.
 
 Cheap discriminating check: compare `TestEnsureError`'s complete call list with
 both return sites. An early error return would falsify the proposed guarantee.
-Those paths were inspected; tests were not executed in this evidence-only pass.
+Those paths are covered by the existing engine tests and the SDK-local matrix.
 
 ## Instrumentation Status
 
-**Missing**: per-pass slot entry/return accounting and this SDK assertion.
-[antithesis/scratchbook/existing-assertions.md](../existing-assertions.md)
-inventories only the Hold assertion in Change notifications; it does not cover
-manager visitation. Suggested accounting is observational and must not call
-managers again or alter their guarded behavior. SUT-side placement is needed:
-API change outcomes cannot identify a skipped manager or a useful replay anchor.
+**Source implemented:** per-pass slot entry/return accounting and the fixed
+`Always` assertion now live in `StateEngine.Ensure`. Expected slots are captured
+after lifecycle rejection under `mgrLock`; a normal-completion-gated defer runs
+before its unlock on both success and aggregated-error returns. Panic unwinding
+does not emit the assertion. Counts and pass number are observational, with no
+extra manager calls or persistent state mutations.
+
+`stateengine_assertions_test.go` uses fresh subprocesses and actual SDK-local
+output to verify success, aggregated errors, duplicate slots, empty passes,
+pre-start/stopped rejection, panic exclusion, recovery after a panic and
+admission after startup errors. Children independently verify the exact manager
+call list, error behavior and mutex release. The panic-recovery case verifies
+the next admitted pass number and counts.
+
+Validation: the complete state-engine suite and nine-case SDK-local matrix
+passed with the race detector; the engine suite also passed with the SDK
+disabled. The current toolchain required `GODEBUG=rsa1024min=0` for existing
+small-RSA test fixtures. Documentation lint and whitespace checks passed.
+
+See [existing-assertions.md](../existing-assertions.md) for the updated inventory.
+Actual harness catalog/report verification, fault campaigns and the separate
+ensure-request progress oracle remain unimplemented. This check observes dispatch
+control flow; it cannot establish useful manager work or detect a stalled pass.
 
 ## Open Questions
 
@@ -92,6 +112,6 @@ campaign fault availability are catalog-wide, not visitation assumptions.
   TestEnsureError and TestStop; SnapManager.Ensure guards.
 - Found: stable registered slots under `mgrLock`, error aggregation after all
   calls, explicit pre-start/stopped rejection and intentional helper guards.
-- Missing: no local semantic ambiguity remains; runtime accounting is absent.
+- Missing: no local semantic ambiguity remains; campaign validation is absent.
 - Conclusion: resolved by limiting the invariant to admitted normal returns,
   not all function invocations or all internal helpers.
