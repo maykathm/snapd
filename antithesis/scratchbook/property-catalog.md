@@ -1,16 +1,16 @@
 ---
 sut_path: /home/katie.may@canonical.com/source/snapd
-commit: 5c611563419407fb3920cd0c992640fd56216d5e
-updated: 2026-10-14
+commit: 91b61e2873e9621b6300906b31ababe8861ca248
+updated: 2026-10-15
 external_references: []
 ---
 
 # Targeted Property Catalog
 
 Scope answer (verbatim): "just this directory". Nineteen cataloged properties;
-dirty-Unlock control flow and cancellation safety now have source instrumentation
-and unit tests, but no dedicated workload or campaign validation. The other
-properties remain proposed.
+dirty-Unlock control flow, cancellation safety and Current/Sequence membership
+now have source instrumentation and tests, but no dedicated workload or campaign
+validation. The other properties remain proposed.
 P0 means integrity/recovery-critical,
 P1 supporting progress or consistency. Confidence is high for named code
 boundaries; the harness predicates/barrier still need implementation and testing.
@@ -109,6 +109,13 @@ lenses: data integrity, lifecycle transitions, concurrency and idempotency.
 | Invariant | `Always(currentInSequence)` for committed installed entries; absent snaps have no entry, Current need not be greatest. |
 | Antithesis Angle | Interruptions across candidate preparation, state commit and undo. |
 | Why It Matters | Ensure subsequent lifecycle/revert operations refer to a real retained revision. |
+
+**Implementation:** Partial. `snapstate.Set` checks nonempty explicitly typed app
+entries outside try-mode at the locked write boundary. Disabled apps are eligible;
+Current need not be newest, and local revisions are supported. SDK-local tests
+check successful/failed encounters and excluded cases without changing persisted
+state or deletion behavior. Independent expected-revision/recovered-state checks,
+stable resource comparisons and actual harness validation remain deferred.
 
 **Open Questions:** None.
 

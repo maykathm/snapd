@@ -1,8 +1,8 @@
 # snap-current-in-sequence
 
 Scope answer (verbatim): "just this directory"; external_references: [].
-Focus: integrity/lifecycle. Confidence: high in the proposed contract, not proof
-of fault tolerance. No production changes.
+Focus: integrity/lifecycle. Confidence: high in the state-write contract, not proof
+of fault tolerance. Source assertion implemented on 2026-10-15.
 
 ## Property
 
@@ -21,8 +21,10 @@ observation must satisfy this, not merely one Sometimes witness.
   revision is absent; inspect raw fields rather than invoking this panic path.
 - [handlers.go](../../../overlord/snapstate/handlers.go#L1850): doLinkSnap adds
   or reorders the candidate before setting Current and Active.
-- [snapstate.go](../../../overlord/snapstate/snapstate.go#L4038): Set removes an
-  empty sequence entry; it does not validate membership itself.
+- [snapstate.go](../../../overlord/snapstate/snapstate.go#L4040): Set removes an
+  empty sequence entry. Its new assertion observes nonempty, explicitly typed
+  app entries outside try-mode after serialization and before committing the
+  replacement. It checks raw revision membership without panic-prone accessors.
 - [snapstate_test.go](../../../overlord/snapstate/snapstate_test.go#L5532):
   TestCurrentSideInfoOutOfOrder accepts an older Current. Inconsistency tests at
   [snapstate_test.go](../../../overlord/snapstate/snapstate_test.go#L5542)
@@ -43,18 +45,39 @@ Crash around candidate insertion, external linking and checkpointing, or
 interleave independent instances' commits. A lost sequence entry can make
 current-info queries panic and break subsequent lifecycle work. Disabled apps
 still have Current and retained sequence; Active is not a membership guard.
-Do not require the highest or last revision. Initially exclude try-mode,
-components, snapd self-refresh, boot-participating snaps, reboot and remodel;
-their expanded contracts need separate fixtures. This does not assert disk
-equality during in-flight work.
+Do not require the highest or last revision. Try-mode, snapd self-refresh and
+boot-participating snap types are excluded from the source assertion. The
+membership check concerns parent snap revisions even if component metadata is
+present; it makes no claim about component resources. Component lifecycle,
+reboot and remodel campaigns still need separate fixtures. This does not assert
+disk equality during in-flight work.
 
 ## Instrumentation And Questions
 
-**Missing**: [existing-assertions.md](../existing-assertions.md) inventories only
-the Hold assertion, not this invariant. Proposed placement is immediately
-before committed SnapState writes plus a recovered-state checker; neither an
-oracle helper nor a quiescence barrier is claimed to exist. Fixture selection,
-barrier implementation and fault availability remain catalog-wide plans in
+**Partial:** `snapstate.Set` now emits the fixed-message `Always` assertion at
+the shared locked write boundary, covering handler do/undo and other SnapState
+writers without duplicating callsites. Nil/empty entries are deletion, not
+membership encounters. Untyped and non-app states and try-mode are excluded.
+Disabled apps remain eligible. A false condition is reported without rejecting,
+repairing or changing the serialized state.
+
+`assertions_test.go` runs each case in a fresh subprocess with SDK local output,
+checking the actual message, type, condition, details and encounter gating.
+Cases cover active/disabled apps, an older Current, local revisions, absent and
+unset Current, a zero revision, malformed nil entries and excluded/deleted
+states. The child verifies unchanged serialization/deletion even when safety
+is false.
+
+The SDK-output matrix and selected sequence/link/unlink/discard/enable/disable
+tests pass under the race detector. Lifecycle local telemetry reports a
+successful membership encounter without a failure. Nearby state behavior also
+passes with the SDK disabled. These are local validations, not campaign results.
+
+An independent ledger-selected revision checker, recovered-state observer,
+stable-disk oracle and quiescence barrier remain unimplemented. Membership does
+not prove the intended revision was selected or that any mounted resource is
+correct. Actual harness catalog/report verification and campaign validation
+remain deferred; see [existing-assertions.md](../existing-assertions.md) and
 [deployment-topology.md](../deployment-topology.md).
 
 **Open Questions:** None within this initial scope.

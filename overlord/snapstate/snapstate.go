@@ -33,6 +33,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/antithesishq/antithesis-sdk-go/assert"
+
 	"github.com/snapcore/snapd/asserts"
 	"github.com/snapcore/snapd/asserts/snapasserts"
 	"github.com/snapcore/snapd/boot"
@@ -4050,6 +4052,23 @@ func Set(st *state.State, name string, snapst *SnapState) {
 		data, err := json.Marshal(snapst)
 		if err != nil {
 			panic("internal error: cannot marshal snap state: " + err.Error())
+		}
+		if snapst.SnapType == string(snap.TypeApp) && !snapst.TryMode {
+			currentInSequence := false
+			for _, rev := range snapst.Sequence.Revisions {
+				if rev != nil && rev.Snap != nil && !snapst.Current.Unset() && rev.Snap.Revision == snapst.Current {
+					currentInSequence = true
+					break
+				}
+			}
+			assert.Always(currentInSequence,
+				"committed app current belongs to its revision sequence",
+				map[string]any{
+					"instance":        name,
+					"current":         snapst.Current,
+					"active":          snapst.Active,
+					"sequence-length": len(snapst.Sequence.Revisions),
+				})
 		}
 		raw := json.RawMessage(data)
 		snaps[name] = &raw
