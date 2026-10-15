@@ -37,6 +37,12 @@ if ! [ -f "$spread_dir"/incus-discard.sh ]; then
     exit 1
 fi
 
+if [ -z "${ANTITHESIS_OUTPUT_DIR:-}" ]; then
+    ANTITHESIS_OUTPUT_DIR=/mnt/antithesis
+fi
+
+export ANTITHESIS_OUTPUT_DIR
+
 (
     cd "$spread_dir"
     ./spread-plus adhoc:ubuntu-26.04-64:tests/main/...
