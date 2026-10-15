@@ -47,7 +47,7 @@ prepare: |
 restore: rm -r /home/gopath
 
 suites:
-    tests/:
+    tests/main/:
         summary: Tests for snapd under Antithesis
         prepare-each: |
             "$TESTSTOOLS/journal-state" start-new-log

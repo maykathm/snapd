@@ -39,5 +39,5 @@ fi
 
 (
     cd "$spread_dir"
-    ./spread-plus adhoc:ubuntu-26.04-64:tests/...
+    ./spread-plus adhoc:ubuntu-26.04-64:tests/main/...
 )
