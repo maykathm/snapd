@@ -1,7 +1,7 @@
 ---
 sut_path: /home/katie.may@canonical.com/source/snapd
-commit: e88ec08852fbc8af019dc39e22097e5720aa6dfd
-updated: 2026-10-13
+commit: 91b61e2873e9621b6300906b31ababe8861ca248
+updated: 2026-10-15
 external_references: []
 ---
 
@@ -37,8 +37,15 @@ Safety, liveness and campaign-specific reachability are represented. Existing
 Hold instrumentation is inventoried and its broad premise is invalidated by
 local supported Hold/abort tests; no duplicate assertion is proposed.
 
-Every top-level artifact records SUT path, current commit, update date and empty
-external SUT reference list. Platform SDK documentation was consulted as required
+Source follow-ups implemented dirty-Unlock and cancellation guards. The
+2026-10-15 follow-up additionally instruments Current/Sequence membership at
+the shared locked `snapstate.Set` write boundary, with SDK-local encounter and
+gating tests. It is not the independent stable-disk oracle: resource comparison,
+expected-revision ledger, recovered-state observer and safe barrier remain
+deferred. No new property discovery or portfolio reevaluation was needed.
+
+Top-level artifacts record SUT path, their last reviewed commit, update date and
+empty external SUT reference list. Platform SDK documentation was consulted as required
 workflow grounding, not as an external claim about snapd.
 
 ## Assumptions

@@ -1,7 +1,7 @@
 ---
 sut_path: /home/katie.may@canonical.com/source/snapd
-commit: 5c611563419407fb3920cd0c992640fd56216d5e
-updated: 2026-10-14
+commit: 91b61e2873e9621b6300906b31ababe8861ca248
+updated: 2026-10-15
 external_references: []
 ---
 
@@ -9,8 +9,9 @@ external_references: []
 
 Scope answer (verbatim): "just this directory". Examples are proposed sketches,
 not applied code. SDK signatures were checked against cached v0.8.0. Source-only
-follow-ups implemented the dirty-Unlock guard and scoped cancellation checks
-described below; the other placements remain proposals.
+follow-ups implemented the dirty-Unlock guard, scoped cancellation checks and
+Current/Sequence membership check described below; other placements remain
+proposals.
 
 ## First: Dirty State Must Be Checkpointed
 
@@ -62,7 +63,7 @@ The following helpers are proposed, not existing snapd APIs:
 
 ```go
 assert.Always(currentInSequence(snapshot),
-    "committed snap current revision belongs to its sequence", details)
+    "committed app current belongs to its revision sequence", details)
 
 if snapshot.Stable && snapshot.Successful && snapshot.OrdinaryApp {
     assert.Always(activeLinksMatch(snapshot),
@@ -80,6 +81,18 @@ that also excludes background affecting operations. Do not infer stability from
 a single task's Done status, API reads taken separately, or Settle returning nil.
 For sequence files, compare immediately after `writeSeqFile` to its input only;
 do not require global perpetual equality with SnapState.
+
+**Source assertion implemented:** `snapstate.Set` checks nonempty explicitly typed
+app states outside try-mode, after serialization and before the locked state
+write. The fixed message is `committed app current belongs to its revision sequence`.
+Disabled apps and older/local Current revisions remain valid; nil/empty entries
+delete state and are excluded. The check only observes membership and does not
+repair or reject inconsistent state. Tests inspect actual SDK local encounters
+and verify that serialization/deletion behavior is preserved.
+
+The independent stable-disk oracle, ledger-selected revision check and safe
+barrier are still deferred. This source assertion does not implement the
+`activeLinksMatch` sketch or verify mounts, blobs, wrappers or data.
 
 ## Third: All Managers Are Visited in a Completed Ensure Pass
 
