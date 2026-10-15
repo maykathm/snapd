@@ -1,6 +1,6 @@
 ---
 sut_path: /home/katie.may@canonical.com/source/snapd
-commit: 91b61e2873e9621b6300906b31ababe8861ca248
+commit: 114df3f4470d29b961205b33b56574dcb468514b
 updated: 2026-10-15
 external_references: []
 ---
@@ -8,9 +8,9 @@ external_references: []
 # Targeted Property Catalog
 
 Scope answer (verbatim): "just this directory". Nineteen cataloged properties;
-dirty-Unlock control flow, cancellation safety and Current/Sequence membership
-now have source instrumentation and tests, but no dedicated workload or campaign
-validation. The other properties remain proposed.
+dirty-Unlock control flow, cancellation safety, Current/Sequence membership and
+completed Ensure-pass visitation now have source instrumentation and tests,
+but no dedicated workload or campaign validation. Other properties remain proposed.
 P0 means integrity/recovery-critical,
 P1 supporting progress or consistency. Confidence is high for named code
 boundaries; the harness predicates/barrier still need implementation and testing.
@@ -221,6 +221,14 @@ lifecycle and cross-cutting recovery.
 | Invariant | `Always(allEnteredAndReturnedExactlyOnce)` under mgrLock before normal success or aggregated-error return; rejected passes excluded. |
 | Antithesis Angle | Paused dispatch and errors in earlier managers. |
 | Why It Matters | Detect skipped top-level managers; guarded internal helpers need different predicates. |
+
+**Implementation:** Source assertion implemented in `StateEngine.Ensure`.
+Entry/return counts are tracked by registered slot under `mgrLock` and checked
+on normal completion, including aggregated manager errors. Pre-start/stopped
+calls and panic exits are excluded; duplicate registrations remain separate
+slots. SDK-local tests verify encounter gating and details. This is not useful
+work or liveness proof; actual harness reporting and campaign validation remain
+unverified.
 
 **Open Questions:** None.
 
