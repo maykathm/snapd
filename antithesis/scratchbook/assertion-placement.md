@@ -1,6 +1,6 @@
 ---
 sut_path: /home/katie.may@canonical.com/source/snapd
-commit: 91b61e2873e9621b6300906b31ababe8861ca248
+commit: 114df3f4470d29b961205b33b56574dcb468514b
 updated: 2026-10-15
 external_references: []
 ---
@@ -9,9 +9,9 @@ external_references: []
 
 Scope answer (verbatim): "just this directory". Examples are proposed sketches,
 not applied code. SDK signatures were checked against cached v0.8.0. Source-only
-follow-ups implemented the dirty-Unlock guard, scoped cancellation checks and
-Current/Sequence membership check described below; other placements remain
-proposals.
+follow-ups implemented the dirty-Unlock guard, scoped cancellation checks,
+Current/Sequence membership and completed Ensure-pass visitation described below;
+other placements remain proposals.
 
 ## First: Dirty State Must Be Checkpointed
 
@@ -116,6 +116,18 @@ A pass that never returns never reaches this check. Separately track EnsureBefor
 requests and check at a quiet-phase deadline that all eligible requests have been
 covered by a later completed pass; allow coalescing. A Sometimes witness can
 guide exploration but cannot prove every request is fulfilled.
+
+**Implemented:** `StateEngine.Ensure` records entry/return counts for every
+registered slot under `mgrLock`. A normal-return-gated defer checks all counts
+before that mutex is released, for both nil and aggregated-error returns.
+Repeated registration of one manager is counted as separate slots. Details
+include the engine's process-local pointer identity, admitted pass number,
+expected count and per-slot counts. The pass counter is observational only,
+not persisted; pointer identity is not a cross-process incarnation identifier.
+Lifecycle rejections and panic unwinding emit no completion assertion. Empty
+passes produce a vacuous success; blocked passes still need the separate
+progress oracle. SDK-local subprocess tests exercise these boundaries.
+Actual harness catalog/report and campaign validation remain deferred.
 
 ## Fourth: Test Replay-Safe Effects, Not Exactly-Once Tasks
 

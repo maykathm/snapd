@@ -1,6 +1,6 @@
 ---
 sut_path: /home/katie.may@canonical.com/source/snapd
-commit: 91b61e2873e9621b6300906b31ababe8861ca248
+commit: 114df3f4470d29b961205b33b56574dcb468514b
 updated: 2026-10-15
 external_references: []
 ---
@@ -18,6 +18,7 @@ Scope answer (verbatim): "just this directory".
 | `overlord/state/task.go:306` | `Task.SetToWait` deferred postcondition | `AlwaysOrUnreachable` | `aborted task rejects competing wait commit` |
 | `overlord/state/taskrunner.go:327` | `TaskRunner.run` locked finalization | `AlwaysOrUnreachable` | `aborted handler completion follows cancellation transition` |
 | `overlord/snapstate/snapstate.go:4064` | `Set` locked SnapState replacement | `Always` | `committed app current belongs to its revision sequence` |
+| `overlord/stateengine.go:192` | `StateEngine.Ensure` deferred completion check | `Always` | `completed ensure pass visits every registered manager` |
 
 The source-only follow-up removes the broad `change never enters hold status`
 assertion. Explicit Hold and aborting pending work are supported outcomes, not
@@ -59,10 +60,11 @@ Generated artifacts and external binaries are not treated as SUT source.
 
 ## Current Coverage Assessment
 
-The source inventory now includes five SDK assertion callsites: one dirty-
+The source inventory now includes six SDK assertion callsites: one dirty-
 checkpoint control-flow assertion, three optional cancellation-transition
 assertions in `overlord/state`, and the Current/Sequence membership assertion in
-`overlord/snapstate`. No SUT `Sometimes`, `Reachable`
+`overlord/snapstate`, plus completed Ensure-pass visitation in `overlord`.
+No SUT `Sometimes`, `Reachable`
 or `Unreachable` callsites were found. This is narrow internal instrumentation,
 not implementation of the nineteen-property portfolio in `property-catalog.md`.
 
@@ -83,7 +85,7 @@ the older first-series/future-campaign recommendations in the topology notes:
 `op-remove-retry`, and `connect-undo`. Selection is not evidence of execution.
 
 Important proposed checks remain absent: independent checkpoint readback,
-stable active links/resources, manager visitation, and replay-safe lifecycle
+stable active links/resources and replay-safe lifecycle
 effects. Current/Sequence consistency has a source write-boundary check, but no
 independent recovered-state or intended-revision oracle. Source assertions do
 not currently independently verify rollback isolation, mounted resources or crash recovery.
@@ -94,7 +96,7 @@ Artifact preparation now stages extracted catalog data at `/symbols` in the
 `snapd-testing-image` scratch image, rather than extracting `/catalog` into the
 Incus container. The existing local snap failed the earlier catalog extraction
 check because it contained no catalog directory. Build wiring therefore does not
-establish that the actual artifact has cataloged these five messages or reports
+establish that the actual artifact has cataloged these six messages or reports
 them in Antithesis. Rebuild and inspect the instrumented snap and then verify
 runtime encounters before treating the campaign as assertion-enabled.
 
@@ -111,6 +113,16 @@ Lifecycle SDK-local output contained a successful membership encounter and no
 membership failure event. Nearby state tests also passed with
 `-tags=no_antithesis_sdk`. Tests used `GODEBUG=rsa1024min=0` for the repository's
 existing small RSA test keys on the current Go toolchain.
+
+The Ensure-visitation follow-up adds an `Always` check under `mgrLock` for
+normal admitted completions, including aggregated manager errors. Its nine-case
+SDK-local subprocess matrix checks actual encounters, slot counts, pass details,
+duplicate registration, vacuous empty success, lifecycle rejection, panic
+exclusion and successful recovery after panic. No useful-work or progress
+guarantee is implied, and real harness reporting remains unverified.
+The complete state-engine suite, including the nine SDK-local scenarios, passed
+with `-race`; the engine suite also passed with `-tags=no_antithesis_sdk`.
+Both commands used the small-RSA test compatibility setting noted above.
 
 ## Assumptions
 

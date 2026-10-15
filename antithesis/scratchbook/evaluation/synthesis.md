@@ -1,6 +1,6 @@
 ---
 sut_path: /home/katie.may@canonical.com/source/snapd
-commit: 91b61e2873e9621b6300906b31ababe8861ca248
+commit: 114df3f4470d29b961205b33b56574dcb468514b
 updated: 2026-10-15
 external_references: []
 ---
@@ -43,6 +43,12 @@ the shared locked `snapstate.Set` write boundary, with SDK-local encounter and
 gating tests. It is not the independent stable-disk oracle: resource comparison,
 expected-revision ledger, recovered-state observer and safe barrier remain
 deferred. No new property discovery or portfolio reevaluation was needed.
+
+Another source follow-up implements completed Ensure-pass visitation with
+per-slot accounting under the existing manager mutex. Local SDK tests cover
+success/error completion, duplicate registration and lifecycle/panic gating.
+This cheap dispatch guard does not establish useful manager work or progress;
+independent recovery/resource oracles retain priority for fault-search budget.
 
 Top-level artifacts record SUT path, their last reviewed commit, update date and
 empty external SUT reference list. Platform SDK documentation was consulted as required

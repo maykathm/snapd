@@ -24,6 +24,8 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/antithesishq/antithesis-sdk-go/assert"
+
 	"github.com/snapcore/snapd/logger"
 	"github.com/snapcore/snapd/overlord/state"
 )
@@ -90,8 +92,9 @@ type StateEngine struct {
 	startedUp bool
 	shutdown  bool
 	// managers in use
-	mgrLock  sync.Mutex
-	managers []StateManager
+	mgrLock    sync.Mutex
+	managers   []StateManager
+	ensurePass uint64
 }
 
 // NewStateEngine returns a new state engine.
@@ -173,14 +176,40 @@ func (se *StateEngine) Ensure() error {
 	if se.stopped {
 		return fmt.Errorf("state engine already stopped")
 	}
+	se.ensurePass++
+	entered := make([]int, len(se.managers))
+	returned := make([]int, len(se.managers))
+	returnedNormally := false
 	var errs []error
-	for _, m := range se.managers {
+	defer func() {
+		if !returnedNormally {
+			return
+		}
+		allVisited := len(se.managers) == len(entered)
+		for i := range entered {
+			allVisited = allVisited && entered[i] == 1 && returned[i] == 1
+		}
+		assert.Always(allVisited,
+			"completed ensure pass visits every registered manager",
+			map[string]any{
+				"engine":         fmt.Sprintf("%p", se),
+				"pass":           se.ensurePass,
+				"expected":       len(entered),
+				"entered":        entered,
+				"returned":       returned,
+				"manager-errors": len(errs),
+			})
+	}()
+	for i, m := range se.managers {
+		entered[i]++
 		err := m.Ensure()
+		returned[i]++
 		if err != nil {
 			logger.Noticef("state ensure error: %v", err)
 			errs = append(errs, err)
 		}
 	}
+	returnedNormally = true
 	if len(errs) != 0 {
 		return &ensureError{errs}
 	}
