@@ -4,7 +4,7 @@ details: |
   Test that failures of connect hook are handled gracefully and do not leave
   snapd or snap in a broken state.
 
-# this test is sensitive to the version of netcat and needs strict confinement
+# this test needs strict confinement
 systems: [ubuntu-*]
 
 prepare: |
@@ -13,7 +13,8 @@ prepare: |
 
 execute: |
     echo "Installing a revision with broken connect hook fails"
-    snap install --dangerous test-connect_2_all.snap 2>&1 | MATCH 'failure of connect hook'
+    not snap install --dangerous test-connect_2_all.snap > install-failed.log 2>&1
+    MATCH 'failure of connect hook' < install-failed.log
     snap list | NOMATCH test-connect
 
     echo "Installing a revision with no hook"
@@ -30,14 +31,17 @@ execute: |
     snap disconnect test-connect:network
 
     echo "Then the snap is not able to use netcat with disconnected network"
-    test-connect.network-consumer 2>&1 | MATCH "nc: Permission denied"
+    not test-connect.network-consumer > network-denied.log 2>&1
+    MATCH "nc: Permission denied" < network-denied.log
 
     echo "Triggering connect hook"
     # this fails because of connect hook
-    snap connect test-connect:network 2>&1 | MATCH 'failure of connect hook'
+    not snap connect test-connect:network > connect-failed.log 2>&1
+    MATCH 'failure of connect hook' < connect-failed.log
 
     echo "And the snap is still not able to use netcat"
-    test-connect.network-consumer 2>&1 | MATCH "nc: Permission denied"
+    not test-connect.network-consumer > network-denied.log 2>&1
+    MATCH "nc: Permission denied" < network-denied.log
 
     echo "Removing the test snap"
     snap remove test-connect
