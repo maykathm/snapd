@@ -1,6 +1,6 @@
 ---
 sut_path: /home/katie.may@canonical.com/source/snapd
-commit: 5c611563419407fb3920cd0c992640fd56216d5e
+commit: 7f3fc9ae5896ba6fda2b3b29638b4a07ea298d2d
 updated: 2026-10-14
 external_references: []
 ---
@@ -48,6 +48,51 @@ Scan: repository Go, C, headers, Python, shell, YAML, module and checksum files
 for SDK imports and assertion spellings. Vendor contains no matching SDK calls.
 Generated artifacts and external binaries are not treated as SUT source.
 
+## Current Coverage Assessment
+
+The 2026-10-14 source rescan still finds exactly four SDK assertion callsites,
+all in `overlord/state`: one dirty-checkpoint control-flow assertion and three
+optional cancellation-transition assertions. No SUT `Sometimes`, `Reachable`
+or `Unreachable` callsites were found. This is narrow internal instrumentation,
+not implementation of the nineteen-property portfolio in `property-catalog.md`.
+
+The eleven selected Spread tests exercise local install, refresh, revert,
+interface and service rollback, parallel instances and removal. State-changing
+operations should encounter the dirty-Unlock guard. Failed multi-service and
+refresh operations can exercise task cancellation, but the selected scenarios
+do not guarantee competing Done/Wait setters or aborted-handler finalization.
+Actual encounter counts require observing a run; no campaign coverage is claimed.
+Their shell checks are scenario checks, not additional SDK assertion callsites.
+
+The current selection is defined by symlinks in `antithesis/tests/main/`, not
+the older first-series/future-campaign recommendations in the topology notes:
+`revert-sideload`, `install-refresh-remove-hooks`, `refresh-undo`,
+`op-install-failed-undone`, `services-disabled-kept-unhappy`,
+`parallel-install-basic`, `parallel-install-common-dirs-undo`,
+`connections-after-failed-refresh`, `services-multi-service-failing`,
+`op-remove-retry`, and `connect-undo`. Selection is not evidence of execution.
+
+Important proposed checks remain absent: independent checkpoint readback,
+committed Current/Sequence consistency, stable active links/resources, manager
+visitation, and replay-safe lifecycle effects. Source assertions do not currently
+independently verify rollback isolation, mounted resources or crash recovery.
+The dirty-Unlock assertion observes the same checkpoint-success branch it guards;
+it cannot by itself catch incorrect bytes written by a successful backend.
+
+Artifact preparation now stages extracted catalog data at `/symbols` in the
+`snapd-testing-image` scratch image, rather than extracting `/catalog` into the
+Incus container. The existing local snap failed the earlier catalog extraction
+check because it contained no catalog directory. Build wiring therefore does not
+establish that the actual artifact has cataloged these four messages or reports
+them in Antithesis. Rebuild and inspect the instrumented snap and then verify
+runtime encounters before treating the campaign as assertion-enabled.
+
+This targeted status pass refreshes the inventory only: it adds no properties
+or source instrumentation and does not repeat portfolio evaluation. Earlier
+unit/SDK validation above is historical evidence, not an Antithesis run result.
+External SUT scope remains exactly "just this directory"; no new external
+documentation claims are needed for this source inventory.
+
 ## Assumptions
 
 The catalog describes proposed assertions unless explicitly marked existing.
@@ -56,5 +101,6 @@ SDK package presence does not imply every build produces an assertion catalog.
 ## Open Questions
 
 Confirm assertion catalog generation for the actual harness binary before a run.
-The existing Incus/Spread harness is unchanged; no runnable Compose configuration
-or dedicated cancellation test template was added in this source-only pass.
+Confirm which optional cancellation assertions the selected Spread tests encounter.
+No dedicated cancellation test template or instrumented campaign validation was
+added by this status pass.
