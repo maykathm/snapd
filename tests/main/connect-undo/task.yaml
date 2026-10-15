@@ -32,7 +32,7 @@ execute: |
 
     echo "Then the snap is not able to use netcat with disconnected network"
     not test-connect.network-consumer > network-denied.log 2>&1
-    MATCH "nc: Permission denied" < network-denied.log
+    MATCH "nc:.*Permission denied" < network-denied.log
 
     echo "Triggering connect hook"
     # this fails because of connect hook
@@ -41,7 +41,7 @@ execute: |
 
     echo "And the snap is still not able to use netcat"
     not test-connect.network-consumer > network-denied.log 2>&1
-    MATCH "nc: Permission denied" < network-denied.log
+    MATCH "nc:.*Permission denied" < network-denied.log
 
     echo "Removing the test snap"
     snap remove test-connect
