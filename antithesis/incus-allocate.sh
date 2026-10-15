@@ -115,3 +115,8 @@ if [[ "$testing_family" == 6 ]]; then
 else
     echo "$testing_ip:22"
 fi
+
+printf '%s\n' '{"antithesis_setup":{"status":"complete","details":{"message":"snapd test environment ready"}}}' >>"$ANTITHESIS_OUTPUT_DIR/sdk.jsonl"
+
+# Give antithesis some time before starting the tests
+sleep 3
