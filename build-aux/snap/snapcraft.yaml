@@ -457,8 +457,6 @@ parts:
         ) > "${CRAFT_PART_INSTALL}/usr/lib/snapd/dirty-git-tree-info.txt"
       fi
 
-      find "${CRAFT_PART_INSTALL}/usr/lib/snapd" "${CRAFT_PART_INSTALL}/usr/bin" -type f -exec "${CRAFT_PROJECT_DIR}/build-aux/snap/local/minidebuginfo" {} ";"
-
       # ensure capabilities are set
       setcap -q - "${CRAFT_PART_INSTALL}/usr/lib/snapd/snap-confine" \
            < "${CRAFT_PART_INSTALL}/usr/lib/snapd/snap-confine.caps"
