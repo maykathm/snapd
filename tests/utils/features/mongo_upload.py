@@ -36,7 +36,10 @@ def split_coverages(system_json, timestamp):
     return coverage_docs
 
 
-def upload_documents(folder, verbose):
+def connect():
+    '''
+    Returns a MongoClient built from the MONGO_* environment variables.
+    '''
     if HOST not in os.environ.keys():
         raise RuntimeError(
             "the {} environment variable must be set and contain the host data".format(HOST))
@@ -53,7 +56,11 @@ def upload_documents(folder, verbose):
         raise RuntimeError(
             "the {} environment variable must contain a valid port number".format(PORT))
 
-    with MongoClient(host=os.environ[HOST], port=int(os.environ[PORT]), username=os.environ[USER], password=os.environ[PASSWORD]) as client:
+    return MongoClient(host=os.environ[HOST], port=int(os.environ[PORT]), username=os.environ[USER], password=os.environ[PASSWORD])
+
+
+def upload_documents(folder, verbose):
+    with connect() as client:
         db = client.snapd
         collection = db.features
         coverage_collection = db.coverages
