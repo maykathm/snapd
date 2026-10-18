@@ -90,3 +90,21 @@ Using local data in folder `~/Desktop/features` at timestamp `2026-06-06`, calcu
 ```
 $ ./query_features.py feat cover -d ~/Desktop/features/ -t 2026-06-06 --max-minutes 15 --force-match-keywords refresh install --exclude cmds interfaces
 ```
+
+## Find the tests that use shared test files
+
+`shared_test_users.py` finds the spread tests affected by changes to shared files under `tests/` (helpers in `tests/lib`, test snaps, tools, ...), by searching the checkout for references to them. A reference from a test's folder selects that test, a reference from another shared file is followed to that file's users, and a reference from a suite's section of `spread.yaml` selects the tests of that suite. References from elsewhere in `spread.yaml` or from `tests/lib/prepare.sh`, `prepare-restore.sh` or `reset.sh` mean the file is used by all tests.
+
+Run it from the checkout of the change being tested. List the users of the shared files changed since `origin/master`:
+
+```
+$ ./tests/utils/features/shared_test_users.py --base origin/master
+```
+
+Print the changed files with each shared file replaced by the `task.yaml` of every test that uses it, ready to send to the test-execution-lister service (files used by all tests are kept as they are):
+
+```
+$ ./tests/utils/features/shared_test_users.py --base origin/master --rewrite
+```
+
+The changed files can also be given as a json file with `modified`, `added` and `deleted` lists with `--changed-files`.
