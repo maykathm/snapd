@@ -35,7 +35,7 @@ than blank lines and comments) affect the whole tool, as does any change when
 shfmt is not installed or cannot parse the tool.
 
 It is meant to run in CI, in the checkout of the change being tested, before
-asking the test-execution-lister service which tests to run. With --rewrite it
+asking the test-selector service which tests to run. With --rewrite it
 prints the changed files with every shared file replaced by the task.yaml of
 each test that uses it, so the service selects those tests; files used by all
 tests, and files no reference to was found for (e.g. the fakestore sources,

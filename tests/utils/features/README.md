@@ -101,7 +101,7 @@ Run it from the checkout of the change being tested. List the users of the share
 $ ./tests/utils/features/shared_test_users.py --base origin/master
 ```
 
-Print the changed files with each shared file replaced by the `task.yaml` of every test that uses it, ready to send to the test-execution-lister service (files used by all tests, and files no reference was found for, such as the fakestore sources, are kept as they are so the service runs everything for them; the report marks the latter as `unresolved`):
+Print the changed files with each shared file replaced by the `task.yaml` of every test that uses it, ready to send to the test-selector service (files used by all tests, and files no reference was found for, such as the fakestore sources, are kept as they are so the service runs everything for them; the report marks the latter as `unresolved`):
 
 ```
 $ ./tests/utils/features/shared_test_users.py --base origin/master --rewrite
@@ -109,7 +109,7 @@ $ ./tests/utils/features/shared_test_users.py --base origin/master --rewrite
 
 The changed files can also be given as a json file with `modified`, `added` and `deleted` lists with `--changed-files`.
 
-To mimic CI with the test-execution-lister service, combine it with `.github/scripts/spread_tests_to_run.py`, which prints the spread tests a `spread-tests.yaml` job would run (the "Setup run tests variable" step): expand its output with `spread -list` to get the tests to send to the service, and send the changed files rewritten with `--rewrite`:
+To mimic CI with the test-selector service, combine it with `.github/scripts/spread_tests_to_run.py`, which prints the spread tests a `spread-tests.yaml` job would run (the "Setup run tests variable" step): expand its output with `spread -list` to get the tests to send to the service, and send the changed files rewritten with `--rewrite`:
 
 ```
 $ ./.github/scripts/spread_tests_to_run.py --backend openstack --systems ubuntu-24.04-64 --tasks 'tests/...' --rules main --pr --change overlord/snapstate/snapstate.go
