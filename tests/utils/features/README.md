@@ -93,7 +93,7 @@ $ ./query_features.py feat cover -d ~/Desktop/features/ -t 2026-06-06 --max-minu
 
 ## Find the tests that use shared test files
 
-`shared_test_users.py` finds the spread tests affected by changes to shared files under `tests/` (helpers in `tests/lib`, test snaps, tools, ...), by searching the checkout for references to them. A reference from a test's folder selects that test, a reference from another shared file is followed to that file's users, and a reference from a suite's section of `spread.yaml` selects the tests of that suite. References from elsewhere in `spread.yaml` or from `tests/lib/prepare.sh`, `prepare-restore.sh` or `reset.sh` mean the file is used by all tests.
+`shared_test_users.py` finds the spread tests affected by changes to shared files under `tests/` (helpers in `tests/lib`, test snaps, tools, ...), by searching the checkout for references to them. A reference from a test's folder selects that test, a reference from another shared file is followed to that file's users, and a reference from a suite's section of `spread.yaml` selects the tests of that suite. References from elsewhere in `spread.yaml` or from `tests/lib/prepare.sh`, `prepare-restore.sh` or `reset.sh` mean the file is used by all tests. When other files under `tests/` have the same name, references qualified with the folder of one of them only (e.g. `$TESTSLIB/image.sh` vs `nested/image.sh`) are not counted. Documentation (`README` files, `*.md`) and the own tests, `spread.yaml` and CI of the projects under `tests/lib/external` are not used by any test.
 
 Run it from the checkout of the change being tested. List the users of the shared files changed since `origin/master`:
 
@@ -101,7 +101,7 @@ Run it from the checkout of the change being tested. List the users of the share
 $ ./tests/utils/features/shared_test_users.py --base origin/master
 ```
 
-Print the changed files with each shared file replaced by the `task.yaml` of every test that uses it, ready to send to the test-execution-lister service (files used by all tests are kept as they are):
+Print the changed files with each shared file replaced by the `task.yaml` of every test that uses it, ready to send to the test-execution-lister service (files used by all tests, and files no reference was found for, such as the fakestore sources, are kept as they are so the service runs everything for them; the report marks the latter as `unresolved`):
 
 ```
 $ ./tests/utils/features/shared_test_users.py --base origin/master --rewrite

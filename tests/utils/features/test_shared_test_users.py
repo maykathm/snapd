@@ -46,6 +46,36 @@ FILES = {
     'tests/main/uses-nothing/task.yaml': 'execute: |\n    true\n',
     'tests/main/uses-helper-two/task.yaml': 'execute: |\n    . "$TESTSLIB"/helper.sh.orig\n',
     'tests/nested/core/nested-test/task.yaml': 'execute: |\n    true\n',
+    # documentation listing the tools, mentioned by a global helper
+    'tests/lib/tools/README': 'docs-tool: a tool\n',
+    'tests/lib/global-docs.sh': 'echo see README\n',
+    'tests/lib/reset.sh': '. "$TESTSLIB"/global-docs.sh\n',
+    'tests/lib/tools/docs-tool': 'echo docs\n',
+    'tests/main/uses-docs-tool/task.yaml': 'execute: |\n    docs-tool\n',
+    # two files with the same name
+    'tests/lib/image.sh': 'echo image\n',
+    'tests/lib/nested/image.sh': 'echo nested image\n',
+    'tests/main/uses-image/task.yaml': 'execute: |\n    . "$TESTSLIB"/image.sh\n',
+    'tests/main/uses-nested-image/task.yaml': 'execute: |\n    . "$TESTSLIB"/nested/image.sh\n',
+    # copies of a tool used by its name
+    'tests/bin/copied-tool': 'echo placeholder\n',
+    'tests/lib/tools/copied-tool': 'echo placeholder\n',
+    'tests/lib/external/ext-tools/tools/copied-tool': 'echo copied\n',
+    'tests/main/uses-copied-tool/task.yaml': 'execute: |\n    copied-tool\n    "$TESTSTOOLS"/copied-tool\n',
+    # an external project with its own tests
+    'tests/lib/external/ext-tools/spread.yaml': 'suites:\n    tests/:\n        summary: own tests\n',
+    'tests/lib/external/ext-tools/tests/ext-tool/task.yaml': 'execute: |\n    ext-tool\n',
+    'tests/lib/external/ext-tools/tools/ext-tool': 'echo ext\n',
+    'tests/main/uses-ext-tool/task.yaml': 'execute: |\n    ext-tool\n',
+    # a chain of helpers longer than MAX_DEPTH
+    'tests/lib/chain0.sh': 'echo chain0\n',
+    'tests/lib/chain1.sh': '. "$TESTSLIB"/chain0.sh\n',
+    'tests/lib/chain2.sh': '. "$TESTSLIB"/chain1.sh\n',
+    'tests/lib/chain3.sh': '. "$TESTSLIB"/chain2.sh\n',
+    'tests/lib/chain4.sh': '. "$TESTSLIB"/chain3.sh\n',
+    'tests/main/uses-chain/task.yaml': 'execute: |\n    . "$TESTSLIB"/chain4.sh\n',
+    # used through something built from it, not referenced by name
+    'tests/lib/fakestore/store/store.go': 'package store\n',
 }
 
 
@@ -103,21 +133,54 @@ class TestSharedTestUsers(unittest.TestCase):
     def test_users_unused_and_docs(self):
         self.assertEqual(self.finder.users('tests/lib/unused.sh'), frozenset())
         self.assertEqual(self.finder.users('tests/lib/README.md'), frozenset())
+        self.assertEqual(self.finder.users('tests/lib/tools/README'), frozenset())
+
+    def test_users_ignores_docs(self):
+        # the README mentions the tool and a global helper mentions the
+        # README, which does not make the tool used by all tests
+        self.assertEqual(self.finder.users('tests/lib/tools/docs-tool'), {'tests/main/uses-docs-tool'})
+
+    def test_users_same_file_name(self):
+        self.assertEqual(self.finder.users('tests/lib/image.sh'), {'tests/main/uses-image'})
+        self.assertEqual(self.finder.users('tests/lib/nested/image.sh'), {'tests/main/uses-nested-image'})
+        # references without a folder, or with the folder of a copy, count for every copy
+        for path in ('tests/bin/copied-tool', 'tests/lib/tools/copied-tool',
+                     'tests/lib/external/ext-tools/tools/copied-tool'):
+            self.assertEqual(self.finder.users(path), {'tests/main/uses-copied-tool'}, path)
+
+    def test_users_external_project(self):
+        self.assertEqual(self.finder.users('tests/lib/external/ext-tools/tools/ext-tool'),
+                         {'tests/main/uses-ext-tool'})
+        self.assertEqual(self.finder.users('tests/lib/external/ext-tools/spread.yaml'), frozenset())
+        self.assertEqual(self.finder.users('tests/lib/external/ext-tools/tests/ext-tool/task.yaml'), frozenset())
+
+    def test_users_do_not_depend_on_earlier_calls(self):
+        # chain0.sh is beyond MAX_DEPTH from the test, so its search is cut
+        # short; that must not be cached for the helpers it went through
+        self.assertEqual(self.finder.users('tests/lib/chain3.sh'), {'tests/main/uses-chain'})
+        fresh = shared_test_users.SharedTestUsers(self.repo)
+        self.assertEqual(fresh.users('tests/lib/chain0.sh'), frozenset())
+        self.assertEqual(fresh.users('tests/lib/chain3.sh'), {'tests/main/uses-chain'})
+        self.assertEqual(fresh.users('tests/lib/chain1.sh'), {'tests/main/uses-chain'})
 
     def test_report(self):
         report = self.finder.report({
-            'modified': ['tests/lib/helper.sh', 'tests/main/uses-nothing/task.yaml', 'daemon/api.go'],
+            'modified': ['tests/lib/helper.sh', 'tests/main/uses-nothing/task.yaml', 'daemon/api.go',
+                         'tests/lib/fakestore/store/store.go', 'tests/lib/README.md'],
             'added': [],
             'deleted': ['tests/lib/global.sh'],
         })
         self.assertEqual(report, {
             'tests/lib/helper.sh': {'all': False, 'tests': ['tests/main/uses-helper', 'tests/main/uses-wrapper']},
+            'tests/lib/fakestore/store/store.go': {'all': False, 'tests': [], 'unresolved': True},
+            'tests/lib/README.md': {'all': False, 'tests': []},
             'tests/lib/global.sh': {'all': True},
         })
 
     def test_rewrite(self):
         rewritten = self.finder.rewrite({
-            'modified': ['daemon/api.go', 'tests/lib/helper.sh', 'tests/main/uses-helper/task.yaml'],
+            'modified': ['daemon/api.go', 'tests/lib/helper.sh', 'tests/main/uses-helper/task.yaml',
+                         'tests/lib/README.md', 'tests/lib/external/ext-tools/tests/ext-tool/task.yaml'],
             'added': ['tests/lib/snaps/test-snapd-foo/bin/foo', 'tests/lib/unused.sh'],
             'deleted': ['tests/lib/global.sh'],
         })
@@ -128,7 +191,8 @@ class TestSharedTestUsers(unittest.TestCase):
                 'tests/main/uses-wrapper/task.yaml',
                 'tests/main/uses-snap/task.yaml',
             ],
-            'added': [],
+            # no reference found: kept so the service runs everything
+            'added': ['tests/lib/unused.sh'],
             'deleted': ['tests/lib/global.sh'],
         })
 
