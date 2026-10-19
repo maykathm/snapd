@@ -23,6 +23,16 @@ count for all of them. Documentation (README files, *.md) and the own tests,
 spread.yaml and CI of the projects under tests/lib/external are not used by
 any test.
 
+With a base revision, a changed tool with subcommands (a shell script under
+tests/ dispatching on its first argument, with a case branch per subcommand or
+by calling the function named after it) only counts references that use the
+subcommands the change affects: the changed lines are mapped to the functions
+or dispatch branches they are in, functions calling affected functions are
+added, and a reference such as "lxd-state launch" counts only if "launch" is
+affected or is not one of the tool's subcommands. Changes outside of functions
+and dispatch branches (other than blank lines and comments) affect the whole
+tool.
+
 It is meant to run in CI, in the checkout of the change being tested, before
 asking the test-execution-lister service which tests to run. With --rewrite it
 prints the changed files with every shared file replaced by the task.yaml of
@@ -94,6 +104,185 @@ def is_external_own(path: str) -> bool:
     return len(parts) == 2 and parts[1].startswith(EXTERNAL_OWN)
 
 
+_FUNCTION_START = re.compile(r'^(?:function\s+)?([A-Za-z_][\w-]*)\s*\(\)\s*\{?\s*(?:#.*)?$')
+_FUNCTION_END = re.compile(r'^\}\s*(?:#.*)?$')
+_CASE_START = re.compile(r'^\s*case\s+"?\$(?:\{[^}]*\}|\w+)"?\s+in\b')
+_CASE_END = re.compile(r'^\s*esac\b')
+_CASE_BRANCH = re.compile(r'^\s*\(?([\w.|\'"*-]+)\)\s*(.*)$')
+_GENERIC_DISPATCH = re.compile(r"""tr\s+['"]?-['"]?\s+['"]?_['"]?""")
+_WORD = re.compile(r'[A-Za-z_][\w-]*')
+# prints a tool's usage: changing it affects none of its subcommands, and
+# references such as "tool --help" count anyway as they use no subcommand
+_HELP_FUNCTION = 'show_help'
+_SINGLE_QUOTED = re.compile(r"'[^']*'")
+_DOUBLE_QUOTED = re.compile(r'"(?:[^"\\]|\\.)*"')
+_COMMAND_SUBSTITUTION = re.compile(r'\$\(([^()]*)\)')
+
+
+def _code_words(line: str) -> set[str]:
+    '''
+    Returns the words of a shell line that may call a function: not in
+    comments or quoted text, except for command substitutions in double quotes
+    (so the usage text of a tool does not look like calls to its functions).
+    '''
+    line = re.sub(r'(^|\s)#.*$', '', line)
+    line = _SINGLE_QUOTED.sub(' ', line)
+    line = _DOUBLE_QUOTED.sub(lambda m: ' ' + ' '.join(_COMMAND_SUBSTITUTION.findall(m.group(0))) + ' ', line)
+    return set(_WORD.findall(line))
+
+
+def _is_code(line: str) -> bool:
+    stripped = line.strip()
+    return bool(stripped) and not stripped.startswith('#')
+
+
+def shell_functions(lines: list[str]) -> dict[str, tuple[int, int]]:
+    '''
+    Returns the top-level functions of a shell script as name: (first, last)
+    line index, from the line declaring the function to the closing brace.
+    '''
+    functions = {}
+    i = 0
+    while i < len(lines):
+        m = _FUNCTION_START.match(lines[i])
+        if m:
+            for j in range(i + 1, len(lines)):
+                if _FUNCTION_END.match(lines[j]):
+                    functions[m.group(1)] = (i, j)
+                    i = j
+                    break
+        i += 1
+    return functions
+
+
+class Dispatch:
+    '''How a tool dispatches its subcommands.'''
+
+    def __init__(self, subcommands: dict[str, tuple[int, int]], generic: bool):
+        # subcommand: (first, last) line index of its case branch, if any
+        self.subcommands = subcommands
+        # subcommands run the function named after them ("-" becomes "_")
+        self.generic = generic
+
+
+def shell_dispatch(lines: list[str], functions: dict[str, tuple[int, int]]) -> Optional[Dispatch]:
+    '''
+    Returns how the script in lines dispatches subcommands from its main
+    function, or None if it does not look like a tool with subcommands.
+    '''
+    if 'main' not in functions:
+        return None
+    first, last = functions['main']
+    body = lines[first:last + 1]
+    if any(_GENERIC_DISPATCH.search(line) for line in body):
+        names = {name.replace('_', '-'): None for name in functions if name not in ('main', _HELP_FUNCTION)}
+        return Dispatch(names, generic=True)
+
+    subcommands: dict[str, tuple[int, int]] = {}
+    depth = 0
+    current = None
+    for i in range(first, last + 1):
+        line = lines[i]
+        if _CASE_START.match(line):
+            depth += 1
+            continue
+        if _CASE_END.match(line):
+            if depth == 1 and current:
+                for name in current[0]:
+                    subcommands[name] = (current[1], i - 1)
+                current = None
+            depth -= 1
+            continue
+        if depth != 1:
+            continue
+        m = _CASE_BRANCH.match(line)
+        if m and not line.strip().startswith('#'):
+            if current:
+                for name in current[0]:
+                    subcommands[name] = (current[1], i - 1)
+            names = [n.strip('\'"') for n in m.group(1).split('|')]
+            names = [n for n in names if n and not n.startswith('-') and n != '*']
+            current = (names, i)
+    if current:
+        for name in current[0]:
+            subcommands[name] = (current[1], last)
+    if not subcommands:
+        return None
+    return Dispatch(subcommands, generic=False)
+
+
+def affected_subcommands(old: list[str], new: list[str], removed: list[int], added: list[int]) -> Optional[set[str]]:
+    '''
+    Returns the subcommands of a tool affected by a change, given the old and
+    new content and the indexes of the removed (old) and added (new) lines, or
+    None if the change affects the whole tool or the tool has no subcommands.
+    '''
+    affected_functions: set[str] = set()
+    affected: set[str] = set()
+    dispatch = None
+    for lines, changed in ((old, removed), (new, added)):
+        functions = shell_functions(lines)
+        dispatch = shell_dispatch(lines, functions)
+        if dispatch is None:
+            return None
+        for index in changed:
+            if not _is_code(lines[index]):
+                continue
+            owner = next((name for name, (first, last) in functions.items() if first <= index <= last), None)
+            if owner is None:
+                return None
+            if owner == _HELP_FUNCTION:
+                continue
+            if owner != 'main':
+                affected_functions.add(owner)
+                continue
+            branch = [sub for sub, span in dispatch.subcommands.items() if span and span[0] <= index <= span[1]]
+            if not branch:
+                return None
+            affected.update(branch)
+
+    # functions calling affected functions are affected too
+    functions = shell_functions(new)
+    calls = {name: set().union(*(_code_words(line) for line in new[first + 1:last]))
+             for name, (first, last) in functions.items()}
+    while True:
+        callers = {name for name, words in calls.items() if words & affected_functions} - affected_functions
+        if not callers:
+            break
+        affected_functions |= callers
+    if 'main' in affected_functions:
+        # main calls an affected function outside of the dispatch branches
+        main_first, main_last = functions['main']
+        branch_lines = {i for span in dispatch.subcommands.values() if span for i in range(span[0], span[1] + 1)}
+        outside = {i for i in range(main_first + 1, main_last) if i not in branch_lines}
+        if any(_code_words(new[i]) & (affected_functions - {'main'}) for i in outside):
+            return None
+
+    for sub, span in dispatch.subcommands.items():
+        if dispatch.generic:
+            if sub.replace('-', '_') in affected_functions:
+                affected.add(sub)
+        elif set().union(*(_code_words(line) for line in new[span[0]:span[1] + 1])) & affected_functions:
+            affected.add(sub)
+    return affected
+
+
+class SubcommandFilter:
+    '''The subcommands of a changed tool, and those the change affects.'''
+
+    def __init__(self, known: set[str], affected: set[str]):
+        self.known = known
+        self.affected = affected
+
+    def counts(self, after: str) -> bool:
+        '''Whether a reference to the tool followed by the text after counts.'''
+        m = re.match(r'["\']?\s+([\w-]+)', after)
+        if not m or m.group(1) not in self.known:
+            # no subcommand, or not a literal one: the reference may use any
+            return True
+        return m.group(1) in self.affected
+
+
 _SUITE_LINE = re.compile(r'^    (tests/[^\s:]+)/:\s*$')
 _TOP_LEVEL_LINE = re.compile(r'^[A-Za-z_-][^:]*:')
 
@@ -101,8 +290,13 @@ _TOP_LEVEL_LINE = re.compile(r'^[A-Za-z_-][^:]*:')
 class SharedTestUsers:
     '''Finds the tests that use shared files in a snapd checkout.'''
 
-    def __init__(self, repo: str):
+    def __init__(self, repo: str, base: Optional[str] = None):
         self.repo = repo
+        # revision the checkout is compared to, to narrow changed tools to
+        # the subcommands the change affects
+        self.base = base
+        self._merge_base: Optional[str] = None
+        self._filters: dict[str, Optional[SubcommandFilter]] = {}
         self.spread_yaml = self._read(SPREAD_YAML).splitlines()
         self.suites = self._suites()
         self._folders_by_name = self._folders_by_file_name()
@@ -133,12 +327,66 @@ class SharedTestUsers:
         folder, _, name = path.rpartition('/')
         own = folder.rpartition('/')[2]
         others = {f.rpartition('/')[2] for f in self._folders_by_name.get(name, set())} - {own}
-        if token != name or not others:
+        qualified = token == name and others
+        subcommands = self.subcommand_filter(path)
+        if not qualified and subcommands is None:
             return lambda text: bool(pattern.search(text))
 
         def matches(text: str) -> bool:
-            return any(_qualifier(text[:m.start()]) not in others for m in pattern.finditer(text))
+            for m in pattern.finditer(text):
+                if qualified and _qualifier(text[:m.start()]) in others:
+                    continue
+                if subcommands is not None and not subcommands.counts(text[m.end():m.end() + 64]):
+                    continue
+                return True
+            return False
         return matches
+
+    def subcommand_filter(self, path: str) -> Optional[SubcommandFilter]:
+        '''
+        Returns the subcommands of a tool changed since the base revision and
+        those the change affects, or None if references to the path all count.
+        '''
+        if self.base is None:
+            return None
+        if path not in self._filters:
+            self._filters[path] = self._compute_subcommand_filter(path)
+        return self._filters[path]
+
+    def _git(self, *args: str) -> subprocess.CompletedProcess:
+        return subprocess.run(['git', '-C', self.repo, *args], capture_output=True, text=True)
+
+    def _compute_subcommand_filter(self, path: str) -> Optional[SubcommandFilter]:
+        if self._merge_base is None:
+            result = self._git('merge-base', self.base, 'HEAD')
+            if result.returncode != 0:
+                raise RuntimeError(f'git merge-base failed: {result.stderr.strip()}')
+            self._merge_base = result.stdout.strip()
+        old = self._git('show', f'{self._merge_base}:{path}')
+        if old.returncode != 0 or not os.path.isfile(os.path.join(self.repo, path)):
+            # added or deleted: the whole tool is affected
+            return None
+        try:
+            new_lines = self._read(path).splitlines()
+        except UnicodeDecodeError:
+            return None
+        diff = self._git('diff', '-U0', self._merge_base, '--', path)
+        removed, added = [], []
+        for line in diff.stdout.splitlines():
+            m = re.match(r'^@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@', line)
+            if m:
+                old_start, old_count = int(m.group(1)), int(m.group(2) or 1)
+                new_start, new_count = int(m.group(3)), int(m.group(4) or 1)
+                removed += range(old_start - 1, old_start - 1 + old_count)
+                added += range(new_start - 1, new_start - 1 + new_count)
+        if not removed and not added:
+            return None
+        old_lines = old.stdout.splitlines()
+        affected = affected_subcommands(old_lines, new_lines, removed, added)
+        if affected is None:
+            return None
+        dispatch = shell_dispatch(new_lines, shell_functions(new_lines))
+        return SubcommandFilter(set(dispatch.subcommands), affected)
 
     def _read(self, path: str) -> str:
         with open(os.path.join(self.repo, path), encoding='utf-8') as f:
@@ -306,11 +554,19 @@ class SharedTestUsers:
     def is_shared(self, path: str) -> bool:
         return path.startswith('tests/') and self.test_dir(path) is None
 
+    def _unresolved(self, path: str, users: frozenset[str]) -> bool:
+        '''
+        Whether no user was found for a path that may still be used: not known
+        to be unused, and not a tool whose affected subcommands nothing uses.
+        '''
+        return not users and not self.not_used(path) and self.subcommand_filter(path) is None
+
     def report(self, changed_files: dict[str, list[str]]) -> dict[str, dict]:
         '''
         Returns the users of each shared file in the changes. Files no
         reference to was found for, that are not known to be unused, are
-        marked as unresolved.
+        marked as unresolved. Changed tools narrowed to the subcommands the
+        change affects list them.
         '''
         out = {}
         for key in CHANGE_KEYS:
@@ -322,8 +578,11 @@ class SharedTestUsers:
                     out[path] = {'all': True}
                 else:
                     out[path] = {'all': False, 'tests': sorted(users)}
-                    if not users and not self.not_used(path):
+                    if self._unresolved(path, users):
                         out[path]['unresolved'] = True
+                subcommands = self.subcommand_filter(path)
+                if subcommands is not None:
+                    out[path]['subcommands'] = sorted(subcommands.affected)
         return out
 
     def rewrite(self, changed_files: dict[str, list[str]]) -> dict[str, list[str]]:
@@ -340,7 +599,7 @@ class SharedTestUsers:
                     target, paths = key, [path]
                 else:
                     users = self.users(path)
-                    if users is None or (not users and not self.not_used(path)):
+                    if users is None or self._unresolved(path, users):
                         target, paths = key, [path]
                     else:
                         target, paths = 'modified', [f'{test}/task.yaml' for test in sorted(users)]
@@ -374,21 +633,24 @@ def main() -> None:
     parser = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument('--repo', default='.', help='path to the snapd checkout (default: .)')
-    source = parser.add_mutually_exclusive_group(required=True)
-    source.add_argument('--changed-files', type=argparse.FileType('r', encoding='utf-8'),
+    parser.add_argument('--changed-files', type=argparse.FileType('r', encoding='utf-8'),
                         help='json file with modified, added and deleted lists of paths ("-" for stdin)')
-    source.add_argument('--base', help='compute the changed files as git diff <base>...<head>')
+    parser.add_argument('--base',
+                        help='revision the change is based on: the changed files default to git diff <base>...<head>, '
+                             'and changed tools are narrowed to the subcommands the change affects')
     parser.add_argument('--head', default='HEAD', help='head revision when using --base (default: HEAD)')
     parser.add_argument('--rewrite', action='store_true',
                         help='print the changed files with shared files replaced by the task.yaml of their users')
     args = parser.parse_args()
+    if not args.changed_files and not args.base:
+        parser.error('one of --changed-files or --base is required')
 
-    if args.base:
-        changed = changed_files_from_git(args.repo, args.base, args.head)
-    else:
+    if args.changed_files:
         changed = json.load(args.changed_files)
+    else:
+        changed = changed_files_from_git(args.repo, args.base, args.head)
 
-    finder = SharedTestUsers(args.repo)
+    finder = SharedTestUsers(args.repo, base=args.base)
     result = finder.rewrite(changed) if args.rewrite else finder.report(changed)
     json.dump(result, sys.stdout, indent=2, sort_keys=True)
     print()

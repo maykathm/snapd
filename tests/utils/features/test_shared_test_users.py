@@ -214,5 +214,231 @@ class TestSharedTestUsers(unittest.TestCase):
         })
 
 
+
+EXPLICIT_TOOL = """#!/bin/bash
+
+show_help() {
+    echo "usage: demo-tool setup|launch|cleanup"
+}
+
+wait_ready() {
+    retry -n 10 true
+}
+
+launch() {
+    wait_ready
+    echo launch
+}
+
+setup() {
+    echo setup
+}
+
+main() {
+    if [ $# -eq 0 ]; then
+        show_help
+        exit 0
+    fi
+
+    case "${1:-}" in
+        -h|--help)
+            show_help
+            ;;
+        setup)
+            shift
+            setup "$@"
+            ;;
+        launch)
+            shift
+            launch "$@"
+            ;;
+        cleanup)
+            # inline
+            echo cleanup
+            ;;
+        *)
+            echo "unknown" >&2
+            exit 1
+            ;;
+    esac
+}
+
+main "$@"
+"""
+
+GENERIC_TOOL = """#!/bin/bash
+
+show_help() {
+    echo "usage: gen-tool setup-thing|use-thing"
+}
+
+common() {
+    echo common
+}
+
+setup_thing() {
+    common
+}
+
+use_thing() {
+    echo use
+}
+
+main() {
+    local action
+    action=$(echo "$1" | tr '-' '_')
+    shift
+    "$action" "$@"
+}
+
+main "$@"
+"""
+
+
+def lines_of(text):
+    return text.splitlines()
+
+
+def changed(old, new):
+    """The indexes of the lines removed from old and added in new, by a simple line diff."""
+    import difflib
+    removed, added = [], []
+    for tag, i1, i2, j1, j2 in difflib.SequenceMatcher(None, old, new).get_opcodes():
+        if tag != 'equal':
+            removed += range(i1, i2)
+            added += range(j1, j2)
+    return removed, added
+
+
+class TestShellAnalysis(unittest.TestCase):
+
+    def test_functions_and_explicit_dispatch(self):
+        lines = lines_of(EXPLICIT_TOOL)
+        functions = shared_test_users.shell_functions(lines)
+        self.assertEqual(set(functions), {'show_help', 'wait_ready', 'launch', 'setup', 'main'})
+        dispatch = shared_test_users.shell_dispatch(lines, functions)
+        self.assertFalse(dispatch.generic)
+        self.assertEqual(set(dispatch.subcommands), {'setup', 'launch', 'cleanup'})
+
+    def test_generic_dispatch(self):
+        lines = lines_of(GENERIC_TOOL)
+        dispatch = shared_test_users.shell_dispatch(lines, shared_test_users.shell_functions(lines))
+        self.assertTrue(dispatch.generic)
+        self.assertEqual(set(dispatch.subcommands), {'common', 'setup-thing', 'use-thing'})
+
+    def test_no_dispatch(self):
+        lines = lines_of('#!/bin/bash\nhelper() {\n    true\n}\n')
+        self.assertIsNone(shared_test_users.shell_dispatch(lines, shared_test_users.shell_functions(lines)))
+
+    def affected(self, tool, old_text, new_text):
+        old, new = lines_of(tool), lines_of(tool.replace(old_text, new_text))
+        self.assertNotEqual(old, new)
+        return shared_test_users.affected_subcommands(old, new, *changed(old, new))
+
+    def test_change_in_function_of_one_subcommand(self):
+        self.assertEqual(self.affected(EXPLICIT_TOOL, 'echo setup', 'echo setup2'), {'setup'})
+
+    def test_change_in_helper_reaches_its_callers(self):
+        # wait_ready is only called by launch
+        self.assertEqual(self.affected(EXPLICIT_TOOL, 'retry -n 10 true', 'retry -n 30 true'), {'launch'})
+        self.assertEqual(self.affected(GENERIC_TOOL, 'echo common', 'echo common2'), {'common', 'setup-thing'})
+
+    def test_change_in_dispatch_branch(self):
+        self.assertEqual(self.affected(EXPLICIT_TOOL, 'echo cleanup', 'echo cleanup2'), {'cleanup'})
+
+    def test_comment_only_change_affects_nothing(self):
+        self.assertEqual(self.affected(EXPLICIT_TOOL, '# inline', '# inline code'), set())
+        self.assertEqual(self.affected(EXPLICIT_TOOL, '#!/bin/bash\n', '#!/bin/bash\n# about the tool\n'), set())
+
+    def test_changes_affecting_the_whole_tool(self):
+        # code outside of any function
+        self.assertIsNone(self.affected(EXPLICIT_TOOL, 'main "$@"', 'set -e\nmain "$@"'))
+        # main outside of the dispatch branches
+        self.assertIsNone(self.affected(EXPLICIT_TOOL, '        show_help\n        exit 0', '        show_help\n        exit 2'))
+        # a function main calls outside of the dispatch branches
+        tool = EXPLICIT_TOOL.replace('    if [ $# -eq 0 ]; then', '    wait_ready\n    if [ $# -eq 0 ]; then')
+        self.assertIsNone(self.affected(tool, 'retry -n 10 true', 'retry -n 30 true'))
+
+    def test_help_change_affects_no_subcommand(self):
+        self.assertEqual(self.affected(EXPLICIT_TOOL, 'echo "usage: demo-tool', 'echo "Usage: demo-tool'), set())
+
+    def test_subcommand_filter(self):
+        f = shared_test_users.SubcommandFilter({'setup', 'launch', 'cleanup'}, {'launch'})
+        self.assertTrue(f.counts(' launch --name x'))
+        self.assertTrue(f.counts('" launch'))
+        self.assertFalse(f.counts(' setup'))
+        # not a literal subcommand, or none at all: may use any
+        self.assertTrue(f.counts(' "$cmd"'))
+        self.assertTrue(f.counts('\n'))
+
+
+class TestSubcommandUsers(unittest.TestCase):
+
+    FILES = {
+        'spread.yaml': SPREAD_YAML,
+        'tests/lib/prepare-restore.sh': '"$TESTSTOOLS"/demo-tool setup\n',
+        'tests/lib/tools/demo-tool': EXPLICIT_TOOL,
+        'tests/main/uses-launch/task.yaml': 'execute: |\n    "$TESTSTOOLS"/demo-tool launch --name x\n',
+        'tests/main/uses-cleanup/task.yaml': 'execute: |\n    demo-tool cleanup\n',
+        'tests/main/uses-any/task.yaml': 'execute: |\n    demo-tool "$SUBCOMMAND"\n',
+    }
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.repo = self.tmp.name
+        for path, content in self.FILES.items():
+            full = os.path.join(self.repo, path)
+            os.makedirs(os.path.dirname(full), exist_ok=True)
+            with open(full, 'w', encoding='utf-8') as f:
+                f.write(content)
+        self.git('init', '-q')
+        self.commit('base')
+        self.base = self.git('rev-parse', 'HEAD').strip()
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def git(self, *args):
+        return subprocess.run(['git', '-C', self.repo, *args], check=True, capture_output=True, text=True).stdout
+
+    def commit(self, message):
+        self.git('add', '-A')
+        self.git('-c', 'user.name=t', '-c', 'user.email=t@t', 'commit', '-qm', message)
+
+    def change_tool(self, old, new):
+        path = os.path.join(self.repo, 'tests/lib/tools/demo-tool')
+        with open(path, encoding='utf-8') as f:
+            content = f.read()
+        with open(path, 'w', encoding='utf-8') as f:
+            f.write(content.replace(old, new))
+        self.commit('change')
+
+    def test_only_users_of_affected_subcommands(self):
+        self.change_tool('retry -n 10 true', 'retry -n 30 true')
+        finder = shared_test_users.SharedTestUsers(self.repo, base=self.base)
+        # prepare-restore.sh only uses setup, which the change does not affect
+        self.assertEqual(finder.users('tests/lib/tools/demo-tool'), {'tests/main/uses-launch', 'tests/main/uses-any'})
+        self.assertEqual(finder.report({'modified': ['tests/lib/tools/demo-tool']}), {
+            'tests/lib/tools/demo-tool': {
+                'all': False, 'subcommands': ['launch'], 'tests': ['tests/main/uses-any', 'tests/main/uses-launch'],
+            },
+        })
+
+    def test_without_base_or_when_the_whole_tool_changes(self):
+        self.change_tool('retry -n 10 true', 'retry -n 30 true')
+        self.assertIsNone(shared_test_users.SharedTestUsers(self.repo).users('tests/lib/tools/demo-tool'))
+
+        self.change_tool('main "$@"', 'set -e\nmain "$@"')
+        self.assertIsNone(shared_test_users.SharedTestUsers(self.repo, base=self.base).users('tests/lib/tools/demo-tool'))
+
+    def test_change_affecting_no_subcommand_is_dropped(self):
+        self.change_tool('# inline', '# inline code')
+        finder = shared_test_users.SharedTestUsers(self.repo, base=self.base)
+        # only the reference that may use any subcommand remains
+        self.assertEqual(finder.users('tests/lib/tools/demo-tool'), {'tests/main/uses-any'})
+        self.assertEqual(finder.rewrite({'modified': ['tests/lib/tools/demo-tool']}),
+                         {'modified': ['tests/main/uses-any/task.yaml'], 'added': [], 'deleted': []})
+
+
 if __name__ == '__main__':
     unittest.main()
