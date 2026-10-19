@@ -208,47 +208,23 @@ jobs:
     - name: Setup run tests variable
       if: ${{ env.SKIP_SPREAD_LABEL != 'true' }}
       run: |
-          get_new_tasks() {
-            local prefix=$1
-            local changes_param=$2
-            # The tests are just filtered when the change is a PR
-            # When 'Run Nested' label is added in a PR, all the nested tests have to be executed
-            TASKS_TO_RUN=""
-            INPUT_TASKS="$(echo "${{ inputs.tasks }}" | tr '\n' ' ')"
-            if [ -z "${{ github.event.number }}" ] || [ "$RUN_NESTED" = 'true' ] || [ -z "${{ inputs.rules }}" ] || [ -z "$changes_param" ]; then
-                for TASKS in $INPUT_TASKS; do
-                    TASKS_TO_RUN="$TASKS_TO_RUN $prefix:$TASKS"
-                done
-            else
-                NEW_TASKS="$(./tests/lib/external/snapd-testing-tools/utils/spread-filter -r ./tests/lib/spread/rules/${{ inputs.rules }}.yaml -p "$prefix" $changes_param -t "$INPUT_TASKS")"
-                TASKS_TO_RUN="$NEW_TASKS"
-            fi
-            echo "$TASKS_TO_RUN"
-          }
-
           SPREAD_BACKEND="${{ inputs.backend }}"
           echo SPREAD_BACKEND="$SPREAD_BACKEND" >> $GITHUB_ENV
 
-          CHANGES_PARAM=""
+          ARGS=(--backend "$SPREAD_BACKEND" --systems "${{ inputs.systems }}" --tasks "${{ inputs.tasks }}" --rules "${{ inputs.rules }}")
           for CHANGE in $CHANGED_FILES; do
-              CHANGES_PARAM="$CHANGES_PARAM -c $CHANGE"
+              ARGS+=(--change "$CHANGE")
           done
-
-          TESTS_TO_RUN=""
-          if [ "$FAILED_TESTS" = 'true' ]; then
-              TESTS_TO_RUN="$(cat "$FAILED_TESTS_FILE")"
-          elif [ "${{ inputs.systems }}" = "ALL" ]; then
-              TESTS_TO_RUN=$(get_new_tasks "$SPREAD_BACKEND" "$CHANGES_PARAM")
-          elif [ "${{ inputs.systems }}" != "NONE" ]; then
-              for SYSTEM in ${{ inputs.systems }}; do
-                NEW_TASKS="$(get_new_tasks "$SPREAD_BACKEND:$SYSTEM" "$CHANGES_PARAM")"
-                if [ -z "$TESTS_TO_RUN" ]; then
-                    TESTS_TO_RUN="$NEW_TASKS"
-                else
-                    TESTS_TO_RUN="$TESTS_TO_RUN $NEW_TASKS"
-                fi
-              done
+          if [ -n "${{ github.event.number }}" ]; then
+              ARGS+=(--pr)
           fi
+          if [ "$RUN_NESTED" = 'true' ]; then
+              ARGS+=(--run-nested)
+          fi
+          if [ "$FAILED_TESTS" = 'true' ]; then
+              ARGS+=(--failed-tests-file "$FAILED_TESTS_FILE")
+          fi
+          TESTS_TO_RUN="$(./.github/scripts/spread_tests_to_run.py "${ARGS[@]}")"
 
           RUN_TESTS_FILE="${{ github.workspace }}/run-tests-file.txt"
           echo "RUN_TESTS_FILE=$RUN_TESTS_FILE" >> $GITHUB_ENV

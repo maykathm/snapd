@@ -108,3 +108,10 @@ $ ./tests/utils/features/shared_test_users.py --base origin/master --rewrite
 ```
 
 The changed files can also be given as a json file with `modified`, `added` and `deleted` lists with `--changed-files`.
+
+To mimic CI with the test-execution-lister service, combine it with `.github/scripts/spread_tests_to_run.py`, which prints the spread tests a `spread-tests.yaml` job would run (the "Setup run tests variable" step): expand its output with `spread -list` to get the tests to send to the service, and send the changed files rewritten with `--rewrite`:
+
+```
+$ ./.github/scripts/spread_tests_to_run.py --backend openstack --systems ubuntu-24.04-64 --tasks 'tests/...' --rules main --pr --change overlord/snapstate/snapstate.go
+openstack:ubuntu-24.04-64:tests/
+```
