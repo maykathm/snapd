@@ -26,12 +26,13 @@ any test.
 With a base revision, a changed tool with subcommands (a shell script under
 tests/ dispatching on its first argument, with a case branch per subcommand or
 by calling the function named after it) only counts references that use the
-subcommands the change affects: the changed lines are mapped to the functions
-or dispatch branches they are in, functions calling affected functions are
-added, and a reference such as "lxd-state launch" counts only if "launch" is
-affected or is not one of the tool's subcommands. Changes outside of functions
-and dispatch branches (other than blank lines and comments) affect the whole
-tool.
+subcommands the change affects: the scripts are parsed with shfmt, the changed
+lines are mapped to the functions or dispatch branches they are in, functions
+calling affected functions are added, and a reference such as
+"lxd-state launch" counts only if "launch" is affected or is not one of the
+tool's subcommands. Changes outside of functions and dispatch branches (other
+than blank lines and comments) affect the whole tool, as does any change when
+shfmt is not installed or cannot parse the tool.
 
 It is meant to run in CI, in the checkout of the change being tested, before
 asking the test-execution-lister service which tests to run. With --rewrite it
@@ -104,31 +105,10 @@ def is_external_own(path: str) -> bool:
     return len(parts) == 2 and parts[1].startswith(EXTERNAL_OWN)
 
 
-_FUNCTION_START = re.compile(r'^(?:function\s+)?([A-Za-z_][\w-]*)\s*\(\)\s*\{?\s*(?:#.*)?$')
-_FUNCTION_END = re.compile(r'^\}\s*(?:#.*)?$')
-_CASE_START = re.compile(r'^\s*case\s+"?\$(?:\{[^}]*\}|\w+)"?\s+in\b')
-_CASE_END = re.compile(r'^\s*esac\b')
-_CASE_BRANCH = re.compile(r'^\s*\(?([\w.|\'"*-]+)\)\s*(.*)$')
-_GENERIC_DISPATCH = re.compile(r"""tr\s+['"]?-['"]?\s+['"]?_['"]?""")
-_WORD = re.compile(r'[A-Za-z_][\w-]*')
 # prints a tool's usage: changing it affects none of its subcommands, and
 # references such as "tool --help" count anyway as they use no subcommand
 _HELP_FUNCTION = 'show_help'
-_SINGLE_QUOTED = re.compile(r"'[^']*'")
-_DOUBLE_QUOTED = re.compile(r'"(?:[^"\\]|\\.)*"')
-_COMMAND_SUBSTITUTION = re.compile(r'\$\(([^()]*)\)')
-
-
-def _code_words(line: str) -> set[str]:
-    '''
-    Returns the words of a shell line that may call a function: not in
-    comments or quoted text, except for command substitutions in double quotes
-    (so the usage text of a tool does not look like calls to its functions).
-    '''
-    line = re.sub(r'(^|\s)#.*$', '', line)
-    line = _SINGLE_QUOTED.sub(' ', line)
-    line = _DOUBLE_QUOTED.sub(lambda m: ' ' + ' '.join(_COMMAND_SUBSTITUTION.findall(m.group(0))) + ' ', line)
-    return set(_WORD.findall(line))
+_warned_no_shfmt = False
 
 
 def _is_code(line: str) -> bool:
@@ -136,82 +116,142 @@ def _is_code(line: str) -> bool:
     return bool(stripped) and not stripped.startswith('#')
 
 
-def shell_functions(lines: list[str]) -> dict[str, tuple[int, int]]:
-    '''
-    Returns the top-level functions of a shell script as name: (first, last)
-    line index, from the line declaring the function to the closing brace.
-    '''
-    functions = {}
-    i = 0
-    while i < len(lines):
-        m = _FUNCTION_START.match(lines[i])
-        if m:
-            for j in range(i + 1, len(lines)):
-                if _FUNCTION_END.match(lines[j]):
-                    functions[m.group(1)] = (i, j)
-                    i = j
-                    break
-        i += 1
-    return functions
+def _line(pos: dict) -> int:
+    '''The 0-based line index of a shfmt position.'''
+    return pos['Line'] - 1
+
+
+def _literal(word: dict) -> Optional[str]:
+    '''The value of a shell word made only of literal text, quoted or not.'''
+    value = ''
+    for part in word.get('Parts', []):
+        if part['Type'] in ('Lit', 'SglQuoted'):
+            value += part['Value']
+        elif part['Type'] == 'DblQuoted' and all(p['Type'] == 'Lit' for p in part.get('Parts', [])):
+            value += ''.join(p['Value'] for p in part.get('Parts', []))
+        else:
+            return None
+    return value
+
+
+def _nodes(node, skip=()):
+    '''Yields the syntax tree nodes under node, not descending into those in skip.'''
+    if isinstance(node, dict):
+        if any(node is s for s in skip):
+            return
+        yield node
+        for value in node.values():
+            yield from _nodes(value, skip)
+    elif isinstance(node, list):
+        for value in node:
+            yield from _nodes(value, skip)
+
+
+def _calls(node, skip=()) -> list[dict]:
+    return [n for n in _nodes(node, skip) if n.get('Type') == 'CallExpr' and n.get('Args')]
+
+
+def _call_names(node, skip=()) -> set[str]:
+    '''The commands (and functions) called under node, when literal.'''
+    return {name for call in _calls(node, skip) if (name := _literal(call['Args'][0]))}
+
+
+def _top_level_cases(node) -> list[dict]:
+    '''The case statements under node that are not inside another case statement.'''
+    if isinstance(node, dict):
+        if node.get('Type') == 'CaseClause':
+            return [node]
+        return [case for value in node.values() for case in _top_level_cases(value)]
+    if isinstance(node, list):
+        return [case for value in node for case in _top_level_cases(value)]
+    return []
 
 
 class Dispatch:
     '''How a tool dispatches its subcommands.'''
 
-    def __init__(self, subcommands: dict[str, tuple[int, int]], generic: bool):
-        # subcommand: (first, last) line index of its case branch, if any
+    def __init__(self, subcommands: dict[str, list[tuple[int, int]]], generic: bool,
+                 branch_calls: dict[str, set[str]], outside_calls: set[str]):
+        # subcommand: (first, last) line indexes of its case branches, if any
+        # (e.g. one parsing the arguments and one running the subcommand)
         self.subcommands = subcommands
         # subcommands run the function named after them ("-" becomes "_")
         self.generic = generic
+        # what each subcommand's case branch calls
+        self.branch_calls = branch_calls
+        # what main calls outside of the dispatch branches
+        self.outside_calls = outside_calls
 
 
-def shell_dispatch(lines: list[str], functions: dict[str, tuple[int, int]]) -> Optional[Dispatch]:
-    '''
-    Returns how the script in lines dispatches subcommands from its main
-    function, or None if it does not look like a tool with subcommands.
-    '''
-    if 'main' not in functions:
-        return None
-    first, last = functions['main']
-    body = lines[first:last + 1]
-    if any(_GENERIC_DISPATCH.search(line) for line in body):
-        names = {name.replace('_', '-'): None for name in functions if name not in ('main', _HELP_FUNCTION)}
-        return Dispatch(names, generic=True)
+class ShellScript:
+    '''The functions and subcommand dispatch of a shell script, parsed with shfmt.'''
 
-    subcommands: dict[str, tuple[int, int]] = {}
-    depth = 0
-    current = None
-    for i in range(first, last + 1):
-        line = lines[i]
-        if _CASE_START.match(line):
-            depth += 1
-            continue
-        if _CASE_END.match(line):
-            if depth == 1 and current:
-                for name in current[0]:
-                    subcommands[name] = (current[1], i - 1)
-                current = None
-            depth -= 1
-            continue
-        if depth != 1:
-            continue
-        m = _CASE_BRANCH.match(line)
-        if m and not line.strip().startswith('#'):
-            if current:
-                for name in current[0]:
-                    subcommands[name] = (current[1], i - 1)
-            names = [n.strip('\'"') for n in m.group(1).split('|')]
-            names = [n for n in names if n and not n.startswith('-') and n != '*']
-            current = (names, i)
-    if current:
-        for name in current[0]:
-            subcommands[name] = (current[1], last)
-    if not subcommands:
-        return None
-    return Dispatch(subcommands, generic=False)
+    def __init__(self, ast: dict):
+        functions = {}
+        calls = {}
+        for stmt in ast.get('Stmts', []):
+            cmd = stmt.get('Cmd', {})
+            if cmd.get('Type') == 'FuncDecl':
+                name = cmd['Name']['Value']
+                functions[name] = (_line(cmd['Pos']), _line(cmd['End']))
+                calls[name] = _call_names(cmd['Body'])
+        # name: (first, last) line index, from the declaration to the closing brace
+        self.functions: dict[str, tuple[int, int]] = functions
+        # name: the commands and functions it calls
+        self.calls: dict[str, set[str]] = calls
+        self.dispatch = self._dispatch(ast)
+
+    @staticmethod
+    def parse(text: str) -> Optional['ShellScript']:
+        '''Returns the parsed script, or None if it cannot be parsed (or shfmt is missing).'''
+        global _warned_no_shfmt
+        try:
+            result = subprocess.run(['shfmt', '-ln', 'bash', '--to-json'], input=text, capture_output=True, text=True)
+        except FileNotFoundError:
+            if not _warned_no_shfmt:
+                print('shared_test_users: shfmt not found, changed tools are not narrowed to subcommands',
+                      file=sys.stderr)
+                _warned_no_shfmt = True
+            return None
+        if result.returncode != 0:
+            return None
+        return ShellScript(json.loads(result.stdout))
+
+    def owner(self, index: int) -> Optional[str]:
+        '''The function the line index is in, if any.'''
+        return next((name for name, (first, last) in self.functions.items() if first <= index <= last), None)
+
+    def _dispatch(self, ast: dict) -> Optional[Dispatch]:
+        main = next((stmt['Cmd'] for stmt in ast.get('Stmts', [])
+                     if stmt.get('Cmd', {}).get('Type') == 'FuncDecl' and stmt['Cmd']['Name']['Value'] == 'main'), None)
+        if main is None:
+            return None
+        if any(_literal(c['Args'][0]) == 'tr' and [_literal(a) for a in c['Args'][1:3]] == ['-', '_']
+               for c in _calls(main['Body'])):
+            names = {name.replace('_', '-'): [] for name in self.functions if name not in ('main', _HELP_FUNCTION)}
+            return Dispatch(names, True, {}, _call_names(main['Body']))
+
+        # the case statements of main not nested in another one: a subcommand
+        # can have a branch in several of them
+        subcommands: dict[str, list[tuple[int, int]]] = {}
+        branch_calls: dict[str, set[str]] = {}
+        branches = []
+        for case in _top_level_cases(main['Body']):
+            for item in case.get('Items', []):
+                names = [_literal(p) for p in item.get('Patterns', [])]
+                names = [n for n in names if n and not n.startswith('-') and '*' not in n]
+                if not names:
+                    continue
+                branches.append(item)
+                for name in names:
+                    subcommands.setdefault(name, []).append((_line(item['Pos']), _line(item['End'])))
+                    branch_calls.setdefault(name, set()).update(_call_names(item.get('Stmts', [])))
+        if not subcommands:
+            return None
+        return Dispatch(subcommands, False, branch_calls, _call_names(main['Body'], skip=branches))
 
 
-def affected_subcommands(old: list[str], new: list[str], removed: list[int], added: list[int]) -> Optional[set[str]]:
+def affected_subcommands(old: str, new: str, removed: list[int], added: list[int]) -> Optional[set[str]]:
     '''
     Returns the subcommands of a tool affected by a change, given the old and
     new content and the indexes of the removed (old) and added (new) lines, or
@@ -219,16 +259,17 @@ def affected_subcommands(old: list[str], new: list[str], removed: list[int], add
     '''
     affected_functions: set[str] = set()
     affected: set[str] = set()
-    dispatch = None
-    for lines, changed in ((old, removed), (new, added)):
-        functions = shell_functions(lines)
-        dispatch = shell_dispatch(lines, functions)
-        if dispatch is None:
+    scripts = []
+    for text, changed in ((old, removed), (new, added)):
+        script = ShellScript.parse(text)
+        if script is None or script.dispatch is None:
             return None
+        scripts.append(script)
+        lines = text.splitlines()
         for index in changed:
-            if not _is_code(lines[index]):
+            if index >= len(lines) or not _is_code(lines[index]):
                 continue
-            owner = next((name for name, (first, last) in functions.items() if first <= index <= last), None)
+            owner = script.owner(index)
             if owner is None:
                 return None
             if owner == _HELP_FUNCTION:
@@ -236,33 +277,29 @@ def affected_subcommands(old: list[str], new: list[str], removed: list[int], add
             if owner != 'main':
                 affected_functions.add(owner)
                 continue
-            branch = [sub for sub, span in dispatch.subcommands.items() if span and span[0] <= index <= span[1]]
+            branch = [sub for sub, spans in script.dispatch.subcommands.items()
+                      if any(first <= index <= last for first, last in spans)]
             if not branch:
                 return None
             affected.update(branch)
 
     # functions calling affected functions are affected too
-    functions = shell_functions(new)
-    calls = {name: set().union(*(_code_words(line) for line in new[first + 1:last]))
-             for name, (first, last) in functions.items()}
+    script = scripts[1]
     while True:
-        callers = {name for name, words in calls.items() if words & affected_functions} - affected_functions
+        callers = {name for name, calls in script.calls.items()
+                   if name not in ('main', _HELP_FUNCTION) and calls & affected_functions} - affected_functions
         if not callers:
             break
         affected_functions |= callers
-    if 'main' in affected_functions:
+    if script.dispatch.outside_calls & affected_functions:
         # main calls an affected function outside of the dispatch branches
-        main_first, main_last = functions['main']
-        branch_lines = {i for span in dispatch.subcommands.values() if span for i in range(span[0], span[1] + 1)}
-        outside = {i for i in range(main_first + 1, main_last) if i not in branch_lines}
-        if any(_code_words(new[i]) & (affected_functions - {'main'}) for i in outside):
-            return None
+        return None
 
-    for sub, span in dispatch.subcommands.items():
-        if dispatch.generic:
+    for sub in script.dispatch.subcommands:
+        if script.dispatch.generic:
             if sub.replace('-', '_') in affected_functions:
                 affected.add(sub)
-        elif set().union(*(_code_words(line) for line in new[span[0]:span[1] + 1])) & affected_functions:
+        elif script.dispatch.branch_calls.get(sub, set()) & affected_functions:
             affected.add(sub)
     return affected
 
@@ -367,7 +404,7 @@ class SharedTestUsers:
             # added or deleted: the whole tool is affected
             return None
         try:
-            new_lines = self._read(path).splitlines()
+            new_text = self._read(path)
         except UnicodeDecodeError:
             return None
         diff = self._git('diff', '-U0', self._merge_base, '--', path)
@@ -381,12 +418,10 @@ class SharedTestUsers:
                 added += range(new_start - 1, new_start - 1 + new_count)
         if not removed and not added:
             return None
-        old_lines = old.stdout.splitlines()
-        affected = affected_subcommands(old_lines, new_lines, removed, added)
+        affected = affected_subcommands(old.stdout, new_text, removed, added)
         if affected is None:
             return None
-        dispatch = shell_dispatch(new_lines, shell_functions(new_lines))
-        return SubcommandFilter(set(dispatch.subcommands), affected)
+        return SubcommandFilter(set(ShellScript.parse(new_text).dispatch.subcommands), affected)
 
     def _read(self, path: str) -> str:
         with open(os.path.join(self.repo, path), encoding='utf-8') as f:

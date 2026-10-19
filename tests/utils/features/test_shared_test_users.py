@@ -1,9 +1,12 @@
 
+import io
 import os
+import shutil
 import subprocess
 import sys
 import tempfile
 import unittest
+from unittest.mock import patch
 # To ensure the unit test can be run from any point in the filesystem,
 # add parent folder to path to permit relative imports
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
@@ -295,8 +298,7 @@ main "$@"
 """
 
 
-def lines_of(text):
-    return text.splitlines()
+HAVE_SHFMT = shutil.which('shfmt') is not None
 
 
 def changed(old, new):
@@ -310,30 +312,74 @@ def changed(old, new):
     return removed, added
 
 
+@unittest.skipUnless(HAVE_SHFMT, 'needs shfmt')
 class TestShellAnalysis(unittest.TestCase):
 
     def test_functions_and_explicit_dispatch(self):
-        lines = lines_of(EXPLICIT_TOOL)
-        functions = shared_test_users.shell_functions(lines)
-        self.assertEqual(set(functions), {'show_help', 'wait_ready', 'launch', 'setup', 'main'})
-        dispatch = shared_test_users.shell_dispatch(lines, functions)
-        self.assertFalse(dispatch.generic)
-        self.assertEqual(set(dispatch.subcommands), {'setup', 'launch', 'cleanup'})
+        script = shared_test_users.ShellScript.parse(EXPLICIT_TOOL)
+        self.assertEqual(set(script.functions), {'show_help', 'wait_ready', 'launch', 'setup', 'main'})
+        self.assertEqual(script.calls['launch'], {'wait_ready', 'echo'})
+        self.assertFalse(script.dispatch.generic)
+        self.assertEqual(set(script.dispatch.subcommands), {'setup', 'launch', 'cleanup'})
+        self.assertEqual(script.dispatch.branch_calls['launch'], {'shift', 'launch'})
+
+    def test_usage_text_is_not_calls(self):
+        script = shared_test_users.ShellScript.parse(EXPLICIT_TOOL)
+        self.assertEqual(script.calls['show_help'], {'echo'})
+        # calls in command substitutions count, quoted text does not
+        script = shared_test_users.ShellScript.parse('f() {\n    x="$(helper --a)"\n    echo \'launch\' "wait_ready"\n}\n')
+        self.assertEqual(script.calls['f'], {'helper', 'echo'})
+
+    def test_subcommand_in_several_case_statements(self):
+        # one case parses the arguments, another runs the subcommand
+        tool = """main() {
+    case "$1" in
+        -h|--help)
+            exit 0
+            ;;
+        pre|post)
+            action="$1"
+            ;;
+    esac
+    case "$action" in
+        pre)
+            case "$(uname)" in
+                Linux)
+                    run_pre
+                    ;;
+            esac
+            ;;
+        post)
+            run_post
+            ;;
+    esac
+}
+run_pre() {
+    echo pre
+}
+run_post() {
+    echo post
+}
+"""
+        script = shared_test_users.ShellScript.parse(tool)
+        # Linux is in a case nested in a branch, not a subcommand
+        self.assertEqual({k: len(v) for k, v in script.dispatch.subcommands.items()}, {'pre': 2, 'post': 2})
+        self.assertEqual(self.affected(tool, '                    run_pre', '                    run_pre --now'), {'pre'})
+        self.assertEqual(self.affected(tool, 'echo post', 'echo post2'), {'post'})
 
     def test_generic_dispatch(self):
-        lines = lines_of(GENERIC_TOOL)
-        dispatch = shared_test_users.shell_dispatch(lines, shared_test_users.shell_functions(lines))
-        self.assertTrue(dispatch.generic)
-        self.assertEqual(set(dispatch.subcommands), {'common', 'setup-thing', 'use-thing'})
+        script = shared_test_users.ShellScript.parse(GENERIC_TOOL)
+        self.assertTrue(script.dispatch.generic)
+        self.assertEqual(set(script.dispatch.subcommands), {'common', 'setup-thing', 'use-thing'})
 
-    def test_no_dispatch(self):
-        lines = lines_of('#!/bin/bash\nhelper() {\n    true\n}\n')
-        self.assertIsNone(shared_test_users.shell_dispatch(lines, shared_test_users.shell_functions(lines)))
+    def test_no_dispatch_or_unparsable(self):
+        self.assertIsNone(shared_test_users.ShellScript.parse('#!/bin/bash\nhelper() {\n    true\n}\n').dispatch)
+        self.assertIsNone(shared_test_users.ShellScript.parse('#!/bin/bash\nif then (\n'))
 
     def affected(self, tool, old_text, new_text):
-        old, new = lines_of(tool), lines_of(tool.replace(old_text, new_text))
-        self.assertNotEqual(old, new)
-        return shared_test_users.affected_subcommands(old, new, *changed(old, new))
+        new_tool = tool.replace(old_text, new_text)
+        self.assertNotEqual(tool, new_tool)
+        return shared_test_users.affected_subcommands(tool, new_tool, *changed(tool.splitlines(), new_tool.splitlines()))
 
     def test_change_in_function_of_one_subcommand(self):
         self.assertEqual(self.affected(EXPLICIT_TOOL, 'echo setup', 'echo setup2'), {'setup'})
@@ -350,6 +396,9 @@ class TestShellAnalysis(unittest.TestCase):
         self.assertEqual(self.affected(EXPLICIT_TOOL, '# inline', '# inline code'), set())
         self.assertEqual(self.affected(EXPLICIT_TOOL, '#!/bin/bash\n', '#!/bin/bash\n# about the tool\n'), set())
 
+    def test_help_change_affects_no_subcommand(self):
+        self.assertEqual(self.affected(EXPLICIT_TOOL, 'echo "usage: demo-tool', 'echo "Usage: demo-tool'), set())
+
     def test_changes_affecting_the_whole_tool(self):
         # code outside of any function
         self.assertIsNone(self.affected(EXPLICIT_TOOL, 'main "$@"', 'set -e\nmain "$@"'))
@@ -359,8 +408,14 @@ class TestShellAnalysis(unittest.TestCase):
         tool = EXPLICIT_TOOL.replace('    if [ $# -eq 0 ]; then', '    wait_ready\n    if [ $# -eq 0 ]; then')
         self.assertIsNone(self.affected(tool, 'retry -n 10 true', 'retry -n 30 true'))
 
-    def test_help_change_affects_no_subcommand(self):
-        self.assertEqual(self.affected(EXPLICIT_TOOL, 'echo "usage: demo-tool', 'echo "Usage: demo-tool'), set())
+    def test_without_shfmt(self):
+        with patch('shared_test_users.subprocess.run', side_effect=FileNotFoundError('shfmt')), \
+                patch('sys.stderr', new=io.StringIO()) as stderr:
+            shared_test_users._warned_no_shfmt = False
+            self.assertIsNone(shared_test_users.ShellScript.parse(EXPLICIT_TOOL))
+            self.assertIsNone(self.affected(EXPLICIT_TOOL, 'echo setup', 'echo setup2'))
+        self.assertIn('shfmt not found', stderr.getvalue())
+        self.assertEqual(stderr.getvalue().count('shfmt not found'), 1)
 
     def test_subcommand_filter(self):
         f = shared_test_users.SubcommandFilter({'setup', 'launch', 'cleanup'}, {'launch'})
@@ -372,6 +427,7 @@ class TestShellAnalysis(unittest.TestCase):
         self.assertTrue(f.counts('\n'))
 
 
+@unittest.skipUnless(HAVE_SHFMT, 'needs shfmt')
 class TestSubcommandUsers(unittest.TestCase):
 
     FILES = {
