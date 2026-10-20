@@ -208,47 +208,23 @@ jobs:
     - name: Setup run tests variable
       if: ${{ env.SKIP_SPREAD_LABEL != 'true' }}
       run: |
-          get_new_tasks() {
-            local prefix=$1
-            local changes_param=$2
-            # The tests are just filtered when the change is a PR
-            # When 'Run Nested' label is added in a PR, all the nested tests have to be executed
-            TASKS_TO_RUN=""
-            INPUT_TASKS="$(echo "${{ inputs.tasks }}" | tr '\n' ' ')"
-            if [ -z "${{ github.event.number }}" ] || [ "$RUN_NESTED" = 'true' ] || [ -z "${{ inputs.rules }}" ] || [ -z "$changes_param" ]; then
-                for TASKS in $INPUT_TASKS; do
-                    TASKS_TO_RUN="$TASKS_TO_RUN $prefix:$TASKS"
-                done
-            else
-                NEW_TASKS="$(./tests/lib/external/snapd-testing-tools/utils/spread-filter -r ./tests/lib/spread/rules/${{ inputs.rules }}.yaml -p "$prefix" $changes_param -t "$INPUT_TASKS")"
-                TASKS_TO_RUN="$NEW_TASKS"
-            fi
-            echo "$TASKS_TO_RUN"
-          }
-
           SPREAD_BACKEND="${{ inputs.backend }}"
           echo SPREAD_BACKEND="$SPREAD_BACKEND" >> $GITHUB_ENV
 
-          CHANGES_PARAM=""
+          ARGS=(--backend "$SPREAD_BACKEND" --systems "${{ inputs.systems }}" --tasks "${{ inputs.tasks }}" --rules "${{ inputs.rules }}")
           for CHANGE in $CHANGED_FILES; do
-              CHANGES_PARAM="$CHANGES_PARAM -c $CHANGE"
+              ARGS+=(--change "$CHANGE")
           done
-
-          TESTS_TO_RUN=""
-          if [ "$FAILED_TESTS" = 'true' ]; then
-              TESTS_TO_RUN="$(cat "$FAILED_TESTS_FILE")"
-          elif [ "${{ inputs.systems }}" = "ALL" ]; then
-              TESTS_TO_RUN=$(get_new_tasks "$SPREAD_BACKEND" "$CHANGES_PARAM")
-          elif [ "${{ inputs.systems }}" != "NONE" ]; then
-              for SYSTEM in ${{ inputs.systems }}; do
-                NEW_TASKS="$(get_new_tasks "$SPREAD_BACKEND:$SYSTEM" "$CHANGES_PARAM")"
-                if [ -z "$TESTS_TO_RUN" ]; then
-                    TESTS_TO_RUN="$NEW_TASKS"
-                else
-                    TESTS_TO_RUN="$TESTS_TO_RUN $NEW_TASKS"
-                fi
-              done
+          if [ -n "${{ github.event.number }}" ]; then
+              ARGS+=(--pr)
           fi
+          if [ "$RUN_NESTED" = 'true' ]; then
+              ARGS+=(--run-nested)
+          fi
+          if [ "$FAILED_TESTS" = 'true' ]; then
+              ARGS+=(--failed-tests-file "$FAILED_TESTS_FILE")
+          fi
+          TESTS_TO_RUN="$(./.github/scripts/spread_tests_to_run.py "${ARGS[@]}")"
 
           RUN_TESTS_FILE="${{ github.workspace }}/run-tests-file.txt"
           echo "RUN_TESTS_FILE=$RUN_TESTS_FILE" >> $GITHUB_ENV
@@ -357,6 +333,55 @@ jobs:
         name: "skipped-tests-list-${{ github.run_id }}-${{ github.run_attempt }}-${{ inputs.group }}"
         path: "skipped_tests_list.txt"
         if-no-files-found: ignore
+
+    
+
+    # Narrow the tests to the ones the change can affect, using the coverage
+    # data held by the test-selector service. The "Run all" label
+    # keeps the full list. If the service cannot be reached or fails, the full
+    # list runs.
+    - name: Select tests with the tests selector service
+      if: ${{ env.SKIP_SPREAD_LABEL != 'true' && env.RUN_ALL_LABEL != 'true' && env.RUN_TESTS == 'true' }}
+      env:
+        TESTS_SELECTOR_URL: http://tests-selector.snapd.canonical.com:8181
+        BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+      run: |
+          ALL_TESTS_FILE="${{ github.workspace }}/all-tests.txt"
+          tr -s ' ' '\n' < "$RUN_TESTS_FILE" | grep -v '^$' > "$ALL_TESTS_FILE"
+
+          # The changed files, with shared test files (e.g. tests/lib helpers)
+          # replaced by the tests that use them
+          if ! CHANGED_FILES_JSON="$(python3 tests/utils/features/shared_test_users.py --base "$BASE_SHA" --rewrite)"; then
+              echo "::warning::Could not compute the changed files, running all tests"
+              exit 0
+          fi
+
+          REQUEST_FILE="${{ github.workspace }}/tests-selector-request.json"
+          jq -n \
+              --argjson changed "$CHANGED_FILES_JSON" \
+              --rawfile tests "$ALL_TESTS_FILE" \
+              '($tests | split("\n") | map(select(. != ""))) as $list
+               | {changed_files: $changed,
+                  tests: $list,
+                  backend_systems: ($list | map(split(":")[0:2] | join(":")) | unique)}' \
+              > "$REQUEST_FILE"
+
+          if ! RESPONSE="$(curl --silent --show-error --fail --max-time 120 \
+                  -H 'Content-Type: application/json' \
+                  --data @"$REQUEST_FILE" \
+                  "$TESTS_SELECTOR_URL/calculate-tests")"; then
+              echo "::warning::Tests selector service at $TESTS_SELECTOR_URL failed, running all tests"
+              exit 0
+          fi
+
+          SELECTED="$(jq -r '.tests[]' <<<"$RESPONSE")"
+          echo "The tests selector chose $(jq -r '.tests | length' <<<"$RESPONSE") of $(wc -l < "$ALL_TESTS_FILE") tests"
+          if [ -n "$SELECTED" ]; then
+              echo "$SELECTED" | xargs > "$RUN_TESTS_FILE"
+          else
+              echo "RUN_TESTS=false" >> $GITHUB_ENV
+              printf "" > "$RUN_TESTS_FILE"
+          fi
 
     - name: Check if system is required
       if: always()
