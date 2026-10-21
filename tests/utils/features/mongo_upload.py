@@ -56,7 +56,13 @@ def connect():
         raise RuntimeError(
             "the {} environment variable must contain a valid port number".format(PORT))
 
-    return MongoClient(host=os.environ[HOST], port=int(os.environ[PORT]), username=os.environ[USER], password=os.environ[PASSWORD])
+    return MongoClient(
+        host=os.environ[HOST], 
+        port=int(os.environ[PORT]), 
+        username=os.environ[USER], 
+        password=os.environ[PASSWORD],
+        directConnection=True
+        )
 
 
 def upload_documents(folder, verbose):

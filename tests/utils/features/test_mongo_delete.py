@@ -89,3 +89,10 @@ class TestMongoDelete(unittest.TestCase):
     def test_delete_oldest_empty(self):
         with self.assertRaises(RuntimeError):
             mongo_delete.delete_oldest(FakeDb([], []))
+
+    def test_delete_oldest_keeps_only_timestamp(self):
+        db = FakeDb([{'timestamp': NEW, 'system': 'a'}], [{'timestamp': NEW, 'system': 'a'}])
+        with self.assertRaises(RuntimeError):
+            mongo_delete.delete_oldest(db)
+        self.assertEqual(mongo_delete.get_sorted_timestamps(db), [NEW])
+        self.assertEqual(len(db.coverages.docs), 1)
