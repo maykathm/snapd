@@ -1062,6 +1062,11 @@ fi
  - First news item
  - Second news item
 
+* Fri Oct 23 2026 Katie May <katie.may@canonical.com>
+- New upstream release 2.79
+ - First news item
+ - Second news item
+
 * Fri Sep 04 2026 Katie May <katie.may@canonical.com>
 - New upstream release 2.78
  - FDE: update keyring after reprovision
