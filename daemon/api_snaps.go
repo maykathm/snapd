@@ -638,7 +638,7 @@ func snapUpdate(ctx context.Context, inst *snapInstruction, st *state.State) (*s
 	}
 
 	goal := snapstateStoreUpdateGoal(snapstate.StoreUpdate{
-		InstanceName:         inst.Snaps[0],
+		InstanceName:         naming.InstanceName(inst.Snaps[0]),
 		RevOpts:              *inst.revnoOpts(),
 		AdditionalComponents: inst.CompsForSnaps[inst.Snaps[0]],
 	})
@@ -770,7 +770,7 @@ func snapSwitch(_ context.Context, inst *snapInstruction, st *state.State) (*sna
 	if !inst.Revision.Unset() {
 		return nil, errors.New("switch takes no revision")
 	}
-	ts, err := snapstateSwitch(st, inst.Snaps[0], inst.revnoOpts(), nil)
+	ts, err := snapstateSwitch(st, naming.InstanceName(inst.Snaps[0]), inst.revnoOpts(), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -982,7 +982,7 @@ func installationTaskSets(ctx context.Context, st *state.State, inst *snapInstru
 		if !snapst.IsInstalled() {
 			installedSnaps = append(installedSnaps, name)
 			snaps = append(snaps, snapstate.StoreSnap{
-				InstanceName: name,
+				InstanceName: naming.InstanceName(name),
 				Components:   comps,
 				RevOpts:      revOpts,
 			})
@@ -1011,8 +1011,11 @@ func installationTaskSets(ctx context.Context, st *state.State, inst *snapInstru
 
 			if len(compsToInstall) > 0 {
 				installedComponents[name] = compsToInstall
+				// TODO: check disk space for the whole install request. each
+				// InstallComponents call checks one snap independently, and the
+				// later InstallWithGoal check excludes these components. all
+				// checks can pass even when the combined size does not fit.
 				ts, err := snapstateInstallComponents(ctx, st, compsToInstall, info, nil, opts)
-
 				if err != nil {
 					return nil, nil, nil, err
 				}
@@ -1085,7 +1088,7 @@ func snapUpdateMany(ctx context.Context, inst *snapInstruction, st *state.State)
 	updates := make([]snapstate.StoreUpdate, 0, len(inst.Snaps))
 	for _, name := range inst.Snaps {
 		updates = append(updates, snapstate.StoreUpdate{
-			InstanceName:         name,
+			InstanceName:         naming.InstanceName(name),
 			AdditionalComponents: inst.CompsForSnaps[name],
 		})
 	}
