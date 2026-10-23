@@ -117,7 +117,7 @@
 %endif
 
 Name:           snapd
-Version:        2.78
+Version:        2.79
 Release:        0%{?dist}
 Summary:        A transactional software package manager
 License:        GPL-3.0-only
@@ -1057,6 +1057,11 @@ fi
 %endif
 
 %changelog
+* Fri Oct 23 2026 Katie May <katie.may@canonical.com>
+- New upstream release 2.79
+ - First news item
+ - Second news item
+
 * Fri Sep 04 2026 Katie May <katie.may@canonical.com>
 - New upstream release 2.78
  - FDE: update keyring after reprovision
