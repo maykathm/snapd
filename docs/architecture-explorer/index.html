@@ -456,6 +456,47 @@ footer.pagefoot{max-width:880px;margin:40px auto 80px;padding:20px 28px;color:va
               </p>
             </div>
           </details>
+
+          <details class="deep">
+            <summary>Go deeper: the actual dispatch table in cmd/snapd/main.go</summary>
+            <div class="body">
+              <p>
+                The real logic is a small <code class="inline">switch argv0</code> at the top of
+                <span class="path">cmd/snapd/main.go</span>'s <code class="inline">main()</code>. It keeps two package-level
+                maps/slices that make the wiring explicit:
+              </p>
+              <pre class="mono" style="background:var(--code-bg);padding:10px;border-radius:8px;overflow-x:auto;">// maps tool names (as passed in argv[1] by snapd-tool-wrap) to their Main()
+var toolMains = map[string]func(){
+    "snap-preseed":          snap_preseed.Main,
+    "snapd-apparmor":        snapd_apparmor.Main,
+    "snap-gpio-helper":      snap_gpio_helper.Main,
+    "snap-recovery-chooser": snap_recovery_chooser.Main,
+    "snap-fde-keymgr":       snap_fde_keymgr.Main,
+}
+
+// tools that expect to run from inside the re-exec'd snapd/core snap
+var reexecTools = []string{"snapd-apparmor", "snap-gpio-helper"}</pre>
+              <p>
+                <code class="inline">main()</code> takes <code class="inline">argv0 := filepath.Base(os.Args[0])</code> and
+                switches on it: for <code class="inline">case "snapd"</code>, it first checks whether
+                <code class="inline">os.Args[1]</code> is a key in <code class="inline">toolMains</code> — if so it runs that
+                tool's <code class="inline">Main()</code> and returns, otherwise it falls through to
+                <code class="inline">daemonMain()</code> (<span class="path">cmd/snapd/daemon</span>). For
+                <code class="inline">case "snap"</code> (or anything else — i.e. any app symlink name under
+                <span class="path">/snap/bin</span>), it runs <code class="inline">cliMain()</code>
+                (<span class="path">cmd/snapd/cli</span>). <code class="inline">daemonMain</code>/<code class="inline">cliMain</code>
+                are themselves package-level vars, not direct calls — a deliberate seam the tests use to mock them out.
+              </p>
+              <p>
+                Note the tool map here is a <em>different</em> (smaller) set of tools than the ones wired through
+                <code class="inline">snapd-tool-wrap</code> above — e.g. <code class="inline">snap-preseed</code> and
+                <code class="inline">snap-fde-keymgr</code> are reached this same way but via their own dedicated C wrapper
+                symlinks, not necessarily all through the identical wrapper binary. <code class="inline">reexecTools</code>
+                marks which of these tools are expected to actually be running from inside the re-exec'd snapd/core snap
+                rather than the host-packaged copy.
+              </p>
+            </div>
+          </details>
         </article>
 
         <article class="card" id="re-exec">
@@ -469,6 +510,29 @@ footer.pagefoot{max-width:880px;margin:40px auto 80px;padding:20px 28px;color:va
             dispatch is based on <code class="inline">argv[0]</code>, re-exec preserves the original
             <code class="inline">argv[0]</code>, so the same CLI-vs-daemon dispatch applies in the new process.
           </p>
+
+          <details class="deep">
+            <summary>Go deeper: how ExecInSnapdOrCoreSnap() decides, step by step</summary>
+            <div class="body">
+              <p>
+                The logic lives in <span class="path">snapdtool/tool_linux.go</span>,
+                <code class="inline">ExecInSnapdOrCoreSnap()</code>, called early from both
+                <span class="path">cmd/snapd/cli</span> (CLI) and <span class="path">cmd/snapd/daemon</span> (daemon) entry points:
+              </p>
+              <ol>
+                <li>Resolve the currently-running executable's path via <code class="inline">/proc/self/exe</code>.</li>
+                <li><b>Compatibility shim</b>: if already running from inside the snap mount dir but an old (2.21-era) <code class="inline">SNAP_REEXEC=0</code> is still set in the environment, unset it and return — this exists purely to stop a years-old workaround from permanently wedging re-exec off for a user's shell session.</li>
+                <li>If re-exec is disabled (<code class="inline">SNAP_REEXEC=0</code>, the <code class="inline">reExecKey</code> constant), return and run as-is.</li>
+                <li>If already running from inside <span class="path">/snap/...</span> (i.e. this <em>is</em> the re-exec'd copy), return — no infinite loop.</li>
+                <li><code class="inline">DistroSupportsReExec()</code> gate: re-exec is skipped entirely unless <code class="inline">release.OnClassic</code> is true <em>and</em> the host distro is debian/ubuntu-like (<code class="inline">release.DistroLike("debian","ubuntu")</code>) — unless <code class="inline">SNAP_REEXEC</code> is explicitly set (not just default), which overrides the distro gate.</li>
+                <li>Compute where the binary <em>would</em> live inside the snapd/core snap (<code class="inline">pathInSnapdSnap</code>); prefer <span class="path">/snap/snapd/current</span>, fall back to <span class="path">/snap/core/current</span> if the snapd snap isn't installed or doesn't ship that path.</li>
+                <li><code class="inline">candidateVersionNewer()</code> reads the candidate's info file and compares versions — re-exec only proceeds if the snap's copy is strictly newer, unless <code class="inline">SNAP_REEXEC=force</code>.</li>
+                <li>Rewrite <code class="inline">os.Args[0]</code> cosmetically (so <code class="inline">ps</code>/<code class="inline">top</code> don't show a confusing path) <em>unless</em> the original was a bare symlink basename like <span class="path">/snap/bin/myapp</span>, which must be preserved verbatim since later dispatch re-reads <code class="inline">argv[0]</code> to decide which app to run.</li>
+                <li><code class="inline">syscall.Exec</code> into the resolved path inside the snap, preserving the (possibly adjusted) argv — this is a real <code class="inline">exec(2)</code>, not a subprocess spawn, so the PID is reused.</li>
+              </ol>
+              <div class="callout warn"><b class="label">Why this matters for debugging:</b> if you're stepping through snapd source but your changes don't seem to run, check whether you're actually executing the host package's binary or got re-exec'd into <span class="path">/snap/snapd/current</span> — set <code class="inline">SNAP_REEXEC=0</code> while developing against a host-installed build.</div>
+            </div>
+          </details>
         </article>
 
         <article class="card" id="tool-wrap">
@@ -550,6 +614,39 @@ footer.pagefoot{max-width:880px;margin:40px auto 80px;padding:20px 28px;color:va
             <code class="inline">SNAP_REVISION</code>, …), and whether this is a classic-confinement snap (which changes the
             arguments passed down significantly, since classic snaps mostly run unconfined on the host filesystem).
           </p>
+
+          <details class="deep">
+            <summary>Go deeper: refresh-app-awareness — why a running app can block its own snap's refresh</summary>
+            <div class="body">
+              <p>
+                Before <code class="inline">snap run</code> ever reaches <code class="inline">snap-confine</code>, it calls
+                <code class="inline">waitWhileInhibited()</code> (<span class="path">cmd/snapd/cli/inhibit.go</span>), which
+                checks for a <b>hint lock file</b> for the snap (<code class="inline">runinhibit.HintFile(snapName)</code>,
+                managed by <span class="path">cmd/snaplock/runinhibit</span>). This is the mechanism behind "refresh app
+                awareness" — snapd can hold off refreshing a snap while it has running processes, and conversely a launch can
+                block (with a user-facing notification) while a refresh that's already started finishes:
+              </p>
+              <ol>
+                <li>If there's no hint file at all, the snap isn't inhibited — proceed immediately with a <code class="inline">nil</code> lock.</li>
+                <li>If the hint file says <code class="inline">refresh</code>, <code class="inline">snap run</code> blocks (sending desktop notifications during the wait) until the refresh completes, then re-reads the (possibly now different) snap revision and app info before proceeding.</li>
+                <li>If the hint says the snap is being <b>removed</b> or is <b>disabled</b>, the launch is refused outright (<code class="inline">errInhibitedForRemove</code>/<code class="inline">errInhibitedForDisable</code>) — there's nothing to wait for.</li>
+                <li>Once clear, it returns a <i>locked</i> hint file lock that the caller must hold until the app is actually running inside its transient cgroup — releasing it earlier than that would let a refresh race in before snapd can detect the app is live via the cgroup it's about to be launched into.</li>
+              </ol>
+              <p>
+                <code class="inline">snapRunApp()</code> wraps all of this in a bounded retry loop
+                (<code class="inline">errSnapRefreshConflict</code>, capped at one retry) for the narrow race where no hint file
+                existed yet when the check ran, but a refresh started and created one immediately after — rather than crash or
+                launch against a half-refreshed snap, it just re-checks once.
+              </p>
+              <p>
+                Only after all of this does <code class="inline">runSnapConfine()</code> (<span class="path">cmd/snapd/cli/cmd_run.go:1562</span>)
+                actually build the argv and <code class="inline">exec</code> into <code class="inline">snap-confine</code> —
+                everything above runs as ordinary unconfined CLI code, talking to the daemon over
+                <span class="path">/run/snapd.socket</span> via the <span class="path">client</span> package, before the
+                sandbox boundary from the diagram above is ever crossed.
+              </p>
+            </div>
+          </details>
         </article>
 
         <article class="card" id="snap-confine-flow">
@@ -576,6 +673,57 @@ footer.pagefoot{max-width:880px;margin:40px auto 80px;padding:20px 28px;color:va
             <li><code class="inline">snap-discard-ns</code> (<span class="path">cmd/snap-discard-ns</span>) — tears down a stale per-snap mount namespace, e.g. after a snap is refreshed.</li>
             <li><code class="inline">snap-device-helper</code> (<span class="path">cmd/snap-device-helper</span>) — invoked by udev rules to add/remove device cgroup access as interfaces are connected/disconnected.</li>
           </ul>
+
+          <details class="deep">
+            <summary>Go deeper: namespace reuse, locking, and the classic-confinement fork in the code</summary>
+            <div class="body">
+              <p>
+                <b>Not every launch rebuilds the sandbox from scratch.</b> Repeated launches of the same snap are cheap because
+                <code class="inline">snap-confine</code> persists and reuses a per-snap mount namespace. The real branch point in
+                <code class="inline">main()</code> (<span class="path">snap-confine.c</span>) is:
+              </p>
+              <pre class="mono" style="background:var(--code-bg);padding:10px;border-radius:8px;overflow-x:auto;">if (!invocation.classic_confinement || sc_feature_enabled(SC_FEATURE_PARALLEL_INSTANCES)) {
+    // strict (or classic+parallel-instances): full namespace/profile setup
+    enter_non_classic_execution_environment(&amp;invocation, &amp;apparmor, real_uid, real_gid, saved_gid);
+}
+// classic confinement (without parallel instances): skips this entirely —
+// no per-snap mount namespace, no freezer/cgroup setup, no snap-update-ns handoff</pre>
+              <p>Inside <code class="inline">enter_non_classic_execution_environment</code> (<span class="path">snap-confine.c:813</span>), namespace reuse is decided by <code class="inline">sc_inspect_and_maybe_discard_stale_ns()</code> (<span class="path">ns-support.c:586</span>), which checks <code class="inline">should_discard_current_ns()</code> — true if any of:</p>
+              <ul>
+                <li>the base snap's backing block device changed (base was refreshed)</li>
+                <li>homedirs configuration changed since the namespace was built</li>
+                <li>the managed CA-certificate DB generation on disk differs from what's baked into the preserved namespace</li>
+              </ul>
+              <p>
+                A separate 3-way outcome governs how hard to discard, computed by <code class="inline">is_base_transition()</code>
+                (<span class="path">ns-support.c:548</span>) comparing the base snap name recorded in
+                <code class="inline">$SC_NS_DIR/snap.&lt;instance&gt;.info</code> against the current invocation:
+                <code class="inline">SC_DISCARD_NO</code> (reuse as-is), <code class="inline">SC_DISCARD_SHOULD</code> (base
+                <em>revision</em> changed, same base name — reusable, and importantly a <b>stale-but-inhabited</b> namespace is
+                not force-killed: already-running processes keep using it while new launches get a fresh one), and
+                <code class="inline">SC_DISCARD_MUST</code> (base <em>name</em> changed — must discard even with live
+                processes in it).
+              </p>
+              <p>
+                If reusable, <code class="inline">sc_join_preserved_ns()</code> attaches to the existing namespace through a
+                short-lived helper process communicating over a pipe pair (<code class="inline">struct sc_mount_ns</code>
+                carries <code class="inline">dir_fd</code> — an <code class="inline">O_PATH|O_DIRECTORY</code> fd into the
+                per-snap namespace-group control directory, plus <code class="inline">pipe_helper</code>/
+                <code class="inline">pipe_master</code>). If not, <code class="inline">sc_bootstrap_mount_namespace()</code>
+                (<span class="path">mount-support.c:562</span>) builds one from scratch: replicates the base rootfs
+                (<code class="inline">sc_replicate_base_rootfs</code>), lays down the mount list, then
+                <code class="inline">sc_preserve_populated_mount_ns()</code> snapshots it for future reuse and
+                <code class="inline">sc_store_ns_info()</code> records the base name for next time's transition check.
+              </p>
+              <p>
+                All of this persistent state lives under <code class="inline">SC_NS_DIR = "/run/snapd/ns"</code> — one bind-mount
+                file plus <code class="inline">.info</code>/<code class="inline">.fstab</code> metadata per snap instance. The
+                locks from step 4 above (<span class="path">cmd/snaplock/lock.go</span>) are separate flock files at
+                <code class="inline">dirs.SnapRunLockDir/&lt;snap&gt;.lock</code>, unrelated to the namespace files themselves.
+              </p>
+              <div class="callout warn"><b class="label">cgroup v1 quirk:</b> the extra <code class="inline">CAP_SETUID</code>/<code class="inline">CAP_SETGID</code> capabilities snap-confine can be packaged with are only needed on cgroup v1 systems — joining/creating the freezer cgroup for a user namespace requires them there; cgroup v2's unified hierarchy doesn't.</div>
+            </div>
+          </details>
         </article>
 
         <article class="card" id="snap-exec-flow">
@@ -629,6 +777,18 @@ footer.pagefoot{max-width:880px;margin:40px auto 80px;padding:20px 28px;color:va
             which asks the <code class="inline">interfaces.Repository</code> to regenerate every backend's artifacts for the
             affected snap whenever its set of connections changes.
           </p>
+
+          <details class="deep">
+            <summary>Go deeper: AppArmor template assembly, the system-key cache, and seccomp's two-stage compile</summary>
+            <div class="body">
+              <p><b>AppArmor profile assembly</b> (<span class="path">interfaces/apparmor/backend.go</span>): a profile is built from a base template string containing <code class="inline">###PLACEHOLDER###</code>-style tokens, matched by <code class="inline">templatePattern = regexp.MustCompile("(###[A-Z_]+###)")</code>. <code class="inline">deriveContent()</code>/<code class="inline">addContent()</code> replace each placeholder with the interface-contributed snippet text collected for that security tag from the <code class="inline">Specification</code>; <code class="inline">joinRules()</code> concatenates multiple interfaces' snippets for the same tag before substitution. The separate <code class="inline">snap-update-ns</code> helper gets its <em>own</em> profile built the same way via <code class="inline">addUpdateNSProfile()</code> against a distinct template, since it's a privileged helper in its own right.</p>
+
+              <p><b>The system-key cache</b> (<span class="path">interfaces/system_key.go</span>): regenerating every security profile on every <code class="inline">snap run</code> would be far too slow, so snapd caches a small JSON <code class="inline">systemKey</code> struct and compares it against the one recorded alongside the last-generated profiles — <em>not</em> a hash of profile content, but a fingerprint of everything that could make previously-generated profiles stale: <code class="inline">Version</code> (an escape hatch — bump to force invalidation on format changes), <code class="inline">BuildID</code> (snapd's own build-id, so upgrading the snapd binary alone invalidates the cache), AppArmor feature/parser versions, <code class="inline">NFSHome</code>, <code class="inline">OverlayRoot</code>, seccomp actions/compiler version, cgroup version. A mismatch means <code class="inline">snap run</code> must wait for (or trigger) regeneration before it's safe to proceed; the code distinguishes "can't even compare" (<code class="inline">ErrSystemKeyVersion</code>) from "no cache yet" (<code class="inline">ErrSystemKeyMissing</code>).</p>
+
+              <p><b>Seccomp is compiled in two stages, and not by snap-confine</b> (<span class="path">interfaces/seccomp/backend.go</span>, <span class="path">cmd/snap-seccomp</span>): the Go-side <code class="inline">Specification</code> is written as a textual <code class="inline">.src</code> profile; a dedicated internal binary, <code class="inline">snap-seccomp compile &lt;in&gt; &lt;out&gt;</code>, uses <code class="inline">libseccomp-golang</code> (a cgo binding) to compile it ahead-of-time into a native seccomp-BPF program on disk (a <code class="inline">.bin2</code> file — the suffix bumped from an older <code class="inline">.bin</code> format). <code class="inline">parallelCompile()</code> compiles multiple changed profiles concurrently across worker goroutines. At actual launch time <code class="inline">snap-confine</code> only <em>loads</em> the pre-compiled <code class="inline">.bin2</code> — all compilation happens off the hot launch path, and <code class="inline">SeccompCompilerVersion</code> is itself a system-key input, so upgrading the libseccomp toolchain alone forces regeneration.</p>
+              <div class="callout warn"><b class="label">Compatibility gate:</b> using the non-enforcing, log-only <code class="inline">SECCOMP_RET_LOG</code> action (what devmode relies on) requires kernel support <em>and</em> libseccomp support <em>and</em> libseccomp-golang binding support to all agree — any one missing falls back silently rather than erroring.</div>
+            </div>
+          </details>
         </article>
 
         <article class="card" id="mount-namespace">
@@ -640,6 +800,34 @@ footer.pagefoot{max-width:880px;margin:40px auto 80px;padding:20px 28px;color:va
             via <code class="inline">snap-update-ns</code>, using a small per-snap "mount profile" description
             (<span class="path">interfaces/mount</span>) rather than re-running all of <code class="inline">snap-confine</code>.
           </p>
+
+          <details class="deep">
+            <summary>Go deeper: the actual diff algorithm in snap-update-ns</summary>
+            <div class="body">
+              <p>
+                The desired state is written by <code class="inline">mount.Backend</code> as one fstab-syntax file per snap at
+                <code class="inline">dirs.SnapMountPolicyDir/snap.&lt;name&gt;.fstab</code> (bind mounts only). When it changes,
+                <code class="inline">UpdateSnapNamespace()</code> (<span class="path">interfaces/mount/ns.go</span>) execs
+                <code class="inline">snap-update-ns</code> for that snap, which loads <b>current</b> state (what's actually
+                mounted) and <b>desired</b> state, both as <code class="inline">osutil.MountProfile</code>, and computes the
+                difference in <code class="inline">neededChanges(current, desired)</code>
+                (<span class="path">cmd/snap-update-ns/change.go:561</span>):
+              </p>
+              <ol>
+                <li>Paths are cleaned/sorted; a <code class="inline">desiredMap</code> is built keyed by mount-point directory.</li>
+                <li>Each entry carries an <code class="inline">XSnapdEntryID</code> tag used purely for change-tracking (not a real mount option). An entry present in both current and desired with <em>identical</em> directory and options is reused as-is and left mounted.</li>
+                <li>Entries whose options changed, or that are no longer desired, are unmounted — even though from the kernel's point of view the directory briefly looks "mounted throughout," the diff still tears down and remounts it if anything differs.</li>
+                <li>Synthetic auto-created helper mounts (<code class="inline">XSnapdSynthetic</code>) are kept only if the non-synthetic entry that needed them (<code class="inline">XSnapdNeededBy</code>) is still in the desired set — otherwise they're torn down too, even though nothing directly asked for their removal.</li>
+                <li><code class="inline">DoPerform()</code> executes the resulting minimal ordered list of mount/unmount syscalls.</li>
+              </ol>
+              <p>
+                <code class="inline">mount.Backend.updateOrDiscard()</code> picks between this incremental update and a full
+                discard (handing off to the separate, much simpler <code class="inline">snap-discard-ns</code> C binary, which
+                doesn't diff — it just tears the persisted namespace files down entirely) depending on whether the change is
+                incremental or a base-snap transition that demands a full rebuild (Section&nbsp;3.2).
+              </p>
+            </div>
+          </details>
         </article>
 
         <article class="card" id="device-cgroups">
@@ -651,6 +839,34 @@ footer.pagefoot{max-width:880px;margin:40px auto 80px;padding:20px 28px;color:va
             from the snap's cgroup device list, keeping kernel-level device access in sync with live interface state without
             needing to restart the snap's processes.
           </p>
+
+          <details class="deep">
+            <summary>Go deeper: the generated udev rule shape, and cgroup v1 vs v2</summary>
+            <div class="body">
+              <p>Each matching interface contributes a two-rule pattern (<span class="path">interfaces/udev/spec.go</span>):</p>
+              <pre class="mono" style="background:var(--code-bg);padding:10px;border-radius:8px;overflow-x:auto;"># &lt;interface-name&gt;
+&lt;device-match-snippet&gt;, TAG+="&lt;tag&gt;"
+TAG=="&lt;tag&gt;", SUBSYSTEM!="module", SUBSYSTEM!="subsystem", \
+  RUN+="&lt;helper-dir&gt;/snap-device-helper $env{ACTION} &lt;tag-arg&gt; $devpath $major:$minor"</pre>
+              <p>
+                The first rule tags matching devices; the second fires <code class="inline">snap-device-helper</code> with the
+                udev action (<code class="inline">add</code>/<code class="inline">change</code>/<code class="inline">remove</code>),
+                tag, devpath, and major:minor whenever a tagged device event occurs. The <code class="inline">SUBSYSTEM!=</code>
+                filters exclude kernel-module and sysfs-subsystem-class pseudo-devices, which aren't real device nodes.
+              </p>
+              <p>
+                On <code class="inline">add</code>/<code class="inline">change</code>, the helper calls
+                <code class="inline">sc_device_cgroup_new()</code> then <code class="inline">sc_device_cgroup_allow()</code>
+                (grants access); on <code class="inline">remove</code>, <code class="inline">sc_device_cgroup_deny()</code>
+                (revokes) — any other action is a no-op. <code class="inline">sandbox/cgroup.IsUnified()</code> is the single
+                detection point for cgroup v1 vs v2 (memoized), and
+                <code class="inline">device-cgroup-support.h</code>'s <code class="inline">sc_device_cgroup_*</code> functions
+                abstract the version difference away from the helper itself. These grants are <b>live</b> — no snap-process
+                restart needed, which is what lets a newly plugged USB device become accessible to an already-running
+                confined process immediately.
+              </p>
+            </div>
+          </details>
         </article>
       </section>
 
@@ -678,6 +894,35 @@ footer.pagefoot{max-width:880px;margin:40px auto 80px;padding:20px 28px;color:va
             <code class="inline">StateStopper</code> — see <span class="path">overlord/stateengine.go</span> for their exact
             contracts and invocation order.
           </p>
+
+          <details class="deep">
+            <summary>Go deeper: loadState() — the file lock, boot-id check, and one-shot migrations</summary>
+            <div class="body">
+              <p>
+                <code class="inline">Overlord.loadState()</code> (<span class="path">overlord/overlord.go:308</span>) is what
+                actually runs before any manager is constructed:
+              </p>
+              <ol>
+                <li>Opens and locks a dedicated lock file (<code class="inline">initStateFileLock()</code> /
+                  <code class="inline">lockWithTimeout(o.stateFLock, stateLockTimeout)</code>, timeout 1 minute) — this is an
+                  OS-level flock, separate from the in-process <code class="inline">state.State</code> mutex, and exists so two
+                  snapd processes can never both think they own the state file.</li>
+                <li>Reads the current boot id (<code class="inline">osutil.BootID()</code>) — used later by
+                  <code class="inline">initRestart</code> to detect "did the system actually reboot since I last ran," which is
+                  how pending-restart tracking distinguishes a real reboot from a plain daemon restart.</li>
+                <li><b>Fresh system</b>: if <span class="path">/var/lib/snapd/state.json</span> doesn't exist yet, it fails fast
+                  if the containing directory is missing (a packaging invariant), otherwise constructs a brand-new
+                  <code class="inline">state.New(backend)</code> and calls <code class="inline">patch.Init(s)</code> to stamp it
+                  as already being at the latest patch level — a new system never needs migrations.</li>
+                <li><b>Existing system</b>: <code class="inline">state.ReadState(backend, r)</code> deserializes the JSON file,
+                  then <code class="inline">patch.Apply(s)</code> runs any outstanding <b>one-shot state migrations</b> — the
+                  <span class="path">overlord/patch</span> package versions the on-disk state schema itself, independent of the
+                  snapd binary version, so upgrading across several snapd releases at once still walks through every
+                  intermediate migration in order.</li>
+              </ol>
+              <p>Only after <code class="inline">loadState()</code> returns does <code class="inline">New()</code> go on to construct every manager in a fixed order (hook, restart, snap, service, assert, iface, device, …) via repeated <code class="inline">o.addManager(mgr)</code> calls, each of which registers the manager both for the <code class="inline">StateManager</code> lifecycle and, where relevant, its task handlers with the shared <code class="inline">state.TaskRunner</code>.</p>
+            </div>
+          </details>
         </article>
 
         <article class="card" id="ensure-loop">
@@ -698,6 +943,42 @@ footer.pagefoot{max-width:880px;margin:40px auto 80px;padding:20px 28px;color:va
             run again sooner than its normal schedule — this is how, e.g., finishing one task can immediately trigger
             progress on dependent tasks instead of waiting up to 5 minutes.
           </p>
+
+          <details class="deep">
+            <summary>Go deeper: the actual loop() body and pruning</summary>
+            <div class="body">
+              <p>The real loop (<span class="path">overlord/overlord.go</span>, <code class="inline">func (o *Overlord) loop()</code>), simplified:</p>
+              <pre class="mono" style="background:var(--code-bg);padding:10px;border-radius:8px;overflow-x:auto;">for {
+    o.ensureTimerReset()
+    err := o.stateEng.Ensure()      // calls every manager's Ensure(), TaskRunner last
+    o.ensureDidRun()
+    select {
+    case &lt;-o.loopTomb.Dying():
+        return nil
+    case &lt;-o.ensureTimer.C:         // normal 5-minute tick, or an EnsureBefore()-shortened one
+    case &lt;-pruneTicker.C:            // every 10 minutes
+        st.Lock()
+        st.Prune(o.startOfOperationTime, pruneWait, abortWait, pruneMaxChanges)
+        st.Unlock()
+    }
+}</pre>
+              <p>
+                Constants (<span class="path">overlord/overlord.go</span> top-level vars): <code class="inline">ensureInterval = 5 * time.Minute</code>,
+                <code class="inline">pruneInterval = 10 * time.Minute</code>, <code class="inline">pruneWait = 24 * time.Hour</code>
+                (how long a <em>ready</em> Change is kept before being eligible for pruning), <code class="inline">abortWait = 24 * time.Hour * 3</code>
+                (how long a stuck, not-ready Change is left alone before being force-aborted), <code class="inline">pruneMaxChanges = 500</code>
+                (a hard cap — even recent Changes get pruned once there are too many, oldest-ready first).
+              </p>
+              <p>
+                <code class="inline">EnsureBefore(d)</code> doesn't just reset a timer blindly — it compares the requested time
+                against the currently-scheduled <code class="inline">ensureNext</code> and only moves it <em>earlier</em>, never
+                later; if the requested time has already passed, it schedules immediately. This is what lets dozens of
+                independent call sites across every manager call <code class="inline">EnsureBefore(0)</code> without fighting
+                each other over the schedule.
+              </p>
+              <div class="callout warn"><b class="label">Preseeding quirk:</b> in preseed mode (building a snap image ahead of first boot), an <code class="inline">Ensure()</code> error causes the loop to acquire the state lock (deliberately with <em>no</em> deferred unlock, to avoid a race on process exit) and terminate the whole preseeding process immediately — a half-seeded preseeded image is treated as worse than a hard failure.</div>
+            </div>
+          </details>
         </article>
 
         <div class="diagram">
@@ -758,6 +1039,30 @@ footer.pagefoot{max-width:880px;margin:40px auto 80px;padding:20px 28px;color:va
             power loss mid-operation without losing track of what it was doing.
           </p>
           <div class="callout warn"><b class="label">Rule:</b> release the lock only around genuinely slow external operations — network calls, large copy/compress/decompress of on-disk data. Re-validate any mutable state you read before the unlock once you reacquire the lock; never blindly overwrite with values read before the gap.</div>
+
+          <details class="deep">
+            <summary>Go deeper: what Unlock() actually does — synchronous checkpoint with retries</summary>
+            <div class="body">
+              <p>
+                <code class="inline">State.Unlock()</code> (<span class="path">overlord/state/state.go:294</span>) is not just a
+                mutex release. If nothing was modified since <code class="inline">Lock()</code> (tracked by an internal
+                <code class="inline">modified</code> flag set by any <code class="inline">writing()</code>-guarded call — the
+                same guard that <code class="inline">panic</code>s with <code class="inline">"internal error: accessing state
+                without lock"</code> if state is touched without the lock held), it just unlocks. Otherwise:
+              </p>
+              <ol>
+                <li>Serializes the entire state to JSON (<code class="inline">checkpointData()</code> → <code class="inline">json.Marshal(s)</code>).</li>
+                <li>Calls <code class="inline">s.backend.Checkpoint(data)</code>, which writes it to disk.</li>
+                <li>If that write fails, it <b>retries for up to 5 minutes</b> (<code class="inline">unlockCheckpointRetryMaxTime</code>), sleeping <code class="inline">unlockCheckpointRetryInterval = 3s</code> between attempts — <code class="inline">Unlock()</code> genuinely does not return until the checkpoint succeeds or this budget is exhausted.</li>
+                <li>If still failing after 5 minutes, it <code class="inline">panic</code>s — deliberately: proceeding with in-memory state that can't be persisted would mean losing track of in-flight operations on the next crash/restart, which is worse than crashing now.</li>
+              </ol>
+              <p>
+                This is also why handler code that releases the lock around a slow operation and re-acquires it (Section&nbsp;6's
+                locking rule) has real cost on both ends — every unlock with pending modifications is a synchronous disk write,
+                not a cheap in-memory operation.
+              </p>
+            </div>
+          </details>
         </article>
 
         <article class="card" id="change-task">
@@ -801,6 +1106,43 @@ footer.pagefoot{max-width:880px;margin:40px auto 80px;padding:20px 28px;color:va
             returning — otherwise there's a window where a restart replays a handler that doesn't expect its own already-committed
             side effects.
           </div>
+
+          <details class="deep">
+            <summary>Go deeper: TaskRunner.run() — one goroutine per task, locks acquired in a fixed order</summary>
+            <div class="body">
+              <p>
+                Each due task gets its own goroutine (<span class="path">overlord/state/taskrunner.go</span>,
+                <code class="inline">func (r *TaskRunner) run(t *Task)</code>), tracked via a <code class="inline">*tomb.Tomb</code>
+                keyed by task ID in <code class="inline">r.tombs</code>. The handler itself runs with <b>no state lock held</b> —
+                it's the handler's own job to lock/unlock as needed (Section 6.1). When the handler returns, the goroutine
+                reacquires control and does its bookkeeping:
+              </p>
+              <pre class="mono" style="background:var(--code-bg);padding:10px;border-radius:8px;overflow-x:auto;">tomb.Kill(handler(t, tomb))   // run the actual do/undo handler
+// Locks must be acquired in the same order everywhere:
+r.mu.Lock(); defer r.mu.Unlock()
+r.state.Lock(); defer r.state.Unlock()
+delete(r.tombs, t.ID())
+// ... inspect tomb.Err() and transition the task's status</pre>
+              <p>
+                That comment — "locks must be acquired in the same order everywhere" — is load-bearing: <code class="inline">r.mu</code>
+                (the TaskRunner's own internal mutex) is always taken before <code class="inline">r.state</code>'s lock, in every
+                code path, specifically to avoid a lock-ordering deadlock between the runner and concurrent state access elsewhere.
+              </p>
+              <p>On success the result is one of four real outcomes, switched on the error type returned by the handler:</p>
+              <ul>
+                <li><code class="inline">nil</code> error: status advances normally — <code class="inline">DoingStatus→DoneStatus</code> (then <code class="inline">t.HaltTasks()</code>, its dependents, are queued) or <code class="inline">UndoingStatus→UndoneStatus</code> (then <code class="inline">t.WaitTasks()</code>, what was waiting on it, proceeds).</li>
+                <li><code class="inline">*Retry</code>: the handler wants to be called again later — if a delay (<code class="inline">After</code>) was given, the task is rescheduled via <code class="inline">t.At(...)</code> rather than run again immediately.</li>
+                <li><code class="inline">*Wait</code>: the task parks in <code class="inline">WaitStatus</code> until something external resolves it (used e.g. for restart-pending handoffs).</li>
+                <li>any other error: <code class="inline">r.abortLanes(t.Change(), t.Lanes())</code> is called <em>first</em> (see Lanes below), <b>then</b> this task's own status is set to <code class="inline">ErrorStatus</code> — note the failing task itself does not get undone by this mechanism; only tasks it depended on do, per the runner's general contract.</li>
+              </ul>
+              <p>
+                If the runner is in the middle of <code class="inline">Stop()</code> (shutting down) and a handler returns an
+                unexpected error, it's reinterpreted as a <code class="inline">*Retry</code> rather than a real failure — errors
+                during shutdown are assumed to be cancellation artifacts, not genuine task failures, so they shouldn't poison the
+                Change's state.
+              </p>
+            </div>
+          </details>
         </article>
 
         <article class="card" id="lanes">
@@ -846,6 +1188,29 @@ footer.pagefoot{max-width:880px;margin:40px auto 80px;padding:20px 28px;color:va
               <text x="340" y="194" class="lt">Lane 2 aborts &amp; undoes; lanes 1 and 3 still finish — snap A and C refresh succeeds</text>
             </svg>
           </div>
+
+          <details class="deep">
+            <summary>Go deeper: how AbortLanes actually decides what to kill</summary>
+            <div class="body">
+              <p>
+                <code class="inline">Change.AbortLanes(lanes []int)</code> (<span class="path">overlord/state/change.go:690</span>)
+                delegates to an internal <code class="inline">abortLanes</code> that walks every task in the Change: a task in
+                <em>any</em> of the failed lanes gets aborted <b>unless</b> it also belongs to at least one lane not in the
+                failed set — that's the literal mechanism behind "a task survives if any of its other lanes is healthy."
+                Aborted tasks transition based on current status (matching the task-level rules from the checklist): not-yet-started
+                tasks are held and never run, in-progress tasks are signaled via their tomb
+                (<code class="inline">tb.Kill(nil)</code> in <code class="inline">TaskRunner.abortLanes</code>) and later undone,
+                completed tasks are queued for undo.
+              </p>
+              <p>
+                There's also <code class="inline">Change.AbortUnreadyLanes()</code> — a related but distinct operation that
+                computes, from scratch, which lanes currently have <em>any</em> not-yet-ready task in them, and aborts exactly
+                those lanes. This is what a user-initiated <code class="inline">snap abort &lt;change-id&gt;</code> effectively
+                uses: abort whatever's still in flight, lane by lane, rather than needing the caller to already know which lanes
+                are "the failing ones."
+              </p>
+            </div>
+          </details>
         </article>
 
         <article class="card" id="conflicts">
@@ -862,6 +1227,41 @@ footer.pagefoot{max-width:880px;margin:40px auto 80px;padding:20px 28px;color:va
             <code class="inline">TaskRunner.AddBlocked</code>: before running a candidate task, every predicate sees the
             candidate and the set of currently-running tasks, and can defer it.
           </p>
+
+          <details class="deep">
+            <summary>Go deeper: how a task declares which snaps it affects — and a live example of the "re-validate after reacquiring the lock" rule</summary>
+            <div class="body">
+              <p>
+                Conflict-checking needs to know which snap(s) an arbitrary task touches. Most <span class="path">snapstate</span>
+                tasks carry a <code class="inline">snap-setup</code> entry, so <code class="inline">SnapsAffectedByTask()</code>
+                (<span class="path">overlord/snapstate/conflict.go</span>) reads that directly. But tasks from <em>other</em>
+                managers (interfaces, hooks, …) don't carry snap-setup data, so this is exactly the kind of cross-manager need
+                CODING.md's hook-registration pattern exists for:
+              </p>
+              <pre class="mono" style="background:var(--code-bg);padding:10px;border-radius:8px;overflow-x:auto;">var affectedSnapsByKind = make(map[string]AffectedSnapsFunc)  // keyed by task kind
+var affectedSnapsByAttr = make(map[string]AffectedSnapsFunc)  // keyed by "has this task attribute"
+
+func AddAffectedSnapsByKind(kind string, f AffectedSnapsFunc) { affectedSnapsByKind[kind] = f }
+func AddAffectedSnapsByAttr(attr string, f AffectedSnapsFunc) { affectedSnapsByAttr[attr] = f }</pre>
+              <p>
+                Other managers' <code class="inline">init()</code>/constructor code registers into these maps — the same
+                "break the cycle with a registration mechanism" pattern as <code class="inline">snapstate.ValidateRefreshes</code>
+                (Section&nbsp;9.2) — so <span class="path">snapstate</span> never has to import <span class="path">ifacestate</span>
+                or <span class="path">hookstate</span> just to know what a task of theirs touches.
+              </p>
+              <p>
+                <b>A concrete instance of the "re-validate after the lock gap" rule from Section&nbsp;6.1:</b>
+                <code class="inline">checkChangeConflictIgnoringOneChange()</code> optionally takes the caller's in-memory
+                <code class="inline">*SnapState</code> and compares it, via <code class="inline">reflect.DeepEqual</code>, against
+                what's actually in the state right now. The doc comment explains why: callers sometimes have to unlock the state
+                to talk to the store (fetching snap info for install, or what-needs-refreshing for refresh) — and a conflicting
+                Change could "sneak in" during that window, before the caller's TaskSet is even created. If the comparison fails,
+                it returns a <code class="inline">ChangeConflictError</code> rather than silently proceeding on stale data —
+                this is the exact failure mode the Section&nbsp;6.7 checklist item about re-validating mutable state is there to
+                prevent.
+              </p>
+            </div>
+          </details>
         </article>
 
         <article class="card" id="cleanup">
@@ -921,6 +1321,37 @@ footer.pagefoot{max-width:880px;margin:40px auto 80px;padding:20px 28px;color:va
             <li>Write a dedicated type when custom validation, connection behavior, or backend logic is needed — <span class="path">interfaces/builtin/empty.go</span> is a compact example of the available extension points.</li>
             <li>Nearby interfaces with similar resource shape are usually the best reference to copy from.</li>
           </ul>
+
+          <details class="deep">
+            <summary>Go deeper: Repository's internal indexes and how backend regeneration actually iterates</summary>
+            <div class="body">
+              <p>
+                <code class="inline">Repository</code> (<span class="path">interfaces/repo.go</span>) is guarded by one
+                <code class="inline">sync.Mutex</code> for the whole struct — no fine-grained locking. Its indexes:
+              </p>
+              <ul>
+                <li><code class="inline">plugs map[naming.InstanceName]map[string]*snap.PlugInfo</code> and <code class="inline">slots</code> likewise — keyed <code class="inline">[snapInstance][plugOrSlotName]</code>.</li>
+                <li><code class="inline">slotPlugs map[*snap.SlotInfo]map[*snap.PlugInfo]*Connection</code> and the inverse <code class="inline">plugSlots</code> — connections are indexed by <b>pointer identity</b> of the PlugInfo/SlotInfo structs, kept in sync in both directions.</li>
+                <li><code class="inline">appSets map[naming.InstanceName]*SnapAppSet</code> — tracks which snaps (+ components) are registered at all.</li>
+                <li><code class="inline">conflictingConnectedInterfaces map[string]map[string]bool</code> — opt-in pairs of interfaces that must never both be connected simultaneously on the same snap.</li>
+              </ul>
+              <p>
+                <b>Registration (<code class="inline">AddAppSet</code>)</b> validates the snap info and refuses double-registration,
+                but a plug/slot whose declared <code class="inline">Interface</code> name isn't a <em>known</em> interface is
+                <b>silently skipped</b> rather than erroring — by design, so an older snapd doesn't fail to install a snap that
+                merely declares a plug/slot kind it doesn't yet understand.
+              </p>
+              <p>
+                <b>Backend regeneration (<code class="inline">SnapSpecification</code>)</b> works on <em>one backend, one snap</em>
+                per call — it is <em>not</em> "regenerate everything for everyone." The caller (ifacestate's
+                <code class="inline">setup-profiles</code> handler) loops over the affected backends × affected snaps itself. For
+                one call: creates a fresh <code class="inline">Specification</code> for that backend, then for every slot the snap
+                owns calls <code class="inline">AddPermanentSlot</code> once and <code class="inline">AddConnectedSlot</code> once
+                per live connection on it; symmetric for plugs.
+              </p>
+              <div class="callout warn"><b class="label">Known wart:</b> if <code class="inline">AddConnectedPlug</code>/<code class="inline">AddConnectedSlot</code> fails <em>permanently</em> for a connection (e.g. generated policy can't load on this kernel), the broken connection stays in the in-memory Repository and every future regeneration attempt retries and fails again — only a snapd restart clears it, since the connection was never persisted in the first place.</div>
+            </div>
+          </details>
         </article>
 
         <article class="card" id="ifacestate">
@@ -935,6 +1366,37 @@ footer.pagefoot{max-width:880px;margin:40px auto 80px;padding:20px 28px;color:va
             <b>Hotplug</b> (<span class="path">overlord/ifacestate/hotplug.go</span>) handles devices that appear/disappear at
             runtime (USB, etc.), creating/removing slots and reconnecting as appropriate without a reboot.
           </p>
+
+          <details class="deep">
+            <summary>Go deeper: the auto-connect candidate algorithm, interface hooks, and the hotplug device key</summary>
+            <div class="body">
+              <p><b>doAutoConnect (the <code class="inline">auto-connect</code> task handler), step by step:</b></p>
+              <ol>
+                <li>Resolves a task-aware <code class="inline">DeviceContext</code> and finishes any pending restart first — guards against stale interface data if the preceding <code class="inline">link-snap</code> itself triggered a restart (e.g. installing a new core/base snap).</li>
+                <li><b>Gadget-declared connections first</b>: connections listed under <code class="inline">connections:</code> in <code class="inline">gadget.yaml</code> are added before any generic auto-connect logic runs, tagged <code class="inline">ByGadget: true</code>.</li>
+                <li><b>Content-provider wait</b>: for each plug using the <code class="inline">content</code> interface, computes its default providers; if any default provider is itself being installed in another not-yet-finished Change, returns <code class="inline">&amp;state.Retry{}</code> so auto-connect reruns once that provider is actually ready — this is what stops a snap from racing its own content-sharing dependency.</li>
+                <li>For each candidate plug/slot pair found via the Repository, runs the real policy gate (next card) <em>plus</em> an opt-in config check (<code class="inline">filterAllowedAutoConnectionSlots</code>) that lets a slot-providing snap opt a specific connection out via its own <code class="inline">snap set</code> configuration.</li>
+                <li>Guards against racing another in-flight Change touching the same snap pair before committing.</li>
+              </ol>
+              <p>
+                <b>Interface hooks</b> (<span class="path">overlord/ifacestate/hooks.go</span>) follow a fixed naming scheme:
+                <code class="inline">prepare-plug-&lt;iface&gt;</code>, <code class="inline">prepare-slot-&lt;iface&gt;</code>,
+                <code class="inline">connect-plug-&lt;iface&gt;</code>, <code class="inline">connect-slot-&lt;iface&gt;</code>, and
+                the <code class="inline">unprepare-*</code>/<code class="inline">disconnect-*</code> equivalents. These run as
+                ordinary <code class="inline">run-hook</code> tasks spliced into the connect/disconnect task chain —
+                <code class="inline">prepare-*</code> hooks run <em>before</em> the connection is established and can abort it;
+                <code class="inline">connect-*</code> hooks run after, letting each side's snap validate or react to the new grant.
+              </p>
+              <p>
+                <b>Hotplug device key</b> (<span class="path">overlord/ifacestate/hotplug.go</span>): the stable identifier used
+                to recognize "the same physical device" across reconnects and reboots is a SHA-256 over udev attributes grouped
+                into four buckets — Name, Vendor, Model, Identifier (first non-empty attribute per bucket). An interface can
+                supply its own <code class="inline">HotplugKey(device)</code> via a <code class="inline">HotplugKeyHandler</code>
+                interface; otherwise the default needs <b>at least 2 of the 4 buckets</b> populated, or it returns an empty key
+                meaning "this device can't be keyed reliably" (and hotplug support is skipped for it).
+              </p>
+            </div>
+          </details>
         </article>
 
         <article class="card" id="declaration-policy">
@@ -961,6 +1423,53 @@ footer.pagefoot{max-width:880px;margin:40px auto 80px;padding:20px 28px;color:va
             <li><code class="inline">allow/deny-auto-connection</code> — is this plug/slot pair wired up automatically on install, with no user action? Ignores <code class="inline">allow-connection</code> entirely, and only fires when there is exactly one candidate slot for a plug (the "greedy"/arity rule, governed by <code class="inline">slots-per-plug</code> / <code class="inline">plugs-per-slot</code>, default 1 and <code class="inline">*</code> respectively).</li>
           </ul>
           <div class="callout warn"><b class="label">Authoritative source:</b> full rule-constraint semantics (maps=AND, lists=OR, <code class="inline">$SLOT()</code>/<code class="inline">$PLUG()</code>/<code class="inline">$MISSING</code> special forms, <code class="inline">on-store</code>/<code class="inline">on-classic</code> device-context constraints) live in <span class="path">interfaces/builtin/README.md</span> and in code in <code class="inline">asserts/ifacedecls.go</code>. Keep policy reasoning there — don't re-derive it from scratch per-interface.</div>
+
+          <details class="deep">
+            <summary>Go deeper: how the 8-step precedence is literally encoded in Go</summary>
+            <div class="body">
+              <p>
+                The compiled rule types live in <span class="path">asserts/ifacedecls.go</span> —
+                <code class="inline">PlugRule</code>/<code class="inline">SlotRule</code> each hold
+                <code class="inline">AllowInstallation/DenyInstallation/AllowConnection/DenyConnection/AllowAutoConnection/DenyAutoConnection
+                []*...Constraints</code> — note the <b>slice</b>: each key can carry several alternative constraint sets, which is
+                the list-of-maps = OR semantics from the README. The actual precedence evaluator is a separate package,
+                <span class="path">interfaces/policy/policy.go</span>, not ifacedecls.go itself. Its
+                <code class="inline">ConnectCandidate.check(kind)</code> encodes the 8-step order as literal early returns — and
+                it's a stronger statement than "store beats base":
+              </p>
+              <pre class="mono" style="background:var(--code-bg);padding:10px;border-radius:8px;overflow-x:auto;">if plugSnapDeclaration has a PlugRule for this interface:
+    return checkPlugRule(..., snapRule=true)   // and STOP — no fallthrough even on deny
+else if slotSnapDeclaration has a SlotRule:
+    return checkSlotRule(..., snapRule=true)
+else if baseDeclaration has a PlugRule:
+    return checkPlugRule(..., snapRule=false)
+else if baseDeclaration has a SlotRule:
+    return checkSlotRule(..., snapRule=false)
+else:
+    return nil, nil   // no rule at all for this interface</pre>
+              <p>
+                The <em>existence</em> of a plug-side snap-declaration rule for this interface short-circuits everything else —
+                it is not merged with slot-side or base-declaration rules at all, even partially.
+              </p>
+              <p>
+                Within one matched rule, <code class="inline">checkPlugRule</code>/<code class="inline">checkSlotRule</code> first
+                try every alternative in the <code class="inline">Deny*</code> list; if <b>any</b> alternative matches, the
+                connection is denied immediately. Only if none of the deny alternatives match does it try the
+                <code class="inline">Allow*</code> list — if <em>none</em> of those match either, it's denied by omission; if one
+                matches, its resolved <code class="inline">SideArity</code> (the <code class="inline">slots-per-plug</code>/
+                <code class="inline">plugs-per-slot</code> values) is returned for the arity/greedy-match rule to use.
+              </p>
+              <p>
+                The <code class="inline">$SLOT()</code>/<code class="inline">$PLUG()</code>/publisher-id special forms are
+                implemented as a small compiled expression tree (<code class="inline">attrMatcher</code>, built by
+                <code class="inline">compileAttrMatcher</code>) evaluated against an <code class="inline">AttrMatchContext</code> —
+                <code class="inline">ConnectCandidate</code> itself implements that context via
+                <code class="inline">PlugAttr</code>/<code class="inline">SlotAttr</code>/<code class="inline">PlugPublisherID</code>/<code class="inline">SlotPublisherID</code>
+                methods, so the matcher never needs to know where the attribute values actually come from.
+              </p>
+              <div class="callout warn"><b class="label">Reading the code:</b> the deny-check helper's "matched" convention is inverted from what you'd expect — it returns <code class="inline">err == nil</code> to mean "this alternative <em>matched</em>, therefore deny," not "the check itself failed." Worth remembering before you go looking for a boolean return.</div>
+            </div>
+          </details>
         </article>
 
         <article class="card" id="new-interface">
@@ -989,6 +1498,43 @@ footer.pagefoot{max-width:880px;margin:40px auto 80px;padding:20px 28px;color:va
             asserts, find, download, interfaces/connections, confdb, debug, quotas, validation-sets, …). Handlers mostly call
             into overlord state-manager helpers rather than doing work themselves.
           </p>
+
+          <details class="deep">
+            <summary>Go deeper: the Command struct, how a request is authorized, and the two sockets</summary>
+            <div class="body">
+              <p>
+                Every route is a <code class="inline">daemon.Command</code> (<span class="path">daemon/daemon.go</span>):
+                <code class="inline">Path</code>/<code class="inline">PathPrefix</code>, a <code class="inline">GET</code>/<code class="inline">PUT</code>/<code class="inline">POST</code> handler func each, and — critically — a separate
+                <code class="inline">ReadAccess</code>/<code class="inline">WriteAccess</code> pair, each an
+                <code class="inline">accessChecker</code>. Concrete checkers: <code class="inline">openAccess{}</code> (anyone),
+                <code class="inline">authenticatedAccess{Polkit}</code>, <code class="inline">rootAccess{}</code>,
+                <code class="inline">snapAccess{}</code> (only from inside a confined snap), and the
+                <code class="inline">interface*Access</code> family gated on a connected interface.
+              </p>
+              <p><code class="inline">Command.ServeHTTP</code> resolves access roughly as:</p>
+              <ol>
+                <li>Pulls <code class="inline">ucred</code> (peer uid, originating socket path) out of the request context — stashed earlier by a custom <code class="inline">net.Conn</code> wrapper that reads <code class="inline">SO_PEERCRED</code> once at <code class="inline">Accept()</code> time, not per-request.</li>
+                <li>Picks <code class="inline">ReadAccess</code> for GET or <code class="inline">WriteAccess</code> for PUT/POST and calls its <code class="inline">CheckAccess</code>.</li>
+                <li>Checks, in order: does the request come from an allowed socket at all → is the access level <code class="inline">open</code> → is there an authenticated macaroon user → is <code class="inline">ucred.Uid == 0</code> (root bypasses everything) → does a <code class="inline">PolkitAction</code> authorize it (checked <em>last</em>, specifically to avoid an interactive auth prompt when an earlier, non-interactive check would already have allowed it) → otherwise deny.</li>
+              </ol>
+              <p>
+                <b>Two distinct sockets, different defaults:</b> <code class="inline">/run/snapd.socket</code> (the main API) vs.
+                <code class="inline">/run/snapd-snap.socket</code> (the snapctl-only socket). <code class="inline">rootAccess</code>/<code class="inline">authenticatedAccess</code> only allow the main socket; <code class="inline">snapAccess{}</code> allows only the snapctl socket. The
+                <code class="inline">interface*Access</code> checkers allow both, but on the snapctl socket additionally resolve
+                the calling snap's instance name from <code class="inline">ucred</code> and require an <em>active</em> interface
+                connection matching one of the endpoint's required interfaces — this is the real mechanism behind
+                interface-gated endpoints (e.g. requiring <code class="inline">snapd-control</code>) being reachable from inside
+                a confined snap. On the main socket, interface checks are skipped entirely — root-on-the-main-socket is
+                trusted more than any interface grant.
+              </p>
+              <p>
+                <b>How the Change id becomes a URL:</b> for a 201/202 response, the handler puts
+                <code class="inline">"resource": "/v2/changes/&lt;id&gt;"</code> into the result map; the generic response writer
+                reads that and sets it as the HTTP <code class="inline">Location</code> header. There's no server-side
+                long-poll — the <code class="inline">snap</code> CLI just issues repeated <code class="inline">GET /v2/changes/{id}</code> calls to watch progress (see the next card).
+              </p>
+            </div>
+          </details>
         </article>
 
         <article class="card" id="async-changes">
@@ -1023,6 +1569,37 @@ footer.pagefoot{max-width:880px;margin:40px auto 80px;padding:20px 28px;color:va
             (<code class="inline">set</code>, <code class="inline">get</code>, <code class="inline">services</code>,
             <code class="inline">is-connected</code>, …) lives in <span class="path">overlord/hookstate/ctlcmd</span>.
           </p>
+
+          <details class="deep">
+            <summary>Go deeper: the subcommand registry, and why a slow snapctl call blocks the whole daemon</summary>
+            <div class="body">
+              <p>
+                <span class="path">overlord/hookstate/ctlcmd/ctlcmd.go</span> keeps a global registry,
+                <code class="inline">commands = make(map[string]*commandInfo, 32)</code>. Each subcommand file
+                (<span class="path">set.go</span>, <span class="path">get.go</span>, <span class="path">services.go</span>, …)
+                calls <code class="inline">addCommand(name, shortHelp, longHelp, generatorFunc)</code> from its own
+                <code class="inline">init()</code> — every subcommand is a self-registering plugin into this one map, the same
+                pattern as the interface-hook naming scheme in Section&nbsp;7.3. A subcommand struct embeds
+                <code class="inline">baseCommand</code> to get the common plumbing (name/uid/stdout/stderr/context/change-id)
+                for free and only implements its own flags and <code class="inline">Execute(args []string) error</code>.
+              </p>
+              <p>
+                The daemon's <span class="path">/v2/snapctl</span> handler constructs a <code class="inline">hookstate.Context</code>
+                tied to the hook's already-running <code class="inline">*state.Task</code> (or, for snapctl calls not tied to any
+                hook — e.g. triggered from a running service — an <i>ephemeral</i> context with no backing task). It looks up
+                the subcommand name in <code class="inline">commands</code>, instantiates it via the registered generator, and
+                calls <code class="inline">Execute</code>.
+              </p>
+              <div class="callout warn">
+                <b class="label">Crucial detail:</b> <code class="inline">Context.Lock()</code> acquires the context's own
+                per-instance mutex <em>and then the real, global <code class="inline">state.State</code> lock</em> — the exact
+                same lock the task runner and every other handler use, not a separate snapctl-only lock. That means a snapctl
+                call made from inside a hook genuinely <b>blocks on and contends with</b> the rest of the daemon's state access,
+                and conversely a slow snapctl call blocks everything else waiting on the state lock. This is precisely why
+                hook/snapctl operations are expected to be fast — there's no isolation between them and the main state machine.
+              </div>
+            </div>
+          </details>
         </article>
       </section>
 
@@ -1101,6 +1678,55 @@ footer.pagefoot{max-width:880px;margin:40px auto 80px;padding:20px 28px;color:va
             read-only database access, direct retrieval helpers like <code class="inline">SnapDeclaration</code>,
             <code class="inline">RefreshSnapAssertions</code>, and the <code class="inline">verify-snap</code> task.
           </p>
+
+          <details class="deep">
+            <summary>Go deeper: where the root of trust actually lives, on-disk layout, and verification</summary>
+            <div class="body">
+              <p>
+                <b>The root of trust is embedded as literal Go source</b> — not a file read at runtime, not fetched over the
+                network. <span class="path">asserts/sysdb/trusted.go</span> defines
+                <code class="inline">encodedCanonicalAccount</code> and
+                <code class="inline">encodedCanonicalRootAccountKey</code> as raw PGP-armored assertion text for the
+                <code class="inline">canonical</code> authority, decoded via <code class="inline">asserts.Decode(...)</code> and
+                compiled directly into the <code class="inline">snapd</code> binary. <span class="path">asserts/sysdb/generic.go</span>
+                embeds a second, parallel anchor (<code class="inline">encodedGenericAccount</code>,
+                <code class="inline">encodedGenericModelsAccountKey</code>, <code class="inline">encodedGenericClassicModel</code>)
+                used for the implicit "generic" classic-system model that an un-enrolled classic Ubuntu install gets.
+              </p>
+              <p>
+                <b>On-disk storage</b> (<code class="inline">filesystemBackstore</code>,
+                <span class="path">asserts/fsbackstore.go</span>): rooted at
+                <span class="path">/var/lib/snapd/asserts-v0/</span>, one subdirectory per assertion type name, then a path
+                built from the type's primary-key header values. A stored filename can carry a
+                <code class="inline">.&lt;formatnum&gt;</code> suffix when multiple assertion <i>formats</i> of the same
+                assertion coexist on disk — <code class="inline">pickLatestAssertion</code> picks the highest format number the
+                caller's snapd build actually supports, which is how format evolution stays backward-compatible with older
+                snapd binaries reading the same assertion database.
+              </p>
+              <p><b>Verification chain</b> (<code class="inline">CheckSignature</code>, <span class="path">asserts/database.go</span>):</p>
+              <ol>
+                <li>Confirms the assertion's <code class="inline">authority-id</code> matches the signing key's account, and that the key is scoped to be allowed to sign this assertion type at all (some account-keys are restricted to specific types).</li>
+                <li>Verifies the actual signature cryptographically (OpenPGP-style) over the assertion's signed content.</li>
+                <li>Cross-checks the assertion's <code class="inline">sign-key-sha3-384</code> header — itself a fingerprint of the signing key — against the signing key actually used.</li>
+                <li>Separately enforces the assertion's own <code class="inline">timestamp</code> header falls within the signing key's validity window — a validly-signed assertion can still be rejected for being outside the key's <code class="inline">since</code>/<code class="inline">until</code> bounds.</li>
+              </ol>
+              <p>
+                Every other <code class="inline">account-key</code> in the system must itself be signed by an already-trusted
+                key before assertions it signs are trusted — a standard recursive chain rooted at the two embedded constants
+                above, no separate revocation-list mechanism observed.
+              </p>
+              <p>
+                <b>Sequence numbers</b>: most assertion types (e.g. <code class="inline">snap-revision</code>) are immutable —
+                their primary key fully identifies one eternal assertion, no "latest" concept, just presence/absence.
+                <code class="inline">validation-set</code> is different: it's <i>sequence-forming</i>
+                (<code class="inline">AssertionType.SequenceForming()</code>), modeled by
+                <code class="inline">AtSequence{Type, SequenceKey, Sequence}</code> where <code class="inline">Sequence &lt;= 0</code>
+                means "resolve to the latest" and a positive value pins to one specific point — printed as
+                <code class="inline">.../&lt;n&gt;</code>. The on-disk format-number suffix scheme above is what lets multiple
+                sequence points coexist simultaneously for resolution to choose among.
+              </p>
+            </div>
+          </details>
         </article>
       </section>
 
@@ -1170,6 +1796,44 @@ footer.pagefoot{max-width:880px;margin:40px auto 80px;padding:20px 28px;color:va
             <li><b>Done.</b> The Change reaches <code class="inline">DoneStatus</code>; <code class="inline">GET /v2/changes/{id}</code> now reports completion. If anything failed partway, the already-completed prerequisite tasks are undone in reverse order (<code class="inline">unlink-snap</code>, discarding the download, etc.) following exactly the same do/undo contract as Section 6.</li>
           </ol>
           <div class="callout classic"><b class="label">Refresh vs. install:</b> a refresh is the same shape but starts from an already-linked snap, adds a <code class="inline">prerequisites</code>/<code class="inline">check-rerefresh</code> step, and keeps the old revision mounted (not discarded) until the new one is confirmed healthy, so <code class="inline">snap revert</code> stays cheap.</div>
+
+          <details class="deep">
+            <summary>Go deeper: InstallWithGoal, the task "choreographer", and the refresh-busy pre-download path</summary>
+            <div class="body">
+              <p>
+                <code class="inline">snapstate.InstallWithGoal()</code> (<span class="path">overlord/snapstate/target.go:862</span>)
+                is the real function behind step 1. It doesn't hardcode "install from the store" — it takes an
+                <code class="inline">InstallGoal</code> interface whose <code class="inline">toInstall()</code> method resolves
+                the actual snap(s) to install, which is how the exact same function drives a normal store install, a local
+                sideload (<code class="inline">--dangerous</code>), and seeding (Section&nbsp;12.6) without three separate
+                code paths. After resolving targets, it runs a disk-space check up front
+                (<code class="inline">checkDiskSpace</code>) and, for a multi-snap batch (e.g. refreshing several snaps at
+                once), assigns each target its <b>own lane</b> — the same lane mechanism from Section&nbsp;6.4, here used so
+                one snap's refresh failing in a batch doesn't take the others down with it.
+              </p>
+              <p>
+                For each target, <code class="inline">doInstallOrPreDownload()</code> (<span class="path">overlord/snapstate/snap.go:713</span>)
+                runs precondition checks (reserved name "system", disabled-snap rule, classic-confinement support,
+                alias-conflict check), then asks <code class="inline">shouldPreDownloadSnap()</code> whether the snap is
+                currently "busy" (running processes, refresh-app-awareness again, this time at the install-task-building
+                layer rather than the launch-time layer from Section&nbsp;3.1's deep dive). If busy on an <i>auto</i>-refresh, instead
+                of the normal task chain it builds a single <code class="inline">pre-download-snap</code> task and returns a
+                distinguishable <code class="inline">timedBusySnapError</code> — the download happens now, but linking/switching
+                over waits until the snap is actually idle.
+              </p>
+              <p>
+                Otherwise, a <code class="inline">snapInstallChoreographer</code> builds the real task chain via a
+                <code class="inline">taskChainBuilder</code>, in named phases rather than one flat list:
+                <code class="inline">prerequisites</code> (ensure base/content-providers are queued) →
+                <code class="inline">BeforeLocalSystemMod</code> → a second synchronization <code class="inline">prerequisites</code>
+                task → <code class="inline">mount-snap</code> (skipped entirely if this revision is already present on disk —
+                e.g. a revert) → <code class="inline">UpToLinkSnapAndBeforeReboot</code> → <code class="inline">AfterLinkSnapAndPostReboot</code>.
+                For essential snaps (kernel/base/gadget/snapd), <code class="inline">SetEssentialSnapsRestartBoundaries</code> then
+                marks reboot coordination points on the chain — this is what lets snapd batch multiple essential-snap updates
+                that each need a reboot into a <em>single</em> actual reboot instead of one per snap.
+              </p>
+            </div>
+          </details>
         </article>
       </section>
 
@@ -1217,6 +1881,47 @@ footer.pagefoot{max-width:880px;margin:40px auto 80px;padding:20px 28px;color:va
             <tr><td><span class="path">kernel</span></td><td>Kernel-snap-specific asset handling (kernel.yaml, modules/firmware trees).</td></tr>
             <tr><td><span class="path">bootloader</span></td><td>Bootloader-specific code (GRUB, u-boot, etc.) — used almost exclusively <i>through</i> <span class="path">boot</span>, not called directly by managers.</td></tr>
           </table>
+
+          <details class="deep">
+            <summary>Go deeper: the Modeenv struct, and how try/current kernel-revision tracking survives a crash mid-update</summary>
+            <div class="body">
+              <p>
+                <code class="inline">Modeenv</code> (<span class="path">boot/modeenv.go</span>), persisted at
+                <span class="path">/var/lib/snapd/modeenv</span> on UC20+, is the ground truth for "what is this system actually
+                booted into right now." Real fields include: <code class="inline">Mode</code>, <code class="inline">RecoverySystem</code>,
+                <code class="inline">CurrentRecoverySystems []string</code> (systems currently being trusted/tried — the
+                <em>run</em> key is resealed against all of these) vs. <code class="inline">GoodRecoverySystems []string</code>
+                (vetted, fallback-ready — only these get the more conservative <em>fallback</em> key resealed against them),
+                <code class="inline">Base</code>/<code class="inline">TryBase</code>/<code class="inline">BaseStatus</code>,
+                <code class="inline">CurrentKernels []string</code>, the current <code class="inline">Model</code>/<code class="inline">BrandID</code>/<code class="inline">Grade</code>
+                plus a parallel <code class="inline">TryModel</code>/<code class="inline">TryBrandID</code>/<code class="inline">TryGrade</code>
+                set used during a remodel, and <code class="inline">CurrentTrustedBootAssets</code> (bootloader asset name → list
+                of content hashes — <b>two</b> entries while an asset update is in flight, collapsing to one on success, which
+                is literally how snapd detects whether a boot-asset update was applied without any extra state).
+              </p>
+              <p>
+                <b>Crash-safe kernel promotion</b> (UC20+, <span class="path">boot/bootstate20_bloader_kernel_state.go</span>):
+                a refresh sets bootenv <code class="inline">kernel_status=try</code> plus <code class="inline">snap_try_kernel</code>
+                and a <code class="inline">try-kernel.efi</code> symlink; the boot script flips it to <code class="inline">trying</code>
+                and boots the try kernel. On success, <code class="inline">MarkBootSuccessful</code> commits in a very specific,
+                deliberate order: (1) clear <code class="inline">kernel_status</code>, (2) copy the try-kernel path into
+                <code class="inline">snap_kernel</code>, (3) remove the <code class="inline">try-kernel</code> symlink
+                <b>last</b>. The code comments spell out why: removing the symlink first would strand the system if the process
+                were interrupted partway through the commit — the ordering is the actual crash-safety guarantee, not an
+                implementation detail.
+              </p>
+              <p>
+                <code class="inline">BootChain</code> (<span class="path">boot/bootchain.go</span>) — the measured-boot input
+                — carries <code class="inline">BrandID</code>, <code class="inline">Model</code>, <code class="inline">Grade</code>,
+                <code class="inline">AssetChain []BootAsset</code>, <code class="inline">Kernel</code>,
+                <code class="inline">KernelRevision</code>, and <code class="inline">KernelCmdlines</code>. An empty
+                <code class="inline">KernelRevision</code> means an <em>unasserted</em> (locally built/sideloaded) kernel — since
+                snapd can't pin a specific trusted revision for it, this unconditionally forces a reseal rather than trying to
+                diff revisions. <code class="inline">PredictableBootChains</code> (one chain per {model, recovery-system, kernel}
+                combination) is what must stay unlockable for FDE to keep working (Section&nbsp;12.5).
+              </p>
+            </div>
+          </details>
         </article>
 
         <article class="card" id="snap-bootstrap">
@@ -1235,6 +1940,41 @@ footer.pagefoot{max-width:880px;margin:40px auto 80px;padding:20px 28px;color:va
             This is the piece of snapd that runs <i>before</i> the daemon itself exists — it's doing its work from inside the
             initrd, assembling the root filesystem the rest of the system (including snapd) will boot into.
           </p>
+
+          <details class="deep">
+            <summary>Go deeper: what each mode actually mounts, and "degraded mode"</summary>
+            <div class="body">
+              <p>
+                Dispatch lives in <span class="path">cmd/snap-bootstrap/cmd_initramfs_mounts.go</span>, one
+                <code class="inline">generateMountsMode&lt;Mode&gt;</code> function per mode.
+              </p>
+              <p><b><code class="inline">run</code> mode</b> (the hot path, every normal boot), roughly in order:</p>
+              <ol>
+                <li>Mount <code class="inline">ubuntu-boot</code> with a forced fsck — it's the first partition touched, so its integrity can't be assumed yet.</li>
+                <li>Measure the model assertion into the TPM (idempotent, tracked via a stamp file so a restarted initrd run doesn't redo it).</li>
+                <li>Mount <code class="inline">ubuntu-seed</code> — <b>optional on classic</b> (a "not found" error is swallowed only when the model is classic).</li>
+                <li>Refresh bootloader environment variables now that boot/seed are visible.</li>
+                <li>Unlock and mount <code class="inline">ubuntu-data</code> (and <code class="inline">ubuntu-save</code> if encrypted) via the TPM-sealed key.</li>
+              </ol>
+              <p>
+                <b><code class="inline">install</code>/<code class="inline">recover</code>/<code class="inline">factory-reset</code></b>
+                share a common <code class="inline">recoverModeStateMachine</code>, parameterized by the mode string —
+                <code class="inline">recover</code> and <code class="inline">factory-reset</code> literally run the same state
+                machine, differing mainly in what happens to <code class="inline">ubuntu-data</code> afterward (recover: mount
+                the existing data read-only under <span class="path">/host/ubuntu-data</span>; factory-reset: wipe and recreate
+                it). <code class="inline">install</code> mode is simpler and more linear — there's no existing encrypted data to
+                unlock, just layout and format.
+              </p>
+              <p>
+                <b>Degraded mode</b> is tracked by a boolean flipped any time a partition fails to be found/mounted/unlocked
+                with its primary key. The state machine then falls back partition-by-partition: a run-key unlock failure tries
+                the fallback/recovery key; if <code class="inline">ubuntu-boot</code> can't be found at all, it falls back to
+                keys sourced from <code class="inline">ubuntu-seed</code> instead. A healthy boot never touches any of these
+                fallback branches.
+              </p>
+              <div class="callout warn"><b class="label">Trust binding:</b> snapd explicitly refuses to trust a mounted <code class="inline">ubuntu-data</code> unless it and <code class="inline">ubuntu-save</code> carry matching "from the same install" marker files — this stops an attacker from swapping in a different <code class="inline">ubuntu-data</code> to piggyback on a legitimately-unlocked <code class="inline">ubuntu-save</code>'s secrets.</div>
+            </div>
+          </details>
         </article>
 
         <article class="card" id="fde">
@@ -1251,15 +1991,130 @@ footer.pagefoot{max-width:880px;margin:40px auto 80px;padding:20px 28px;color:va
             <span class="path">boot</span> and the dedicated <code class="inline">overlord/fdestate.FDEManager</code> carry the
             logic for keeping key-sealing policy consistent with the snaps currently/about-to-be booted.
           </p>
+
+          <details class="deep">
+            <summary>Go deeper: what gets measured, what triggers a reseal, and recovery keys vs. the TPM path</summary>
+            <div class="body">
+              <p>
+                <b>What's measured:</b> <span class="path">secboot/secboot_tpm.go</span> reserves <code class="inline">initramfsPCR = 12</code>
+                for "EFI image" measurements. Both the system epoch <em>and the model assertion's identity itself</em> are
+                measured into PCR&nbsp;12 — not just binaries — so a remodel necessarily changes the PCR value and forces a
+                reseal. PCR policy-counter handles are fixed, pre-reserved TPM NV indices, with separate
+                <code class="inline">RunObjectPCRPolicyCounterHandle</code>/<code class="inline">FallbackObjectPCRPolicyCounterHandle</code>
+                and a parallel <code class="inline">Alt...</code> pair — the "Alt" handles exist specifically so a factory-reset
+                can rotate to the alternate counter rather than reuse (and potentially replay-attack) the original one.
+              </p>
+              <p>
+                <b>What triggers a reseal</b> (<code class="inline">resealExpectedByModeenvChange</code>,
+                <span class="path">boot/seal.go</span>): essentially any Modeenv diff — kernel/base try→current promotion,
+                recovery-system list changes, trusted-boot-asset hash changes, model/try-model changes (remodel), kernel
+                command-line changes — <em>except</em> a gadget-field-only change, which is deliberately excluded here because
+                gadget/boot-asset changes are already caught separately via content-hash diffing elsewhere, avoiding a
+                redundant double-trigger.
+              </p>
+              <p>
+                <b>Recovery key vs. the main flow:</b> the normal run-mode unlock uses a TPM-sealed key gated by the current PCR
+                policy — it only unseals if the measured boot state (kernel/model/bootloader chain) matches exactly. The
+                <b>recovery key</b> is a wholly separate, human-enterable key <em>not</em> bound to PCR state at all — the
+                fallback path when the measured chain can't be verified (new/failed kernel, tampered bootloader, hardware
+                change) or when <code class="inline">ubuntu-boot</code> itself can't be mounted (the initramfs degraded-mode
+                fallback above). It's managed as a first-class keyslot alongside the TPM-sealed "platform" keys, with its own
+                add/remove/rename task kinds in <code class="inline">FDEManager</code>.
+              </p>
+              <p>
+                <code class="inline">overlord/fdestate</code>'s <code class="inline">check-reseal</code> task is a
+                <b>verification</b> gate, not a scheduler — it validates that resealing is in the expected state (commonly run
+                after a restart); the actual resealing happens inline inside the state-changing handlers themselves (adding a
+                platform key, changing auth, a secure-boot DB update). Two devicestate-owned task kinds,
+                <code class="inline">install-setup-storage-encryption</code> and <code class="inline">fde-reprovision</code>,
+                are explicitly registered as "this changes sealing-relevant state" even though they live outside
+                <span class="path">fdestate</span> — another example of the registration-hook pattern from Section&nbsp;9.2.
+              </p>
+            </div>
+          </details>
         </article>
 
-        <article class="card" id="seeding-remodel">
-          <h3>Seeding &amp; remodeling, briefly</h3>
-          <ul>
-            <li><b>Seeding</b> is first-boot population of the system from a pre-baked set of snaps/assertions (a "seed") — either a full Core image install, or a lighter-weight seeded set of snaps on a more general system. <code class="inline">mark-seeded</code> flags completion.</li>
-            <li><b>Remodeling</b> changes which <code class="inline">model</code> assertion a live device is on — different gadget/kernel/base/store/brand — without reflashing. Handlers live in <span class="path">overlord/devicestate/handlers_remodel.go</span>; this is the scenario that makes the task-aware <code class="inline">DeviceContext</code> (Section 12.2) necessary.</li>
-            <li><b>Recovery systems</b> are bootable "known good" snap sets kept alongside the running one, so a factory-reset or recovery boot has somewhere trustworthy to recover to — <code class="inline">create-recovery-system</code> / <code class="inline">finalize-recovery-system</code> / <code class="inline">remove-recovery-system</code>.</li>
-          </ul>
+        <article class="card" id="seeding">
+          <h3>Seeding: how a system installs itself on first boot</h3>
+          <p>
+            Seeding is how a brand-new system — a freshly flashed Ubuntu Core image, or a classic system configured with a
+            seed — gets from "empty state" to "every required snap installed, confined, and configured" entirely on its own,
+            driven by the ensure loop rather than any user action.
+          </p>
+          <ol>
+            <li><b>Trigger</b>: <code class="inline">DeviceManager.ensureSeeded()</code> (<span class="path">overlord/devicestate/devicemgr.go:1110</span>) runs on every ensure-loop pass. It first checks the <code class="inline">"seeded"</code> state key — once true, it's a permanent no-op for the life of the system.</li>
+            <li><b>Build the task graph</b>: <code class="inline">populateStateFromSeedImpl()</code> (<span class="path">overlord/devicestate/firstboot.go:161</span>) does the real work — read on to see exactly how.</li>
+            <li><b>Run it</b>: the resulting <code class="inline">[]*state.TaskSet</code> is wrapped into a Change and executed exactly like any other operation — same TaskRunner, same lanes, same undo contract from Section&nbsp;6.</li>
+            <li><b>Completion</b>: a <code class="inline">mark-seeded</code> task sets <code class="inline">"seeded" = true</code> once everything finishes, which is what flips <code class="inline">ensureSeeded()</code> off for good.</li>
+          </ol>
+
+          <details class="deep">
+            <summary>Go deeper: populateStateFromSeedImpl(), task by task, with the actual lane/ordering logic</summary>
+            <div class="body">
+              <p>Reading <span class="path">overlord/devicestate/firstboot.go</span> top to bottom, the real sequence is:</p>
+              <ol>
+                <li><b>Guard</b>: refuses if <code class="inline">"seeded"</code> is already true.</li>
+                <li><b>Resolve mode</b>: <code class="inline">seedLabelAndMode()</code> — if there's a modeenv, this is a UC20+ boot mode (<code class="inline">install</code>/<code class="inline">recover</code>/…); otherwise defaults to <code class="inline">"run"</code> (classic/UC16-18 shape).</li>
+                <li><b>Import assertions</b>: <code class="inline">importAssertionsFromSeed(mode, isCoreBoot)</code> acks every assertion the seed carries into the local database (Section&nbsp;10) — model, snap-declarations, snap-revisions, account-keys, etc. If there's genuinely nothing to seed, short-circuits to <code class="inline">trivialSeeding()</code> (a classic system with no pre-seeded snaps is a valid, if boring, seed).</li>
+                <li><b>Load snap metadata</b>: <code class="inline">deviceSeed.LoadMeta(mode, ...)</code> — reads <code class="inline">seed.yaml</code>/<code class="inline">model</code>-derived snap lists and resolves them to real <code class="inline">*snap.Info</code> plus <code class="inline">*state.TaskSet</code> per snap, via <code class="inline">installSeedSnap()</code> which calls the exact same <code class="inline">snapstate.InstallOne</code> path a normal install uses, with <code class="inline">Seed: true</code> and <code class="inline">NoDelayedSideEffects: true</code> set on the options.</li>
+                <li><b>Two separate lanes, on purpose</b>: essential snaps (base/kernel/gadget/snapd — <code class="inline">essentialLane := st.NewLane()</code>) and non-essential snaps (<code class="inline">nonEssentialLane := st.NewLane()</code>) get <em>different</em> lanes. The comment is explicit about why: if installing an optional seeded snap fails, that must not undo the essential snaps that already succeeded — seeding partially-but-safely is preferable to failing the whole boot over one optional app.</li>
+                <li><b>Ordering matters for hooks</b>: <code class="inline">chainSorted()</code> stable-sorts essential snaps so the <b>boot base installs before the kernel</b> — specifically so any kernel hook has a working rootfs (the base) to execute against when it runs. Snap type ordering is expressed via <code class="inline">effectiveType(info).SortsBefore(...)</code>, with the model's base snap given a synthetic <code class="inline">InternalTypeBootBase</code> type purely to make this ordering explicit.</li>
+                <li><b>Configure after install, not interleaved</b>: core/kernel/gadget each get a <code class="inline">ConfigureSnap(..., UseConfigDefaults)</code> taskset, chained to run only <em>after</em> all essential snaps are installed — so gadget-provided config defaults are available by the time anything is configured, rather than each snap configuring itself in isolation.</li>
+                <li><b>Preseeding is a distinct sub-mode</b>: if <code class="inline">m.preseed</code> is set (building a snap image ahead of time, not an actual first boot), a <code class="inline">mark-preseeded</code> task is spliced in <em>between</em> each snap's preliminary setup and its hooks (via the taskset's <code class="inline">BeginEdge</code>/<code class="inline">BeforeHooksEdge</code>/<code class="inline">HooksEdge</code> markers) — hooks are made to wait for it, and it waits for every snap's pre-hook setup, so no hook runs before the whole system is in its preseeded state.</li>
+                <li><b>Validation sets</b>: after installing everything, <code class="inline">maybeEnforceValidationSetsTask()</code> adds a task to start tracking any validation-sets bundled in the seed — but only in run mode, and only in the <em>non-essential</em> lane (a comment notes undoing the essential lane doesn't currently work properly, so validation-set enforcement failures are deliberately scoped to not cascade into essential-snap rollback).</li>
+                <li><b>Final task</b>: <code class="inline">markSeededTask()</code> waits on literally everything (the last snap's taskset <em>and</em> the end-taskset), then sets <code class="inline">"seeded" = true</code> and records a <code class="inline">seed-system</code> entry (label, model, brand, revision, timestamp) describing exactly which seed produced this system — this is what a later <code class="inline">snap debug seeding</code>-style introspection reads back.</li>
+              </ol>
+              <div class="callout warn"><b class="label">Why two lanes instead of one flat list:</b> this is the clearest real-world illustration of Section&nbsp;6.4's lane mechanism in the whole codebase — essential vs. non-essential seeding is lanes solving exactly the problem they exist for: one failure domain (an optional app) must not be allowed to take down another (the device's own bootable base).</div>
+            </div>
+          </details>
+        </article>
+
+        <article class="card" id="remodeling">
+          <h3>Remodeling: changing a live device's model assertion</h3>
+          <p>
+            Remodeling moves a live, already-seeded device to a different <code class="inline">model</code> assertion —
+            different gadget/kernel/base/store/brand — without reflashing. Handlers live in
+            <span class="path">overlord/devicestate/handlers_remodel.go</span> and <span class="path">remodel.go</span>; this
+            is the scenario that makes the task-aware <code class="inline">DeviceContext</code> (12.2) necessary, since a task
+            mid-remodel may need to see the <i>new</i> model rather than the system's current one.
+          </p>
+
+          <details class="deep">
+            <summary>Go deeper: the three kinds of remodel, the pre-flight checks, and how the task graph differs per kind</summary>
+            <div class="body">
+              <p>
+                <code class="inline">ClassifyRemodel(oldModel, newModel)</code> (<span class="path">devicestate/remodel.go:85</span>)
+                sorts every remodel into exactly one of three kinds, decided purely from assertion header comparisons:
+              </p>
+              <table>
+                <tr><th>Kind</th><th>Condition</th><th>What changes</th></tr>
+                <tr><td><code class="inline">UpdateRemodel</code></td><td>same brand + model</td><td>Just a revision bump of the same model (e.g. a new required-snaps list) — same brand store.</td></tr>
+                <tr><td><code class="inline">StoreSwitchRemodel</code></td><td>same brand + model, different <code class="inline">Store()</code></td><td>Needs a fresh store session (<code class="inline">sto.EnsureDeviceSession()</code>, with the state lock released around the network call) before falling through to build the same task graph as an update.</td></tr>
+                <tr><td><code class="inline">ReregRemodel</code></td><td>different brand ID <em>or</em> different model name</td><td>The device needs a brand-new identity: a <code class="inline">request-serial</code> task runs first, then <code class="inline">prepare-remodeling</code> — a much smaller initial taskset than the other two kinds, since the rest of the remodel's tasks get added later, inside a task, once the new serial exists.</td></tr>
+              </table>
+              <p><code class="inline">Remodel()</code> (<span class="path">devicestate/devicestate.go:1456</span>) runs a long pre-flight gauntlet before building anything, each a hard rejection:</p>
+              <ul>
+                <li>Refuses if the device isn't fully seeded yet, or if an online remodel was given local snap/component paths (those require <code class="inline">--offline</code>).</li>
+                <li>The new model's revision can't be older than the highest revision of that model already known to the device — no silent downgrades.</li>
+                <li>Requires an existing <code class="inline">serial</code> assertion, with one narrow exception: an offline, same-brand <code class="inline">UpdateRemodel</code> is allowed without one.</li>
+                <li>Refuses a series change, a classic-boot device, crossing classic↔non-classic, crossing grade (except the specific pre-UC20→UC20+ case, which gets its own explicit rejection message), losing a base snap (UC18+→UC16 backslide), or an architecture change.</li>
+                <li>Calls <code class="inline">snapstate.CheckChangeConflictRunExclusively(st, "remodel")</code> — remodels are exclusive: nothing else gets to run concurrently with one (a stronger guarantee than the ordinary per-snap conflict check from Section&nbsp;6.5).</li>
+              </ul>
+              <p>
+                Because a <code class="inline">StoreSwitchRemodel</code> has to release the state lock to establish a new store
+                session, <code class="inline">Remodel()</code> <b>re-validates after reacquiring it</b> — re-reads the current
+                model and checks it still matches what the function started with, and re-checks no other remodel Change snuck
+                in — the exact same "re-validate mutable state after the lock gap" pattern as Section&nbsp;6.1 and the conflict
+                race-check in 6.5, applied here at the top of a much bigger operation.
+              </p>
+              <p>
+                Finally: <code class="inline">chg := st.NewChange("remodel", msg)</code>, a <code class="inline">remodelContext</code>
+                is cached onto the Change itself (<code class="inline">remodCtx.Init(chg)</code>) so every task handler in the
+                remodel can look up kind-specific behavior (via <code class="inline">remodelCtxFromTask</code>) without having to
+                re-derive it, and every built taskset is added to the one Change.
+              </p>
+            </div>
+          </details>
         </article>
 
         <article class="card" id="classic-core-shared">
@@ -1272,7 +2127,7 @@ footer.pagefoot{max-width:880px;margin:40px auto 80px;padding:20px 28px;color:va
             <li><b>Which snaps are installed.</b> A system without gadget/kernel/base snaps simply never exercises the Core-specific <code class="inline">devicestate</code>/<code class="inline">boot</code> task kinds — there's nothing for them to do.</li>
             <li><code class="inline">release.OnClassic</code> and friends — small runtime checks that steer specific decisions (e.g. interface auto-connection defaults in the declaration policy, Section 7.4's <code class="inline">on-classic</code> constraints).</li>
             <li>The <code class="inline">asserts.Model</code> assertion's fields (<code class="inline">classic: true/false</code>, grade, gadget/kernel/base references) describe which shape a given device is.</li>
-            <li><code class="inline">snapstate.DeviceContext</code> is the interface <span class="path">snapstate</span> defines to ask "what kind of device/model am I on" without importing <code class="inline">devicestate</code> back (Section 9.3's acyclic-import rule in action) — concrete implementations come from <code class="inline">devicestate</code>.</li>
+            <li><code class="inline">snapstate.DeviceContext</code> is the interface <span class="path">snapstate</span> defines to ask "what kind of device/model am I on" without importing <code class="inline">devicestate</code> back (Section 9.2's acyclic-import rule in action) — concrete implementations come from <code class="inline">devicestate</code>.</li>
           </ul>
           <p>
             Net effect: adding a Core-only feature almost always means adding new task kinds/handlers in
@@ -1341,7 +2196,7 @@ footer.pagefoot{max-width:880px;margin:40px auto 80px;padding:20px 28px;color:va
           </div>
           <div class="finder-answer" data-ans="cli">
             <h4>A new `snap` CLI subcommand</h4>
-            <p>CLI subcommands live under <span class="path">cmd/snap</span> (not shown in the manager map above since it's client-side, not a daemon package) and talk to the daemon via <span class="path">client</span>, which wraps the REST API.</p>
+            <p>CLI subcommands live under <span class="path">cmd/snapd/cli</span> (not shown in the manager map above since it's client-side, not a daemon package) and talk to the daemon via <span class="path">client</span>, which wraps the REST API.</p>
           </div>
           <div class="finder-answer" data-ans="config">
             <h4>Snap configuration (`snap set`/`snap get`)</h4>
