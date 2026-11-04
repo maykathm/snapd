@@ -299,13 +299,136 @@ article.card.flash, section.part.flash > h2{animation:cardflash 1.4s ease-out;}
 .disk .seg.active{border-color:var(--accent);background:var(--accent-soft);}
 
 pre.code{background:var(--code-bg);padding:10px 12px;border-radius:8px;overflow-x:auto;font-size:12.5px;line-height:1.5;}
-.two-col{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
-@media (max-width:700px){.two-col{grid-template-columns:1fr;}}
-.mini{border:1px solid var(--border);border-radius:10px;padding:10px 12px;background:var(--bg);}
+.two-col{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px;}
+@media (max-width:700px){.two-col{grid-template-columns:minmax(0,1fr);}}
+.mini{min-width:0;border:1px solid var(--border);border-radius:10px;padding:10px 12px;background:var(--bg);}
 .mini h4{margin:0 0 4px;font-size:14px;}
 .mini p{margin:4px 0;font-size:13.5px;}
 
 
+/*TOURS-CSS-START*/
+/* ---------- diagram tours ---------- */
+:root{--own-data:#0f766e;--own-ext:#6b7280;--own-user:#4c51bf;--own-store:#b45309;--note-bg:#fffbea;--note-border:#d69e2e;}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--own-data:#4fd1c5;--own-ext:#9ca3af;--own-user:#a3bffa;--own-store:#f6ad55;--note-bg:#2d2610;--note-border:#d69e2e;}}
+:root[data-theme="dark"]{--own-data:#4fd1c5;--own-ext:#9ca3af;--own-user:#a3bffa;--own-store:#f6ad55;--note-bg:#2d2610;--note-border:#d69e2e;}
+.own.data{color:var(--own-data);} .own.ext{color:var(--own-ext);} .own.user{color:var(--own-user);} .own.store{color:var(--own-store);}
+
+.dp{border:1px solid var(--border);border-radius:14px;background:var(--bg);margin:16px 0;outline:none;overflow:hidden;}
+.dp:focus-visible{box-shadow:0 0 0 2px var(--accent);}
+.dp-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 14px 6px;flex-wrap:wrap;}
+.dp-title b{display:block;font-size:15.5px;}
+.dp-title span{font-size:12.5px;color:var(--text-dim);}
+.dp-tools{display:flex;gap:6px;}
+.dp-btn{display:inline-flex;align-items:center;gap:4px;border:1px solid var(--border);background:var(--bg-elevated);color:var(--text);border-radius:8px;padding:6px 11px;cursor:pointer;font:inherit;font-size:12.5px;text-decoration:none;}
+.dp-btn:hover{border-color:var(--accent);text-decoration:none;}
+.dp-btn:disabled{opacity:.4;cursor:default;}
+.dp-btn.dp-next{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);}
+.dp-btn.playing{background:var(--accent-soft);color:var(--accent);}
+.dp-legend{display:flex;flex-wrap:wrap;gap:6px;padding:0 14px 8px;align-items:center;}
+.dp-hint{font-size:11.5px;color:var(--text-dim);margin-left:auto;}
+.dp-body{display:flex;flex-direction:column;border-top:1px solid var(--border);}
+.dp-canvas{background:var(--bg-elevated);padding:8px;}
+.dp-canvas svg{display:block;width:100%;height:auto;max-height:78vh;}
+.dp-panel{padding:14px 16px;min-height:200px;border-top:1px solid var(--border);font-size:14.5px;}
+.dp-panel h4{margin:2px 0 6px;font-size:16px;}
+.dp-panel p,.dp-panel li{font-size:14.5px;}
+.dp-panel ul,.dp-panel ol{padding-left:20px;margin:6px 0;}
+.dp-step-label{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--accent);font-weight:700;}
+.dp-code{font-size:13px;color:var(--text-dim);}
+.dp-related{line-height:2;}
+.dp-chip{border:1px solid var(--border);background:var(--bg-elevated);color:var(--text);border-radius:20px;padding:2px 10px;font:inherit;font-size:12px;cursor:pointer;}
+.dp-chip:hover{border-color:var(--accent);color:var(--accent);}
+.dp-controls{display:flex;align-items:center;gap:8px;padding:10px 14px;border-top:1px solid var(--border);flex-wrap:wrap;}
+.dp-dots{display:flex;flex-wrap:wrap;gap:5px;flex:1;justify-content:center;}
+.dp-dot{width:12px;height:12px;border-radius:50%;border:1.5px solid var(--accent);background:transparent;padding:0;cursor:pointer;}
+.dp-dot.seen{background:var(--accent-soft);}
+.dp-dot.active{background:var(--accent);transform:scale(1.25);}
+.dp-transcript{border-top:1px solid var(--border);padding:8px 16px;font-size:13.5px;}
+.dp-transcript summary{cursor:pointer;color:var(--text-dim);font-size:12.5px;}
+.dp-transcript li{margin:8px 0;}
+.dp-transcript dt{font-weight:700;margin-top:6px;}
+.dp-transcript dd{margin:0 0 4px 0;color:var(--text-dim);}
+
+/* svg parts */
+.dp svg text{font-family:inherit;}
+.dp .dp-bg{fill:transparent;}
+.dp .g rect{fill:var(--bg);stroke:var(--border);stroke-width:1.2;}
+.dp .g .g-label{font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;fill:var(--text-dim);}
+.dp .g.clickable .g-label{cursor:pointer;}
+.dp .g.k-fw rect{stroke:var(--own-fw);} .dp .g.k-bl rect{stroke:var(--own-bl);} .dp .g.k-kern rect{stroke:var(--own-kern);}
+.dp .g.k-sb rect{stroke:var(--own-sb);} .dp .g.k-sys rect{stroke:var(--own-sys);} .dp .g.k-snapd rect{stroke:var(--own-snapd);}
+.dp .g.k-data rect{stroke:var(--own-data);} .dp .g.k-user rect{stroke:var(--own-user);} .dp .g.k-store rect{stroke:var(--own-store);}
+.dp .g rect{stroke-dasharray:5 4;}
+.dp .n{cursor:pointer;}
+.dp .n rect{fill:var(--diagram-box);stroke:var(--n-color,var(--border));stroke-width:1.4;transition:stroke-width .15s;}
+.dp .n .n-stripe{fill:var(--n-color,var(--border));stroke:none;}
+.dp .n .n-title{font-size:12.5px;font-weight:700;fill:var(--diagram-text);}
+.dp .n .n-sub{font-size:10.5px;fill:var(--text-dim);}
+.dp .n:hover rect:first-child{stroke-width:2.6;}
+.dp .n.k-fw{--n-color:var(--own-fw);} .dp .n.k-bl{--n-color:var(--own-bl);} .dp .n.k-kern{--n-color:var(--own-kern);}
+.dp .n.k-sb{--n-color:var(--own-sb);} .dp .n.k-sys{--n-color:var(--own-sys);} .dp .n.k-snapd{--n-color:var(--own-snapd);}
+.dp .n.k-data{--n-color:var(--own-data);} .dp .n.k-ext{--n-color:var(--own-ext);} .dp .n.k-user{--n-color:var(--own-user);} .dp .n.k-store{--n-color:var(--own-store);}
+.dp .n.ghost rect:first-child{stroke-dasharray:4 3;fill:transparent;}
+.dp .e-path{fill:none;stroke:var(--diagram-line);stroke-width:1.3;opacity:.55;}
+.dp .e.dashed .e-path{stroke-dasharray:3 4;}
+.dp .e-label{font-size:10.5px;fill:var(--text-dim);paint-order:stroke;stroke:var(--bg-elevated);stroke-width:4px;stroke-linejoin:round;}
+.dp .dp-arrow-dim{fill:var(--diagram-line);opacity:.55;}
+.dp .dp-arrow-on{fill:var(--accent);}
+.dp svg .n, .dp svg .e, .dp svg .g{transition:opacity .25s;}
+.dp svg:not(.focus) .e{opacity:.35;}
+.dp svg:not(.focus) .e-label{display:none;}
+.dp svg.focus .n:not(.on){opacity:.2;}
+.dp svg.focus .e:not(.on){opacity:.06;}
+.dp svg.focus .g:not(.on){opacity:.7;}
+.dp svg.focus .e:not(.on) .e-label{display:none;}
+.dp .n.on rect:first-child{stroke-width:2.6;fill:var(--accent-soft);}
+.dp .n.sel rect:first-child{stroke:var(--accent);stroke-width:3.2;}
+.dp .g.on rect{stroke-width:2.2;stroke-dasharray:none;}
+.dp .e.on .e-path{stroke:var(--accent);stroke-width:2.4;opacity:1;stroke-dasharray:7 5;animation:dpflow 1s linear infinite;}
+.dp .e.on .e-label{fill:var(--accent);font-weight:700;}
+@keyframes dpflow{to{stroke-dashoffset:-24;}}
+.dp .note-box{fill:var(--note-bg);stroke:var(--note-border);stroke-width:1.2;}
+.dp .note-text{font-size:11px;fill:var(--text);}
+.dp .note-lead{stroke:var(--note-border);stroke-width:1.2;stroke-dasharray:2 2;}
+.dp .note-dot{fill:var(--note-border);}
+.dp .note.pop{animation:notepop .35s ease-out both;}
+@keyframes notepop{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:none;}}
+@media (prefers-reduced-motion: reduce){.dp .e.on .e-path{animation:none;}}
+
+/* full screen */
+body.dp-lock{overflow:hidden;}
+.dp.dp-full{position:fixed;inset:0;z-index:60;margin:0;border-radius:0;display:flex;flex-direction:column;overflow:auto;}
+.dp.dp-full .dp-body{flex:1;min-height:0;}
+.dp.dp-full .dp-transcript{display:none;}
+@media (min-width:1000px){
+  .dp.dp-full .dp-body{flex-direction:row;}
+  .dp.dp-full .dp-canvas{flex:1 1 68%;display:flex;align-items:center;justify-content:center;min-width:0;}
+  .dp.dp-full .dp-canvas svg{max-height:calc(100vh - 150px);}
+  .dp.dp-full .dp-panel{flex:0 0 32%;max-width:520px;border-top:0;border-left:1px solid var(--border);overflow-y:auto;font-size:15px;}
+}
+
+/* tour hub */
+.tour-hub{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px;margin:14px 0;}
+.tour-card{display:flex;gap:12px;border:1px solid var(--border);border-radius:12px;padding:14px;background:var(--bg);}
+.tour-card p{margin:4px 0;font-size:13.5px;color:var(--text-dim);}
+.tour-icon{font-size:22px;width:40px;height:40px;flex:none;border-radius:10px;background:var(--accent-soft);color:var(--accent);display:flex;align-items:center;justify-content:center;}
+.tour-meta{font-size:11.5px;color:var(--text-dim);margin:4px 0 8px;}
+.tour-actions{display:flex;gap:6px;flex-wrap:wrap;}
+.dp-canvas{overflow-x:auto;}
+@media (max-width:999px){
+  .dp.dp-full .dp-body{flex:none;}
+  .dp.dp-full .dp-controls{position:sticky;bottom:0;background:var(--bg);z-index:2;}
+}
+@media (max-width:700px){
+  .dp-canvas svg{min-width:720px;}
+  .dp-legend{flex-wrap:nowrap;overflow-x:auto;padding-bottom:10px;}
+  .dp-legend .own{flex:none;}
+  .dp-head{padding-top:10px;}
+  .dp-title span{display:none;}
+  .dp-controls{gap:6px;}
+  .dp-dots{order:5;flex-basis:100%;}
+}
+/*TOURS-CSS-END*/
 /* mobile */
 .menu-btn{display:none;}
 @media (max-width:860px){
@@ -317,6 +440,11 @@ pre.code{background:var(--code-bg);padding:10px 12px;border-radius:8px;overflow-
     color:var(--text);border-radius:8px;padding:7px 10px;font-size:13px;cursor:pointer;}
   .topbar .tbtitle{font-weight:700;font-size:14px;}
   .content{padding:20px 16px 100px;}
+  .path, code.inline{white-space:normal;overflow-wrap:anywhere;}
+  article.card table{display:block;overflow-x:auto;}
+  article.card{padding:14px 14px;}
+  .dp-hint{display:none;}
+  .tour-card{flex-direction:column;}
   .scrim{display:none;position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:15;}
   .scrim.show{display:block;}
 }
@@ -379,7 +507,12 @@ pre.code{background:var(--code-bg);padding:10px 12px;border-radius:8px;overflow-
           <b>How to use it:</b> every section starts with an <i>In plain terms</i> summary; cards explain the mechanism;
           <i>Go deeper</i> panels open into the code-level detail with file and function references. Press <kbd>/</kbd> to
           search everything (including closed panels), use the numbered table of contents on the left, and follow the
-          underlined cross-references. Interactive timelines (boot, install, the task chain) step through a process one stage at a time.
+          underlined cross-references.
+        </p>
+        <p>
+          <b>Prefer pictures?</b> Start with the <a class="xref" href="#visual-tours"></a>: eight interactive, annotated diagrams —
+          the system map, launching a snap, the daemon's request lifecycle, and the Ubuntu Core boot, try-boot, install,
+          mode-switching and encryption flows — each with a guided tour, click-anything explore mode and a full-screen view.
         </p>
         <div class="tags">
           <span class="tag">entry points</span>
@@ -467,6 +600,30 @@ pre.code{background:var(--code-bg);padding:10px 12px;border-radius:8px;overflow-
             behavior) and a few build/runtime checks (<code class="inline">release.OnClassic</code>,
             device-context, model assertion fields) that steer specific code paths. See <a class="xref" href="#classic-core-shared"></a>.
           </p>
+        </article>
+              <article class="card" id="system-map">
+          <h3>Interactive system map</h3>
+          <p>Every major part of snapd and what it talks to. Click around, or take the tour of a request and a launch.</p>
+          <div data-tour="map"></div>
+        </article>
+      </section>
+
+      <!-- ============================================================ -->
+      <section class="part" id="visual-tours" data-group="Start here">
+        <h2><span class="num">0</span> Visual tours</h2>
+        <p class="lede">Interactive, annotated diagrams of snapd's most important processes. Start here if you prefer pictures to prose.</p>
+        <div class="tldr"><b class="label">How the diagrams work</b>
+          <ul>
+            <li><b>Tour mode</b>: press <b>Next</b> (or ← / →) to step through a process. Each step highlights the pieces involved, animates what reads or writes what, and pins notes onto the diagram; the panel explains the step in plain language.</li>
+            <li><b>Explore mode</b>: click any box to see what it is, which code owns it, what it's connected to, and a link to the detailed section. Click the background to return to the tour.</li>
+            <li><b>Colours</b> show who owns each piece — firmware, bootloader, kernel, snap-bootstrap, systemd, snapd, data on disk.</li>
+            <li><b>⤢ Full screen</b> gives a big side-by-side view; <b>▶ Play</b> runs the tour on its own; every tour can also be read as plain text underneath it.</li>
+          </ul>
+        </div>
+        <article class="card" id="tour-index">
+          <h3>Pick a tour</h3>
+          <p>Each tour also lives in the section it illustrates — "Go to section" takes you there.</p>
+          <div class="tour-hub" id="tourHub"></div>
         </article>
       </section>
 
@@ -619,56 +776,11 @@ var reexecTools = []string{"snapd-apparmor", "snap-gpio-helper"}</pre>
         <p class="lede">What happens, in order, between typing a command and your snap's code actually running.</p>
         <div class="tldr"><b class="label">In plain terms</b>Three programs run in a strict chain, each <code class="inline">exec</code>-ing the next: <b>snap run</b> works out what to launch → <b>snap-confine</b> (the only privileged step) builds the sandbox → <b>snap-exec</b>, already inside the sandbox, starts the app. No snapd code remains once the app is running.</div>
 
-        <div class="diagram">
-          <svg viewBox="0 0 640 520" width="100%" height="520">
-            <defs>
-              <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-                <path d="M0,0 L10,5 L0,10 z" fill="var(--diagram-line)"/>
-              </marker>
-            </defs>
-            <style>
-              .pb{fill:var(--diagram-box);stroke:var(--diagram-box-border);stroke-width:1.4;}
-              .pt{fill:var(--diagram-text);font-size:13px;font-family:inherit;text-anchor:middle;}
-              .ps{fill:var(--diagram-text);font-size:11px;font-family:inherit;text-anchor:middle;opacity:.75;}
-              .pl{stroke:var(--diagram-line);stroke-width:1.6;marker-end:url(#arrow);}
-              .zone{fill:none;stroke:var(--diagram-box-border);stroke-dasharray:4 4;stroke-width:1.2;}
-              .zt{fill:var(--diagram-text);font-size:11px;font-family:inherit;font-weight:700;}
-            </style>
-
-            <rect x="20" y="10" width="600" height="80" rx="8" class="pb"/>
-            <text x="320" y="38" class="pt">/snap/bin/&lt;app&gt; (symlink)  or  systemd unit  or  `snap run &lt;snap.app&gt;`</text>
-            <text x="320" y="58" class="ps">possible re-exec into newer snapd/core snap first</text>
-            <line x1="320" y1="90" x2="320" y2="116" class="pl"/>
-
-            <rect x="170" y="118" width="300" height="56" rx="8" class="pb"/>
-            <text x="320" y="142" class="pt">snap run &lt;snap.app&gt;</text>
-            <text x="320" y="160" class="ps">snap CLI — reads metadata, builds command line</text>
-            <line x1="320" y1="174" x2="320" y2="200" class="pl"/>
-
-            <rect x="60" y="202" width="520" height="180" rx="8" class="zone"/>
-            <text x="78" y="220" class="zt">HOST (still unconfined)</text>
-
-            <rect x="170" y="228" width="300" height="56" rx="8" class="pb"/>
-            <text x="320" y="252" class="pt">snap-confine</text>
-            <text x="320" y="270" class="ps">sets up sandbox: namespaces, mounts, profiles</text>
-            <line x1="320" y1="284" x2="320" y2="310" class="pl"/>
-
-            <text x="320" y="330" class="pt" font-weight="700">unshare(2)</text>
-            <line x1="320" y1="340" x2="320" y2="366" class="pl"/>
-
-            <rect x="60" y="384" width="520" height="130" rx="8" class="zone" stroke="var(--core-border)"/>
-            <text x="78" y="402" class="zt" fill="var(--core-border)">SANDBOX (confined)</text>
-
-            <rect x="170" y="410" width="300" height="52" rx="8" class="pb"/>
-            <text x="320" y="432" class="pt">snap-exec</text>
-            <text x="320" y="450" class="ps">final env/argv setup, drops remaining privilege</text>
-            <line x1="320" y1="462" x2="320" y2="488" class="pl"/>
-
-            <rect x="170" y="490" width="300" height="20" rx="6" class="pb" fill="var(--core-bg)"/>
-            <text x="320" y="505" class="pt" style="font-size:12px">&lt;snap.app&gt; entrypoint (exec)</text>
-          </svg>
-          <div class="diagram-caption">Everything above the dashed "SANDBOX" line runs with host privileges; everything below runs confined.</div>
-        </div>
+        <article class="card" id="run-tour">
+          <h3>Interactive: launching a snap</h3>
+          <p>Step through the launch chain, or click any piece to see what it does.</p>
+          <div data-tour="run"></div>
+        </article>
 
         <article class="card" id="snap-run">
           <h3>snap run</h3>
@@ -1048,47 +1160,11 @@ TAG=="&lt;tag&gt;", SUBSYSTEM!="module", SUBSYSTEM!="subsystem", \
           </details>
         </article>
 
-        <div class="diagram">
-          <svg viewBox="0 0 700 300" width="100%" height="300">
-            <defs>
-              <marker id="arrow2" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-                <path d="M0,0 L10,5 L0,10 z" fill="var(--diagram-line)"/>
-              </marker>
-            </defs>
-            <style>
-              .ob{fill:var(--diagram-box);stroke:var(--diagram-box-border);stroke-width:1.3;}
-              .ot{fill:var(--diagram-text);font-size:12px;font-family:inherit;text-anchor:middle;}
-              .ol{stroke:var(--diagram-line);stroke-width:1.5;marker-end:url(#arrow2);fill:none;}
-            </style>
-            <circle cx="350" cy="150" r="118" fill="none" stroke="var(--diagram-box-border)" stroke-width="1.3" stroke-dasharray="3 5"/>
-            <text x="350" y="40" class="ot" font-weight="700">ensure loop (≥ every 5 min, or on demand)</text>
-
-            <rect x="60" y="120" width="130" height="56" rx="8" class="ob"/>
-            <text x="125" y="142" class="ot">RestartManager.Ensure</text>
-            <text x="125" y="160" class="ot" opacity=".7" font-size="10.5">reboot/restart tracking</text>
-
-            <rect x="215" y="60" width="140" height="50" rx="8" class="ob"/>
-            <text x="285" y="80" class="ot">SnapManager.Ensure</text>
-            <text x="285" y="97" class="ot" opacity=".7" font-size="10.5">auto-refresh scheduling</text>
-
-            <rect x="400" y="60" width="150" height="50" rx="8" class="ob"/>
-            <text x="475" y="80" class="ot">InterfaceManager.Ensure</text>
-            <text x="475" y="97" class="ot" opacity=".7" font-size="10.5">hotplug, profile repair</text>
-
-            <rect x="215" y="200" width="140" height="50" rx="8" class="ob"/>
-            <text x="285" y="220" class="ot">AssertManager.Ensure</text>
-            <text x="285" y="237" class="ot" opacity=".7" font-size="10.5">refresh assertions</text>
-
-            <rect x="400" y="200" width="150" height="50" rx="8" class="ob"/>
-            <text x="475" y="220" class="ot">DeviceManager.Ensure</text>
-            <text x="475" y="237" class="ot" opacity=".7" font-size="10.5">registration, seeding, boot</text>
-
-            <rect x="540" y="120" width="140" height="56" rx="8" class="ob" fill="var(--diagram-accent-fill)"/>
-            <text x="610" y="142" class="ot" font-weight="700">TaskRunner.Ensure</text>
-            <text x="610" y="160" class="ot" opacity=".7" font-size="10.5">runs last: executes due Tasks</text>
-          </svg>
-          <div class="diagram-caption">Simplified: every registered manager's Ensure() runs each loop iteration; TaskRunner's runs last so freshly-created tasks get picked up without waiting for the next tick.</div>
-        </div>
+        <article class="card" id="daemon-tour">
+          <h3>Interactive: a request's life inside the daemon</h3>
+          <p>From an API call to persistent, resumable work — and what happens on failure and across restarts.</p>
+          <div data-tour="daemon"></div>
+        </article>
       </section>
 
       <!-- ============================================================ -->
@@ -2408,143 +2484,9 @@ WantedBy=multi-user.target</pre>
         </div>
 
         <article class="card" id="boot-timeline">
-          <h3>Interactive boot timeline</h3>
-          <p>Click a stage (or use Next/Previous). Each stage is colour-coded by <i>who is running</i>:</p>
-          <div class="legend">
-            <span class="own fw">firmware</span>
-            <span class="own bl">bootloader (config written by snapd)</span>
-            <span class="own kern">kernel</span>
-            <span class="own sb">snap-bootstrap (snapd code in the initrd)</span>
-            <span class="own sys">systemd</span>
-            <span class="own snapd">snapd daemon &amp; helpers</span>
-          </div>
-
-          <div class="stepper" data-stepper>
-            <div class="step-row">
-              <button class="step-btn" data-own="fw" data-step-btn="fw"><b>1. Firmware</b><small>UEFI, Secure Boot</small></button>
-              <button class="step-btn" data-own="bl" data-step-btn="seedgrub"><b>2. Recovery grub</b><small>on ubuntu-seed</small></button>
-              <button class="step-btn" data-own="bl" data-step-btn="rungrub"><b>3. Run grub</b><small>on ubuntu-boot</small></button>
-              <button class="step-btn" data-own="kern" data-step-btn="kernel"><b>4. kernel.efi</b><small>kernel + initrd</small></button>
-              <button class="step-btn" data-own="sb" data-step-btn="scan"><b>5. Find the disk</b><small>snap-bootstrap scan-disk</small></button>
-              <button class="step-btn" data-own="sb" data-step-btn="mounts"><b>6. Mount &amp; unlock</b><small>initramfs-mounts</small></button>
-              <button class="step-btn" data-own="sys" data-step-btn="sysroot"><b>7. Assemble root</b><small>base + writable</small></button>
-              <button class="step-btn" data-own="sys" data-step-btn="switch"><b>8. switch-root</b><small>leave the initrd</small></button>
-              <button class="step-btn" data-own="snapd" data-step-btn="generators"><b>9. Generators</b><small>snapd-generator</small></button>
-              <button class="step-btn" data-own="snapd" data-step-btn="units"><b>10. Early units</b><small>mounts, AppArmor</small></button>
-              <button class="step-btn" data-own="snapd" data-step-btn="daemon"><b>11. snapd starts</b><small>snapd.service</small></button>
-              <button class="step-btn" data-own="snapd" data-step-btn="confirm"><b>12. Boot confirmed</b><small>MarkBootSuccessful</small></button>
-            </div>
-
-            <div class="step-panel" data-step-panel="fw">
-              <h4>1. Firmware loads shim from ubuntu-seed <span class="own fw">firmware</span></h4>
-              <p>The UEFI firmware finds the EFI System Partition — on Ubuntu Core that is <b>ubuntu-seed</b> (vfat) — and loads <code class="inline">EFI/boot/bootx64.efi</code>, which is <b>shim</b>. With Secure Boot on, firmware verifies shim's signature, and each stage after this verifies and <i>measures</i> the next one into the TPM.</p>
-              <p><b>snapd's part:</b> snapd put those files there. shim and grub come from the <i>gadget</i> snap and are treated as <b>trusted assets</b>: snapd records their hashes in the modeenv (<code class="inline">CurrentTrustedRecoveryBootAssets</code>), keeps copies in a cache (<span class="path">boot/assets.go</span>), and only replaces them through an observed gadget update so FDE keys can be resealed first. On systems that support it snapd also writes the UEFI boot entry itself (<code class="inline">UpdateBootEntry</code>, via the <code class="inline">UefiBootloader</code> interface).</p>
-            </div>
-
-            <div class="step-panel" data-step-panel="seedgrub" hidden>
-              <h4>2. Recovery grub decides the mode <span class="own bl">bootloader</span></h4>
-              <p>shim starts grub from ubuntu-seed, which runs <code class="inline">EFI/ubuntu/grub.cfg</code> — a file <b>shipped inside snapd</b> (<span class="path">bootloader/assets/data/grub-recovery.cfg</span>, marked <code class="inline"># Snapd-Boot-Config-Edition: 2</code>). It reads two variables from the seed's <code class="inline">grubenv</code>:</p>
-              <ul>
-                <li><code class="inline">snapd_recovery_mode</code> — <code class="inline">run</code>, <code class="inline">recover</code>, <code class="inline">install</code> or <code class="inline">factory-reset</code> (unset means <code class="inline">install</code>: a factory-fresh image installs itself),</li>
-                <li><code class="inline">snapd_recovery_system</code> — which recovery system (seed label) to use.</li>
-              </ul>
-              <p>For <b>run</b> it simply chainloads the second grub on ubuntu-boot. For the other modes it loop-mounts the <i>kernel snap file</i> of the chosen recovery system (<code class="inline">/systems/&lt;label&gt;/...</code>) and chainloads its <code class="inline">kernel.efi</code> with <code class="inline">snapd_recovery_mode=&lt;mode&gt; snapd_recovery_system=&lt;label&gt;</code> on the command line. The recover entry first writes <code class="inline">snapd_recovery_mode=run</code> back, so recovery is one-shot: the next reboot returns to normal.</p>
-              <p><b>snapd's part:</b> the config file itself, and the variables. snapd writes them when you ask for a mode switch (<code class="inline">boot.SetRecoveryBootSystemAndMode</code> — see <a class="xref" href="#boot-modes"></a>), and after install (<code class="inline">EnsureNextBootToRunMode</code>).</p>
-            </div>
-
-            <div class="step-panel" data-step-panel="rungrub" hidden>
-              <h4>3. Run grub picks the kernel — or the <i>try</i> kernel <span class="own bl">bootloader</span></h4>
-              <p>The second grub (ubuntu-boot, <span class="path">bootloader/assets/data/grub.cfg</span>, edition 3) loads only three variables from <code class="inline">ubuntu-boot/EFI/ubuntu/grubenv</code>: <code class="inline">kernel_status</code>, <code class="inline">snapd_extra_cmdline_args</code>, <code class="inline">snapd_full_cmdline_args</code>. Then:</p>
-              <ul>
-                <li><code class="inline">kernel_status=try</code> → set it to <code class="inline">trying</code>, save, boot <code class="inline">try-kernel.efi</code> (a new kernel being tested);</li>
-                <li><code class="inline">kernel_status=trying</code> → the last try never got confirmed (it crashed or hung): reset to empty and boot the old <code class="inline">kernel.efi</code>;</li>
-                <li>otherwise boot <code class="inline">kernel.efi</code> with <code class="inline">snapd_recovery_mode=run</code> plus the cmdline args.</li>
-              </ul>
-              <p><b>snapd's part:</b> <code class="inline">kernel.efi</code> and <code class="inline">try-kernel.efi</code> are symlinks snapd manages into per-revision directories like <span class="path">EFI/ubuntu/pc-kernel_123.snap/kernel.efi</span> (<code class="inline">EnableKernel</code>/<code class="inline">EnableTryKernel</code> in <span class="path">bootloader/grub.go</span>). Setting <code class="inline">kernel_status=try</code> is the very last thing a kernel refresh does before rebooting.</p>
-            </div>
-
-            <div class="step-panel" data-step-panel="kernel" hidden>
-              <h4>4. kernel.efi: kernel and initrd in one signed file <span class="own kern">kernel</span></h4>
-              <p><code class="inline">kernel.efi</code> is a Unified Kernel Image: the Linux kernel, the initrd and a small EFI stub (systemd's sd-stub) in a single signed EFI binary, built by the kernel snap's toolchain (<span class="path">core-initrd/*/bin/ubuntu-core-initramfs</span>). Because the initrd is inside the signed, measured file, nobody can swap the early userspace without changing the measurements.</p>
-              <p>The kernel command line is composed by snapd (<code class="inline">composeCommandLine</code> in <span class="path">boot/cmdline.go</span>): the bootloader's static arguments (e.g. <code class="inline">panic=-1</code>, consoles), plus the mode argument, plus whatever the <b>gadget</b> adds or removes (<code class="inline">kernel-cmdline</code> in gadget.yaml, or legacy <code class="inline">cmdline.extra</code>/<code class="inline">cmdline.full</code>). snapd stores the result in the boot variables above so grub only has to append it.</p>
-              <p><b>snapd's part:</b> choosing which kernel file is current, extracting it from the kernel snap onto ubuntu-boot, and computing the command line.</p>
-            </div>
-
-            <div class="step-panel" data-step-panel="scan" hidden>
-              <h4>5. In the initrd: find the boot disk <span class="own sb">snap-bootstrap</span></h4>
-              <p>The initrd is a small systemd system (<span class="path">core-initrd/</span>). A udev rule (<code class="inline">90-ubuntu-core-partitions.rules</code>) runs <code class="inline">snap-bootstrap scan-disk</code> on block devices. It identifies the disk the system booted from and creates stable symlinks: <code class="inline">/dev/disk/snapd/{disk, ubuntu-seed, ubuntu-boot, ubuntu-data[-luks], ubuntu-save[-luks]}</code>.</p>
-              <p><b>snapd's part:</b> all of it — <code class="inline">snap-bootstrap</code> is a snapd binary (<span class="path">cmd/snap-bootstrap</span>) with three subcommands: <code class="inline">scan-disk</code>, <code class="inline">initramfs-mounts</code> and <code class="inline">recovery-chooser-trigger</code>.</p>
-            </div>
-
-            <div class="step-panel" data-step-panel="mounts" hidden>
-              <h4>6. Mount partitions, unlock encryption, pick the snaps <span class="own sb">snap-bootstrap</span></h4>
-              <p><code class="inline">snap-initramfs-mounts.service</code> runs <code class="inline">snap-bootstrap initramfs-mounts</code>, the heart of early boot. In <b>run</b> mode (<code class="inline">generateMountsModeRun</code>):</p>
-              <ol>
-                <li>mount <b>ubuntu-boot</b> at <code class="inline">/run/mnt/ubuntu-boot</code>;</li>
-                <li>measure the <b>model assertion</b> into the TPM (so keys only unseal for this model);</li>
-                <li>mount <b>ubuntu-seed</b> at <code class="inline">/run/mnt/ubuntu-seed</code> (fsck'd every boot — it's a writable vfat);</li>
-                <li>unlock <b>ubuntu-data</b> and <b>ubuntu-save</b> with the TPM-sealed key (or a recovery key/passphrase) and mount them at <code class="inline">/run/mnt/data</code> and <code class="inline">/run/mnt/ubuntu-save</code>;</li>
-                <li>read the <b>modeenv</b> from data, and decide which base, gadget and kernel revisions to use (<code class="inline">boot.InitramfsRunModeSelectSnapsToMount</code>) — this is where a <b>base</b> try-update is handled, because grub can't read ubuntu-data: the initrd itself moves <code class="inline">BaseStatus</code> from <code class="inline">try</code> to <code class="inline">trying</code> (or falls back if it finds <code class="inline">trying</code> left over);</li>
-                <li>check the kernel that actually booted is one the modeenv trusts; if not, reboot to fall back;</li>
-                <li>mount the gadget and kernel snaps under <code class="inline">/run/mnt/{gadget,kernel}</code> and write a <code class="inline">sysroot.mount</code> unit for the base snap;</li>
-                <li>on first boot only, mount the seed's snapd snap so it can run before anything is installed;</li>
-                <li>finally, <b>lock the sealed keys</b> so nothing later in boot can unseal them again.</li>
-              </ol>
-              <p>The other modes — install, recover, factory-reset — are covered in <a class="xref" href="#snap-bootstrap"></a>.</p>
-            </div>
-
-            <div class="step-panel" data-step-panel="sysroot" hidden>
-              <h4>7. Assemble the root filesystem from snaps <span class="own sys">systemd</span> <span class="own sb">snap-bootstrap</span></h4>
-              <p>The root filesystem is the <b>base snap's read-only SquashFS</b>, mounted at <code class="inline">/sysroot</code>. Writable state is grafted on: <code class="inline">sysroot-writable.mount</code> binds the data partition to <code class="inline">/sysroot/writable</code>; the base's legacy <i>writable-paths</i> list is applied by an initrd script; and <code class="inline">the-modeenv</code> generates an fstab that binds <code class="inline">ubuntu-boot/EFI/ubuntu</code> to <code class="inline">/boot/grub</code> and ubuntu-seed to <code class="inline">/boot/efi</code> inside the final system.</p>
-              <p>The result: the "operating system" you boot into is literally a snap, and upgrading the OS means swapping which base SquashFS gets mounted here.</p>
-            </div>
-
-            <div class="step-panel" data-step-panel="switch" hidden>
-              <h4>8. switch-root into the real system <span class="own sys">systemd</span></h4>
-              <p>systemd's standard <code class="inline">initrd-switch-root.target</code> pivots into <code class="inline">/sysroot</code>. A snapd-provided unit (<code class="inline">recovery-chooser-trigger-switchroot.service</code>) carries one piece of state across: whether the user pressed the "recovery chooser" key during boot (see <a class="xref" href="#boot-modes"></a>).</p>
-            </div>
-
-            <div class="step-panel" data-step-panel="generators" hidden>
-              <h4>9. systemd generators shipped by snapd <span class="own snapd">snapd helpers</span></h4>
-              <ul>
-                <li><b>snapd-generator</b> (<span class="path">cmd/snapd-generator</span>, C): finds the kernel snap mounted by the initrd and generates early mount units for its <code class="inline">modules</code>/<code class="inline">firmware</code> (the kernel <i>drivers tree</i>, UC24+), and makes sure the root filesystem is a shared mount (needed for snap mount namespaces).</li>
-                <li><b>snapd-env-generator</b>: adds <code class="inline">/snap/bin</code> to <code class="inline">PATH</code>.</li>
-              </ul>
-            </div>
-
-            <div class="step-panel" data-step-panel="units" hidden>
-              <h4>10. Early units: mount every snap, load AppArmor <span class="own snapd">snapd helpers</span> <span class="own sys">systemd</span></h4>
-              <ul>
-                <li>Every installed snap has a generated <b>.mount unit</b> (written by snapd when the snap was installed — <span class="path">systemd/systemd.go</span>) ordered before <code class="inline">snapd.mounts.target</code>. Kernel snaps' mounts are additionally ordered before udev and module loading.</li>
-                <li><b>snapd.apparmor.service</b> loads all snap AppArmor profiles from disk <i>before</i> <code class="inline">sysinit.target</code>, so snap services can start confined without waiting for the daemon.</li>
-                <li><b>snapd.core-fixup.service</b> (Core only) applies small fix-ups before snapd starts.</li>
-                <li><b>snapd.recovery-chooser-trigger.service</b> watches for the recovery key on the console.</li>
-              </ul>
-            </div>
-
-            <div class="step-panel" data-step-panel="daemon" hidden>
-              <h4>11. snapd.service starts <span class="own snapd">snapd daemon</span></h4>
-              <p>On Core, snapd runs from the <code class="inline">snapd</code> snap. The unit is <code class="inline">Type=notify</code> with a 5-minute watchdog and <code class="inline">Restart=always</code>. If a freshly-refreshed snapd keeps failing, <code class="inline">OnFailure=snapd.failure.service</code> runs <b>snap-failure</b>, which points <code class="inline">/snap/snapd/current</code> back at the previous revision and starts that instead (<a class="xref" href="#base-snapd-snap"></a>).</p>
-              <p>The daemon loads <code class="inline">state.json</code>, starts the managers (<a class="xref" href="#overlord-lifecycle"></a>) and enters the ensure loop.</p>
-            </div>
-
-            <div class="step-panel" data-step-panel="confirm" hidden>
-              <h4>12. snapd confirms the boot <span class="own snapd">snapd daemon</span></h4>
-              <p>On the first ensure-loop pass after each boot, <code class="inline">DeviceManager.ensureBootOk()</code> (<span class="path">overlord/devicestate/devicemgr.go</span>) runs in run mode:</p>
-              <ol>
-                <li>it compares the current kernel boot id with the one it last handled — so it acts exactly once per boot;</li>
-                <li>calls <code class="inline">boot.MarkBootSuccessful()</code>: a <code class="inline">try</code> kernel or base becomes the <i>current</i> one, boot-asset hash lists collapse to the new single value, tried recovery systems and a remodel's new model are committed;</li>
-                <li>calls <code class="inline">snapstate.UpdateBootRevisions()</code>: if what actually booted differs from what snapd thought was current (because the bootloader fell back), it creates a change to revert its own records to match reality.</li>
-              </ol>
-              <p>Only now is an update truly "done". This one step is what turns the bootloader's try/fallback mechanism into safe, automatic rollback — see <a class="xref" href="#try-boot"></a>.</p>
-            </div>
-
-            <div class="step-nav">
-              <button data-step-prev>← Previous</button>
-              <span data-step-progress></span>
-              <button data-step-next>Next →</button>
-            </div>
-          </div>
+          <h3>Interactive boot map</h3>
+          <p>A map of the device — hardware, the four partitions and the files that matter in them, the initrd, and the running system — that boots step by step. Each step highlights the pieces involved, animates what reads or writes what, and pins notes on the diagram. Click any box at any time to learn what it is and which code owns it, or open it full screen.</p>
+          <div data-tour="boot"></div>
           <div class="callout classic"><b class="label">Other architectures:</b> the stages are the same with a different bootloader. Raspberry Pi uses <b>piboot</b> (the Pi firmware's own <code class="inline">tryboot</code> mechanism; snapd writes <code class="inline">config.txt</code>/<code class="inline">tryboot.txt</code> and extracts kernel, initrd and device trees), other ARM boards use <b>u-boot</b> (a <code class="inline">boot.sel</code> environment file) or Android-style <b>lk</b>. On those, step 3's try-logic is either in the bootloader's script or — for piboot — performed by snap-bootstrap in the initrd.</div>
         </article>
 
@@ -2714,42 +2656,7 @@ WantedBy=multi-user.target</pre>
         <article class="card" id="try-boot">
           <h3>Updating the kernel or base: the try-boot cycle</h3>
           <p>A kernel, base or gadget refresh can't take effect without rebooting, and a bad one could leave the device unbootable. snapd handles this with a <b>try / trying / commit</b> cycle shared with the bootloader:</p>
-          <div class="stepper" data-stepper>
-            <div class="step-row">
-              <button class="step-btn" data-own="snapd" data-step-btn="t1"><b>1. Prepare</b><small>snapd</small></button>
-              <button class="step-btn" data-own="snapd" data-step-btn="t2"><b>2. Mark "try"</b><small>link-snap</small></button>
-              <button class="step-btn" data-own="bl" data-step-btn="t3"><b>3. Reboot &amp; try</b><small>bootloader / initrd</small></button>
-              <button class="step-btn" data-own="snapd" data-step-btn="t4"><b>4a. Success</b><small>commit</small></button>
-              <button class="step-btn" data-own="fw" data-step-btn="t5"><b>4b. Failure</b><small>automatic fallback</small></button>
-            </div>
-            <div class="step-panel" data-step-panel="t1">
-              <h4>1. Prepare while the old system runs</h4>
-              <p>The usual refresh tasks run (download, mount, …). For a kernel, <code class="inline">prepare-kernel-snap</code> builds its drivers tree and <code class="inline">update-gadget-assets</code> copies any boot assets the kernel provides (e.g. device trees). For FDE devices the keys are resealed so <i>both</i> the old and the new boot chain can unlock the disk.</p>
-            </div>
-            <div class="step-panel" data-step-panel="t2" hidden>
-              <h4>2. link-snap sets the next boot</h4>
-              <p><code class="inline">link-snap</code> calls <code class="inline">backend.MaybeSetNextBoot()</code> → <code class="inline">boot.Participant(...).SetNextBoot()</code>. For a kernel this extracts <code class="inline">kernel.efi</code>, points <code class="inline">try-kernel.efi</code> at it and sets <code class="inline">kernel_status=try</code>; for a base it sets <code class="inline">TryBase</code> and <code class="inline">BaseStatus=try</code> in the modeenv. It returns "reboot required", and the task finishes with <code class="inline">FinishTaskWithRestart(RestartSystem)</code>.</p>
-              <p>The Change is now <i>paused across a reboot</i>: later tasks in it (e.g. starting services, discarding the old kernel's setup) wait until snapd sees the reboot actually happened.</p>
-            </div>
-            <div class="step-panel" data-step-panel="t3" hidden>
-              <h4>3. Reboot into the candidate</h4>
-              <p>The bootloader (kernel) or snap-bootstrap (base) sees <code class="inline">try</code>, changes it to <code class="inline">trying</code> <b>before</b> booting the candidate, and boots it. Writing <code class="inline">trying</code> first is the safety net: if the candidate never gets far enough to be confirmed, the next boot will see <code class="inline">trying</code> still there.</p>
-            </div>
-            <div class="step-panel" data-step-panel="t4" hidden>
-              <h4>4a. The new snap booted and snapd started</h4>
-              <p><code class="inline">ensureBootOk()</code> calls <code class="inline">MarkBootSuccessful()</code>: the try revision becomes current, <code class="inline">kernel_status</code>/<code class="inline">BaseStatus</code> are cleared, and the <code class="inline">try-kernel.efi</code> symlink is removed <i>last</i> (that ordering is deliberate crash-safety). The paused Change resumes; its next task's <code class="inline">FinishRestart()</code> checks that what booted is what was expected, and the refresh completes. <code class="inline">discard-old-kernel-snap-setup</code> then cleans up the previous kernel's drivers tree.</p>
-            </div>
-            <div class="step-panel" data-step-panel="t5" hidden>
-              <h4>4b. The candidate failed to boot</h4>
-              <p>A kernel panic (<code class="inline">panic=-1</code> reboots immediately), a hang caught by a watchdog, or a power cut means snapd never confirms the boot. On the next boot the bootloader or initrd finds <code class="inline">trying</code>, clears it and boots the <b>previous</b> revision. When snapd starts:</p>
-              <ul>
-                <li><code class="inline">FinishRestart()</code> notices the booted revision isn't the one the refresh installed and fails the task — so the Change <b>undoes</b> its earlier tasks, exactly like any other failed operation (<a class="xref" href="#taskrunner"></a>);</li>
-                <li><code class="inline">UpdateBootRevisions()</code> reconciles snapd's records with what actually booted if they still disagree.</li>
-              </ul>
-              <p>Net result: the device comes back on the old kernel/base, and <code class="inline">snap changes</code> shows the refresh as failed and reverted.</p>
-            </div>
-            <div class="step-nav"><button data-step-prev>← Previous</button><span data-step-progress></span><button data-step-next>Next →</button></div>
-          </div>
+          <div data-tour="tryboot"></div>
           <details class="deep">
             <summary>Go deeper: single reboot for several essential snaps, and the restart manager</summary>
             <div class="body">
@@ -2773,6 +2680,7 @@ WantedBy=multi-user.target</pre>
             <li><b>At the console during boot</b>: <code class="inline">snap-bootstrap recovery-chooser-trigger</code> watches input devices for a trigger key for a few seconds and, if pressed, leaves a marker file. Later, <code class="inline">snap-recovery-chooser</code> (a snapd tool) shows a menu (via console-conf) of systems and actions, and posts the choice to the API — which then follows the same path as above.</li>
           </ul>
           <p>What each mode does is covered in <a class="xref" href="#snap-bootstrap"></a>, <a class="xref" href="#install-mode"></a> and <a class="xref" href="#factory-reset"></a>.</p>
+          <div data-tour="modes"></div>
         </article>
 
         <article class="card" id="boot-after-switchroot">
@@ -2868,57 +2776,7 @@ WantedBy=multi-user.target</pre>
 
         <article class="card" id="install-mode">
           <h3>Install mode, step by step</h3>
-          <div class="stepper" data-stepper>
-            <div class="step-row">
-              <button class="step-btn" data-own="bl" data-step-btn="i1"><b>1. Boot install</b><small>recovery grub</small></button>
-              <button class="step-btn" data-own="sb" data-step-btn="i2"><b>2. Ephemeral root</b><small>snap-bootstrap</small></button>
-              <button class="step-btn" data-own="snapd" data-step-btn="i3"><b>3. Seed in RAM</b><small>snapd</small></button>
-              <button class="step-btn" data-own="snapd" data-step-btn="i4"><b>4. setup-run-system</b><small>partition, encrypt</small></button>
-              <button class="step-btn" data-own="snapd" data-step-btn="i5"><b>5. Make runnable</b><small>MakeRunnableSystem</small></button>
-              <button class="step-btn" data-own="snapd" data-step-btn="i6"><b>6. Gadget hook</b><small>install-device</small></button>
-              <button class="step-btn" data-own="snapd" data-step-btn="i7"><b>7. Reboot to run</b><small>restart-system-to-run-mode</small></button>
-            </div>
-            <div class="step-panel" data-step-panel="i1">
-              <h4>1. The image boots in install mode</h4>
-              <p>The recovery grub finds <code class="inline">snapd_recovery_mode=install</code> (set at image build) and boots the recovery system's kernel with <code class="inline">snapd_recovery_mode=install snapd_recovery_system=&lt;label&gt;</code>.</p>
-            </div>
-            <div class="step-panel" data-step-panel="i2" hidden>
-              <h4>2. snap-bootstrap builds a temporary system</h4>
-              <p>It mounts ubuntu-seed, verifies the recovery system's essential snaps against its assertions, mounts base, kernel, gadget and snapd from the seed under <span class="path">/run/mnt/</span>, and creates a <b>tmpfs</b> root for writable data with an ephemeral modeenv (<code class="inline">Mode=install</code>). Gadget system defaults that only touch files are applied here. Nothing on the disk except ubuntu-seed exists yet.</p>
-            </div>
-            <div class="step-panel" data-step-panel="i3" hidden>
-              <h4>3. snapd seeds the ephemeral system</h4>
-              <p>snapd starts in the tmpfs system and seeds only <code class="inline">ModeSnaps("install")</code> (essential snaps, plus anything the model marks for install mode). Then <code class="inline">ensureInstalledAfterSeed()</code> (<span class="path">overlord/devicestate/devicemgr.go</span>) creates the "Install the system" Change: <code class="inline">setup-run-system</code> → [<code class="inline">setup-ubuntu-save</code> → <code class="inline">run-hook install-device</code>] → <code class="inline">restart-system-to-run-mode</code>. <b>The installer is snapd itself</b>, using the same task machinery as everything else.</p>
-            </div>
-            <div class="step-panel" data-step-panel="i4" hidden>
-              <h4>4. <code class="inline">setup-run-system</code>: partition and encrypt</h4>
-              <p><code class="inline">doSetupRunSystem</code> (<span class="path">overlord/devicestate/handlers_install.go</span>) decides whether to encrypt (TPM availability vs. the model's storage-safety: <i>secured</i> requires it), validates the gadget, then calls <code class="inline">gadget/install.Run()</code> with the state lock released:</p>
-              <ul>
-                <li>find the boot disk and check the existing partition table is compatible with the gadget;</li>
-                <li>create the missing partitions — only <b>system-boot, system-save, system-data</b> are ever created; ubuntu-seed came from the image;</li>
-                <li>LUKS-encrypt save and data if needed, create filesystems, write gadget content.</li>
-              </ul>
-            </div>
-            <div class="step-panel" data-step-panel="i5" hidden>
-              <h4>5. <code class="inline">boot.MakeRunnableSystem()</code></h4>
-              <ul>
-                <li>copy the base, kernel and gadget snap files into ubuntu-data;</li>
-                <li>write the run-mode <b>modeenv</b>: <code class="inline">Mode=run</code>, <code class="inline">RecoverySystem=&lt;label&gt;</code>, current and good recovery systems = <code class="inline">[label]</code>, trusted asset hashes, kernel, model;</li>
-                <li>on ubuntu-boot: install the run grub config, extract <code class="inline">kernel.efi</code>, enable it, set the command-line variables;</li>
-                <li>with encryption: <b>seal</b> the data/save keys against the boot chains (run key on ubuntu-boot, fallback key on ubuntu-seed);</li>
-                <li>mark the recovery system as good on the seed.</li>
-              </ul>
-            </div>
-            <div class="step-panel" data-step-panel="i6" hidden>
-              <h4>6. The gadget's <code class="inline">install-device</code> hook (optional)</h4>
-              <p>Runs with the new system prepared but not yet booted — e.g. to provision device-specific files. It can call <code class="inline">snapctl reboot --halt</code> or <code class="inline">--poweroff</code> to change what happens at the end (useful on a factory line).</p>
-            </div>
-            <div class="step-panel" data-step-panel="i7" hidden>
-              <h4>7. <code class="inline">restart-system-to-run-mode</code></h4>
-              <p>If the seed has a <code class="inline">preseed.tgz</code>, it's verified and unpacked into ubuntu-data. Then <code class="inline">boot.EnsureNextBootToRunMode(label)</code> writes <code class="inline">snapd_recovery_mode=run</code> into the seed's grubenv — <b>this single write is the switch to run mode</b> — install logs and timings are copied to ubuntu-data, and snapd requests an immediate reboot. The next boot follows the run-mode path in <a class="xref" href="#boot-timeline"></a>, and seeding continues in <a class="xref" href="#seeding"></a>.</p>
-            </div>
-            <div class="step-nav"><button data-step-prev>← Previous</button><span data-step-progress></span><button data-step-next>Next →</button></div>
-          </div>
+          <div data-tour="install"></div>
           <p>For per-mode initrd details, <span class="path">cmd/snap-bootstrap/README.md</span> in the repository is a good companion.</p>
         </article>
 
@@ -3161,6 +3019,12 @@ WantedBy=multi-user.target</pre>
           The key that unlocks ubuntu-data is <b>sealed</b> by the TPM: the TPM only releases it if the boot chain (shim, grub, kernel, command line, model) measured during this boot matches what snapd sealed it for. So whenever snapd is about to change any of those, it must <b>reseal</b> first — for both the old and the new chain — or the device wouldn't be able to unlock its own disk after the reboot.
         </div>
 
+        <article class="card" id="fde-tour">
+          <h3>Interactive: measure, seal, unseal, reseal</h3>
+          <p>How the TPM ties the disk key to the software that boots, and what snapd must do before changing that software.</p>
+          <div data-tour="fde"></div>
+        </article>
+
         <article class="card" id="fde-keys">
           <h3>Which keys exist, and where they live</h3>
           <table>
@@ -3398,6 +3262,1194 @@ WantedBy=multi-user.target</pre>
   </main>
 </div>
 
+<!--TOURS-START-->
+<script>
+(function(){
+"use strict";
+function N(id, x, y, w, h, kind, label, sub, info, code, see){ return {id:id, x:x, y:y, w:w, h:h, kind:kind, label:label, sub:sub, info:info, code:code, see:see}; }
+function G(id, x, y, w, h, kind, label){ return {id:id, x:x, y:y, w:w, h:h, kind:kind, label:label}; }
+function E(id, from, to, label, o){ o = o || {}; return {id:id, from:from, to:to, label:label, curve:o.curve, dashed:o.dashed, ldx:o.ldx, ldy:o.ldy}; }
+window.SD_TOURS = window.SD_TOURS || {};
+
+window.SD_TOURS.boot = {
+  title: "Ubuntu Core boot, end to end",
+  subtitle: "UC20+ on UEFI with grub · what runs where, and every place snapd is involved",
+  blurb: "Power-on to a confirmed boot: firmware, both grubs, kernel.efi, snap-bootstrap in the initrd, switch-root, snapd's units and boot confirmation — on a map of the actual partitions and files.",
+  icon: "⏻",
+  size: [1200, 740],
+  groups: [
+    G("hw", 20, 20, 270, 110, "fw", "Hardware"),
+    G("disk", 300, 20, 880, 330, "data", "Disk — partitions laid out from gadget.yaml"),
+    G("gseed", 310, 44, 205, 296, "data", "ubuntu-seed"),
+    G("gboot", 525, 44, 205, 296, "data", "ubuntu-boot"),
+    G("gsave", 740, 44, 205, 296, "data", "ubuntu-save"),
+    G("gdata", 955, 44, 215, 296, "data", "ubuntu-data"),
+    G("initrd", 20, 380, 560, 280, "sb", "initrd — runs from inside kernel.efi"),
+    G("sys", 600, 380, 580, 330, "sys", "Running system — / is the base snap")
+  ],
+  nodes: [
+    N("fw", 35, 54, 120, 52, "fw", "UEFI firmware", "Secure Boot",
+      "The machine's firmware. It looks for the EFI System Partition — on Ubuntu Core that is <b>ubuntu-seed</b> — and starts <code class=\"inline\">EFI/boot/bootx64.efi</code> (shim). With Secure Boot it verifies shim's signature; from here on each stage measures the next into the TPM.",
+      "Outside snapd. snapd may write the UEFI boot entry via <code class=\"inline\">UefiBootloader</code> / <code class=\"inline\">boot.UpdateBootEntry</code>.", "boot-timeline"),
+    N("tpm", 165, 54, 110, 52, "fw", "TPM", "PCRs · sealed keys",
+      "The Trusted Platform Module. Every boot stage extends its <b>PCRs</b> with a hash of what it loads. A key <b>sealed</b> by snapd is only released if the PCRs match the expected values — that's what ties disk decryption to the exact software that booted.",
+      "<span class=\"path\">secboot/</span>, <span class=\"path\">boot/seal.go</span>", "fde-section"),
+
+    N("shim", 320, 72, 185, 50, "bl", "shim + recovery grub", "EFI/boot · EFI/ubuntu",
+      "shim (signed by Microsoft/Canonical) then the <b>recovery grub</b>, whose <code class=\"inline\">grub.cfg</code> is shipped inside snapd (<span class=\"path\">bootloader/assets/data/grub-recovery.cfg</span>, edition 2). shim and grub binaries come from the <b>gadget</b> and are tracked by hash as <i>trusted assets</i>.",
+      "<span class=\"path\">bootloader/grub.go</span>, <span class=\"path\">boot/assets.go</span>", "managed-boot-config"),
+    N("seedenv", 320, 132, 185, 50, "data", "recovery grubenv", "snapd_recovery_mode/_system",
+      "Two variables decide the boot mode: <code class=\"inline\">snapd_recovery_mode</code> (run / install / recover / factory-reset; empty means install) and <code class=\"inline\">snapd_recovery_system</code> (which seed). snapd writes them; the recover entry resets the mode to run so recovery is one-shot.",
+      "<code class=\"inline\">boot.SetRecoveryBootSystemAndMode</code>, <code class=\"inline\">boot.EnsureNextBootToRunMode</code>", "boot-vars"),
+    N("systems", 320, 192, 185, 50, "data", "systems/<label>", "recovery systems (seeds)",
+      "Each directory is a complete, known-good system: model, assertions and references to snaps in the shared <span class=\"path\">snaps/</span> directory, plus its own small grubenv naming its kernel. Recover, install and factory-reset modes boot one of these.",
+      "<span class=\"path\">seed/seed20.go</span>, <span class=\"path\">overlord/devicestate/handlers_systems.go</span>", "recovery-systems"),
+    N("fbkeys", 320, 252, 185, 50, "data", "fallback keys", "device/fde/*.recovery.sealed-key",
+      "Sealed keys for ubuntu-data and ubuntu-save that work from <b>recovery systems</b> — used in recover mode, factory reset, or if ubuntu-boot is damaged. Sealed only for <i>good</i> recovery systems.",
+      "<span class=\"path\">gadget/device/encrypt.go</span>", "fde-keys"),
+
+    N("rungrub", 535, 72, 185, 50, "bl", "run grub.cfg", "managed by snapd · edition 3",
+      "The second grub, used for normal (run mode) boots. Its config is shipped by snapd (<span class=\"path\">bootloader/assets/data/grub.cfg</span>) and updated when the snapd snap is refreshed if the on-disk edition is older. It implements the kernel <b>try</b> logic.",
+      "<code class=\"inline\">UpdateBootConfig</code>, task <code class=\"inline\">update-managed-boot-config</code>", "managed-boot-config"),
+    N("runenv", 535, 132, 185, 50, "data", "run grubenv", "kernel_status · cmdline args",
+      "Only three variables: <code class=\"inline\">kernel_status</code> (empty / try / trying), <code class=\"inline\">snapd_extra_cmdline_args</code> and <code class=\"inline\">snapd_full_cmdline_args</code>. It is snapd's mailbox to grub: snapd sets <i>try</i> before a reboot, grub sets <i>trying</i>, snapd clears it once the boot is confirmed.",
+      "<span class=\"path\">boot/bootstate20_bloader_kernel_state.go</span>", "boot-vars"),
+    N("kefi", 535, 192, 185, 50, "kern", "kernel.efi", "+ try-kernel.efi symlinks",
+      "Symlinks into per-revision directories such as <span class=\"path\">pc-kernel_123.snap/kernel.efi</span>, extracted from the kernel snap by snapd. <code class=\"inline\">kernel.efi</code> is the current kernel, <code class=\"inline\">try-kernel.efi</code> a kernel being tested. Each is a signed Unified Kernel Image: kernel + initrd + EFI stub.",
+      "<code class=\"inline\">EnableKernel</code> / <code class=\"inline\">EnableTryKernel</code> in <span class=\"path\">bootloader/grub.go</span>", "try-boot"),
+    N("runkey", 535, 252, 185, 50, "data", "run key (sealed)", "ubuntu-data.sealed-key",
+      "The TPM-sealed key that unlocks ubuntu-data on every normal boot. Sealed for the boot chains of all <i>current</i> recovery systems and kernels.",
+      "<span class=\"path\">boot/seal.go</span>", "fde-keys"),
+
+    N("identity", 750, 72, 185, 50, "data", "device identity", "serial + device key",
+      "The device's <b>serial assertion</b> and private <b>device key</b> (<span class=\"path\">/var/lib/snapd/save/device</span>). Kept here so a factory reset — which wipes ubuntu-data — doesn't lose the device's identity.",
+      "<code class=\"inline\">withKeypairMgr</code> in <span class=\"path\">overlord/devicestate/devicemgr.go</span>", "registration"),
+    N("savedata", 750, 132, 185, 50, "data", "save data", "SNAP_SAVE_DATA · FDE data",
+      "Per-snap directories exposed as <code class=\"inline\">SNAP_SAVE_DATA</code>, encryption marker and recovery material. Everything a device must keep across a factory reset.",
+      "", "core-partitions"),
+
+    N("modeenv", 965, 72, 195, 50, "data", "modeenv", "current/try kernel & base, model",
+      "<span class=\"path\">/var/lib/snapd/modeenv</span>: snapd's boot record — mode, recovery system, current and try base (<code class=\"inline\">TryBase</code>/<code class=\"inline\">BaseStatus</code>), current kernels, model and try-model, trusted asset hashes, kernel command lines. The initrd reads it to decide what to mount.",
+      "<span class=\"path\">boot/modeenv.go</span>", "boot-packages"),
+    N("statejson", 965, 132, 195, 50, "data", "state.json", "snapd's state",
+      "Everything the daemon knows: installed snaps, connections, configuration, Changes and Tasks in flight. Only the daemon reads it — the initrd uses the modeenv instead.",
+      "<span class=\"path\">overlord/state</span>", "state-locking"),
+    N("snapfiles", 965, 192, 195, 50, "data", "snap files", "base, kernel, gadget .snap",
+      "<span class=\"path\">/var/lib/snapd/snaps/*.snap</span>. snap-bootstrap mounts the base, kernel and gadget revisions the modeenv names straight from here.",
+      "", "snap-data-layout"),
+    N("sysdata", 965, 252, 195, 50, "data", "system-data", "writable root contents",
+      "The writable half of the running system: <span class=\"path\">/var/lib/snapd</span>, <span class=\"path\">/var/snap</span>, home directories, writable parts of <span class=\"path\">/etc</span>. Mounted at <span class=\"path\">/writable</span>.",
+      "", "core-partitions"),
+
+    N("kernel", 35, 410, 160, 50, "kern", "Linux kernel", "starts the initrd",
+      "The kernel from <code class=\"inline\">kernel.efi</code>, with a command line composed by snapd: static arguments + <code class=\"inline\">snapd_recovery_mode=run</code> + whatever the gadget appends or removes.",
+      "<code class=\"inline\">composeCommandLine</code> in <span class=\"path\">boot/cmdline.go</span>", "boot-vars"),
+    N("scandisk", 210, 410, 170, 50, "sb", "scan-disk", "snap-bootstrap: find disk",
+      "A udev rule runs <code class=\"inline\">snap-bootstrap scan-disk</code> on block devices; it identifies the disk we booted from and creates <span class=\"path\">/dev/disk/snapd/{disk,ubuntu-seed,ubuntu-boot,ubuntu-data,ubuntu-save}</span>.",
+      "<span class=\"path\">cmd/snap-bootstrap/cmd_scan_disk.go</span>", "snap-bootstrap"),
+    N("mounts", 395, 410, 170, 64, "sb", "initramfs-mounts", "snap-bootstrap: mount,\nunlock, pick snaps",
+      "<code class=\"inline\">snap-initramfs-mounts.service</code> runs <code class=\"inline\">snap-bootstrap initramfs-mounts</code> — the heart of early boot. It mounts partitions, measures the model, unseals and unlocks the encrypted partitions, reads the modeenv, chooses base/kernel/gadget revisions (including base try logic), and finally locks the TPM keys.",
+      "<code class=\"inline\">generateMountsModeRun</code> in <span class=\"path\">cmd/snap-bootstrap/cmd_initramfs_mounts.go</span>", "snap-bootstrap"),
+    N("chooser", 35, 500, 160, 64, "sb", "recovery chooser", "trigger-key watch\n(snap-bootstrap)",
+      "<code class=\"inline\">snap-bootstrap recovery-chooser-trigger</code> watches input devices for a few seconds. If the key is pressed it leaves a marker; later <code class=\"inline\">snap-recovery-chooser</code> shows a menu and asks snapd to reboot into the chosen system and mode.",
+      "<span class=\"path\">cmd/snap-bootstrap/cmd_recovery_chooser_trigger.go</span>", "boot-modes"),
+    N("runmnt", 210, 500, 355, 64, "sb", "/run/mnt/…", "ubuntu-boot · ubuntu-seed · data · ubuntu-save\nbase · gadget · kernel (the snaps)",
+      "Where snap-bootstrap mounts everything: the partitions, and the chosen snaps' SquashFS files. These mounts survive into the running system, which is why you'll see <span class=\"path\">/run/mnt/ubuntu-seed</span> on a running device.",
+      "<span class=\"path\">boot/initramfs20dirs.go</span>", "snap-bootstrap"),
+    N("switchroot", 35, 590, 160, 50, "sys", "switch-root", "leave the initrd",
+      "systemd's standard <code class=\"inline\">initrd-switch-root.target</code> pivots into <span class=\"path\">/sysroot</span>. The initrd is gone from here on.",
+      "", "boot-timeline"),
+    N("sysroot", 210, 590, 355, 50, "sys", "sysroot.mount + the-modeenv", "base snap → /sysroot · fstab binds for /boot",
+      "snap-bootstrap writes a <code class=\"inline\">sysroot.mount</code> unit for the base snap; a small initrd script (<code class=\"inline\">the-modeenv</code>) writes an fstab that binds ubuntu-boot to <span class=\"path\">/boot/grub</span> and ubuntu-seed to <span class=\"path\">/boot/efi</span>, and <code class=\"inline\">sysroot-writable.mount</code> binds data to <span class=\"path\">/sysroot/writable</span>.",
+      "<span class=\"path\">core-initrd/*/factory</span>", "boot-timeline"),
+
+    N("rootfs", 615, 410, 175, 50, "sys", "/ (base snap)", "read-only SquashFS",
+      "The root filesystem is the base snap (core24, …) mounted read-only. Updating the OS means booting a different base revision.",
+      "", "core-anatomy"),
+    N("writable", 805, 410, 175, 50, "sys", "/writable", "bind of ubuntu-data",
+      "The writable data partition, with writable paths of the root filesystem redirected into it.",
+      "", "core-partitions"),
+    N("bootmnt", 995, 410, 175, 50, "sys", "/boot binds", "/boot/grub · /boot/efi",
+      "ubuntu-boot's <span class=\"path\">EFI/ubuntu</span> appears at <span class=\"path\">/boot/grub</span> and ubuntu-seed at <span class=\"path\">/boot/efi</span>, so tools like fwupd can find the ESP.",
+      "", "boot-timeline"),
+    N("generators", 615, 480, 175, 50, "snapd", "snapd-generator", "drivers tree · shared /",
+      "A systemd generator (C) shipped by snapd: creates early mount units for the kernel's modules/firmware (the drivers tree, UC24+) and makes sure <span class=\"path\">/</span> is a shared mount, which snap mount namespaces rely on.",
+      "<span class=\"path\">cmd/snapd-generator</span>", "boot-after-switchroot"),
+    N("mountunits", 805, 480, 175, 50, "snapd", "snap mount units", "snapd.mounts.target",
+      "One <code class=\"inline\">.mount</code> unit per installed snap revision, written by snapd at install time, so every snap is mounted by systemd early — before snapd itself starts.",
+      "<span class=\"path\">systemd/systemd.go</span>", "boot-after-switchroot"),
+    N("apparmor", 995, 480, 175, 50, "snapd", "snapd.apparmor", "load snap profiles",
+      "Loads every snap's AppArmor profile from disk before <code class=\"inline\">sysinit.target</code>, so snap services can start confined without waiting for the daemon.",
+      "<span class=\"path\">cmd/snapd/tool/snapd-apparmor</span>", "boot-after-switchroot"),
+    N("snapdsvc", 615, 550, 175, 50, "snapd", "snapd.service", "from the snapd snap",
+      "The daemon. <code class=\"inline\">Type=notify</code>, 5-minute watchdog, <code class=\"inline\">Restart=always</code>, <code class=\"inline\">OnFailure=snapd.failure.service</code>. It loads state.json, starts the managers and enters the ensure loop.",
+      "<span class=\"path\">data/systemd/snapd.service.in</span>", "overlord-lifecycle"),
+    N("failure", 805, 550, 175, 50, "snapd", "snap-failure", "if a new snapd fails",
+      "If a freshly refreshed snapd keeps failing to start, systemd runs <code class=\"inline\">snap-failure</code>, which points <span class=\"path\">/snap/snapd/current</span> back at the previous revision and starts that instead.",
+      "<span class=\"path\">cmd/snap-failure</span>", "base-snapd-snap"),
+    N("seeding", 995, 550, 175, 50, "snapd", "seeding · registration", "first boot only",
+      "On the first run-mode boot snapd installs the seed's snaps (<code class=\"inline\">ensureSeeded</code>) and then requests a serial (<code class=\"inline\">ensureOperational</code>).",
+      "<span class=\"path\">overlord/devicestate/firstboot.go</span>", "seeding"),
+    N("ensure", 615, 625, 365, 64, "snapd", "DeviceManager.ensureBootOk()", "MarkBootSuccessful(): try → current, clear status\nUpdateBootRevisions(): match records to what booted",
+      "Runs once per boot (it compares the kernel's boot id with the last one it handled). It is the moment an update becomes permanent — and the reason a failed kernel or base update rolls back cleanly.",
+      "<span class=\"path\">overlord/devicestate/devicemgr.go</span>, <span class=\"path\">boot/boot.go</span>, <span class=\"path\">overlord/snapstate/booted.go</span>", "try-boot"),
+    N("services", 995, 625, 175, 64, "sys", "snap services", "apps start confined\nvia snap run",
+      "Snap daemons are ordinary systemd units whose <code class=\"inline\">ExecStart</code> is <code class=\"inline\">snap run</code>, so they start after their mount units and profiles are in place.",
+      "<span class=\"path\">wrappers/services.go</span>", "services")
+  ],
+  edges: [
+    E("fw-shim", "fw", "shim", "loads shim", {ldy: -6}),
+    E("fw-tpm", "fw", "tpm", "measures", {dashed: true}),
+    E("shim-seedenv", "shim", "seedenv", "reads mode"),
+    E("shim-rungrub", "shim", "rungrub", "chainloads (run)"),
+    E("shim-systems", "shim", "systems", "other modes", {curve: 210, ldx: -38}),
+    E("rungrub-runenv", "rungrub", "runenv", "kernel_status"),
+    E("rungrub-kefi", "rungrub", "kefi", "boots", {curve: 205, ldx: -34}),
+    E("kefi-kernel", "kefi", "kernel", "kernel + initrd", {curve: -120}),
+    E("kefi-tpm", "kefi", "tpm", "measured", {dashed: true, curve: 60}),
+    E("kernel-scandisk", "kernel", "scandisk", ""),
+    E("scandisk-mounts", "scandisk", "mounts", ""),
+    E("mounts-runmnt", "mounts", "runmnt", "mounts"),
+    E("mounts-tpm", "mounts", "tpm", "measure model · unseal", {curve: -150, dashed: true}),
+    E("mounts-runkey", "mounts", "runkey", "read sealed key"),
+    E("mounts-sysdata", "mounts", "sysdata", "unlock + mount data"),
+    E("mounts-savedata", "mounts", "savedata", "unlock + mount save"),
+    E("mounts-modeenv", "mounts", "modeenv", "which kernel / base?"),
+    E("mounts-snapfiles", "mounts", "snapfiles", "mount base, kernel, gadget"),
+    E("mounts-seedenv", "mounts", "seedenv", "mount seed", {dashed: true}),
+    E("runmnt-sysroot", "runmnt", "sysroot", ""),
+    E("sysroot-switch", "sysroot", "switchroot", ""),
+    E("switch-rootfs", "switchroot", "rootfs", "pivot"),
+    E("rootfs-writable", "rootfs", "writable", ""),
+    E("writable-sysdata", "writable", "sysdata", "bind"),
+    E("rootfs-bootmnt", "rootfs", "bootmnt", "", {curve: -40}),
+    E("bootmnt-rungrub", "bootmnt", "rungrub", "bind", {dashed: true}),
+    E("rootfs-generators", "rootfs", "generators", ""),
+    E("generators-mountunits", "generators", "mountunits", ""),
+    E("mountunits-apparmor", "mountunits", "apparmor", ""),
+    E("mountunits-snapdsvc", "mountunits", "snapdsvc", "After="),
+    E("apparmor-services", "apparmor", "services", "", {curve: 40}),
+    E("snapdsvc-statejson", "snapdsvc", "statejson", "loads"),
+    E("snapdsvc-failure", "snapdsvc", "failure", "OnFailure="),
+    E("snapdsvc-seeding", "snapdsvc", "seeding", "first boot", {curve: 40}),
+    E("snapdsvc-ensure", "snapdsvc", "ensure", ""),
+    E("ensure-runenv", "ensure", "runenv", "clear kernel_status"),
+    E("ensure-modeenv", "ensure", "modeenv", "commit try → current"),
+    E("ensure-kefi", "ensure", "kefi", "try-kernel → kernel.efi", {dashed: true}),
+    E("chooser-seedenv", "chooser", "seedenv", "chosen mode (via snapd)", {dashed: true, curve: -60})
+  ],
+  steps: [
+    {title: "The map", on: [], html:
+      `<p>This diagram is a map of an Ubuntu Core device during boot. Top: the <b>hardware</b> and the <b>disk</b>, with the four partitions snapd defines and the files that matter in each. Bottom-left: the <b>initrd</b>. Bottom-right: the <b>running system</b>.</p>
+       <p>Colours show <i>who</i> owns each piece (legend above). Notice how much is pink or purple — snapd, or snapd code running in the initrd — and how much of the orange bootloader behaviour is driven by files snapd wrote.</p>
+       <p>Press <b>Next</b> (or →) to boot the device step by step, or click any box to read about it.</p>`},
+    {title: "Firmware starts shim from ubuntu-seed", on: ["fw", "tpm", "shim", "gseed"], flow: ["fw-shim", "fw-tpm"], kinds: ["fw"],
+      notes: [{at: "shim", side: "bottom", dy: 120, text: "ubuntu-seed is the EFI System Partition: firmware loads EFI/boot/bootx64.efi"}, {at: "tpm", side: "bottom", text: "measured boot starts: each stage hashes the next into the TPM"}],
+      html: `<p>UEFI firmware finds the EFI System Partition — <b>ubuntu-seed</b> — and loads shim. With Secure Boot, shim's signature is checked.</p>
+             <p><b>snapd's part:</b> these binaries came from the gadget, but snapd installed them and tracks their hashes as <i>trusted assets</i> in the modeenv, so it can reseal the disk-encryption keys before ever replacing them.</p>`},
+    {title: "Recovery grub reads the mode", on: ["shim", "seedenv", "rungrub", "systems"], flow: ["shim-seedenv", "shim-rungrub", "shim-systems"], kinds: ["bl", "data"],
+      notes: [{at: "seedenv", side: "left", dx: -10, text: "snapd_recovery_mode=run (normal boot)"}, {at: "systems", side: "left", dx: -10, text: "install / recover / factory-reset boot a recovery system's kernel instead"}],
+      html: `<p>shim starts the <b>recovery grub</b>. Its config is snapd's own <span class="path">grub-recovery.cfg</span>. It reads <code class="inline">snapd_recovery_mode</code> and <code class="inline">snapd_recovery_system</code> from the seed's grubenv:</p>
+             <ul><li><b>run</b> → chainload the second grub on ubuntu-boot (the normal path, followed here);</li>
+             <li><b>install / recover / factory-reset</b> → loop-mount that recovery system's kernel snap and boot its <code class="inline">kernel.efi</code> instead.</li></ul>
+             <p>An unset mode means <b>install</b>: that's how a freshly flashed image installs itself.</p>`},
+    {title: "Run grub picks the kernel — or the try kernel", on: ["rungrub", "runenv", "kefi", "gboot"], flow: ["rungrub-runenv", "rungrub-kefi"], kinds: ["bl", "kern"],
+      notes: [{at: "runenv", side: "bottom", dy: 120, text: "kernel_status: '' → boot kernel.efi · try → write trying, boot try-kernel.efi · trying → last try failed: reset, boot kernel.efi"}],
+      html: `<p>The run grub (snapd's <span class="path">grub.cfg</span>, edition 3) loads <code class="inline">kernel_status</code> and the command-line variables from ubuntu-boot's grubenv, then boots <code class="inline">kernel.efi</code>.</p>
+             <p>If a kernel update is pending, snapd left <code class="inline">kernel_status=try</code>: grub writes <code class="inline">trying</code> <i>before</i> booting <code class="inline">try-kernel.efi</code>. If that boot never gets confirmed, the next boot sees <code class="inline">trying</code> and falls back. See the <a class="xref" href="#try-boot"></a> tour.</p>`},
+    {title: "kernel.efi: kernel and initrd in one signed file", on: ["kefi", "kernel", "tpm"], flow: ["kefi-kernel", "kefi-tpm"], kinds: ["kern"],
+      notes: [{at: "kernel", side: "top", dy: -6, text: "cmdline = static args + snapd_recovery_mode=run + gadget additions"}],
+      html: `<p><code class="inline">kernel.efi</code> is a Unified Kernel Image: kernel, initrd and an EFI stub in one signed, measured binary. Because the initrd is inside it, early userspace can't be swapped without changing measurements.</p>
+             <p><b>snapd's part:</b> it extracted this file from the kernel snap onto ubuntu-boot, chose which revision the symlink points to, and computed the command line (stored in the grubenv variables).</p>`},
+    {title: "snap-bootstrap finds the boot disk", on: ["kernel", "scandisk", "initrd"], flow: ["kernel-scandisk"], kinds: ["sb"],
+      notes: [{at: "scandisk", side: "top", dy: -6, text: "creates /dev/disk/snapd/{disk, ubuntu-seed, ubuntu-boot, ubuntu-data, ubuntu-save}"}],
+      html: `<p>The initrd is a small systemd system. A udev rule runs <code class="inline">snap-bootstrap scan-disk</code>, which identifies the disk this system booted from and creates stable <span class="path">/dev/disk/snapd/*</span> names for its partitions.</p>
+             <p><code class="inline">snap-bootstrap</code> is a snapd program (<span class="path">cmd/snap-bootstrap</span>) — this is snapd code running before the root filesystem exists.</p>`},
+    {title: "Mount boot and seed; measure the model", on: ["scandisk", "mounts", "runmnt", "tpm", "gboot", "gseed"], flow: ["scandisk-mounts", "mounts-runmnt", "mounts-tpm", "mounts-seedenv"], kinds: ["sb"],
+      notes: [{at: "mounts", side: "right", dx: 6, text: "model assertion measured into the TPM: keys only unseal for this model"}],
+      html: `<p><code class="inline">snap-bootstrap initramfs-mounts</code> (run mode) mounts <b>ubuntu-boot</b> and <b>ubuntu-seed</b> under <span class="path">/run/mnt/</span> (the seed is fsck'd every boot — it's a writable vfat) and measures the <b>model assertion</b> into the TPM.</p>
+             <p>Measuring the model means a disk sealed for one model can't be unlocked by booting a different model's software — and a <a class="xref" href="#remodeling"></a> must reseal.</p>`},
+    {title: "Unseal the key, unlock data and save", on: ["mounts", "tpm", "runkey", "sysdata", "savedata", "gdata", "gsave"], flow: ["mounts-tpm", "mounts-runkey", "mounts-sysdata", "mounts-savedata"], kinds: ["sb", "fw"],
+      notes: [{at: "runkey", side: "bottom", dy: 6, text: "TPM releases it only if the measured boot chain matches"}, {at: "savedata", side: "bottom", dy: 70, text: "save is opened with ubuntu-save.key, stored inside the now-unlocked data"}],
+      html: `<p>snap-bootstrap reads the sealed <b>run key</b> from ubuntu-boot and asks the TPM to unseal it. The TPM agrees only if the PCRs — shim, grub, kernel.efi, command line, model — match what snapd sealed it for. ubuntu-data is unlocked (LUKS) and mounted at <span class="path">/run/mnt/data</span>, then ubuntu-save.</p>
+             <p>If unsealing fails, the user can enter a <b>recovery key</b>; if ubuntu-boot itself is broken, snap-bootstrap falls back to the keys on ubuntu-seed ("degraded" boot). See <a class="xref" href="#fde-section"></a>.</p>`},
+    {title: "Read the modeenv and choose the snaps", on: ["mounts", "modeenv", "snapfiles", "runmnt"], flow: ["mounts-modeenv", "mounts-snapfiles", "mounts-runmnt"], kinds: ["sb", "data"],
+      notes: [{at: "modeenv", side: "bottom", dy: 120, text: "base update pending? the initrd itself moves BaseStatus try → trying (grub can't read ubuntu-data)"}],
+      html: `<p>With data open, snap-bootstrap reads the <b>modeenv</b> and decides which base, kernel and gadget revisions to mount — handling a pending <b>base</b> update here, because the bootloader can't read ubuntu-data. It also checks the kernel that actually booted is one the modeenv trusts, and reboots to fall back if not.</p>
+             <p>The chosen snaps' SquashFS files are mounted under <span class="path">/run/mnt/{base,kernel,gadget}</span>. On the very first boot, the seed's snapd snap is mounted too, so snapd can run before anything is installed.</p>`},
+    {title: "Assemble the root filesystem; lock the keys", on: ["runmnt", "sysroot", "tpm"], flow: ["runmnt-sysroot"], kinds: ["sb", "sys"],
+      notes: [{at: "sysroot", side: "bottom", text: "the OS root is literally the base snap"}, {at: "tpm", side: "right", dx: 330, dy: 20, text: "sealed keys locked: nothing after this point can unseal them"}],
+      html: `<p>snap-bootstrap writes a <code class="inline">sysroot.mount</code> unit for the base snap, and initrd units bind ubuntu-data to <span class="path">/sysroot/writable</span>; <code class="inline">the-modeenv</code> writes an fstab binding boot and seed into <span class="path">/boot</span>.</p>
+             <p>As its last act, snap-bootstrap <b>locks the sealed keys</b> in the TPM, so even if something later in boot were compromised it could not unseal the disk key again.</p>`},
+    {title: "switch-root into the base snap", on: ["sysroot", "switchroot", "rootfs", "writable", "bootmnt", "sysdata"], flow: ["sysroot-switch", "switch-rootfs", "rootfs-writable", "writable-sysdata", "rootfs-bootmnt", "bootmnt-rungrub"], kinds: ["sys"],
+      html: `<p>systemd pivots from the initrd into <span class="path">/sysroot</span>. The running system's <span class="path">/</span> is the <b>read-only base snap</b>; <span class="path">/writable</span> is ubuntu-data; <span class="path">/boot/grub</span> and <span class="path">/boot/efi</span> are binds of ubuntu-boot and ubuntu-seed.</p>
+             <p>A snapd unit carries one bit of state across: whether the recovery-chooser key was pressed.</p>`},
+    {title: "Generators, snap mounts, AppArmor", on: ["rootfs", "generators", "mountunits", "apparmor", "services"], flow: ["rootfs-generators", "generators-mountunits", "mountunits-apparmor", "apparmor-services"], kinds: ["snapd", "sys"],
+      notes: [{at: "apparmor", side: "top", dy: -4, text: "profiles loaded before sysinit.target — no daemon needed"}],
+      html: `<p>Early in the real boot, pieces snapd installed earlier run <i>without the daemon</i>:</p>
+             <ul><li><b>snapd-generator</b> creates mounts for the kernel drivers tree and makes <span class="path">/</span> shared;</li>
+             <li>a <b>mount unit per snap</b> mounts every installed snap;</li>
+             <li><b>snapd.apparmor</b> loads all snap profiles;</li>
+             <li>snap <b>services</b> can then start, confined, via <code class="inline">snap run</code>.</li></ul>`},
+    {title: "snapd starts", on: ["mountunits", "snapdsvc", "statejson", "failure"], flow: ["mountunits-snapdsvc", "snapdsvc-statejson", "snapdsvc-failure"], kinds: ["snapd"],
+      notes: [{at: "failure", side: "bottom", dy: 70, text: "new snapd keeps failing? snap-failure puts the previous revision back"}],
+      html: `<p><code class="inline">snapd.service</code> starts the daemon from the snapd snap. It loads <span class="path">state.json</span>, constructs the managers and enters the ensure loop (<a class="xref" href="#overlord"></a>).</p>
+             <p>If a just-refreshed snapd fails repeatedly, <code class="inline">OnFailure=</code> runs <b>snap-failure</b>, which reverts to the previous snapd revision.</p>`},
+    {title: "snapd confirms the boot", on: ["snapdsvc", "ensure", "runenv", "modeenv", "kefi"], flow: ["snapdsvc-ensure", "ensure-runenv", "ensure-modeenv", "ensure-kefi"], kinds: ["snapd"],
+      notes: [{at: "ensure", side: "left", dx: -4, dy: 60, text: "once per boot id: try → current, statuses cleared, asset hashes collapsed"}],
+      html: `<p>On the first ensure pass of each boot, <code class="inline">DeviceManager.ensureBootOk()</code> calls <code class="inline">boot.MarkBootSuccessful()</code>: a try kernel or base becomes current, <code class="inline">kernel_status</code>/<code class="inline">BaseStatus</code> are cleared, the try symlink is removed last, trusted asset hash lists collapse to the new value, and a remodel's new model is committed.</p>
+             <p>Then <code class="inline">UpdateBootRevisions()</code> fixes snapd's records if the bootloader had to fall back. <b>Until this step, an update can still roll back automatically.</b></p>`},
+    {title: "First boot only: seeding and registration", on: ["snapdsvc", "seeding", "statejson"], flow: ["snapdsvc-seeding"], kinds: ["snapd"],
+      html: `<p>On the first run-mode boot after install, the ensure loop also installs the recovery system's snaps (<a class="xref" href="#seeding"></a>), then generates a device key and requests a serial (<a class="xref" href="#registration"></a>). On later boots these are no-ops.</p>
+             <p>That's the whole journey. Try the <b>Try-boot cycle</b> tour next to see how kernel and base updates use these same pieces.</p>`}
+  ]
+};
+})();
+(function(){
+"use strict";
+function N(id, x, y, w, h, kind, label, sub, info, code, see){ return {id:id, x:x, y:y, w:w, h:h, kind:kind, label:label, sub:sub, info:info, code:code, see:see}; }
+function G(id, x, y, w, h, kind, label){ return {id:id, x:x, y:y, w:w, h:h, kind:kind, label:label}; }
+function E(id, from, to, label, o){ o = o || {}; return {id:id, from:from, to:to, label:label, curve:o.curve, dashed:o.dashed, ldx:o.ldx, ldy:o.ldy}; }
+var T = window.SD_TOURS = window.SD_TOURS || {};
+
+/* ------------------------------------------------------------------ */
+T.tryboot = {
+  title: "Updating the kernel or base: the try-boot cycle",
+  subtitle: "How snapd, the boot variables and the bootloader cooperate so a bad update rolls itself back",
+  blurb: "Follow a kernel refresh across a reboot — first when the new kernel works, then when it doesn't.",
+  icon: "↻",
+  size: [1100, 600],
+  groups: [
+    G("gsnapd", 20, 20, 330, 560, "snapd", "snapd"),
+    G("gvars", 370, 20, 340, 560, "data", "Boot state on disk"),
+    G("gnext", 730, 20, 350, 560, "bl", "The next boot")
+  ],
+  nodes: [
+    N("refresh", 40, 52, 290, 52, "snapd", "refresh Change", "download, mount, prepare-kernel-snap…",
+      "An ordinary refresh Change (<a class=\"xref\" href=\"#install-walkthrough\"></a>). Everything up to <code class=\"inline\">link-snap</code> happens while the old kernel keeps running.", "<span class=\"path\">overlord/snapstate/snap.go</span>", "install-walkthrough"),
+    N("reseal", 40, 118, 290, 52, "snapd", "reseal FDE keys", "both old and new boot chain may unlock",
+      "On encrypted devices the data key is resealed so that <i>either</i> the current or the new boot chain can unseal it — otherwise the new kernel couldn't open the disk, and falling back to the old one wouldn't work either.", "<span class=\"path\">boot/seal.go</span>", "fde-section"),
+    N("link", 40, 184, 290, 52, "snapd", "link-snap", "boot.Participant(...).SetNextBoot()",
+      "For a kernel, base or gadget on a Core device, <code class=\"inline\">link-snap</code> doesn't make the snap active immediately: it sets it up as the <b>try</b> revision for the next boot and reports that a reboot is required.", "<code class=\"inline\">backend.MaybeSetNextBoot</code>, <span class=\"path\">boot/boot.go</span>", "try-boot"),
+    N("restart", 40, 250, 290, 52, "snapd", "restart.Request(RestartSystem)", "record boot id · Change waits",
+      "snapd records the current kernel boot id, marks the Change as waiting for a restart, and schedules the reboot (with a short delay by default). After restarting, it compares boot ids to know the reboot really happened.", "<span class=\"path\">overlord/restart/restart.go</span>", "try-boot"),
+    N("ensure", 40, 350, 290, 52, "snapd", "ensureBootOk()", "MarkBootSuccessful · UpdateBootRevisions",
+      "Runs once per boot after snapd starts. On success it makes the try revision current; if the bootloader fell back, <code class=\"inline\">UpdateBootRevisions</code> brings snapd's records back in line with what actually booted.", "<span class=\"path\">overlord/devicestate/devicemgr.go</span>", "boot-timeline"),
+    N("finish", 40, 416, 290, 52, "snapd", "FinishRestart() (next task)", "did the expected revision boot?",
+      "The next task in the paused Change calls <code class=\"inline\">FinishRestart()</code>. It waits until the restart has happened, then compares the booted revision with the one this Change installed.", "<span class=\"path\">overlord/snapstate/snapstate.go</span>", "try-boot"),
+    N("undo", 40, 482, 290, 52, "snapd", "Change fails → undo", "earlier tasks are undone",
+      "If the revision that booted isn't the expected one, the task errors with a rollback message and the TaskRunner undoes the Change's completed tasks, as for any other failure.", "<span class=\"path\">overlord/state/taskrunner.go</span>", "taskrunner"),
+
+    N("kstatus", 390, 52, 300, 52, "data", "kernel_status (run grubenv)", "'' → try → trying → ''",
+      "The single variable that carries the try state between snapd and grub. snapd writes <code class=\"inline\">try</code>; grub writes <code class=\"inline\">trying</code> before booting the candidate; snapd clears it after confirming.", "<span class=\"path\">boot/bootstate20_bloader_kernel_state.go</span>", "boot-vars"),
+    N("trykefi", 390, 130, 300, 52, "kern", "try-kernel.efi", "→ pc-kernel_124.snap/kernel.efi",
+      "A symlink on ubuntu-boot pointing at the newly extracted kernel. It exists only while a kernel update is being tried.", "<code class=\"inline\">EnableTryKernel</code> / <code class=\"inline\">DisableTryKernel</code>", "boot-vars"),
+    N("kefi", 390, 208, 300, 52, "kern", "kernel.efi", "→ pc-kernel_123.snap/kernel.efi",
+      "The current kernel. It keeps pointing at the old revision until snapd confirms the new one booted.", "<code class=\"inline\">EnableKernel</code>", "boot-vars"),
+    N("modeenv", 390, 286, 300, 52, "data", "modeenv", "CurrentKernels · TryBase · BaseStatus",
+      "Lists the kernels snapd trusts (the initrd refuses others) and, for a base update, holds <code class=\"inline\">TryBase</code>/<code class=\"inline\">BaseStatus</code> — the base's equivalent of <code class=\"inline\">kernel_status</code>, handled by the initrd because grub can't read ubuntu-data.", "<span class=\"path\">boot/modeenv.go</span>", "boot-packages"),
+    N("bootid", 390, 364, 300, 52, "data", "restart bookkeeping (state)", "system-restart-from-boot-id",
+      "Stored in state.json when the reboot is requested; compared with the current boot id at startup.", "<span class=\"path\">overlord/restart/restart.go</span>", "try-boot"),
+
+    N("grub", 750, 52, 310, 52, "bl", "run grub", "sees try: writes trying, boots try-kernel.efi",
+      "Writing <code class=\"inline\">trying</code> <i>before</i> booting is the safety net: if the candidate never gets confirmed, the next boot will find <code class=\"inline\">trying</code> still set.", "<span class=\"path\">bootloader/assets/data/grub.cfg</span>", "boot-timeline"),
+    N("initrd", 750, 130, 310, 52, "sb", "snap-bootstrap", "kernel trusted? base try → trying",
+      "Checks the booted kernel is listed in the modeenv (rebooting to fall back if not) and performs the try → trying step for a base update.", "<span class=\"path\">cmd/snap-bootstrap</span>", "snap-bootstrap"),
+    N("newk", 750, 208, 310, 52, "kern", "new kernel boots", "system comes up, snapd starts",
+      "The good path: the new kernel boots, the system reaches snapd, and snapd confirms.", "", "try-boot"),
+    N("crash", 750, 286, 310, 52, "fw", "…or it fails", "panic (panic=-1) · hang · power cut",
+      "A kernel panic reboots immediately (<code class=\"inline\">panic=-1</code> is on the command line); a hang is caught by a watchdog; a power cut just stops. In every case snapd never confirms the boot.", "", "try-boot"),
+    N("fallback", 750, 364, 310, 52, "bl", "grub finds 'trying'", "resets status, boots kernel.efi",
+      "On the next boot grub sees the leftover <code class=\"inline\">trying</code>, resets it and boots the old <code class=\"inline\">kernel.efi</code>.", "", "boot-vars"),
+    N("oldk", 750, 442, 310, 52, "kern", "old kernel boots", "snapd starts on the old revision",
+      "The device is back on the previous kernel. snapd now has to notice and clean up.", "", "try-boot")
+  ],
+  edges: [
+    E("refresh-reseal", "refresh", "reseal", ""),
+    E("reseal-link", "reseal", "link", ""),
+    E("link-kstatus", "link", "kstatus", "set try"),
+    E("link-trykefi", "link", "trykefi", "create symlink"),
+    E("link-modeenv", "link", "modeenv", "(base: TryBase)", {dashed: true}),
+    E("link-restart", "link", "restart", ""),
+    E("restart-bootid", "restart", "bootid", "record"),
+    E("restart-grub", "restart", "grub", "reboot", {curve: -60}),
+    E("grub-kstatus", "grub", "kstatus", "try → trying"),
+    E("grub-trykefi", "grub", "trykefi", "boots"),
+    E("grub-initrd", "grub", "initrd", ""),
+    E("initrd-modeenv", "initrd", "modeenv", "check"),
+    E("initrd-newk", "initrd", "newk", ""),
+    E("newk-ensure", "newk", "ensure", "snapd starts", {curve: 30}),
+    E("ensure-kstatus", "ensure", "kstatus", "clear"),
+    E("ensure-kefi", "ensure", "kefi", "point at new"),
+    E("ensure-trykefi", "ensure", "trykefi", "remove (last)", {dashed: true}),
+    E("ensure-modeenv", "ensure", "modeenv", "commit"),
+    E("ensure-finish", "ensure", "finish", ""),
+    E("finish-bootid", "finish", "bootid", "compare"),
+    E("initrd-crash", "initrd", "crash", "…or", {dashed: true, curve: -70}),
+    E("crash-fallback", "crash", "fallback", "reboot"),
+    E("fallback-kstatus", "fallback", "kstatus", "reads trying", {curve: 40}),
+    E("fallback-kefi", "fallback", "kefi", "boots"),
+    E("fallback-oldk", "fallback", "oldk", ""),
+    E("oldk-finish", "oldk", "finish", "snapd starts", {curve: -30}),
+    E("finish-undo", "finish", "undo", "mismatch")
+  ],
+  steps: [
+    {title: "Three columns, one protocol", on: [], html:
+      `<p>Left: snapd, before and after the reboot. Middle: the <b>boot state on disk</b> — the only way snapd and the bootloader can talk, since they never run at the same time. Right: what happens during the <b>next boot</b>.</p>
+       <p>The whole safety mechanism is a three-value status (<code class="inline">try</code> → <code class="inline">trying</code> → cleared) plus a symlink. Step through a kernel refresh.</p>`},
+    {title: "Prepare while the old kernel runs", on: ["refresh", "reseal"], flow: ["refresh-reseal"], kinds: ["snapd"],
+      notes: [{at: "reseal", x: 390, y: 432, wrap: 46, text: "FDE: keys must unlock with either the old or the new chain"}],
+      html: `<p>The refresh downloads, verifies and mounts the new kernel snap, builds its drivers tree and copies any boot assets it provides. On encrypted devices the disk key is <b>resealed</b> so it can be unsealed by the old <i>or</i> the new boot chain.</p>`},
+    {title: "link-snap marks the new kernel as 'try'", on: ["link", "kstatus", "trykefi", "modeenv"], flow: ["reseal-link", "link-kstatus", "link-trykefi", "link-modeenv"], kinds: ["snapd", "data"],
+      notes: [{at: "kefi", x: 390, y: 432, wrap: 46, text: "kernel.efi still points at the old kernel — nothing is committed yet"}],
+      html: `<p><code class="inline">link-snap</code> extracts <code class="inline">kernel.efi</code> onto ubuntu-boot, points <code class="inline">try-kernel.efi</code> at it, and sets <code class="inline">kernel_status=try</code>. (For a base update it sets <code class="inline">TryBase</code> and <code class="inline">BaseStatus=try</code> in the modeenv instead.)</p>
+             <p><code class="inline">kernel.efi</code> still points at the old kernel.</p>`},
+    {title: "Request a reboot; the Change waits", on: ["link", "restart", "bootid"], flow: ["link-restart", "restart-bootid"], kinds: ["snapd"],
+      html: `<p>The task finishes with <code class="inline">FinishTaskWithRestart(RestartSystem)</code>. snapd records the current boot id and reboots. The rest of the Change — starting services, cleaning up the old kernel — waits for the restart.</p>
+             <p>If several essential snaps (kernel, base, gadget) are updated together, restart boundaries make them share <b>one</b> reboot.</p>`},
+    {title: "grub tries the new kernel", on: ["restart", "grub", "kstatus", "trykefi"], flow: ["restart-grub", "grub-kstatus", "grub-trykefi"], kinds: ["bl"],
+      notes: [{at: "kstatus", x: 390, y: 432, wrap: 46, text: "trying is written BEFORE booting the candidate: that is the safety net"}],
+      html: `<p>The run grub sees <code class="inline">kernel_status=try</code>, saves <code class="inline">trying</code>, and boots <code class="inline">try-kernel.efi</code>.</p>`},
+    {title: "The initrd double-checks", on: ["grub", "initrd", "modeenv"], flow: ["grub-initrd", "initrd-modeenv"], kinds: ["sb"],
+      html: `<p>snap-bootstrap verifies the kernel that booted is one the modeenv lists as trusted, and handles a base try (try → trying) because only it can read ubuntu-data.</p>`},
+    {title: "Success: snapd confirms the boot", on: ["initrd", "newk", "ensure", "kstatus", "kefi", "trykefi", "modeenv"], flow: ["initrd-newk", "newk-ensure", "ensure-kstatus", "ensure-kefi", "ensure-trykefi", "ensure-modeenv"], kinds: ["snapd"],
+      notes: [{at: "trykefi", x: 390, y: 432, wrap: 46, text: "try-kernel.efi is removed last — that ordering is the crash-safety guarantee"}],
+      html: `<p>The new kernel boots and snapd starts. <code class="inline">ensureBootOk()</code> calls <code class="inline">MarkBootSuccessful()</code>: <code class="inline">kernel_status</code> is cleared, <code class="inline">kernel.efi</code> is pointed at the new kernel, the modeenv is updated, and <code class="inline">try-kernel.efi</code> is removed <b>last</b> — so a crash in the middle never leaves the system with nothing bootable.</p>`},
+    {title: "Success: the Change resumes and completes", on: ["ensure", "finish", "bootid"], flow: ["ensure-finish", "finish-bootid"], kinds: ["snapd"],
+      html: `<p>The paused Change continues. <code class="inline">FinishRestart()</code> sees a new boot id and the expected revision booted, so the remaining tasks run; <code class="inline">discard-old-kernel-snap-setup</code> removes the old kernel's drivers tree. Done.</p>`},
+    {title: "Failure: the new kernel never confirms", on: ["initrd", "crash", "fallback", "kstatus"], flow: ["initrd-crash", "crash-fallback", "fallback-kstatus"], kinds: ["fw", "bl"],
+      html: `<p>Rewind to the try boot. Suppose the new kernel panics. <code class="inline">panic=-1</code> reboots at once; snapd never ran, so <code class="inline">kernel_status</code> is still <code class="inline">trying</code>.</p>
+             <p>On the next boot grub reads <code class="inline">trying</code>, concludes the try failed, and resets the status.</p>`},
+    {title: "Failure: grub boots the old kernel", on: ["fallback", "kefi", "oldk"], flow: ["fallback-kefi", "fallback-oldk"], kinds: ["bl", "kern"],
+      html: `<p>grub boots <code class="inline">kernel.efi</code>, which never stopped pointing at the old revision. The device is back to its previous, working state — without any software having to decide anything.</p>`},
+    {title: "Failure: snapd notices and undoes the refresh", on: ["oldk", "finish", "undo", "bootid", "ensure"], flow: ["oldk-finish", "finish-undo", "finish-bootid"], kinds: ["snapd"],
+      html: `<p>snapd starts on the old kernel. <code class="inline">FinishRestart()</code> sees the reboot happened, but the booted kernel is not the revision this Change installed — it fails with "there was a rollback across reboot". The TaskRunner then <b>undoes</b> the Change, and <code class="inline">UpdateBootRevisions()</code> makes sure snapd's records match what booted.</p>
+             <p><code class="inline">snap changes</code> shows the refresh as failed and reverted, and the device never left a working state.</p>`}
+  ]
+};
+
+/* ------------------------------------------------------------------ */
+T.install = {
+  title: "Install mode: a device installs itself",
+  subtitle: "From a freshly flashed image (only ubuntu-seed exists) to a runnable, encrypted system",
+  blurb: "Watch snapd, running in RAM from the seed, partition and encrypt the disk, write the run system, seal keys and flip to run mode.",
+  icon: "⬇",
+  size: [1100, 560],
+  groups: [
+    G("gseed", 20, 20, 300, 520, "data", "ubuntu-seed (flashed from the image)"),
+    G("gram", 340, 20, 380, 520, "snapd", "Ephemeral install system (in RAM)"),
+    G("gnew", 740, 20, 340, 520, "data", "Created during install")
+  ],
+  nodes: [
+    N("seedenv", 35, 55, 270, 52, "data", "recovery grubenv", "mode=install … later mode=run",
+      "Image building set <code class=\"inline\">snapd_recovery_mode=install</code>. The very last thing install does is change it to <code class=\"inline\">run</code>.", "<code class=\"inline\">boot.MakeBootableImage</code>, <code class=\"inline\">boot.EnsureNextBootToRunMode</code>", "image-build"),
+    N("system", 35, 125, 270, 52, "data", "systems/<label>", "model, assertions, snaps",
+      "The recovery system written by <code class=\"inline\">snap prepare-image</code>. It's both the installer's source and, afterwards, the device's recovery system.", "<span class=\"path\">seed/seed20.go</span>", "seed-format"),
+    N("preseed", 35, 195, 270, 52, "data", "preseed.tgz (optional)", "signed, pre-generated state",
+      "If the image was preseeded, the run system's initial state has already been generated at build time; install unpacks it after checking its signed <code class=\"inline\">preseed</code> assertion.", "<span class=\"path\">image/preseed</span>", "preseeding"),
+    N("fbk", 35, 265, 270, 52, "data", "fallback keys", "written at the end of install",
+      "Sealed copies of the data/save keys usable from recovery systems.", "<span class=\"path\">gadget/device/encrypt.go</span>", "fde-keys"),
+
+    N("bootstrap", 360, 55, 340, 52, "sb", "snap-bootstrap (install mode)", "verify & mount seed snaps · tmpfs root",
+      "In install mode snap-bootstrap mounts ubuntu-seed, verifies the recovery system's essential snaps, mounts base/kernel/gadget/snapd from it, and creates a tmpfs root with an ephemeral modeenv.", "<span class=\"path\">cmd/snap-bootstrap</span>", "snap-bootstrap"),
+    N("snapd", 360, 125, 340, 52, "snapd", "snapd seeds the install system", "then ensureInstalledAfterSeed()",
+      "snapd starts normally in this RAM system and seeds just the snaps needed for install mode. Then it creates the \"Install the system\" Change — the installer is snapd's own task machinery.", "<span class=\"path\">overlord/devicestate/devicemgr.go</span>", "install-mode"),
+    N("setup", 360, 195, 340, 52, "snapd", "setup-run-system", "gadget/install.Run(): partition, LUKS, format",
+      "Decides whether to encrypt (TPM present? model grade?), checks the disk matches the gadget, creates the missing partitions, encrypts save and data, makes filesystems and writes gadget content.", "<span class=\"path\">overlord/devicestate/handlers_install.go</span>, <span class=\"path\">gadget/install</span>", "install-mode"),
+    N("runnable", 360, 265, 340, 52, "snapd", "boot.MakeRunnableSystem()", "snaps, modeenv, kernel.efi, grub.cfg, seal",
+      "Copies base/kernel/gadget into ubuntu-data, writes the run-mode modeenv, installs the run grub config and kernel.efi on ubuntu-boot, sets command-line variables, and seals the keys.", "<span class=\"path\">boot/makebootable.go</span>", "install-mode"),
+    N("hook", 360, 335, 340, 52, "snapd", "install-device hook (gadget, optional)", "device-specific provisioning",
+      "Runs with the new system prepared but not yet booted. It can ask to halt or power off instead of rebooting.", "<span class=\"path\">overlord/devicestate/handlers_install.go</span>", "hooks"),
+    N("restart", 360, 405, 340, 52, "snapd", "restart-system-to-run-mode", "apply preseed · flip mode · reboot",
+      "Applies preseeded data if present, writes <code class=\"inline\">snapd_recovery_mode=run</code> to the seed grubenv, copies install logs to ubuntu-data and reboots.", "<span class=\"path\">overlord/devicestate/handlers_install.go</span>", "install-mode"),
+
+    N("bootp", 760, 55, 300, 52, "data", "ubuntu-boot", "run grub · kernel.efi · run key",
+      "Created and formatted by install, then filled by <code class=\"inline\">MakeRunnableSystem</code>.", "", "core-partitions"),
+    N("savep", 760, 145, 300, 52, "data", "ubuntu-save", "created + encrypted · device dir",
+      "Created and LUKS-encrypted. The device key and serial will be stored here at registration.", "", "core-partitions"),
+    N("datap", 760, 235, 300, 52, "data", "ubuntu-data", "created + encrypted · snaps, modeenv",
+      "Created and encrypted; receives the snap files, the modeenv and (if preseeded) the preseeded state.", "", "core-partitions"),
+    N("tpm", 760, 325, 300, 52, "fw", "TPM", "keys sealed to the boot chain",
+      "The data and save keys are sealed against the expected run-mode and recovery boot chains.", "<span class=\"path\">boot/seal.go</span>", "fde-section"),
+    N("next", 760, 445, 300, 52, "snapd", "next boot: run mode", "first boot → seeding, registration",
+      "The device boots normally (see the boot tour) and seeds the run-mode snaps from the same recovery system.", "", "seeding")
+  ],
+  edges: [
+    E("seedenv-bootstrap", "seedenv", "bootstrap", "boots install mode"),
+    E("system-bootstrap", "system", "bootstrap", "verify, mount"),
+    E("bootstrap-snapd", "bootstrap", "snapd", ""),
+    E("system-snapd", "system", "snapd", "seed from"),
+    E("snapd-setup", "snapd", "setup", ""),
+    E("setup-bootp", "setup", "bootp", "create"),
+    E("setup-savep", "setup", "savep", "create + LUKS"),
+    E("setup-datap", "setup", "datap", "create + LUKS"),
+    E("setup-runnable", "setup", "runnable", ""),
+    E("runnable-bootp", "runnable", "bootp", "kernel.efi, grub.cfg"),
+    E("runnable-datap", "runnable", "datap", "snaps, modeenv"),
+    E("runnable-tpm", "runnable", "tpm", "seal keys"),
+    E("runnable-fbk", "runnable", "fbk", "fallback keys"),
+    E("runnable-hook", "runnable", "hook", ""),
+    E("hook-restart", "hook", "restart", ""),
+    E("preseed-restart", "preseed", "restart", "unpack (if present)"),
+    E("restart-datap", "restart", "datap", "preseed, logs", {dashed: true}),
+    E("restart-seedenv", "restart", "seedenv", "mode=run", {curve: 80}),
+    E("restart-next", "restart", "next", "reboot")
+  ],
+  steps: [
+    {title: "Starting point: only ubuntu-seed exists", on: ["gseed", "seedenv", "system"], kinds: ["data"], html:
+      `<p>A freshly flashed image contains just <b>ubuntu-seed</b>: the boot files, one recovery system (the seed), and a grubenv that says <code class="inline">snapd_recovery_mode=install</code>. The right-hand column shows what install will create.</p>`},
+    {title: "snap-bootstrap builds a system in RAM", on: ["seedenv", "system", "bootstrap"], flow: ["seedenv-bootstrap", "system-bootstrap"], kinds: ["sb"],
+      notes: [{at: "bootstrap", x: 360, y: 470, wrap: 52, text: "nothing on disk is touched yet, except reading ubuntu-seed"}],
+      html: `<p>The recovery grub boots the recovery system's kernel in install mode. snap-bootstrap verifies the seed's essential snaps against their assertions, mounts them, and creates a <b>tmpfs</b> root with an ephemeral modeenv.</p>`},
+    {title: "snapd seeds itself and plans the install", on: ["bootstrap", "snapd", "system"], flow: ["bootstrap-snapd", "system-snapd"], kinds: ["snapd"],
+      html: `<p>snapd starts in the RAM system and seeds only the snaps the model marks for install mode. <code class="inline">ensureInstalledAfterSeed()</code> then creates one Change: <code class="inline">setup-run-system</code> → [<code class="inline">setup-ubuntu-save</code> → <code class="inline">install-device</code> hook] → <code class="inline">restart-system-to-run-mode</code>.</p>
+             <p>Because it's a normal Change, install gets snapd's usual progress tracking, logging and error handling for free.</p>`},
+    {title: "Partition and encrypt", on: ["setup", "bootp", "savep", "datap"], flow: ["snapd-setup", "setup-bootp", "setup-savep", "setup-datap"], kinds: ["snapd", "data"],
+      notes: [{at: "setup", x: 760, y: 392, wrap: 46, text: "only boot, save and data are ever created — ubuntu-seed came from the image"}],
+      html: `<p><code class="inline">setup-run-system</code> decides on encryption (TPM availability vs. the model: grade <i>secured</i> requires it), checks the disk's partition table is compatible with the gadget, then <code class="inline">gadget/install.Run()</code> creates <b>ubuntu-boot</b>, <b>ubuntu-save</b> and <b>ubuntu-data</b>, LUKS-encrypts save and data, makes filesystems and writes gadget content.</p>`},
+    {title: "Make the run system bootable", on: ["runnable", "bootp", "datap"], flow: ["setup-runnable", "runnable-bootp", "runnable-datap"], kinds: ["snapd"],
+      html: `<p><code class="inline">boot.MakeRunnableSystem()</code> copies the base, kernel and gadget snaps into ubuntu-data and writes the run-mode <b>modeenv</b> (mode, recovery system, kernel, trusted asset hashes, model). On ubuntu-boot it installs the run <code class="inline">grub.cfg</code>, extracts <code class="inline">kernel.efi</code> and sets the command-line variables.</p>`},
+    {title: "Seal the keys", on: ["runnable", "tpm", "fbk"], flow: ["runnable-tpm", "runnable-fbk"], kinds: ["fw", "data"],
+      html: `<p>With encryption on, the data/save keys are <b>sealed</b> against the expected boot chains: the run key (stored on ubuntu-boot) for run mode, and fallback keys (on ubuntu-seed) for the recovery system. The recovery system is recorded as both <i>current</i> and <i>good</i>.</p>`},
+    {title: "Gadget hook, then flip to run mode", on: ["hook", "restart", "preseed", "seedenv"], flow: ["runnable-hook", "hook-restart", "preseed-restart", "restart-seedenv"], kinds: ["snapd"],
+      notes: [{at: "seedenv", side: "bottom", dy: 270, text: "this one write is the switch to run mode"}],
+      html: `<p>The gadget's optional <code class="inline">install-device</code> hook runs. Then <code class="inline">restart-system-to-run-mode</code> unpacks a <code class="inline">preseed.tgz</code> if there is one, writes <code class="inline">snapd_recovery_mode=run</code> into the seed's grubenv, and saves install logs to ubuntu-data.</p>`},
+    {title: "Reboot into the new system", on: ["restart", "next", "datap"], flow: ["restart-next", "restart-datap"], kinds: ["snapd"],
+      html: `<p>snapd requests an immediate reboot. The device now boots along the normal run-mode path (<a class="xref" href="#boot-timeline"></a>), and on that first boot seeds the run-mode snaps from the same recovery system and registers itself.</p>`}
+  ]
+};
+
+/* ------------------------------------------------------------------ */
+T.modes = {
+  title: "Switching modes: recover, reinstall, factory reset",
+  subtitle: "How a running device (or someone at its console) gets into another mode, and what each mode keeps",
+  blurb: "Recovery menu, snap reboot --recover / --factory-reset, the seed boot variables, and how identity survives a reset.",
+  icon: "⇄",
+  size: [1100, 520],
+  groups: [
+    G("grun", 20, 20, 330, 480, "snapd", "Running system"),
+    G("gseed", 370, 20, 320, 480, "data", "ubuntu-seed"),
+    G("gafter", 710, 20, 370, 480, "sb", "After the reboot")
+  ],
+  nodes: [
+    N("cli", 35, 55, 300, 52, "user", "snap reboot --recover …", "or POST /v2/systems/{label}",
+      "<code class=\"inline\">snap reboot --recover|--install|--factory-reset [label]</code> or the systems API. Without a label, the <i>default</i> recovery system is used.", "<span class=\"path\">daemon/api_systems.go</span>", "boot-modes"),
+    N("chooser", 35, 135, 300, 52, "sb", "recovery chooser", "trigger key at boot → menu",
+      "At boot, <code class=\"inline\">snap-bootstrap recovery-chooser-trigger</code> watches for a key; if pressed, <code class=\"inline\">snap-recovery-chooser</code> shows a menu (via console-conf) of systems and actions and sends the choice to snapd.", "<span class=\"path\">cmd/snapd/tool/snap-recovery-chooser</span>", "boot-modes"),
+    N("switch", 35, 215, 300, 52, "snapd", "switchToSystemAndMode()", "validate system and mode",
+      "Checks the system exists and supports the action, refuses while installing or factory-resetting, and does nothing if already in that system and mode.", "<span class=\"path\">overlord/devicestate/devicemgr.go</span>", "boot-modes"),
+    N("restart", 35, 295, 300, 52, "snapd", "RestartSystemNow", "reboot immediately", "", "<span class=\"path\">overlord/restart</span>", "try-boot"),
+    N("defaults", 35, 375, 300, 52, "data", "default recovery system", "used when no label is given",
+      "Recorded in state; set by seeding, remodels, or when creating a recovery system with \"mark default\".", "", "recovery-systems"),
+
+    N("seedenv", 385, 55, 290, 52, "data", "recovery grubenv", "snapd_recovery_mode / _system",
+      "The two variables the recovery grub reads first thing at boot.", "<code class=\"inline\">boot.SetRecoveryBootSystemAndMode</code>", "boot-vars"),
+    N("rgrub", 385, 175, 290, 52, "bl", "recovery grub", "boots that system's kernel",
+      "Loop-mounts the chosen recovery system's kernel snap and boots its kernel.efi with the mode and label on the command line.", "<span class=\"path\">bootloader/assets/data/grub-recovery.cfg</span>", "boot-timeline"),
+    N("systems", 385, 295, 290, 52, "data", "systems/<label>", "known-good recovery systems", "", "", "recovery-systems"),
+    N("fbk", 385, 415, 290, 52, "data", "fallback keys", "sealed for good recovery systems",
+      "Let recovery systems unlock save (and, in recover mode, data) without trusting ubuntu-boot.", "", "fde-keys"),
+
+    N("recover", 725, 55, 340, 52, "sb", "recover mode", "tmpfs system · data read-only at /host",
+      "A temporary system from the recovery system, with the real ubuntu-data mounted read-only at <span class=\"path\">/host/ubuntu-data</span> for rescue. Recover is one-shot: the next boot returns to run mode.", "", "core-grades-modes"),
+    N("freset", 725, 145, 340, 52, "sb", "factory-reset mode", "keep save · re-create boot + data",
+      "snap-bootstrap only unlocks ubuntu-save (with a fallback key); snapd then re-creates ubuntu-boot and ubuntu-data from the recovery system.", "<code class=\"inline\">install.FactoryReset</code>", "factory-reset"),
+    N("install", 725, 235, 340, 52, "sb", "install mode", "full reinstall from that system", "", "", "install-mode"),
+    N("identity", 725, 325, 340, 52, "snapd", "identity restored", "serial + key copied from ubuntu-save",
+      "The serial whose device key is still in ubuntu-save is copied into the new ubuntu-data; after the reboot snapd restores it instead of registering again, and rotates the save key.", "<span class=\"path\">overlord/devicestate/handlers_install.go</span>", "factory-reset"),
+    N("back", 725, 415, 340, 52, "snapd", "back to run mode", "", "", "", "boot-timeline")
+  ],
+  edges: [
+    E("cli-switch", "cli", "switch", "", {curve: 50}),
+    E("chooser-switch", "chooser", "switch", "posts choice"),
+    E("defaults-switch", "defaults", "switch", "no label?", {dashed: true, curve: -60}),
+    E("switch-seedenv", "switch", "seedenv", "write mode & system"),
+    E("switch-restart", "switch", "restart", ""),
+    E("restart-rgrub", "restart", "rgrub", "reboot"),
+    E("seedenv-rgrub", "seedenv", "rgrub", "read"),
+    E("systems-rgrub", "systems", "rgrub", "kernel snap"),
+    E("rgrub-recover", "rgrub", "recover", ""),
+    E("rgrub-freset", "rgrub", "freset", ""),
+    E("rgrub-install", "rgrub", "install", ""),
+    E("fbk-freset", "fbk", "freset", "unlock save"),
+    E("fbk-recover", "fbk", "recover", "unlock", {dashed: true}),
+    E("freset-identity", "freset", "identity", "", {curve: 60}),
+    E("recover-back", "recover", "back", "one-shot", {curve: 90}),
+    E("identity-back", "identity", "back", "")
+  ],
+  steps: [
+    {title: "Asking for another mode", on: ["cli", "chooser", "switch"], flow: ["cli-switch", "chooser-switch"], kinds: ["user", "snapd"], html:
+      `<p>Two ways in: from the running system (<code class="inline">snap reboot --recover</code>, <code class="inline">--install</code>, <code class="inline">--factory-reset</code>, or the API), or at the console during boot, by pressing the recovery-chooser key and picking from a menu. Both end up in snapd's <code class="inline">switchToSystemAndMode()</code>.</p>`},
+    {title: "snapd writes the seed's boot variables", on: ["switch", "seedenv", "restart", "defaults"], flow: ["switch-seedenv", "switch-restart", "defaults-switch"], kinds: ["snapd", "data"],
+      html: `<p>snapd validates the request, picks the default recovery system if none was named, writes <code class="inline">snapd_recovery_system</code> and <code class="inline">snapd_recovery_mode</code> into the <b>seed</b> grubenv, and reboots immediately.</p>`},
+    {title: "The recovery grub boots that system", on: ["restart", "seedenv", "rgrub", "systems"], flow: ["restart-rgrub", "seedenv-rgrub", "systems-rgrub"], kinds: ["bl"],
+      html: `<p>On boot, the recovery grub reads the variables, loop-mounts the chosen recovery system's kernel snap and boots it with <code class="inline">snapd_recovery_mode=&lt;mode&gt;</code> on the command line. From here, snap-bootstrap behaves differently per mode.</p>`},
+    {title: "Recover mode: a rescue system", on: ["rgrub", "recover", "fbk", "back"], flow: ["rgrub-recover", "fbk-recover", "recover-back"], kinds: ["sb"],
+      html: `<p>A temporary system runs from RAM, seeded from the recovery system. The real ubuntu-data is unlocked (falling back to the seed's keys if needed — "degraded" mode) and mounted <b>read-only</b> at <span class="path">/host/ubuntu-data</span> so you can copy data off. The recover entry already reset the mode to run, so the next reboot goes back to normal.</p>`},
+    {title: "Factory reset: keep only ubuntu-save", on: ["rgrub", "freset", "fbk"], flow: ["rgrub-freset", "fbk-freset"], kinds: ["sb", "snapd"],
+      notes: [{at: "freset", x: 385, y: 117, wrap: 44, text: "ubuntu-boot and ubuntu-data are not even looked at — they may be why you are resetting"}],
+      html: `<p>snap-bootstrap unlocks <b>only ubuntu-save</b>, using the fallback key on ubuntu-seed. snapd runs in RAM, seeds, and its <code class="inline">factory-reset-run-system</code> task re-creates ubuntu-boot and ubuntu-data from the recovery system and reseals keys.</p>`},
+    {title: "…and the device keeps its identity", on: ["freset", "identity", "back"], flow: ["freset-identity", "identity-back"], kinds: ["snapd"],
+      html: `<p>snapd finds the serial assertion whose device key is still in ubuntu-save and copies it into the fresh ubuntu-data. Back in run mode, it rotates the save key and restores the serial and key instead of registering again — to the store, it's the same device.</p>`},
+    {title: "Install mode: start over completely", on: ["rgrub", "install"], flow: ["rgrub-install"], kinds: ["sb"],
+      html: `<p>Install mode reinstalls the device from that recovery system exactly as a factory-fresh image would (see the <a class="xref" href="#install-mode"></a> tour) — this time without keeping ubuntu-save.</p>`}
+  ]
+};
+
+/* ------------------------------------------------------------------ */
+T.fde = {
+  title: "Full disk encryption: measure, seal, unseal, reseal",
+  subtitle: "Why the disk only opens for the software snapd expects — and what snapd must do before changing that software",
+  blurb: "The measured boot chain, the TPM's sealing policy, where each key lives, unlocking in the initrd and resealing on updates.",
+  icon: "🔒",
+  size: [1100, 540],
+  groups: [
+    G("gchain", 20, 20, 300, 500, "fw", "Measured boot chain"),
+    G("gtpm", 340, 20, 300, 500, "fw", "TPM"),
+    G("gkeys", 660, 20, 420, 500, "data", "Keys and encrypted partitions")
+  ],
+  nodes: [
+    N("shim", 35, 55, 270, 52, "bl", "shim + grub", "trusted assets from the gadget", "Their hashes are part of every boot chain snapd seals for.", "<span class=\"path\">boot/assets.go</span>", "managed-boot-config"),
+    N("kernel", 35, 125, 270, 52, "kern", "kernel.efi", "kernel + initrd", "Measured as one image.", "", "kernel-snap"),
+    N("cmdline", 35, 195, 270, 52, "kern", "kernel command line", "static + gadget + mode", "Changing it (e.g. a gadget cmdline update) changes measurements, so it's a resealing operation.", "<span class=\"path\">boot/cmdline.go</span>", "boot-vars"),
+    N("model", 35, 265, 270, 52, "data", "model assertion", "measured by snap-bootstrap", "Measured into PCR 12 by snap-bootstrap. A remodel therefore always needs a reseal.", "<span class=\"path\">secboot/secboot_tpm.go</span>", "remodeling"),
+    N("epoch", 35, 335, 270, 52, "data", "system epoch", "measured by snap-bootstrap", "A version marker for snapd's measurement scheme, also in PCR 12.", "", "fde"),
+
+    N("pcrs", 355, 55, 270, 52, "fw", "PCRs", "running hash of what booted", "Platform Configuration Registers can only be <i>extended</i> (hash-chained), never set — so their final values summarise exactly what booted.", "", "fde"),
+    N("policy", 355, 145, 270, 52, "fw", "sealing policy", "release key only if PCRs match", "A sealed key is bound to a policy listing acceptable PCR values — snapd computes these from <i>predicted</i> boot chains.", "<span class=\"path\">boot/seal.go</span>", "fde"),
+    N("counter", 355, 235, 270, 52, "fw", "policy counter (NV)", "revokes outdated policies", "Pre-reserved TPM NV indices; bumping the counter invalidates old policies. Factory reset can switch to an alternate counter.", "<span class=\"path\">secboot/secboot.go</span>", "fde"),
+    N("unseal", 355, 325, 270, 52, "sb", "unseal (snap-bootstrap)", "in the initrd only", "snap-bootstrap asks the TPM to unseal the run key during initramfs-mounts.", "<span class=\"path\">cmd/snap-bootstrap</span>", "snap-bootstrap"),
+    N("lock", 355, 415, 270, 52, "sb", "keys locked", "after initramfs-mounts", "Once mounting is done, access to the sealed keys is locked for the rest of the boot.", "", "snap-bootstrap"),
+
+    N("runkey", 675, 55, 390, 52, "data", "run key — on ubuntu-boot", "unlocks ubuntu-data in run mode", "Sealed for all current recovery systems' and kernels' run-mode chains.", "<span class=\"path\">gadget/device/encrypt.go</span>", "fde-keys"),
+    N("fallback", 675, 125, 390, 52, "data", "fallback keys — on ubuntu-seed", "recover / factory reset · good systems only", "", "", "fde-keys"),
+    N("savekey", 675, 195, 390, 52, "data", "ubuntu-save.key — inside ubuntu-data", "opens ubuntu-save once data is open", "", "", "fde-keys"),
+    N("recovery", 675, 265, 390, 52, "user", "recovery key — kept by the user", "not bound to measurements at all", "The way back in when the TPM refuses: changed firmware, a broken chain, moved disk.", "<span class=\"path\">overlord/fdestate</span>", "fde-keys"),
+    N("reseal", 675, 345, 390, 52, "snapd", "snapd reseals", "kernel · gadget assets · cmdline · model · recovery systems", "Before any change to the boot chain, snapd recomputes the possible chains (old and new) and reseals. Task kinds that do this are registered as resealing.", "<span class=\"path\">boot/seal.go</span>, <span class=\"path\">overlord/fdestate</span>", "fde"),
+    N("disks", 675, 445, 390, 52, "data", "ubuntu-data · ubuntu-save (LUKS)", "the encrypted partitions", "", "", "core-partitions")
+  ],
+  edges: [
+    E("shim-pcrs", "shim", "pcrs", "measured"),
+    E("kernel-pcrs", "kernel", "pcrs", ""),
+    E("cmdline-pcrs", "cmdline", "pcrs", ""),
+    E("model-pcrs", "model", "pcrs", "PCR 12"),
+    E("epoch-pcrs", "epoch", "pcrs", ""),
+    E("pcrs-policy", "pcrs", "policy", "compared"),
+    E("counter-policy", "counter", "policy", "", {dashed: true}),
+    E("policy-runkey", "policy", "runkey", "sealed"),
+    E("policy-fallback", "policy", "fallback", "sealed"),
+    E("unseal-policy", "unseal", "policy", "ask"),
+    E("unseal-runkey", "unseal", "runkey", "read"),
+    E("runkey-disks", "runkey", "disks", "unlock data", {curve: -60}),
+    E("savekey-disks", "savekey", "disks", "unlock save", {curve: -40}),
+    E("recovery-disks", "recovery", "disks", "manual unlock", {dashed: true, curve: 50}),
+    E("fallback-disks", "fallback", "disks", "recovery modes", {dashed: true, curve: 90}),
+    E("unseal-lock", "unseal", "lock", ""),
+    E("reseal-runkey", "reseal", "runkey", "re-seal", {curve: 90}),
+    E("reseal-fallback", "reseal", "fallback", "", {curve: 70}),
+    E("reseal-counter", "reseal", "counter", "bump", {dashed: true})
+  ],
+  steps: [
+    {title: "The idea", on: [], html:
+      `<p>The disk key is <b>sealed</b> by the TPM to a set of expected measurements. The TPM releases it only if this boot measured exactly what snapd predicted. Left to right: what gets measured, what the TPM does, and which keys exist where.</p>`},
+    {title: "Measuring the boot", on: ["shim", "kernel", "cmdline", "model", "epoch", "pcrs"], flow: ["shim-pcrs", "kernel-pcrs", "cmdline-pcrs", "model-pcrs", "epoch-pcrs"], kinds: ["fw", "bl", "kern"],
+      html: `<p>Each stage extends the TPM's PCRs with a hash of what it loads: shim and grub, <code class="inline">kernel.efi</code>, the command line. snap-bootstrap adds the <b>model assertion</b> and a system epoch (PCR 12). The final PCR values are a fingerprint of the whole boot.</p>`},
+    {title: "Sealing: binding keys to expected chains", on: ["pcrs", "policy", "counter", "runkey", "fallback"], flow: ["pcrs-policy", "counter-policy", "policy-runkey", "policy-fallback"], kinds: ["fw", "data"],
+      html: `<p>At install, and every time something changes, snapd predicts the PCR values of every boot chain that should be allowed (one per model × recovery system × kernel) and seals keys to that policy: the <b>run key</b> for run mode (stored on ubuntu-boot), <b>fallback keys</b> for recovery systems (on ubuntu-seed).</p>`},
+    {title: "Unlocking at boot", on: ["unseal", "policy", "runkey", "disks"], flow: ["unseal-runkey", "unseal-policy", "runkey-disks"], kinds: ["sb"],
+      html: `<p>In the initrd, snap-bootstrap reads the sealed run key and asks the TPM to unseal it. If the PCRs match, the key opens ubuntu-data (LUKS).</p>`},
+    {title: "Then ubuntu-save, then lock", on: ["savekey", "disks", "unseal", "lock"], flow: ["savekey-disks", "unseal-lock"], kinds: ["sb", "data"],
+      html: `<p>ubuntu-save's key is stored inside the now-open ubuntu-data. When mounting is complete, snap-bootstrap <b>locks</b> the sealed keys so nothing later in the boot can unseal them.</p>`},
+    {title: "When things change: reseal first", on: ["reseal", "runkey", "fallback", "counter"], flow: ["reseal-runkey", "reseal-fallback", "reseal-counter"], kinds: ["snapd"],
+      notes: [{at: "reseal", x: 355, y: 475, wrap: 44, text: "skipping this would leave the device unable to open its own disk after the reboot"}],
+      html: `<p>A kernel refresh, gadget boot-asset update, command-line change, remodel, or a new recovery system all change the set of valid boot chains. snapd <b>reseals before rebooting</b>, for both the current and the new chain, and bumps the policy counter so stale policies stop working.</p>
+             <p>That's why such task kinds are registered as "resealing" and why <span class="path">boot/seal.go</span> is consulted on every Modeenv change.</p>`},
+    {title: "When the TPM says no", on: ["recovery", "fallback", "disks"], flow: ["recovery-disks", "fallback-disks"], kinds: ["user", "data"],
+      html: `<p>If measurements don't match — a firmware update, a damaged ubuntu-boot — the <b>recovery key</b> (held by the user, not bound to any measurement) can unlock the disk. In recovery modes, the fallback keys on ubuntu-seed are tried for recovery systems known to be good.</p>`}
+  ]
+};
+})();
+(function(){
+"use strict";
+function N(id, x, y, w, h, kind, label, sub, info, code, see){ return {id:id, x:x, y:y, w:w, h:h, kind:kind, label:label, sub:sub, info:info, code:code, see:see}; }
+function G(id, x, y, w, h, kind, label){ return {id:id, x:x, y:y, w:w, h:h, kind:kind, label:label}; }
+function E(id, from, to, label, o){ o = o || {}; return {id:id, from:from, to:to, label:label, curve:o.curve, dashed:o.dashed, ldx:o.ldx, ldy:o.ldy}; }
+var T = window.SD_TOURS = window.SD_TOURS || {};
+
+T.map = {
+  title: "The snapd system map",
+  subtitle: "Every major moving part in one picture — click around, or take the tour",
+  blurb: "Clients, the daemon's internals, the store, systemd and the kernel's security features, and how a request flows between them.",
+  icon: "◎",
+  size: [1100, 600],
+  groups: [
+    G("gclients", 20, 20, 250, 560, "user", "Clients"),
+    G("gdaemon", 290, 20, 470, 560, "snapd", "snapd daemon"),
+    G("gout", 780, 20, 300, 560, "ext", "The rest of the system")
+  ],
+  nodes: [
+    N("cli", 35, 55, 220, 52, "user", "snap CLI", "cmd/snapd/cli", "The <code class=\"inline\">snap</code> command. Same binary as the daemon, chosen by argv[0]. Talks to snapd over HTTP on a unix socket via the <span class=\"path\">client</span> package.", "<span class=\"path\">cmd/snapd/cli</span>, <span class=\"path\">client</span>", "multicall"),
+    N("desktop", 35, 135, 220, 52, "user", "desktop & other clients", "app stores, notifications, prompts", "Software centres, the session agent, prompting UIs: anything using the REST API and the notices feed.", "", "notices"),
+    N("snapctl", 35, 215, 220, 52, "user", "snapctl", "from inside snaps and hooks", "The snap-side door into snapd, on a separate, restricted socket.", "<span class=\"path\">overlord/hookstate/ctlcmd</span>", "snapctl"),
+    N("app", 35, 400, 220, 52, "ext", "a confined app", "started via snap run", "Any snap app or service. It runs inside the sandbox built for it by snap-confine.", "", "execution-pipeline"),
+
+    N("socket", 305, 55, 210, 52, "snapd", "unix sockets", "snapd.socket · snapd-snap.socket", "<span class=\"path\">/run/snapd.socket</span> for normal clients; <span class=\"path\">/run/snapd-snap.socket</span> for snapctl. The peer's uid is read from the socket (SO_PEERCRED) and drives access checks.", "<span class=\"path\">daemon/ucrednet.go</span>", "daemon-package"),
+    N("api", 530, 55, 215, 52, "snapd", "REST API", "daemon/api_*.go", "Each route is a <code class=\"inline\">Command</code> with read/write access checkers. Quick reads answer directly; real work returns a Change id (202).", "<span class=\"path\">daemon/</span>", "daemon-api"),
+    N("overlord", 305, 140, 440, 52, "snapd", "overlord + ensure loop", "calls every manager's Ensure() — ≥ every 5 min, or on demand", "Owns the managers and the loop that drives them.", "<span class=\"path\">overlord/overlord.go</span>", "overlord"),
+    N("managers", 305, 220, 440, 66, "snapd", "state managers", "snapstate · ifacestate · assertstate · devicestate · hookstate\nservicestate · configstate · fdestate · snapshotstate · …", "Each owns one area and contributes task kinds and Ensure() logic.", "<span class=\"path\">overlord/*state</span>", "managers-map"),
+    N("runner", 305, 310, 210, 52, "snapd", "TaskRunner", "runs do/undo handlers", "Executes the tasks of every Change, one goroutine per running task.", "<span class=\"path\">overlord/state/taskrunner.go</span>", "taskrunner"),
+    N("state", 530, 310, 215, 52, "data", "state.json", "one lock · saved on unlock", "All of snapd's persistent memory.", "<span class=\"path\">overlord/state</span>", "state-locking"),
+    N("backends", 305, 400, 440, 52, "snapd", "security backends", "interfaces/{apparmor, seccomp, mount, udev, kmod, dbus, …}", "Turn interface connections into kernel-level profiles.", "<span class=\"path\">interfaces/</span>", "security-backends"),
+    N("wrappers", 305, 480, 440, 52, "snapd", "wrappers", "/snap/bin · systemd units · desktop files · D-Bus", "Expose a snap to the rest of the system at link time.", "<span class=\"path\">wrappers/</span>", "aliases-desktop"),
+
+    N("store", 795, 55, 270, 52, "store", "Snap Store", "snaps · assertions · device sessions", "Where snaps and their signed assertions come from.", "<span class=\"path\">store/</span>", "store-client"),
+    N("mounts", 795, 140, 270, 52, "ext", "/snap/<name>/<rev>", "mounted SquashFS files", "Each snap revision is a read-only SquashFS mounted by a systemd mount unit.", "", "snap-data-layout"),
+    N("systemd", 795, 220, 270, 52, "sys", "systemd", "mount units · snap services", "Mounts snaps and runs snap services, from units snapd writes.", "<span class=\"path\">systemd/</span>", "services"),
+    N("confine", 795, 310, 270, 52, "snapd", "snap-confine → snap-exec", "builds the sandbox per launch", "The privileged helper that enters/creates the snap's namespace and applies its profiles, then hands over to snap-exec.", "<span class=\"path\">cmd/snap-confine</span>", "snap-confine-flow"),
+    N("kernel", 795, 400, 270, 52, "kern", "kernel security", "AppArmor · seccomp · cgroups · namespaces", "Where confinement is actually enforced.", "", "confinement")
+  ],
+  edges: [
+    E("cli-socket", "cli", "socket", "HTTP"),
+    E("desktop-socket", "desktop", "socket", ""),
+    E("snapctl-socket", "snapctl", "socket", "snap socket"),
+    E("socket-api", "socket", "api", ""),
+    E("api-overlord", "api", "overlord", "builds a Change"),
+    E("overlord-managers", "overlord", "managers", "Ensure()"),
+    E("managers-runner", "managers", "runner", "task handlers"),
+    E("runner-state", "runner", "state", "persist"),
+    E("managers-store", "managers", "store", "fetch snaps & assertions"),
+    E("managers-mounts", "managers", "mounts", "mount-snap"),
+    E("managers-backends", "managers", "backends", "setup-profiles", {curve: 60}),
+    E("managers-wrappers", "managers", "wrappers", "link-snap", {curve: 110}),
+    E("wrappers-systemd", "wrappers", "systemd", "units"),
+    E("backends-kernel", "backends", "kernel", "profiles"),
+    E("cli-confine", "cli", "confine", "snap run → exec", {curve: -50}),
+    E("confine-kernel", "confine", "kernel", "apply"),
+    E("confine-app", "confine", "app", "exec app", {curve: 60}),
+    E("app-snapctl", "app", "snapctl", "", {dashed: true})
+  ],
+  steps: [
+    {title: "The whole system", on: [], html:
+      `<p>Left: things that talk to snapd. Middle: the daemon itself. Right: what snapd talks to and controls. Click any box for a description and a link to its section, or step through two journeys: <b>installing a snap</b> and <b>running one</b>.</p>`},
+    {title: "Asking snapd to do something", on: ["cli", "socket", "api"], flow: ["cli-socket", "socket-api"], kinds: ["user", "snapd"],
+      html: `<p><code class="inline">snap install foo</code> sends <code class="inline">POST /v2/snaps/foo</code> over <span class="path">/run/snapd.socket</span>. The daemon reads the caller's uid from the socket to decide whether the request is allowed.</p>`},
+    {title: "The request becomes a Change", on: ["api", "overlord", "managers", "state"], flow: ["api-overlord", "overlord-managers"], kinds: ["snapd"],
+      html: `<p>The API handler asks a manager (<code class="inline">snapstate</code>) to build a TaskSet, wraps it in a <b>Change</b>, saves it in state.json and replies <code class="inline">202 Accepted</code> with the Change id. The client polls it for progress.</p>`},
+    {title: "Tasks run and touch the system", on: ["managers", "runner", "state", "store", "mounts", "backends", "wrappers"], flow: ["managers-runner", "runner-state", "managers-store", "managers-mounts", "managers-backends", "managers-wrappers"], kinds: ["snapd"],
+      html: `<p>The TaskRunner executes the tasks: download from the <b>store</b>, verify assertions, <b>mount</b> the snap, generate <b>security profiles</b>, and write <b>wrappers</b> (/snap/bin entries, systemd units). Every step is saved to state.json so it survives restarts. Full detail: <a class="xref" href="#install-walkthrough"></a>.</p>`},
+    {title: "Profiles and units reach the kernel and systemd", on: ["backends", "kernel", "wrappers", "systemd"], flow: ["backends-kernel", "wrappers-systemd"], kinds: ["kern", "sys"],
+      html: `<p>AppArmor profiles are loaded, seccomp filters compiled, systemd reloads and starts any services. Note the daemon isn't needed for any of this to keep working later: profiles and units live on disk.</p>`},
+    {title: "Running a snap", on: ["cli", "confine", "kernel", "app"], flow: ["cli-confine", "confine-kernel", "confine-app"], kinds: ["snapd", "kern"],
+      html: `<p><code class="inline">snap run foo</code> doesn't go through the daemon at all: it execs <b>snap-confine</b>, which sets up the sandbox from the profiles snapd generated earlier, then <b>snap-exec</b>, which starts the app. See the <a class="xref" href="#execution-pipeline"></a> tour.</p>`},
+    {title: "Snaps talk back", on: ["app", "snapctl", "socket", "api"], flow: ["app-snapctl", "snapctl-socket", "socket-api"], kinds: ["user", "snapd"],
+      html: `<p>From inside the sandbox (usually in a hook), a snap uses <code class="inline">snapctl</code> to read configuration, control its services or check connections — through the separate snap socket, which only allows snap-appropriate operations.</p>`}
+  ]
+};
+
+T.run = {
+  title: "Running a snap",
+  subtitle: "snap run → snap-confine → snap-exec → your app",
+  blurb: "From typing a command to a confined process: run inhibition, the system-key check, namespaces, profiles, and the hand-off chain.",
+  icon: "▶",
+  size: [1100, 520],
+  groups: [
+    G("gyou", 20, 20, 250, 480, "user", "You / systemd"),
+    G("ghost", 290, 20, 420, 480, "snapd", "Host side (before the sandbox)"),
+    G("gbox", 730, 20, 350, 480, "kern", "Inside the sandbox")
+  ],
+  nodes: [
+    N("shell", 35, 55, 220, 52, "user", "shell · desktop · systemd", "runs /snap/bin/foo", "A terminal, a desktop launcher (Exec= points to /snap/bin), or a service unit (ExecStart=/usr/bin/snap run foo.svc).", "", "aliases-desktop"),
+    N("symlink", 35, 145, 220, 52, "user", "/snap/bin/foo", "symlink → /usr/bin/snap", "Every app gets a symlink to the snap binary; the name it was called by (argv[0]) says which app to run.", "<span class=\"path\">wrappers/binaries.go</span>", "multicall"),
+    N("daemon", 35, 335, 220, 52, "snapd", "snapd daemon", "generated the profiles earlier", "Not involved in each launch — it prepared everything ahead of time, and only gets asked if the system key shows profiles are stale.", "", "security-backends"),
+
+    N("snaprun", 305, 55, 390, 52, "snapd", "snap run foo", "cmd/snapd/cli/cmd_run.go", "Reads the snap's metadata, works out the app, revision and environment, and builds snap-confine's command line.", "<span class=\"path\">cmd/snapd/cli/cmd_run.go</span>", "snap-run"),
+    N("inhibit", 305, 135, 185, 52, "snapd", "run-inhibit lock", "wait if refreshing", "If the snap is mid-refresh, snap run waits (with a notification); if it's being removed or is disabled, it refuses.", "<span class=\"path\">cmd/snapd/cli/inhibit.go</span>", "snap-run"),
+    N("syskey", 510, 135, 185, 52, "snapd", "system-key check", "are profiles current?", "Compares the system key (kernel features, snapd build id, …) with the one the profiles were generated for; waits for snapd to regenerate if they differ.", "<span class=\"path\">interfaces/system_key.go</span>", "security-backends"),
+    N("confine", 305, 225, 390, 52, "snapd", "snap-confine", "the only privileged step (capabilities)", "C helper with a few capabilities. Refuses to run unconfined, takes per-snap locks, prepares the namespace and applies profiles, then drops privileges.", "<span class=\"path\">cmd/snap-confine</span>", "snap-confine-flow"),
+    N("ns", 305, 315, 185, 52, "snapd", "mount namespace", "/run/snapd/ns (reused)", "Per-snap, persistent and reused between launches; rebuilt if the base snap changed.", "<span class=\"path\">cmd/snap-confine/ns-support.c</span>", "snap-confine-flow"),
+    N("updns", 510, 315, 185, 52, "snapd", "snap-update-ns", "apply mount profile", "Applies the snap's layouts and interface mounts as a minimal diff.", "<span class=\"path\">cmd/snap-update-ns</span>", "mount-namespace"),
+    N("profiles", 305, 405, 390, 52, "kern", "AppArmor · seccomp · device cgroup", "pre-generated by snapd, applied here", "The AppArmor profile for the app's security tag, the compiled seccomp filter (.bin2), and the device cgroup.", "", "security-backends"),
+
+    N("exec", 745, 135, 320, 52, "snapd", "snap-exec", "resolve command, env, command-chain", "Already inside the sandbox: finds the app's command in snap.yaml, sets up the environment, runs any command-chain wrappers, then execs the app.", "<span class=\"path\">cmd/snap-exec</span>", "snap-exec-flow"),
+    N("app", 745, 225, 320, 52, "kern", "the app", "confined; sees /snap/foo/current", "", "", "confinement"),
+    N("asks", 745, 315, 320, 52, "user", "snapctl · portals · userd", "ask for more, safely", "The app can talk to snapd (snapctl, from hooks) or the desktop (portals, io.snapcraft.Launcher) to do things its profile doesn't allow directly.", "", "aliases-desktop"),
+    N("data", 745, 405, 320, 52, "data", "its data", "$SNAP_DATA · ~/snap/foo/<rev>", "", "", "snap-data-layout")
+  ],
+  edges: [
+    E("shell-symlink", "shell", "symlink", ""),
+    E("symlink-snaprun", "symlink", "snaprun", "argv[0] = foo"),
+    E("snaprun-inhibit", "snaprun", "inhibit", ""),
+    E("snaprun-syskey", "snaprun", "syskey", ""),
+    E("syskey-daemon", "syskey", "daemon", "stale? wait for regen", {dashed: true, curve: -80}),
+    E("snaprun-confine", "snaprun", "confine", "exec", {curve: -110}),
+    E("confine-ns", "confine", "ns", "enter or build"),
+    E("confine-updns", "confine", "updns", ""),
+    E("confine-profiles", "confine", "profiles", "apply", {curve: -110}),
+    E("daemon-profiles", "daemon", "profiles", "wrote earlier", {dashed: true}),
+    E("confine-exec", "confine", "exec", "exec (privileges dropped)"),
+    E("exec-app", "exec", "app", "exec"),
+    E("app-asks", "app", "asks", ""),
+    E("app-data", "app", "data", "", {curve: -60})
+  ],
+  steps: [
+    {title: "Three programs, one direction", on: [], html:
+      `<p>Running a snap is a chain of <code class="inline">exec</code>s: <b>snap run</b> (unprivileged) → <b>snap-confine</b> (briefly privileged, builds the sandbox) → <b>snap-exec</b> (inside the sandbox) → the app. The daemon isn't on this path at all.</p>`},
+    {title: "/snap/bin/foo is the snap binary in disguise", on: ["shell", "symlink", "snaprun"], flow: ["shell-symlink", "symlink-snaprun"], kinds: ["user"],
+      html: `<p><span class="path">/snap/bin/foo</span> is a symlink to <span class="path">/usr/bin/snap</span>, which (possibly after re-exec into the snapd snap) sees it was invoked as <code class="inline">foo</code> and behaves as <code class="inline">snap run foo</code>.</p>`},
+    {title: "Pre-flight checks in snap run", on: ["snaprun", "inhibit", "syskey", "daemon"], flow: ["snaprun-inhibit", "snaprun-syskey", "syskey-daemon"], kinds: ["snapd"],
+      html: `<p><code class="inline">snap run</code> waits if the snap is being refreshed (run inhibition) and checks the <b>system key</b>: if the kernel, AppArmor or snapd changed since profiles were generated, it waits for snapd to regenerate them rather than run with stale policy.</p>`},
+    {title: "snap-confine: the privileged moment", on: ["snaprun", "confine"], flow: ["snaprun-confine"], kinds: ["snapd"],
+      html: `<p><code class="inline">snap-confine</code> holds a few capabilities (not full root). It refuses to run if it isn't itself confined on an AppArmor system, takes per-snap locks, and does only the privileged setup work.</p>`},
+    {title: "Enter (or build) the snap's mount namespace", on: ["confine", "ns", "updns"], flow: ["confine-ns", "confine-updns"], kinds: ["snapd"],
+      html: `<p>Each snap has a persistent mount namespace, reused across launches for speed. If the base snap changed it's discarded and rebuilt from the base's root filesystem; <code class="inline">snap-update-ns</code> applies layouts and interface-granted mounts.</p>`},
+    {title: "Apply the security profiles", on: ["confine", "profiles", "daemon"], flow: ["confine-profiles", "daemon-profiles"], kinds: ["kern"],
+      html: `<p>The app's AppArmor profile, its precompiled seccomp filter and its device cgroup are applied. All of them were generated earlier by the daemon — nothing is compiled during launch.</p>`},
+    {title: "Drop privileges, snap-exec, the app", on: ["confine", "exec", "app"], flow: ["confine-exec", "exec-app"], kinds: ["snapd", "kern"],
+      html: `<p>snap-confine drops its capabilities and execs <code class="inline">snap-exec</code>, already confined. snap-exec resolves the command and environment and execs the app. From here no snapd code remains in the process.</p>`},
+    {title: "Inside the box", on: ["app", "asks", "data"], flow: ["app-asks", "app-data"], kinds: ["kern"],
+      html: `<p>The app sees its own files at <span class="path">/snap/foo/current</span>, writes to <code class="inline">$SNAP_DATA</code> and <span class="path">~/snap/foo</span>, and reaches beyond its profile only through connected interfaces or by asking snapd and the desktop through controlled channels.</p>`}
+  ]
+};
+
+T.daemon = {
+  title: "Inside the daemon: a request's life",
+  subtitle: "API → Change → ensure loop → TaskRunner → handlers, with state saved at every step",
+  blurb: "How the overlord turns an API request into persistent, resumable work — including what happens on failure and across restarts.",
+  icon: "⚙",
+  size: [1100, 500],
+  groups: [
+    G("gapi", 20, 20, 470, 120, "snapd", "Request"),
+    G("gloop", 20, 160, 1060, 320, "snapd", "The overlord")
+  ],
+  nodes: [
+    N("client", 35, 60, 200, 52, "user", "client", "snap install foo", "", "", "daemon-api"),
+    N("api", 260, 60, 215, 52, "snapd", "POST /v2/snaps/foo", "daemon/api_snaps.go", "Checks access, parses the request, calls the manager helper, creates the Change.", "<span class=\"path\">daemon/api_snaps.go</span>", "async-changes"),
+    N("helper", 520, 60, 250, 52, "snapd", "snapstate.InstallWithGoal()", "returns a TaskSet", "Resolves what to install (talking to the store with the state lock released), checks conflicts, and builds the task chain.", "<span class=\"path\">overlord/snapstate/target.go</span>", "walkthrough-steps"),
+    N("change", 800, 60, 280, 52, "data", "Change", "graph of Tasks · id returned (202)", "Saved in state immediately; its id is the handle clients poll.", "<span class=\"path\">overlord/state/change.go</span>", "change-task"),
+    N("poll", 35, 200, 200, 52, "user", "client polls", "GET /v2/changes/{id}", "The CLI's progress bar is just repeated polling of the Change.", "", "async-changes"),
+    N("loop", 260, 200, 215, 52, "snapd", "ensure loop", "≤ 5 min, or EnsureBefore(0)", "Runs every manager's Ensure(), then the TaskRunner's.", "<span class=\"path\">overlord/overlord.go</span>", "ensure-loop"),
+    N("managers", 520, 200, 250, 52, "snapd", "managers' Ensure()", "auto-refresh, seeding, boot ok, …", "Background state machines that may create Changes of their own.", "", "ensure-loop"),
+    N("runner", 800, 200, 280, 52, "snapd", "TaskRunner.Ensure()", "start ready tasks · a goroutine each", "Picks tasks whose dependencies are done and that aren't blocked, and starts their handlers.", "<span class=\"path\">overlord/state/taskrunner.go</span>", "taskrunner"),
+    N("state", 520, 300, 250, 52, "data", "state.json", "saved on every Unlock()", "Unlock serializes and writes the whole state if it changed, retrying for up to 5 minutes before giving up.", "<span class=\"path\">overlord/state/state.go</span>", "state-locking"),
+    N("handler", 800, 300, 280, 52, "snapd", "task handler (do / undo)", "lock state · unlock for slow I/O", "Holds the state lock while touching state; releases it only around network or big disk work, then re-validates.", "<span class=\"path\">overlord/snapstate/handlers.go</span>", "handler-invariants"),
+    N("restart", 260, 400, 215, 52, "snapd", "restart / reboot", "Change waits across it", "A task can finish with a restart request; dependent tasks wait until snapd sees the restart happened.", "<span class=\"path\">overlord/restart</span>", "try-boot"),
+    N("undo", 800, 400, 280, 52, "snapd", "failure → undo, by lane", "completed deps undone in reverse", "A failing task aborts its lane(s); completed tasks in those lanes are undone, other lanes carry on.", "<span class=\"path\">overlord/state/change.go</span>", "lanes"),
+    N("conflict", 520, 400, 250, 52, "snapd", "conflicts & blocking", "one operation per snap at a time", "New Changes touching a snap already being changed are refused; some task families are serialized with AddBlocked.", "<span class=\"path\">overlord/snapstate/conflict.go</span>", "conflicts")
+  ],
+  edges: [
+    E("client-api", "client", "api", ""),
+    E("api-helper", "api", "helper", ""),
+    E("helper-change", "helper", "change", ""),
+    E("change-state", "change", "state", "persisted", {curve: 40}),
+    E("helper-conflict", "helper", "conflict", "checks", {dashed: true, curve: -60}),
+    E("poll-change", "poll", "change", "status", {dashed: true, curve: -40}),
+    E("api-client", "api", "client", "202 + id", {curve: 40}),
+    E("loop-managers", "loop", "managers", ""),
+    E("managers-runner", "managers", "runner", "then"),
+    E("managers-change", "managers", "change", "may create", {dashed: true}),
+    E("runner-handler", "runner", "handler", "start"),
+    E("handler-state", "handler", "state", "Lock / Unlock"),
+    E("handler-undo", "handler", "undo", "error"),
+    E("handler-restart", "handler", "restart", "needs reboot", {curve: 60}),
+    E("handler-loop", "handler", "loop", "EnsureBefore(0)", {dashed: true, curve: -80})
+  ],
+  steps: [
+    {title: "Two halves", on: [], html: `<p>Top: the HTTP request, which returns quickly. Bottom: the overlord, which does the actual work later, in the background, persistently. The link between them is a <b>Change</b> saved in state.json.</p>`},
+    {title: "Request → manager helper → TaskSet", on: ["client", "api", "helper", "conflict"], flow: ["client-api", "api-helper", "helper-conflict"], kinds: ["snapd"],
+      html: `<p>The API handler calls a manager helper, which decides what to do (asking the store, with the state lock released), checks for <b>conflicts</b> with Changes already touching the snap, and returns a TaskSet.</p>`},
+    {title: "The Change is saved and its id returned", on: ["helper", "change", "state", "api", "client"], flow: ["helper-change", "change-state", "api-client"], kinds: ["snapd", "data"],
+      html: `<p>The TaskSet is wrapped into a Change, written to state.json, and the API replies <code class="inline">202 Accepted</code> with the id. If snapd crashed this instant, the Change would still run after restart.</p>`},
+    {title: "The client polls", on: ["poll", "change"], flow: ["poll-change"], kinds: ["user"], html: `<p><code class="inline">snap install</code> shows progress by polling <code class="inline">/v2/changes/{id}</code>. (Desktop clients can instead long-poll <code class="inline">/v2/notices</code> for change-update events.)</p>`},
+    {title: "The ensure loop", on: ["loop", "managers", "runner"], flow: ["loop-managers", "managers-runner", "managers-change"], kinds: ["snapd"],
+      html: `<p>The loop runs at least every 5 minutes and immediately whenever someone calls <code class="inline">EnsureBefore(0)</code>. Every manager's <code class="inline">Ensure()</code> runs first — they may create Changes of their own (auto-refresh, seeding) — and the <b>TaskRunner</b> runs last, so new work is picked up in the same pass.</p>`},
+    {title: "Handlers do the work", on: ["runner", "handler", "state"], flow: ["runner-handler", "handler-state", "handler-loop"], kinds: ["snapd"],
+      html: `<p>Each ready task runs its handler in its own goroutine. The handler takes the state lock to read/modify state and releases it only around slow work. Every <code class="inline">Unlock()</code> with changes writes state.json synchronously. When a task finishes, the runner nudges the loop so dependents start immediately.</p>`},
+    {title: "When a task fails", on: ["handler", "undo"], flow: ["handler-undo"], kinds: ["snapd"],
+      html: `<p>A failing task aborts the lanes it belongs to: completed tasks there are undone in reverse; other lanes (e.g. other snaps in the same auto-refresh) continue. The failing task cleans up its own partial work.</p>`},
+    {title: "Across restarts and reboots", on: ["handler", "restart", "state"], flow: ["handler-restart"], kinds: ["snapd"],
+      html: `<p>Some tasks need snapd or the whole system to restart (a snapd refresh, a kernel update). They finish with a restart request; the dependent tasks wait, persisted in state.json, until snapd sees the restart actually happened — then the Change continues as if nothing interrupted it.</p>`}
+  ]
+};
+})();
+window.SD_TOUR_ORDER = ["map", "run", "daemon", "boot", "tryboot", "install", "modes", "fde"];
+</script>
+<script>
+(function(){
+  "use strict";
+  var NS = "http://www.w3.org/2000/svg";
+  var TOURS = window.SD_TOURS || {};
+  var KIND = {
+    fw: "firmware / hardware", bl: "bootloader (config written by snapd)", kern: "kernel",
+    sb: "snap-bootstrap (snapd code in the initrd)", sys: "systemd", snapd: "snapd",
+    data: "data on disk", ext: "outside snapd", user: "user / client", store: "the store"
+  };
+  var reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  function svgEl(tag, attrs, parent){
+    var e = document.createElementNS(NS, tag);
+    for(var k in attrs){ if(attrs[k] !== undefined && attrs[k] !== null){ e.setAttribute(k, attrs[k]); } }
+    if(parent){ parent.appendChild(e); }
+    return e;
+  }
+  function htmlEl(tag, cls, inner){
+    var e = document.createElement(tag);
+    if(cls){ e.className = cls; }
+    if(inner !== undefined){ e.innerHTML = inner; }
+    return e;
+  }
+  function center(n){ return { x: n.x + n.w / 2, y: n.y + n.h / 2 }; }
+  function clip(n, toward){
+    var c = center(n), dx = toward.x - c.x, dy = toward.y - c.y;
+    if(!dx && !dy){ return c; }
+    var sx = dx ? (n.w / 2 + 2) / Math.abs(dx) : Infinity;
+    var sy = dy ? (n.h / 2 + 2) / Math.abs(dy) : Infinity;
+    var s = Math.min(sx, sy);
+    return { x: c.x + dx * s, y: c.y + dy * s };
+  }
+  function wrap(text, max){
+    var words = String(text).split(/\s+/), lines = [], cur = "";
+    words.forEach(function(w){
+      if(cur && (cur + " " + w).length > max){ lines.push(cur); cur = w; }
+      else { cur = cur ? cur + " " + w : w; }
+    });
+    if(cur){ lines.push(cur); }
+    return lines;
+  }
+  function badge(kind){ return kind ? '<span class="own ' + kind + '">' + (KIND[kind] || kind) + '</span>' : ""; }
+
+  function Player(root, tour, id){
+    this.root = root; this.tour = tour; this.id = id;
+    this.step = 0; this.selected = null; this.timer = null;
+    this.nodes = {}; this.edges = {}; this.groups = {};
+    (tour.nodes || []).forEach(function(n){ this.nodes[n.id] = n; }, this);
+    (tour.groups || []).forEach(function(g){ this.groups[g.id] = g; }, this);
+    this.build();
+    this.show(0);
+  }
+
+  Player.prototype.build = function(){
+    var t = this.tour, self = this, root = this.root;
+    root.classList.add("dp");
+    root.setAttribute("tabindex", "0");
+    root.setAttribute("aria-label", "Interactive diagram: " + t.title);
+
+    var head = htmlEl("div", "dp-head");
+    head.appendChild(htmlEl("div", "dp-title", "<b>" + t.title + "</b><span>" + (t.subtitle || "") + "</span>"));
+    var tools = htmlEl("div", "dp-tools");
+    this.fullBtn = htmlEl("button", "dp-btn", "⤢ Full screen");
+    this.fullBtn.title = "Open this diagram full screen (Esc to close)";
+    tools.appendChild(this.fullBtn);
+    head.appendChild(tools);
+    root.appendChild(head);
+
+    var kinds = {};
+    (t.nodes || []).forEach(function(n){ if(n.kind){ kinds[n.kind] = 1; } });
+    var legend = htmlEl("div", "dp-legend", Object.keys(kinds).map(badge).join("") + '<span class="dp-hint">Tip: click any box to see what it is · ←/→ to step</span>');
+    root.appendChild(legend);
+
+    var body = htmlEl("div", "dp-body");
+    var canvas = htmlEl("div", "dp-canvas");
+    var W = t.size[0], H = t.size[1];
+    var svg = svgEl("svg", { viewBox: "0 0 " + W + " " + H, role: "img", "aria-label": t.title, preserveAspectRatio: "xMidYMid meet" }, canvas);
+    this.svg = svg;
+    var defs = svgEl("defs", {}, svg);
+    ["dim", "on"].forEach(function(k){
+      var m = svgEl("marker", { id: self.id + "-arrow-" + k, viewBox: "0 0 10 10", refX: "9", refY: "5", markerWidth: "7", markerHeight: "7", orient: "auto-start-reverse" }, defs);
+      svgEl("path", { d: "M0,0 L10,5 L0,10 z", "class": "dp-arrow-" + k }, m);
+    });
+    svgEl("rect", { x: 0, y: 0, width: W, height: H, "class": "dp-bg" }, svg).addEventListener("click", function(){ self.select(null); });
+
+    var gl = svgEl("g", { "class": "dp-groups" }, svg);
+    (t.groups || []).forEach(function(g){
+      var gg = svgEl("g", { "class": "g k-" + (g.kind || "none"), "data-id": g.id }, gl);
+      svgEl("rect", { x: g.x, y: g.y, width: g.w, height: g.h, rx: 12 }, gg);
+      var tx = svgEl("text", { x: g.x + 12, y: g.y + 18, "class": "g-label" }, gg);
+      tx.textContent = g.label;
+      g.el = gg;
+      if(g.info){
+        gg.classList.add("clickable");
+        tx.addEventListener("click", function(ev){ ev.stopPropagation(); self.select(g.id); });
+      }
+    });
+
+    var el = svgEl("g", { "class": "dp-edges" }, svg);
+    (t.edges || []).forEach(function(e){
+      var a = self.nodes[e.from], b = self.nodes[e.to];
+      if(!a || !b){ console.warn("tour " + t.title + ": bad edge", e); return; }
+      var ca = center(a), cb = center(b), s, en, d, lx, ly;
+      if(e.curve){
+        var mx = (ca.x + cb.x) / 2, my = (ca.y + cb.y) / 2;
+        var len = Math.sqrt((cb.x - ca.x) * (cb.x - ca.x) + (cb.y - ca.y) * (cb.y - ca.y)) || 1;
+        var cx = mx - (cb.y - ca.y) / len * e.curve, cy = my + (cb.x - ca.x) / len * e.curve;
+        s = clip(a, { x: cx, y: cy }); en = clip(b, { x: cx, y: cy });
+        d = "M" + s.x + "," + s.y + " Q" + cx + "," + cy + " " + en.x + "," + en.y;
+        lx = 0.25 * s.x + 0.5 * cx + 0.25 * en.x; ly = 0.25 * s.y + 0.5 * cy + 0.25 * en.y;
+      } else {
+        s = clip(a, cb); en = clip(b, ca);
+        d = "M" + s.x + "," + s.y + " L" + en.x + "," + en.y;
+        lx = (s.x + en.x) / 2; ly = (s.y + en.y) / 2;
+      }
+      var g = svgEl("g", { "class": "e" + (e.dashed ? " dashed" : ""), "data-id": e.id }, el);
+      svgEl("path", { d: d, "class": "e-path", "marker-end": "url(#" + self.id + "-arrow-dim)" }, g);
+      if(e.label){
+        var lt = svgEl("text", { x: lx + (e.ldx || 0), y: ly + (e.ldy || -4), "class": "e-label", "text-anchor": "middle" }, g);
+        lt.textContent = e.label;
+      }
+      self.edges[e.id] = { def: e, el: g };
+    });
+
+    var nl = svgEl("g", { "class": "dp-nodes" }, svg);
+    (t.nodes || []).forEach(function(n){
+      var g = svgEl("g", { "class": "n k-" + (n.kind || "ext") + (n.ghost ? " ghost" : ""), "data-id": n.id, tabindex: "-1" }, nl);
+      svgEl("rect", { x: n.x, y: n.y, width: n.w, height: n.h, rx: 8 }, g);
+      svgEl("rect", { x: n.x, y: n.y + 6, width: 4, height: n.h - 12, rx: 2, "class": "n-stripe" }, g);
+      var tt = svgEl("text", { x: n.x + 12, y: n.y + 19, "class": "n-title" }, g);
+      tt.textContent = n.label;
+      String(n.sub || "").split("\n").forEach(function(line, i){
+        if(!line){ return; }
+        var st = svgEl("text", { x: n.x + 12, y: n.y + 34 + i * 13, "class": "n-sub" }, g);
+        st.textContent = line;
+      });
+      var title = svgEl("title", {}, g);
+      title.textContent = n.label + " — click for details";
+      g.addEventListener("click", function(ev){ ev.stopPropagation(); self.select(n.id); });
+      n.el = g;
+    });
+    this.notesLayer = svgEl("g", { "class": "dp-notes" }, svg);
+    body.appendChild(canvas);
+
+    var panel = htmlEl("div", "dp-panel");
+    this.panel = panel;
+    body.appendChild(panel);
+    root.appendChild(body);
+
+    var controls = htmlEl("div", "dp-controls");
+    this.prevBtn = htmlEl("button", "dp-btn", "← Prev");
+    this.playBtn = htmlEl("button", "dp-btn dp-play", "▶ Play");
+    this.nextBtn = htmlEl("button", "dp-btn dp-next", "Next →");
+    var dots = htmlEl("div", "dp-dots");
+    this.dots = t.steps.map(function(s, i){
+      var b = htmlEl("button", "dp-dot");
+      b.title = (i + 1) + ". " + s.title;
+      b.setAttribute("aria-label", "Step " + (i + 1) + ": " + s.title);
+      b.addEventListener("click", function(){ self.stop(); self.show(i); });
+      dots.appendChild(b);
+      return b;
+    });
+    controls.appendChild(this.prevBtn);
+    controls.appendChild(this.playBtn);
+    controls.appendChild(dots);
+    controls.appendChild(this.nextBtn);
+    root.appendChild(controls);
+
+    var tr = htmlEl("details", "dp-transcript");
+    var trHtml = "<summary>Read the whole tour as text</summary><ol>";
+    t.steps.forEach(function(s){ trHtml += "<li><b>" + s.title + "</b>" + s.html + "</li>"; });
+    trHtml += "</ol><p><b>The pieces:</b></p><dl>";
+    (t.nodes || []).forEach(function(n){ if(n.info){ trHtml += "<dt>" + n.label + "</dt><dd>" + n.info + "</dd>"; } });
+    trHtml += "</dl>";
+    tr.innerHTML = trHtml;
+    root.appendChild(tr);
+
+    this.prevBtn.addEventListener("click", function(){ self.stop(); self.show(self.step - 1); });
+    this.nextBtn.addEventListener("click", function(){ self.stop(); self.show(self.step + 1); });
+    this.playBtn.addEventListener("click", function(){ self.timer ? self.stop() : self.play(); });
+    this.fullBtn.addEventListener("click", function(){ self.toggleFull(); });
+    root.addEventListener("keydown", function(e){
+      if(e.target.closest && e.target.closest("details.dp-transcript")){ return; }
+      if(e.key === "ArrowRight"){ e.preventDefault(); self.stop(); self.show(self.step + 1); }
+      else if(e.key === "ArrowLeft"){ e.preventDefault(); self.stop(); self.show(self.step - 1); }
+      else if(e.key === "Escape" && root.classList.contains("dp-full")){ self.toggleFull(false); }
+    });
+    panel.addEventListener("click", function(e){
+      if(e.target.closest("a[href^='#']")){ self.toggleFull(false); return; }
+      var b = e.target.closest("[data-back]");
+      if(b){ self.select(null); }
+      var jump = e.target.closest("[data-node]");
+      if(jump){ self.select(jump.dataset.node); }
+    });
+  };
+
+  Player.prototype.show = function(i){
+    var t = this.tour;
+    i = Math.max(0, Math.min(t.steps.length - 1, i));
+    this.step = i;
+    this.selected = null;
+    var s = t.steps[i], self = this;
+    var on = {}, flow = {};
+    (s.on || []).forEach(function(id){ on[id] = 1; });
+    (s.flow || []).forEach(function(id){ flow[id] = 1; });
+    var focus = (s.on && s.on.length) || (s.flow && s.flow.length);
+    this.svg.classList.toggle("focus", !!focus);
+    Object.keys(this.nodes).forEach(function(id){
+      var n = self.nodes[id];
+      n.el.classList.toggle("on", !!on[id]);
+      n.el.classList.remove("sel");
+    });
+    Object.keys(this.groups).forEach(function(id){ self.groups[id].el.classList.toggle("on", !!on[id]); });
+    Object.keys(this.edges).forEach(function(id){
+      var e = self.edges[id], active = !!flow[id];
+      e.el.classList.toggle("on", active);
+      e.el.querySelector("path").setAttribute("marker-end", "url(#" + self.id + "-arrow-" + (active ? "on" : "dim") + ")");
+    });
+    this.drawNotes(s.notes || []);
+    var html = '<div class="dp-step-label">Step ' + (i + 1) + " of " + t.steps.length + "</div>";
+    html += "<h4>" + s.title + "</h4>";
+    if(s.kinds){ html += '<div class="legend">' + s.kinds.map(badge).join("") + "</div>"; }
+    html += s.html;
+    this.panel.innerHTML = html;
+    this.dots.forEach(function(d, j){ d.classList.toggle("active", j === i); d.classList.toggle("seen", j < i); });
+    this.scrollToActive(s.on || []);
+    this.prevBtn.disabled = i === 0;
+    this.nextBtn.disabled = i === t.steps.length - 1;
+    this.fillXrefs();
+  };
+
+  Player.prototype.scrollToActive = function(ids){
+    var canvas = this.svg.parentNode, self = this;
+    if(canvas.scrollWidth <= canvas.clientWidth + 4){ return; }
+    var xs = [];
+    ids.forEach(function(id){ var n = self.nodes[id] || self.groups[id]; if(n){ xs.push(n.x, n.x + n.w); } });
+    if(!xs.length){ canvas.scrollTo({ left: 0, behavior: "smooth" }); return; }
+    var scale = this.svg.getBoundingClientRect().width / this.tour.size[0];
+    var mid = (Math.min.apply(null, xs) + Math.max.apply(null, xs)) / 2 * scale;
+    canvas.scrollTo({ left: Math.max(0, mid - canvas.clientWidth / 2), behavior: reduceMotion ? "auto" : "smooth" });
+  };
+
+  Player.prototype.drawNotes = function(notes){
+    var layer = this.notesLayer, self = this, W = this.tour.size[0], H = this.tour.size[1];
+    while(layer.firstChild){ layer.removeChild(layer.firstChild); }
+    notes.forEach(function(nt){
+      var n = self.nodes[nt.at] || self.groups[nt.at];
+      if(!n){ return; }
+      var lines = wrap(nt.text, nt.wrap || 30);
+      var w = Math.max.apply(null, lines.map(function(l){ return l.length; })) * 6.1 + 18;
+      var h = lines.length * 14 + 10;
+      var side = nt.side || "right", gap = 16, c = center(n), x, y, ax, ay;
+      if(side === "right"){ x = n.x + n.w + gap; y = c.y - h / 2; ax = n.x + n.w; ay = c.y; }
+      else if(side === "left"){ x = n.x - gap - w; y = c.y - h / 2; ax = n.x; ay = c.y; }
+      else if(side === "top"){ x = c.x - w / 2; y = n.y - gap - h; ax = c.x; ay = n.y; }
+      else { x = c.x - w / 2; y = n.y + n.h + gap; ax = c.x; ay = n.y + n.h; }
+      x += nt.dx || 0; y += nt.dy || 0;
+      if(nt.x !== undefined){ x = nt.x; y = nt.y; }
+      x = Math.max(4, Math.min(W - w - 4, x)); y = Math.max(4, Math.min(H - h - 4, y));
+      var g = svgEl("g", { "class": "note" + (reduceMotion ? "" : " pop") }, layer);
+      var bx = Math.max(x, Math.min(x + w, ax)), by = Math.max(y, Math.min(y + h, ay));
+      svgEl("line", { x1: ax, y1: ay, x2: bx, y2: by, "class": "note-lead" }, g);
+      svgEl("circle", { cx: ax, cy: ay, r: 3.5, "class": "note-dot" }, g);
+      svgEl("rect", { x: x, y: y, width: w, height: h, rx: 7, "class": "note-box" }, g);
+      lines.forEach(function(l, i){
+        var tx = svgEl("text", { x: x + 9, y: y + 17 + i * 14, "class": "note-text" }, g);
+        tx.textContent = l;
+      });
+    });
+  };
+
+  Player.prototype.select = function(id){
+    if(!id){ this.show(this.step); return; }
+    var n = this.nodes[id] || this.groups[id], self = this;
+    if(!n){ return; }
+    this.stop();
+    this.selected = id;
+    Object.keys(this.nodes).forEach(function(k){ self.nodes[k].el.classList.toggle("sel", k === id); });
+    var related = {};
+    Object.keys(this.edges).forEach(function(k){
+      var e = self.edges[k];
+      var hit = e.def.from === id || e.def.to === id;
+      e.el.classList.toggle("on", hit);
+      e.el.querySelector("path").setAttribute("marker-end", "url(#" + self.id + "-arrow-" + (hit ? "on" : "dim") + ")");
+      if(hit){ related[e.def.from === id ? e.def.to : e.def.from] = e.def.label || ""; }
+    });
+    Object.keys(this.nodes).forEach(function(k){ self.nodes[k].el.classList.toggle("on", k === id || related[k] !== undefined); });
+    this.svg.classList.add("focus");
+    this.drawNotes([]);
+    var html = '<div class="dp-step-label">About this piece</div><h4>' + n.label + "</h4>";
+    if(n.kind){ html += '<div class="legend">' + badge(n.kind) + "</div>"; }
+    html += n.info ? "<p>" + n.info + "</p>" : "<p>No extra notes for this one.</p>";
+    if(n.code){ html += '<p class="dp-code"><b>Code:</b> ' + n.code + "</p>"; }
+    if(n.see){ html += '<p><b>Read more:</b> <a class="xref" href="#' + n.see + '"></a></p>'; }
+    var rel = Object.keys(related);
+    if(rel.length){
+      html += '<p class="dp-related"><b>Connected to:</b> ' + rel.map(function(k){
+        var r = self.nodes[k];
+        return '<button class="dp-chip" data-node="' + k + '">' + r.label + "</button>";
+      }).join(" ") + "</p>";
+    }
+    html += '<button class="dp-btn" data-back>↩ Back to step ' + (this.step + 1) + "</button>";
+    this.panel.innerHTML = html;
+    this.fillXrefs();
+  };
+
+  Player.prototype.fillXrefs = function(){
+    this.panel.querySelectorAll("a.xref").forEach(function(a){
+      if(a.textContent.trim()){ return; }
+      var tgt = document.querySelector(a.getAttribute("href"));
+      if(!tgt){ return; }
+      var h = tgt.querySelector("h3,h2");
+      var txt = h ? h.textContent.replace(/^\s*[\d.]+\s*/, "").replace(/\s+/g, " ").trim() : a.getAttribute("href");
+      a.textContent = txt + (tgt.dataset.num ? " (§" + tgt.dataset.num + ")" : "");
+    });
+  };
+
+  Player.prototype.play = function(){
+    var self = this;
+    if(this.step >= this.tour.steps.length - 1){ this.show(0); }
+    this.playBtn.textContent = "❚❚ Pause";
+    this.playBtn.classList.add("playing");
+    var tick = function(){
+      var words = self.panel.textContent.split(/\s+/).length;
+      self.timer = setTimeout(function(){
+        if(self.step >= self.tour.steps.length - 1){ self.stop(); return; }
+        self.show(self.step + 1);
+        tick();
+      }, Math.min(16000, 4500 + words * 120));
+    };
+    tick();
+  };
+  Player.prototype.stop = function(){
+    if(this.timer){ clearTimeout(this.timer); }
+    this.timer = null;
+    this.playBtn.textContent = "▶ Play";
+    this.playBtn.classList.remove("playing");
+  };
+  Player.prototype.toggleFull = function(force){
+    var on = force === undefined ? !this.root.classList.contains("dp-full") : force;
+    this.root.classList.toggle("dp-full", on);
+    document.body.classList.toggle("dp-lock", on);
+    this.fullBtn.textContent = on ? "✕ Close" : "⤢ Full screen";
+    if(on){ this.root.focus(); }
+  };
+
+  var players = {};
+  document.querySelectorAll("[data-tour]").forEach(function(root, i){
+    var key = root.dataset.tour, tour = TOURS[key];
+    if(!tour){ root.textContent = "Missing tour: " + key; return; }
+    players[key] = new Player(root, tour, "dp" + i);
+  });
+
+  var hub = document.getElementById("tourHub");
+  if(hub){
+    (window.SD_TOUR_ORDER || Object.keys(TOURS)).forEach(function(key){
+      var t = TOURS[key], p = players[key];
+      if(!t || !p){ return; }
+      var card = p.root.closest("article.card[id]");
+      var b = htmlEl("div", "tour-card");
+      b.innerHTML = '<div class="tour-icon">' + (t.icon || "◆") + "</div><div><b>" + t.title + "</b><p>" + (t.blurb || t.subtitle || "") + '</p><div class="tour-meta">' + t.steps.length + " steps · " + t.nodes.length + " pieces</div>" +
+        '<div class="tour-actions"><button class="dp-btn dp-next" data-open="' + key + '">⤢ Open full screen</button>' +
+        (card ? ' <a class="dp-btn" href="#' + card.id + '">Go to section</a>' : "") + "</div></div>";
+      hub.appendChild(b);
+    });
+    hub.addEventListener("click", function(e){
+      var b = e.target.closest("[data-open]");
+      if(!b){ return; }
+      var p = players[b.dataset.open];
+      p.show(0); p.toggleFull(true);
+    });
+  }
+  window.SDTours = players;
+})();
+</script>
+<!--TOURS-END-->
 <script>
 (function(){
   "use strict";

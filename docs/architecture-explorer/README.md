@@ -16,6 +16,13 @@ architecture, aimed at developers who are new to the codebase. It covers:
   remodeling and full disk encryption;
 - a "where do I work on X?" finder, conventions and a glossary.
 
+Eight interactive, annotated diagram tours (system map, launching a snap,
+the daemon's request lifecycle, Ubuntu Core boot, try-boot updates, install
+mode, mode switching/factory reset, and disk encryption) are collected in the
+"Visual tours" section and embedded where they belong. Each has a guided
+step-by-step tour, click-anything explore mode, full-screen view, and a plain
+text transcript.
+
 Each section opens with a plain-language summary; "Go deeper" panels hold the
 code-level detail. Press `/` to search.
 
