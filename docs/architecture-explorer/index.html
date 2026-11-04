@@ -1,0 +1,1556 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>snapd Architecture Explorer</title>
+<meta name="description" content="An interactive, in-depth guide to how snapd is built and runs: entry points, confinement, the overlord/state-manager model, interfaces, and Ubuntu Core.">
+<style>
+:root{
+  --bg:#ffffff;
+  --bg-elevated:#f6f7f9;
+  --bg-sidebar:#f3f4f7;
+  --text:#1b1f24;
+  --text-dim:#5b6472;
+  --border:#d8dce2;
+  --accent:#8a3ffc;
+  --accent-ink:#ffffff;
+  --accent-soft:#f1e9ff;
+  --code-bg:#eef0f4;
+  --warn-bg:#fff3e0;
+  --warn-border:#e8a33d;
+  --core-bg:#e8f6ee;
+  --core-border:#3fa96a;
+  --classic-bg:#eaf1ff;
+  --classic-border:#4c7fe0;
+  --danger:#c6364f;
+  --shadow:0 1px 3px rgba(20,20,30,.08);
+  --diagram-box:#ffffff;
+  --diagram-box-border:#8a3ffc;
+  --diagram-text:#1b1f24;
+  --diagram-line:#5b6472;
+  --diagram-accent-fill:#f1e9ff;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#15171c;
+    --bg-elevated:#1b1e25;
+    --bg-sidebar:#111318;
+    --text:#e7e9ee;
+    --text-dim:#9aa3b2;
+    --border:#2c3038;
+    --accent:#b388ff;
+    --accent-ink:#15171c;
+    --accent-soft:#2a2340;
+    --code-bg:#20232b;
+    --warn-bg:#3a2d10;
+    --warn-border:#caa24c;
+    --core-bg:#132a1d;
+    --core-border:#4cbf80;
+    --classic-bg:#16233d;
+    --classic-border:#6f9ff0;
+    --danger:#e07087;
+    --diagram-box:#1b1e25;
+    --diagram-box-border:#b388ff;
+    --diagram-text:#e7e9ee;
+    --diagram-line:#9aa3b2;
+    --diagram-accent-fill:#2a2340;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#15171c;
+  --bg-elevated:#1b1e25;
+  --bg-sidebar:#111318;
+  --text:#e7e9ee;
+  --text-dim:#9aa3b2;
+  --border:#2c3038;
+  --accent:#b388ff;
+  --accent-ink:#15171c;
+  --accent-soft:#2a2340;
+  --code-bg:#20232b;
+  --warn-bg:#3a2d10;
+  --warn-border:#caa24c;
+  --core-bg:#132a1d;
+  --core-border:#4cbf80;
+  --classic-bg:#16233d;
+  --classic-border:#6f9ff0;
+  --danger:#e07087;
+  --diagram-box:#1b1e25;
+  --diagram-box-border:#b388ff;
+  --diagram-text:#e7e9ee;
+  --diagram-line:#9aa3b2;
+  --diagram-accent-fill:#2a2340;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--text);}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  font-size:16px;
+  line-height:1.55;
+}
+code,pre,.mono{font-family:"SF Mono",SFMono-Regular,Consolas,"Liberation Mono",Menlo,monospace;}
+a{color:var(--accent);text-decoration:none;}
+a:hover{text-decoration:underline;}
+
+.layout{display:flex;min-height:100vh;}
+
+/* ---------- Sidebar ---------- */
+.sidebar{
+  width:300px;flex:0 0 300px;background:var(--bg-sidebar);border-right:1px solid var(--border);
+  position:sticky;top:0;height:100vh;overflow-y:auto;padding:16px 10px 40px 14px;
+}
+.brand{display:flex;align-items:center;gap:8px;padding:4px 6px 14px;}
+.brand .logo{width:26px;height:26px;border-radius:7px;background:var(--accent);color:var(--accent-ink);
+  display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;flex:none;}
+.brand .title{font-weight:700;font-size:15px;}
+.brand .sub{font-size:11px;color:var(--text-dim);}
+
+.searchbox{position:relative;margin:0 2px 14px;}
+.searchbox input{
+  width:100%;padding:8px 32px 8px 10px;border-radius:8px;border:1px solid var(--border);
+  background:var(--bg);color:var(--text);font-size:13.5px;
+}
+.searchbox input:focus{outline:2px solid var(--accent);outline-offset:1px;}
+.searchbox .count{position:absolute;right:8px;top:9px;font-size:11px;color:var(--text-dim);}
+
+.theme-toggle{
+  display:flex;gap:6px;margin:0 2px 16px;
+}
+.theme-toggle button{
+  flex:1;padding:6px 4px;font-size:11.5px;border-radius:7px;border:1px solid var(--border);
+  background:var(--bg);color:var(--text-dim);cursor:pointer;
+}
+.theme-toggle button.active{border-color:var(--accent);color:var(--accent);font-weight:700;}
+
+nav.toc{font-size:13.5px;}
+nav.toc .part-label{
+  text-transform:uppercase;letter-spacing:.04em;font-size:10.5px;color:var(--text-dim);
+  margin:16px 6px 4px;font-weight:700;
+}
+nav.toc ul{list-style:none;margin:0;padding:0;}
+nav.toc li.sec > a{
+  display:block;padding:6px 8px;border-radius:7px;color:var(--text);font-weight:600;
+}
+nav.toc li.sub > a{
+  display:block;padding:4px 8px 4px 20px;border-radius:7px;color:var(--text-dim);font-size:13px;
+}
+nav.toc a:hover{background:var(--bg-elevated);text-decoration:none;}
+nav.toc a.current{background:var(--accent-soft);color:var(--accent);}
+nav.toc li.hidden{display:none;}
+
+/* ---------- Main content ---------- */
+main{flex:1 1 auto;min-width:0;}
+.topbar{
+  position:sticky;top:0;z-index:5;background:color-mix(in srgb, var(--bg) 88%, transparent);
+  backdrop-filter:blur(6px);border-bottom:1px solid var(--border);display:none;
+}
+.content{max-width:880px;margin:0 auto;padding:36px 28px 120px;}
+
+.hero{padding:6px 0 28px;border-bottom:1px solid var(--border);margin-bottom:28px;}
+.hero h1{font-size:30px;margin:0 0 8px;}
+.hero p{color:var(--text-dim);font-size:15.5px;max-width:700px;}
+.hero .tags{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;}
+.tag{font-size:11.5px;padding:3px 9px;border-radius:20px;border:1px solid var(--border);color:var(--text-dim);}
+
+section.part{margin:0 0 6px;}
+section.part > h2{
+  font-size:22px;margin:52px 0 6px;padding-top:6px;scroll-margin-top:16px;
+  display:flex;align-items:center;gap:10px;
+}
+section.part > h2 .num{
+  font-size:12px;color:var(--accent);border:1px solid var(--accent);border-radius:6px;padding:1px 7px;font-weight:700;
+}
+section.part > .lede{color:var(--text-dim);margin:0 0 20px;font-size:15px;}
+
+article.card{
+  background:var(--bg-elevated);border:1px solid var(--border);border-radius:12px;
+  padding:18px 20px;margin:18px 0;scroll-margin-top:16px;
+}
+article.card > h3{margin:0 0 8px;font-size:17px;display:flex;align-items:center;gap:8px;}
+article.card > h3 .pin{color:var(--text-dim);font-size:12px;cursor:pointer;opacity:.5;}
+article.card > h3 .pin:hover{opacity:1;}
+article.card p{margin:10px 0;}
+article.card ul,article.card ol{margin:8px 0;padding-left:22px;}
+article.card li{margin:4px 0;}
+article.card table{width:100%;border-collapse:collapse;margin:12px 0;font-size:13.5px;}
+article.card table th,article.card table td{
+  text-align:left;padding:7px 9px;border-bottom:1px solid var(--border);vertical-align:top;
+}
+article.card table th{color:var(--text-dim);font-weight:700;font-size:12px;text-transform:uppercase;letter-spacing:.03em;}
+
+.path, code.inline{
+  background:var(--code-bg);padding:1.5px 6px;border-radius:5px;font-size:.88em;white-space:nowrap;
+}
+
+.callout{border-radius:10px;padding:12px 14px;margin:14px 0;font-size:14px;border:1px solid var(--border);}
+.callout.core{background:var(--core-bg);border-color:var(--core-border);}
+.callout.classic{background:var(--classic-bg);border-color:var(--classic-border);}
+.callout.warn{background:var(--warn-bg);border-color:var(--warn-border);}
+.callout b.label{display:inline-block;margin-right:6px;}
+
+details.deep{
+  margin:12px 0;border:1px dashed var(--border);border-radius:10px;padding:2px 14px;background:var(--bg);
+}
+details.deep > summary{cursor:pointer;padding:9px 2px;font-weight:600;font-size:14px;list-style:none;}
+details.deep > summary::-webkit-details-marker{display:none;}
+details.deep > summary::before{content:"▸ ";color:var(--accent);}
+details.deep[open] > summary::before{content:"▾ ";}
+details.deep > div.body{padding:2px 2px 14px;}
+
+.kindlist{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0;}
+.kindlist code{background:var(--code-bg);font-size:12px;padding:3px 7px;border-radius:6px;}
+
+.diagram{width:100%;overflow-x:auto;margin:14px 0;background:var(--bg);border:1px solid var(--border);
+  border-radius:10px;padding:10px;}
+.diagram svg{display:block;margin:0 auto;}
+.diagram-caption{font-size:12.5px;color:var(--text-dim);text-align:center;margin-top:6px;}
+
+/* Feature finder */
+.finder-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px;margin:14px 0;}
+.finder-btn{
+  padding:10px 12px;border-radius:10px;border:1px solid var(--border);background:var(--bg);
+  color:var(--text);cursor:pointer;font-size:13.5px;text-align:left;font-weight:600;
+}
+.finder-btn:hover{border-color:var(--accent);}
+.finder-btn.active{background:var(--accent-soft);border-color:var(--accent);color:var(--accent);}
+.finder-answer{display:none;border-left:3px solid var(--accent);padding:4px 0 4px 14px;margin-top:14px;}
+.finder-answer.show{display:block;}
+.finder-answer h4{margin:0 0 6px;font-size:14.5px;}
+
+/* Checklist */
+.checklist label{display:flex;gap:8px;align-items:flex-start;padding:5px 2px;font-size:14px;cursor:pointer;}
+.checklist input{margin-top:3px;}
+.checklist .done{text-decoration:line-through;color:var(--text-dim);}
+
+/* glossary */
+.glossary dt{font-weight:700;margin-top:12px;}
+.glossary dd{margin:2px 0 0;color:var(--text-dim);}
+
+footer.pagefoot{max-width:880px;margin:40px auto 80px;padding:20px 28px;color:var(--text-dim);font-size:13px;border-top:1px solid var(--border);}
+
+/* mobile */
+.menu-btn{display:none;}
+@media (max-width:860px){
+  .sidebar{position:fixed;left:0;top:0;bottom:0;z-index:20;transform:translateX(-104%);transition:transform .18s ease;
+    box-shadow:0 0 30px rgba(0,0,0,.3);}
+  .sidebar.open{transform:translateX(0);}
+  .topbar{display:flex;align-items:center;gap:10px;padding:10px 14px;}
+  .menu-btn{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--border);background:var(--bg-elevated);
+    color:var(--text);border-radius:8px;padding:7px 10px;font-size:13px;cursor:pointer;}
+  .topbar .tbtitle{font-weight:700;font-size:14px;}
+  .content{padding:20px 16px 100px;}
+  .scrim{display:none;position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:15;}
+  .scrim.show{display:block;}
+}
+@media (min-width:861px){ .scrim{display:none !important;} }
+</style>
+</head>
+<body>
+
+<div class="layout">
+  <div class="scrim" id="scrim"></div>
+
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">
+      <div class="logo">sd</div>
+      <div>
+        <div class="title">snapd Architecture Explorer</div>
+        <div class="sub">for new snapd developers</div>
+      </div>
+    </div>
+
+    <div class="searchbox">
+      <input id="search" type="text" placeholder="Filter sections… (e.g. seccomp, lanes, remodel)" autocomplete="off">
+      <span class="count" id="searchCount"></span>
+    </div>
+
+    <div class="theme-toggle" role="group" aria-label="Theme">
+      <button data-theme="auto" class="active">Auto</button>
+      <button data-theme="light">Light</button>
+      <button data-theme="dark">Dark</button>
+    </div>
+
+    <nav class="toc" id="toc">
+      <div class="part-label">Start here</div>
+      <ul>
+        <li class="sec"><a href="#overview">1. The big picture</a></li>
+      </ul>
+
+      <div class="part-label">How a snap actually runs</div>
+      <ul>
+        <li class="sec"><a href="#entry-points">2. Entry points &amp; the multi-call binary</a></li>
+        <li class="sec"><a href="#execution-pipeline">3. The execution pipeline</a></li>
+        <li class="sec"><a href="#confinement">4. Confinement &amp; sandboxing</a></li>
+      </ul>
+
+      <div class="part-label">How snapd runs itself</div>
+      <ul>
+        <li class="sec"><a href="#overlord">5. Overlord &amp; the ensure loop</a></li>
+        <li class="sec"><a href="#state-changes-tasks">6. State, Changes &amp; Tasks</a></li>
+        <li class="sec"><a href="#interfaces">7. Interfaces: plugs, slots &amp; policy</a></li>
+        <li class="sec"><a href="#daemon-api">8. The daemon &amp; REST API</a></li>
+        <li class="sec"><a href="#managers-map">9. The state-manager map</a></li>
+        <li class="sec"><a href="#assertions">10. Assertions &amp; trust</a></li>
+      </ul>
+
+      <div class="part-label">Putting it together</div>
+      <ul>
+        <li class="sec"><a href="#install-walkthrough">11. Install/refresh walkthrough</a></li>
+        <li class="sec"><a href="#ubuntu-core">12. Ubuntu Core &amp; devices</a></li>
+      </ul>
+
+      <div class="part-label">Working in this codebase</div>
+      <ul>
+        <li class="sec"><a href="#feature-finder">13. Where do I work on X?</a></li>
+        <li class="sec"><a href="#conventions">14. Conventions &amp; validation</a></li>
+        <li class="sec"><a href="#glossary">15. Glossary</a></li>
+      </ul>
+    </nav>
+  </aside>
+
+  <main>
+    <div class="topbar">
+      <button class="menu-btn" id="menuBtn">☰ Contents</button>
+      <span class="tbtitle">snapd Architecture Explorer</span>
+    </div>
+
+    <div class="content">
+
+      <div class="hero">
+        <h1>snapd Architecture Explorer</h1>
+        <p>
+          An interactive map of how <code class="inline">snapd</code> is built and how it behaves at runtime —
+          from the moment a user types <code class="inline">snap run firefox</code> or
+          <code class="inline">snap install foo</code>, down through confinement, the overlord's
+          state machinery, and into Ubuntu Core device management. Use the sidebar or the search box to jump
+          around; use <kbd>Ctrl/Cmd+F</kbd> for full-text search — every section's content is in the page,
+          nothing is lazy-loaded.
+        </p>
+        <div class="tags">
+          <span class="tag">entry points</span>
+          <span class="tag">confinement</span>
+          <span class="tag">overlord / ensure loop</span>
+          <span class="tag">tasks &amp; changes</span>
+          <span class="tag">interfaces</span>
+          <span class="tag">Ubuntu Core</span>
+          <span class="tag">"where do I work on X?"</span>
+        </div>
+      </div>
+
+      <!-- ============================================================ -->
+      <section class="part" id="overview">
+        <h2><span class="num">1</span> The big picture</h2>
+        <p class="lede">What snapd is responsible for, and the one mental model that makes everything else in this page make sense.</p>
+
+        <article class="card" id="what-is-snapd">
+          <h3>What snapd actually manages</h3>
+          <p>
+            <code class="inline">snapd</code> is a background daemon (plus a family of small helper binaries) that
+            installs, updates, confines and runs <b>snaps</b> — self-contained, read-only SquashFS packages carrying
+            an app or service plus metadata (chiefly <code class="inline">meta/snap.yaml</code>). Installing a snap
+            is mostly "make this SquashFS file available by mounting it, then connect it safely to the rest of the
+            system."
+          </p>
+          <p>
+            Beyond individual snaps, snapd can orchestrate the lifecycle of an <b>entire device</b> when every
+            component of the system — root filesystem, kernel, bootloader config — is itself a snap. That's
+            <b>Ubuntu Core</b>. Classic desktop/server snapd and Ubuntu Core snapd are literally the same binary and
+            the same Go codebase; what differs is which snaps are installed (gadget/kernel/base vs. a regular distro
+            root filesystem) and which code paths that enables. Section&nbsp;12 covers this in depth.
+          </p>
+        </article>
+
+        <article class="card" id="snap-anatomy">
+          <h3>Anatomy of a snap</h3>
+          <ul>
+            <li><b>Format</b>: a SquashFS image, mounted read-only under <span class="path">/snap/&lt;name&gt;/&lt;revision&gt;</span> (or <span class="path">/var/lib/snapd/snap/...</span> on some systems).</li>
+            <li><b>Metadata</b>: <code class="inline">meta/snap.yaml</code> describes apps, services, plugs, slots, hooks. Parsing and representing this lives in the top-level <span class="path">snap</span> package.</li>
+            <li><b>Components</b>: optional separately-installable/removable pieces of a snap (e.g. optional kernel modules) with their own lifecycle tasks (<code class="inline">mount-component</code>, <code class="inline">link-component</code>, …) managed alongside the parent snap in <span class="path">overlord/snapstate</span>.</li>
+            <li><b>Confinement declared by the snap</b>: <code class="inline">strict</code>, <code class="inline">classic</code>, or <code class="inline">devmode</code> — see Section&nbsp;4.</li>
+            <li><b>Identity &amp; trust</b>: snaps are tied to signed <b>assertions</b> (Section&nbsp;10) rather than being trusted by filename alone.</li>
+          </ul>
+        </article>
+
+        <article class="card" id="classic-vs-core">
+          <h3>Classic systems vs. Ubuntu Core, at a glance</h3>
+          <div class="diagram">
+            <svg viewBox="0 0 760 190" width="100%" height="190">
+              <style>
+                .b{fill:var(--diagram-box);stroke:var(--diagram-box-border);stroke-width:1.4;rx:8;}
+                .t{fill:var(--diagram-text);font-size:12px;font-family:inherit;}
+                .th{fill:var(--diagram-text);font-size:13px;font-weight:700;font-family:inherit;}
+                .acc{fill:var(--diagram-accent-fill);}
+              </style>
+              <rect x="20" y="16" width="340" height="155" rx="10" class="b acc"/>
+              <text x="190" y="38" text-anchor="middle" class="th">Classic (desktop / server)</text>
+              <text x="40" y="62" class="t">Host distro root filesystem (deb/rpm)</text>
+              <text x="40" y="84" class="t">snapd installed as a system package</text>
+              <text x="40" y="106" class="t">Snaps layered on top for apps</text>
+              <text x="40" y="128" class="t">snap-confine sandboxes just the snap's app</text>
+              <text x="40" y="150" class="t">devicestate: identity only, little boot mgmt</text>
+
+              <rect x="400" y="16" width="340" height="155" rx="10" class="b acc"/>
+              <text x="570" y="38" text-anchor="middle" class="th">Ubuntu Core</text>
+              <text x="420" y="62" class="t">base snap = root filesystem itself</text>
+              <text x="420" y="84" class="t">kernel snap = kernel + initrd + modules</text>
+              <text x="420" y="106" class="t">gadget snap = bootloader cfg + device defaults</text>
+              <text x="420" y="128" class="t">devicestate drives full boot/install/remodel</text>
+              <text x="420" y="150" class="t">snap-bootstrap runs inside the initrd itself</text>
+            </svg>
+          </div>
+          <p>
+            Both run the exact same <code class="inline">overlord</code>, the same managers, the same task kinds.
+            The difference is almost entirely about <b>which snaps exist</b> (gadget/kernel/base present ⇒ Core-like
+            behavior) and a few build/runtime checks (<code class="inline">release.OnClassic</code>,
+            device-context, model assertion fields) that steer specific code paths. See <a href="#classic-core-shared">§12.6</a>.
+          </p>
+        </article>
+      </section>
+
+      <!-- ============================================================ -->
+      <section class="part" id="entry-points">
+        <h2><span class="num">2</span> Entry points &amp; the multi-call binary</h2>
+        <p class="lede">Every snapd binary you'll ever strace is really the same ELF file wearing a different hat.</p>
+
+        <article class="card" id="multicall">
+          <h3>One binary, many names</h3>
+          <p>
+            The <code class="inline">snap</code> command and the <code class="inline">snapd</code> daemon share a
+            single multi-call binary built from <span class="path">cmd/snapd</span>. The real binary is installed as
+            <code class="inline">snapd</code> (e.g. <span class="path">/usr/lib/snapd/snapd</span>);
+            <span class="path">/usr/bin/snap</span> is a symlink pointing to it. At runtime the binary dispatches on
+            <code class="inline">argv[0]</code>:
+          </p>
+          <ul>
+            <li>invoked as <code class="inline">snapd</code> → runs the daemon</li>
+            <li>invoked as <code class="inline">snap</code> (or any other name, as happens for snap application symlinks in <span class="path">/snap/bin</span>) → runs the CLI</li>
+          </ul>
+          <p>
+            The sandbox helpers <code class="inline">snap-confine</code> and <code class="inline">snap-exec</code> are
+            <b>separate</b> small binaries (compiled C and Go respectively, under <span class="path">cmd/snap-confine</span> and
+            <span class="path">cmd/snap-exec</span>) that handle the actual execution pipeline described in Section&nbsp;3 —
+            they are not part of the multi-call dispatch.
+          </p>
+
+          <details class="deep">
+            <summary>The snapd-tool-wrap trick for internal tools</summary>
+            <div class="body">
+              <p>
+                Internal tools like <code class="inline">snapd-apparmor</code>, <code class="inline">snap-preseed</code>, and
+                <code class="inline">snap-gpio-helper</code> are <em>not</em> standalone binaries either. A tiny C wrapper
+                (<code class="inline">snapd-tool-wrap</code>, built from <span class="path">cmd/snapd-tool-wrap</span>) is
+                symlinked under each tool name in <span class="path">/usr/lib/snapd/</span>. The wrapper sets
+                <code class="inline">argv[0]="snapd"</code> and <code class="inline">argv[1]=&lt;tool-name&gt;</code>, then
+                <code class="inline">execv()</code>s into the real <code class="inline">snapd</code> binary. The Go dispatch in
+                <span class="path">cmd/snapd/main.go</span> checks <code class="inline">argv[1]</code> for known tool names before
+                falling through to the daemon.
+              </p>
+              <pre class="mono" style="background:var(--code-bg);padding:10px;border-radius:8px;overflow-x:auto;">/usr/lib/snapd/snapd-apparmor -&gt; argv[0] is set to "snapd-apparmor"
+   -&gt; exec("/usr/lib/snapd/snapd", ["snapd", "snapd-apparmor"])
+      -&gt; (inside cmd/snapd/main.go)
+         -&gt; argv[] == ["snapd", "snapd-apparmor"]
+            -&gt; run cmd/snapd/tool/snapd-apparmor.Main()</pre>
+              <p>
+                This keeps tool names from ever colliding with snap application names, since the only reserved
+                <code class="inline">argv[0]</code> name is <code class="inline">snapd</code> (no snap can be named that).
+              </p>
+            </div>
+          </details>
+        </article>
+
+        <article class="card" id="re-exec">
+          <h3>Re-exec: always running the newest snapd</h3>
+          <p>
+            Both the daemon and the <code class="inline">snap</code> CLI support <b>re-exec</b>: on startup they compare
+            their own version against the <code class="inline">snapd</code> or <code class="inline">core</code> snap
+            installed on the system. If the snap is newer, execution restarts from the binary inside that snap —
+            ensuring users always run the most up-to-date snapd without requiring a system package update. Because
+            <span class="path">/usr/bin/snap</span> is a symlink to the <code class="inline">snapd</code> binary and
+            dispatch is based on <code class="inline">argv[0]</code>, re-exec preserves the original
+            <code class="inline">argv[0]</code>, so the same CLI-vs-daemon dispatch applies in the new process.
+          </p>
+        </article>
+
+        <article class="card" id="tool-wrap">
+          <h3>How execution actually starts</h3>
+          <p>Entry points for launching software inside a snap are mainly either:</p>
+          <ul>
+            <li>symlinks to the <code class="inline">snap</code> command from <span class="path">/snap/bin</span> (apps)</li>
+            <li>systemd units for services, which explicitly invoke <code class="inline">snap run</code> with the snap/service reference</li>
+          </ul>
+          <p>
+            In both cases execution starts inside <code class="inline">snap run</code>, given the application or service
+            reference. The full pipeline from there is Section&nbsp;3.
+          </p>
+        </article>
+      </section>
+
+      <!-- ============================================================ -->
+      <section class="part" id="execution-pipeline">
+        <h2><span class="num">3</span> The execution pipeline</h2>
+        <p class="lede">What happens, in order, between typing a command and your snap's code actually running.</p>
+
+        <div class="diagram">
+          <svg viewBox="0 0 640 520" width="100%" height="520">
+            <defs>
+              <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                <path d="M0,0 L10,5 L0,10 z" fill="var(--diagram-line)"/>
+              </marker>
+            </defs>
+            <style>
+              .pb{fill:var(--diagram-box);stroke:var(--diagram-box-border);stroke-width:1.4;}
+              .pt{fill:var(--diagram-text);font-size:13px;font-family:inherit;text-anchor:middle;}
+              .ps{fill:var(--diagram-text);font-size:11px;font-family:inherit;text-anchor:middle;opacity:.75;}
+              .pl{stroke:var(--diagram-line);stroke-width:1.6;marker-end:url(#arrow);}
+              .zone{fill:none;stroke:var(--diagram-box-border);stroke-dasharray:4 4;stroke-width:1.2;}
+              .zt{fill:var(--diagram-text);font-size:11px;font-family:inherit;font-weight:700;}
+            </style>
+
+            <rect x="20" y="10" width="600" height="80" rx="8" class="pb"/>
+            <text x="320" y="38" class="pt">/snap/bin/&lt;app&gt; (symlink)  or  systemd unit  or  `snap run &lt;snap.app&gt;`</text>
+            <text x="320" y="58" class="ps">possible re-exec into newer snapd/core snap first</text>
+            <line x1="320" y1="90" x2="320" y2="116" class="pl"/>
+
+            <rect x="170" y="118" width="300" height="56" rx="8" class="pb"/>
+            <text x="320" y="142" class="pt">snap run &lt;snap.app&gt;</text>
+            <text x="320" y="160" class="ps">snap CLI — reads metadata, builds command line</text>
+            <line x1="320" y1="174" x2="320" y2="200" class="pl"/>
+
+            <rect x="60" y="202" width="520" height="180" rx="8" class="zone"/>
+            <text x="78" y="220" class="zt">HOST (still unconfined)</text>
+
+            <rect x="170" y="228" width="300" height="56" rx="8" class="pb"/>
+            <text x="320" y="252" class="pt">snap-confine</text>
+            <text x="320" y="270" class="ps">sets up sandbox: namespaces, mounts, profiles</text>
+            <line x1="320" y1="284" x2="320" y2="310" class="pl"/>
+
+            <text x="320" y="330" class="pt" font-weight="700">unshare(2)</text>
+            <line x1="320" y1="340" x2="320" y2="366" class="pl"/>
+
+            <rect x="60" y="384" width="520" height="130" rx="8" class="zone" stroke="var(--core-border)"/>
+            <text x="78" y="402" class="zt" fill="var(--core-border)">SANDBOX (confined)</text>
+
+            <rect x="170" y="410" width="300" height="52" rx="8" class="pb"/>
+            <text x="320" y="432" class="pt">snap-exec</text>
+            <text x="320" y="450" class="ps">final env/argv setup, drops remaining privilege</text>
+            <line x1="320" y1="462" x2="320" y2="488" class="pl"/>
+
+            <rect x="170" y="490" width="300" height="20" rx="6" class="pb" fill="var(--core-bg)"/>
+            <text x="320" y="505" class="pt" style="font-size:12px">&lt;snap.app&gt; entrypoint (exec)</text>
+          </svg>
+          <div class="diagram-caption">Everything above the dashed "SANDBOX" line runs with host privileges; everything below runs confined.</div>
+        </div>
+
+        <article class="card" id="snap-run">
+          <h3>snap run</h3>
+          <p>
+            <code class="inline">snap run</code> reads the snap's metadata and prepares the command line to exec
+            <code class="inline">snap-confine</code>. It resolves which revision is current, which app/hook/service is being
+            invoked, environment variables (<code class="inline">SNAP</code>, <code class="inline">SNAP_NAME</code>,
+            <code class="inline">SNAP_REVISION</code>, …), and whether this is a classic-confinement snap (which changes the
+            arguments passed down significantly, since classic snaps mostly run unconfined on the host filesystem).
+          </p>
+        </article>
+
+        <article class="card" id="snap-confine-flow">
+          <h3>snap-confine: setting up the sandbox</h3>
+          <p>
+            <code class="inline">snap-confine</code> (C, <span class="path">cmd/snap-confine/snap-confine.c</span> and friends)
+            is the binary responsible for setting up the execution sandbox: preparing the mount namespace and activating
+            sandbox profiles. It is installed with extra POSIX capabilities (not full root) and performs privileged setup
+            work, then <b>drops those capabilities</b> before handing off.
+          </p>
+          <ol>
+            <li>Parses its invocation (snap/component/app identity comes from <code class="inline">SNAP_INSTANCE_NAME</code> and friends in the environment, not just argv).</li>
+            <li><b>Self-defense check</b>: if AppArmor is supported on the system but <code class="inline">snap-confine</code> itself is running unconfined while effectively privileged, it refuses to continue — this blocks a classic privilege-escalation trick.</li>
+            <li>Picks up the capabilities it needs in its <i>effective</i> set (<code class="inline">CAP_SYS_ADMIN</code> for mounts/unshare, <code class="inline">CAP_SYS_CHROOT</code> for <code class="inline">pivot_root</code>, <code class="inline">CAP_DAC_OVERRIDE</code>/<code class="inline">CAP_DAC_READ_SEARCH</code>, <code class="inline">CAP_CHOWN</code>, <code class="inline">CAP_FOWNER</code>, <code class="inline">CAP_SYS_PTRACE</code>, …) and marks a smaller subset as inheritable for helper child processes like <code class="inline">snap-update-ns</code>.</li>
+            <li>Acquires a per-snap lock (<code class="inline">sc_lock_snap</code>) and a global lock, to serialize sandbox construction for the same snap.</li>
+            <li>Builds the mount namespace: creates/reuses a persistent per-snap mount namespace (so repeated app launches are cheap), mounts the snap's SquashFS, sets up bind mounts for writable data areas, device cgroup/udev tagging, and applies any interface-granted extra mounts (mount backend, Section&nbsp;4.6).</li>
+            <li>Applies the <b>seccomp</b> profile for the specific security tag being executed (<code class="inline">sc_apply_seccomp_profile_for_security_tag</code>).</li>
+            <li><code class="inline">unshare(2)</code>s into the new namespaces — this is the actual host/sandbox boundary crossing drawn in the diagram above.</li>
+            <li>Finally relinquishes its capabilities and <code class="inline">exec</code>s <code class="inline">snap-exec</code> inside the now-confined environment, with the AppArmor profile for the security tag already active.</li>
+          </ol>
+          <p>Related helper binaries invoked along the way:</p>
+          <ul>
+            <li><code class="inline">snap-update-ns</code> (<span class="path">cmd/snap-update-ns</span>) — applies incremental mount-namespace changes (used both at launch and when interface connections change while a snap is running).</li>
+            <li><code class="inline">snap-discard-ns</code> (<span class="path">cmd/snap-discard-ns</span>) — tears down a stale per-snap mount namespace, e.g. after a snap is refreshed.</li>
+            <li><code class="inline">snap-device-helper</code> (<span class="path">cmd/snap-device-helper</span>) — invoked by udev rules to add/remove device cgroup access as interfaces are connected/disconnected.</li>
+          </ul>
+        </article>
+
+        <article class="card" id="snap-exec-flow">
+          <h3>snap-exec: last mile setup</h3>
+          <p>
+            <code class="inline">snap-exec</code> (Go, <span class="path">cmd/snap-exec</span>) runs already inside the sandbox.
+            It's responsible for the final setup before the actual target binary runs: resolving the app's command from
+            <code class="inline">snap.yaml</code>, setting up the working directory, environment, and argv, then
+            <code class="inline">exec</code>-ing the real entry point. By the time this process image is replaced, there is
+            no more snapd-controlled code running — just the snap's own binary, confined.
+          </p>
+        </article>
+      </section>
+
+      <!-- ============================================================ -->
+      <section class="part" id="confinement">
+        <h2><span class="num">4</span> Confinement &amp; sandboxing mechanisms</h2>
+        <p class="lede">What "sandboxed by default" is actually implemented with, and how an interface's policy becomes real kernel enforcement.</p>
+
+        <article class="card" id="confinement-types">
+          <h3>Confinement types</h3>
+          <table>
+            <tr><th>Type</th><th>Meaning</th></tr>
+            <tr><td><code class="inline">strict</code></td><td>Full sandbox: dedicated mount namespace, AppArmor profile, seccomp filter, device cgroup. No access to anything outside the snap except what's explicitly granted via connected interfaces. The default and by far the most common.</td></tr>
+            <tr><td><code class="inline">classic</code></td><td>Runs with (mostly) host filesystem visibility and without the strict AppArmor/seccomp sandbox — used for tools that fundamentally need broad host access (e.g. editors, some SDKs). Still goes through <code class="inline">snap-confine</code>, but that stage sets up a much lighter environment. Publishing a classic-confinement snap to the store requires manual review.</td></tr>
+            <tr><td><code class="inline">devmode</code></td><td>Developer/debug mode: policy is still generated and loaded, but AppArmor/seccomp denials are logged instead of enforced (<code class="inline">complain</code> mode). Used while developing a snap's interface usage; devmode snaps cannot be released to the stable store channel.</td></tr>
+          </table>
+        </article>
+
+        <article class="card" id="security-backends">
+          <h3>Security backends: policy in, kernel mechanism out</h3>
+          <p>
+            Each <b>interface</b> (Section&nbsp;7) describes an access policy in the abstract. <b>Security backends</b>
+            under <span class="path">interfaces/*</span> translate that policy into concrete artifacts for a specific
+            kernel subsystem. An interface implementation contributes to a backend's <code class="inline">Specification</code>
+            by implementing optional methods the backend looks for (e.g. <code class="inline">AppArmorConnectedPlug</code>).
+          </p>
+          <table>
+            <tr><th>Backend package</th><th>Kernel mechanism</th><th>What it generates</th></tr>
+            <tr><td><span class="path">interfaces/apparmor</span></td><td>AppArmor LSM</td><td>Per-snap/per-app AppArmor profiles (<span class="path">apparmor/spec.go</span> defines the snippet-contribution API)</td></tr>
+            <tr><td><span class="path">interfaces/seccomp</span></td><td>seccomp-bpf</td><td>Per-security-tag syscall filter profiles, applied by snap-confine</td></tr>
+            <tr><td><span class="path">interfaces/udev</span></td><td>udev</td><td>udev rules tagging devices for the snap's cgroup</td></tr>
+            <tr><td><span class="path">interfaces/kmod</span></td><td>kernel modules</td><td>Lists of kernel modules to load for a connection</td></tr>
+            <tr><td><span class="path">interfaces/mount</span></td><td>mount namespace</td><td>Extra mount entries + <code class="inline">snap-update-ns</code> profiles</td></tr>
+            <tr><td><span class="path">interfaces/dbus</span></td><td>D-Bus mediation</td><td>D-Bus policy snippets</td></tr>
+            <tr><td><span class="path">interfaces/polkit</span></td><td>polkit</td><td>polkit action/rule files</td></tr>
+            <tr><td><span class="path">interfaces/ldconfig</span></td><td>dynamic linker</td><td>ldconfig fragments for snap-provided shared libraries</td></tr>
+          </table>
+          <p>
+            These are driven from <span class="path">overlord/ifacestate</span>'s <code class="inline">setup-profiles</code> task,
+            which asks the <code class="inline">interfaces.Repository</code> to regenerate every backend's artifacts for the
+            affected snap whenever its set of connections changes.
+          </p>
+        </article>
+
+        <article class="card" id="mount-namespace">
+          <h3>Mount namespaces &amp; incremental updates</h3>
+          <p>
+            Each snap gets its own persistent mount namespace (reused across app launches for speed). When interface
+            connections change <em>while a snap might already be running</em> (e.g. a live interface connect/disconnect),
+            snapd doesn't tear down and rebuild the whole namespace — it computes a diff and applies it incrementally
+            via <code class="inline">snap-update-ns</code>, using a small per-snap "mount profile" description
+            (<span class="path">interfaces/mount</span>) rather than re-running all of <code class="inline">snap-confine</code>.
+          </p>
+        </article>
+
+        <article class="card" id="device-cgroups">
+          <h3>Device access: cgroups + udev</h3>
+          <p>
+            Hardware access (e.g. a <code class="inline">serial-port</code> or <code class="inline">raw-usb</code> interface)
+            is mediated through the device cgroup. udev rules generated by the udev backend tag matching devices; when a
+            tagged device event fires, <code class="inline">snap-device-helper</code> is invoked to add/remove that device
+            from the snap's cgroup device list, keeping kernel-level device access in sync with live interface state without
+            needing to restart the snap's processes.
+          </p>
+        </article>
+      </section>
+
+      <!-- ============================================================ -->
+      <section class="part" id="overlord">
+        <h2><span class="num">5</span> Overlord &amp; the ensure loop</h2>
+        <p class="lede">How the running snapd daemon organizes its own work — the part of snapd that never touches a sandbox.</p>
+
+        <article class="card" id="overlord-lifecycle">
+          <h3>overlord.Overlord</h3>
+          <p>
+            snapd's own execution is orchestrated by <code class="inline">overlord.Overlord</code>
+            (<span class="path">overlord/overlord.go</span>) and the <b>state managers</b> underneath it. Managers are
+            initialized and driven via the <code class="inline">overlord.StateManager</code> interface. Execution comprises:
+          </p>
+          <ol>
+            <li>A <b>start-up phase</b>: <code class="inline">StateStarterUp.StartUp</code> is called on every manager that implements it.</li>
+            <li>The <b>ensure loop</b> runs repeatedly: at minimum every 5 minutes, but immediately whenever there's pending work.</li>
+            <li>Each loop iteration calls <code class="inline">StateManager.Ensure</code> on every manager, in a fixed wiring order.</li>
+            <li>On shutdown, <code class="inline">StateManager.Stop</code> is called on every manager.</li>
+          </ol>
+          <p>
+            Optional lifecycle interfaces a manager may also implement: <code class="inline">StateStarterUp</code>,
+            <code class="inline">StateWaiter</code>, <code class="inline">StateShutDowner</code>, and
+            <code class="inline">StateStopper</code> — see <span class="path">overlord/stateengine.go</span> for their exact
+            contracts and invocation order.
+          </p>
+        </article>
+
+        <article class="card" id="ensure-loop">
+          <h3>What Ensure() is actually for</h3>
+          <p>
+            A manager's <code class="inline">Ensure</code> method implements a small state machine: first check whether any
+            transition requiring a system change is needed, then, if so, set that change up (by creating a
+            <code class="inline">state.Change</code> full of tasks — Section&nbsp;6). The regular "poll the store for updates"
+            logic and automatic refresh scheduling are implemented exactly this way inside <span class="path">overlord/snapstate</span>.
+          </p>
+          <p>
+            <code class="inline">state.TaskRunner</code> — the engine that actually executes task do/undo handlers — is wired
+            into the ensure loop <em>as if it were a manager itself</em>, and its <code class="inline">Ensure</code> runs
+            <b>last</b> in each loop iteration, after every manager has had a chance to enqueue new work.
+          </p>
+          <p>
+            Code anywhere in snapd can call <code class="inline">state.State.EnsureBefore(d)</code> to make the ensure loop
+            run again sooner than its normal schedule — this is how, e.g., finishing one task can immediately trigger
+            progress on dependent tasks instead of waiting up to 5 minutes.
+          </p>
+        </article>
+
+        <div class="diagram">
+          <svg viewBox="0 0 700 300" width="100%" height="300">
+            <defs>
+              <marker id="arrow2" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                <path d="M0,0 L10,5 L0,10 z" fill="var(--diagram-line)"/>
+              </marker>
+            </defs>
+            <style>
+              .ob{fill:var(--diagram-box);stroke:var(--diagram-box-border);stroke-width:1.3;}
+              .ot{fill:var(--diagram-text);font-size:12px;font-family:inherit;text-anchor:middle;}
+              .ol{stroke:var(--diagram-line);stroke-width:1.5;marker-end:url(#arrow2);fill:none;}
+            </style>
+            <circle cx="350" cy="150" r="118" fill="none" stroke="var(--diagram-box-border)" stroke-width="1.3" stroke-dasharray="3 5"/>
+            <text x="350" y="40" class="ot" font-weight="700">ensure loop (≥ every 5 min, or on demand)</text>
+
+            <rect x="60" y="120" width="130" height="56" rx="8" class="ob"/>
+            <text x="125" y="142" class="ot">RestartManager.Ensure</text>
+            <text x="125" y="160" class="ot" opacity=".7" font-size="10.5">reboot/restart tracking</text>
+
+            <rect x="215" y="60" width="140" height="50" rx="8" class="ob"/>
+            <text x="285" y="80" class="ot">SnapManager.Ensure</text>
+            <text x="285" y="97" class="ot" opacity=".7" font-size="10.5">auto-refresh scheduling</text>
+
+            <rect x="400" y="60" width="150" height="50" rx="8" class="ob"/>
+            <text x="475" y="80" class="ot">InterfaceManager.Ensure</text>
+            <text x="475" y="97" class="ot" opacity=".7" font-size="10.5">hotplug, profile repair</text>
+
+            <rect x="215" y="200" width="140" height="50" rx="8" class="ob"/>
+            <text x="285" y="220" class="ot">AssertManager.Ensure</text>
+            <text x="285" y="237" class="ot" opacity=".7" font-size="10.5">refresh assertions</text>
+
+            <rect x="400" y="200" width="150" height="50" rx="8" class="ob"/>
+            <text x="475" y="220" class="ot">DeviceManager.Ensure</text>
+            <text x="475" y="237" class="ot" opacity=".7" font-size="10.5">registration, seeding, boot</text>
+
+            <rect x="540" y="120" width="140" height="56" rx="8" class="ob" fill="var(--diagram-accent-fill)"/>
+            <text x="610" y="142" class="ot" font-weight="700">TaskRunner.Ensure</text>
+            <text x="610" y="160" class="ot" opacity=".7" font-size="10.5">runs last: executes due Tasks</text>
+          </svg>
+          <div class="diagram-caption">Simplified: every registered manager's Ensure() runs each loop iteration; TaskRunner's runs last so freshly-created tasks get picked up without waiting for the next tick.</div>
+        </div>
+      </section>
+
+      <!-- ============================================================ -->
+      <section class="part" id="state-changes-tasks">
+        <h2><span class="num">6</span> State, Changes &amp; Tasks</h2>
+        <p class="lede">The persistence and execution model that lets any snapd operation survive a reboot mid-flight.</p>
+
+        <article class="card" id="state-locking">
+          <h3>state.State &amp; the global lock</h3>
+          <p>
+            Working persistent state is implemented by <code class="inline">overlord/state.State</code>, governed by a
+            single global lock (<code class="inline">State.Lock</code>/<code class="inline">Unlock</code>). Mutations made
+            while holding the lock are atomically flushed to disk when the lock is released. This one file
+            (<code class="inline">/var/lib/snapd/state.json</code>) is why snapd survives its own restarts, reboots, and
+            power loss mid-operation without losing track of what it was doing.
+          </p>
+          <div class="callout warn"><b class="label">Rule:</b> release the lock only around genuinely slow external operations — network calls, large copy/compress/decompress of on-disk data. Re-validate any mutable state you read before the unlock once you reacquire the lock; never blindly overwrite with values read before the gap.</div>
+        </article>
+
+        <article class="card" id="change-task">
+          <h3>state.Change and state.Task</h3>
+          <p>
+            Any system change is realized as a <b>dependency graph of tasks</b>: a <code class="inline">state.Change</code>
+            containing <code class="inline">state.Task</code> nodes connected by "waits for" edges. Both are identified by a
+            <i>kind</i> — an explanatory string. Both are persisted, so operations survive restarts. Higher-level code
+            composes the right tasks into a <code class="inline">state.TaskSet</code> (helpers like
+            <code class="inline">snapstate.InstallWithGoal</code> or <code class="inline">ifacestate.Connect</code> return
+            one), which then gets wrapped into a <code class="inline">state.Change</code> ready for execution.
+          </p>
+          <p>A few real task kinds, to make this concrete (there are many more — these are grouped by the manager that owns them):</p>
+          <div class="kindlist">
+            <code>download-snap</code><code>mount-snap</code><code>copy-snap-data</code><code>link-snap</code>
+            <code>unlink-snap</code><code>start-snap-services</code><code>run-hook</code><code>setup-profiles</code>
+            <code>auto-connect</code><code>validate-snap</code><code>create-recovery-system</code><code>request-serial</code>
+          </div>
+        </article>
+
+        <article class="card" id="taskrunner">
+          <h3>state.TaskRunner &amp; task statuses</h3>
+          <p>
+            <code class="inline">TaskRunner</code> executes <code class="inline">Change</code>/<code class="inline">Task</code>
+            do/undo logic. Each task kind's handlers are registered with <code class="inline">TaskRunner.AddHandler</code> by
+            the owning manager. A task moves through statuses:
+            <code class="inline">DoStatus</code> → <code class="inline">DoingStatus</code> → (success)
+            <code class="inline">DoneStatus</code>, or on failure <code class="inline">UndoStatus</code> →
+            <code class="inline">UndoingStatus</code> → <code class="inline">UndoneStatus</code>, with
+            <code class="inline">ErrorStatus</code>/<code class="inline">HoldStatus</code> as other terminal outcomes.
+          </p>
+          <p>
+            If a task errors, the runner normally undoes the completed tasks it <i>depended on</i> — not the failing task
+            itself. Each handler is expected to clean up its own partial effects on its own error paths. Independent
+            Changes, and independent Tasks within one Change, normally execute <b>concurrently</b>.
+          </p>
+          <div class="callout warn">
+            <b class="label">Idempotency matters:</b> because snapd can restart mid-task, do/undo handler logic may re-run from
+            the top. On-disk/external changes must be idempotent or equivalent to re-apply; working-state changes must either
+            be idempotent too, or be atomically combined with the task's next <code class="inline">SetStatus</code> call before
+            returning — otherwise there's a window where a restart replays a handler that doesn't expect its own already-committed
+            side effects.
+          </div>
+        </article>
+
+        <article class="card" id="lanes">
+          <h3>Lanes: independent failure domains</h3>
+          <p>
+            By default, any task failing aborts the <em>entire</em> Change. <b>Lanes</b> let you partition tasks within one
+            Change into independent failure domains — e.g. auto-refreshing 10 snaps in a single Change, one lane per snap, so
+            one snap's refresh failing doesn't roll back the other nine. Assign with <code class="inline">Task.JoinLane(n)</code>
+            where <code class="inline">n</code> comes from <code class="inline">State.NewLane()</code>; unassigned tasks are
+            implicitly lane 0. A task can belong to multiple lanes and survives if <em>any</em> of its lanes stays healthy.
+          </p>
+          <div class="diagram">
+            <svg viewBox="0 0 680 230" width="100%" height="230">
+              <defs>
+                <marker id="arrow3" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                  <path d="M0,0 L10,5 L0,10 z" fill="var(--diagram-line)"/>
+                </marker>
+              </defs>
+              <style>
+                .lb{fill:var(--diagram-box);stroke:var(--diagram-box-border);stroke-width:1.3;}
+                .lbad{fill:var(--diagram-box);stroke:var(--danger);stroke-width:1.6;}
+                .lt{fill:var(--diagram-text);font-size:11.5px;font-family:inherit;text-anchor:middle;}
+                .ll{stroke:var(--diagram-line);stroke-width:1.4;marker-end:url(#arrow3);}
+              </style>
+              <text x="20" y="22" class="lt" text-anchor="start" font-weight="700">Change: "auto-refresh 3 snaps"</text>
+
+              <text x="130" y="42" class="lt" opacity=".7">lane 1 (snap A)</text>
+              <rect x="70" y="50" width="120" height="36" rx="6" class="lb"/><text x="130" y="72" class="lt">download A</text>
+              <line x1="130" y1="86" x2="130" y2="106" class="ll"/>
+              <rect x="70" y="108" width="120" height="36" rx="6" class="lb"/><text x="130" y="130" class="lt">link A</text>
+
+              <text x="340" y="42" class="lt" opacity=".7">lane 2 (snap B) — fails</text>
+              <rect x="280" y="50" width="120" height="36" rx="6" class="lbad"/><text x="340" y="72" class="lt">download B</text>
+              <line x1="340" y1="86" x2="340" y2="106" class="ll"/>
+              <rect x="280" y="108" width="120" height="36" rx="6" class="lbad"/><text x="340" y="130" class="lt">link B ✗</text>
+
+              <text x="550" y="42" class="lt" opacity=".7">lane 3 (snap C)</text>
+              <rect x="490" y="50" width="120" height="36" rx="6" class="lb"/><text x="550" y="72" class="lt">download C</text>
+              <line x1="550" y1="86" x2="550" y2="106" class="ll"/>
+              <rect x="490" y="108" width="120" height="36" rx="6" class="lb"/><text x="550" y="130" class="lt">link C</text>
+
+              <rect x="70" y="170" width="540" height="40" rx="8" fill="none" stroke="var(--diagram-line)" stroke-dasharray="3 4"/>
+              <text x="340" y="194" class="lt">Lane 2 aborts &amp; undoes; lanes 1 and 3 still finish — snap A and C refresh succeeds</text>
+            </svg>
+          </div>
+        </article>
+
+        <article class="card" id="conflicts">
+          <h3>Conflicts &amp; AddBlocked preconditions</h3>
+          <p>
+            Lanes handle failure isolation <em>within</em> one Change. A different problem: stopping two <em>different</em>
+            Changes from operating on the same snap concurrently (e.g. connecting an interface on a snap that's mid-removal).
+            Before creating a new Change touching a snap, snapd checks for already in-progress operations on it and returns a
+            conflict error rather than starting — central logic in <span class="path">overlord/snapstate/conflict.go</span>.
+          </p>
+          <p>
+            Some task families need a coarser rule than conflicts can express cleanly — e.g. at most one hook task running at
+            a time per snap, or interface tasks that touch more than one snap. These register precondition predicates via
+            <code class="inline">TaskRunner.AddBlocked</code>: before running a candidate task, every predicate sees the
+            candidate and the set of currently-running tasks, and can defer it.
+          </p>
+        </article>
+
+        <article class="card" id="cleanup">
+          <h3>Cleanup handlers</h3>
+          <p>
+            <code class="inline">TaskRunner.AddCleanup</code> registers logic that runs only <em>after</em> the entire Change
+            is ready — i.e. outside conflict protection. Use it only for task-local temporary data; by the time it runs it must
+            not touch state that could interfere with other Changes or the system generally.
+          </p>
+        </article>
+
+        <article class="card" id="handler-invariants">
+          <h3>Checklist: writing a task handler</h3>
+          <p>Treat this as a working checklist, not a simplified template to copy — read real handlers in <span class="path">overlord/snapstate/handlers.go</span> alongside it.</p>
+          <div class="checklist" id="handlerChecklist">
+            <label><input type="checkbox" data-k="h1"> Hold the <code class="inline">state.State</code> lock while reading/mutating working state; release only around slow external (network/large filesystem) operations.</label>
+            <label><input type="checkbox" data-k="h2"> Re-validate mutable state after reacquiring the lock — never blindly reuse values read before the unlock.</label>
+            <label><input type="checkbox" data-k="h3"> Make external state changes idempotent, or otherwise safe to repeat after a restart.</label>
+            <label><input type="checkbox" data-k="h4"> Persist whatever prior state/ownership info undo needs for a precise rollback, without reverting unrelated concurrent changes.</label>
+            <label><input type="checkbox" data-k="h5"> Atomically combine any non-idempotent working-state change with the matching <code class="inline">Task.SetStatus</code> transition before unlocking.</label>
+            <label><input type="checkbox" data-k="h6"> On a terminal error, clean up only this task's own partial external effects — the runner undoes completed prerequisites, not the failing task.</label>
+            <label><input type="checkbox" data-k="h7"> Make undo handlers tolerant of partial execution (the task they're undoing may have been aborted mid-flight by another task's failure).</label>
+            <label><input type="checkbox" data-k="h8"> Prefer conflicts / task dependencies / lanes over ad-hoc serialization; use <code class="inline">AddBlocked</code> only when overlap truly can't be expressed as a conflict.</label>
+            <label><input type="checkbox" data-k="h9"> Use <code class="inline">AddCleanup</code> only for task-local temp data, never cross-Change state.</label>
+          </div>
+        </article>
+      </section>
+
+      <!-- ============================================================ -->
+      <section class="part" id="interfaces">
+        <h2><span class="num">7</span> Interfaces: plugs, slots &amp; policy</h2>
+        <p class="lede">How "a snap may use the camera" becomes an enforced, auditable, revocable grant.</p>
+
+        <article class="card" id="iface-concepts">
+          <h3>Plugs, slots, connections</h3>
+          <ul>
+            <li>A <b>slot</b> offers access to a resource (e.g. <code class="inline">network</code>, <code class="inline">camera</code>, a <code class="inline">content</code> share). Often provided implicitly by the system snap, sometimes by an app/gadget snap.</li>
+            <li>A <b>plug</b> is a snap's request to use a given interface's slot.</li>
+            <li>A <b>connection</b> links a specific plug to a specific slot. Only once connected does the corresponding security-backend policy (Section&nbsp;4.2) actually get granted.</li>
+            <li>Each built-in <b>interface</b> (there are 228+ files under <span class="path">interfaces/builtin</span>) encapsulates: static metadata, declaration policy defaults, auto-connect behavior, and contributions to each relevant security backend's <code class="inline">Specification</code>.</li>
+          </ul>
+        </article>
+
+        <article class="card" id="iface-repo">
+          <h3>interfaces.Repository &amp; building an interface</h3>
+          <p>
+            <code class="inline">interfaces.Repository</code> (<span class="path">interfaces/repo.go</span>) is the in-memory
+            abstraction tracking every snap's plugs/slots and connections, and orchestrating backend
+            <code class="inline">Specification</code> generation. Every built-in interface implementation satisfies
+            <code class="inline">interfaces.Interface</code> (<span class="path">interfaces/core.go</span>), minimally
+            <code class="inline">Name()</code> and <code class="inline">AutoConnect()</code>, and registers itself with
+            <code class="inline">registerIface</code> from an <code class="inline">init()</code> in
+            <span class="path">interfaces/builtin/all.go</span>.
+          </p>
+          <ul>
+            <li>Use <code class="inline">commonInterface</code> (<span class="path">interfaces/builtin/common.go</span>) when the interface is purely data-driven static metadata + security snippets — <span class="path">interfaces/builtin/alsa.go</span> is a clean example.</li>
+            <li>Write a dedicated type when custom validation, connection behavior, or backend logic is needed — <span class="path">interfaces/builtin/empty.go</span> is a compact example of the available extension points.</li>
+            <li>Nearby interfaces with similar resource shape are usually the best reference to copy from.</li>
+          </ul>
+        </article>
+
+        <article class="card" id="ifacestate">
+          <h3>InterfaceManager / ifacestate</h3>
+          <p>
+            <code class="inline">overlord/ifacestate.InterfaceManager</code> keeps every snap's security profiles up to date
+            using the <code class="inline">interfaces</code> package, and persists which connections exist
+            (<code class="inline">ifacestate.ConnectionState</code>). Paradigmatic task kinds:
+            <code class="inline">setup-profiles</code>, <code class="inline">auto-connect</code>, <code class="inline">connect</code>.
+          </p>
+          <p>
+            <b>Hotplug</b> (<span class="path">overlord/ifacestate/hotplug.go</span>) handles devices that appear/disappear at
+            runtime (USB, etc.), creating/removing slots and reconnecting as appropriate without a reboot.
+          </p>
+        </article>
+
+        <article class="card" id="declaration-policy">
+          <h3>Declaration policy: who gets to connect what</h3>
+          <p>
+            Plug/slot rules live in two layers, evaluated with a strict precedence order (topmost wins, evaluation stops at
+            first match):
+          </p>
+          <ol>
+            <li><code class="inline">deny-*</code> in the <b>plug</b>'s snap-declaration (store-published, per-snap)</li>
+            <li><code class="inline">allow-*</code> in the plug's snap-declaration</li>
+            <li><code class="inline">deny-*</code> in the <b>slot</b>'s snap-declaration</li>
+            <li><code class="inline">allow-*</code> in the slot's snap-declaration</li>
+            <li><code class="inline">deny-*</code> in the plug's <b>base declaration</b> (hardcoded in snapd source, <code class="inline">commonInterface.baseDeclarationPlugs</code>)</li>
+            <li><code class="inline">allow-*</code> in the plug's base declaration</li>
+            <li><code class="inline">deny-*</code> in the slot's base declaration</li>
+            <li><code class="inline">allow-*</code> in the slot's base declaration</li>
+          </ol>
+          <p>In short: <b>store rules beat hardcoded rules</b>, <b>plug rules beat slot rules</b>, <b>deny beats allow</b> within the same stanza.</p>
+          <p>Three keys cover the lifecycle:</p>
+          <ul>
+            <li><code class="inline">allow/deny-installation</code> — can the snap even declare this plug/slot? An interface whose base declaration denies plug installation by default is <b>super-privileged</b> — unusable without a store snap-declaration explicitly overriding it (e.g. <code class="inline">snapd-control</code>).</li>
+            <li><code class="inline">allow/deny-connection</code> — can a manual <code class="inline">snap connect</code> succeed? Commonly used to require attribute compatibility (the <code class="inline">content</code> interface requires matching <code class="inline">content</code> attribute values on both sides).</li>
+            <li><code class="inline">allow/deny-auto-connection</code> — is this plug/slot pair wired up automatically on install, with no user action? Ignores <code class="inline">allow-connection</code> entirely, and only fires when there is exactly one candidate slot for a plug (the "greedy"/arity rule, governed by <code class="inline">slots-per-plug</code> / <code class="inline">plugs-per-slot</code>, default 1 and <code class="inline">*</code> respectively).</li>
+          </ul>
+          <div class="callout warn"><b class="label">Authoritative source:</b> full rule-constraint semantics (maps=AND, lists=OR, <code class="inline">$SLOT()</code>/<code class="inline">$PLUG()</code>/<code class="inline">$MISSING</code> special forms, <code class="inline">on-store</code>/<code class="inline">on-classic</code> device-context constraints) live in <span class="path">interfaces/builtin/README.md</span> and in code in <code class="inline">asserts/ifacedecls.go</code>. Keep policy reasoning there — don't re-derive it from scratch per-interface.</div>
+        </article>
+
+        <article class="card" id="new-interface">
+          <h3>Adding a new built-in interface, in short</h3>
+          <ol>
+            <li>Find the nearest existing interface with a similar resource shape under <span class="path">interfaces/builtin</span> and start from its structure.</li>
+            <li>Decide the base-declaration pattern from <span class="path">interfaces/builtin/README.md</span>'s policy-pattern catalog (auto-connected implicit slot? manually-connected app-provided slot? super-privileged?) — this determines default <code class="inline">allow/deny-*</code> values.</li>
+            <li>Implement whichever backend-contribution methods are actually needed (AppArmor snippet, seccomp syscalls, udev tagging, …) — only the ones relevant to the resource.</li>
+            <li>Add sanitizers if the plug/slot carries attributes that need validating/normalizing (see <span class="path">interfaces/core.go</span>).</li>
+            <li>Register in <span class="path">interfaces/builtin/all.go</span> and write tests beside the implementation, using <span class="path">interfaces/ifacetest</span> fixtures; cover static info, sanitizers, auto-connect decisions, and generated snippets.</li>
+          </ol>
+        </article>
+      </section>
+
+      <!-- ============================================================ -->
+      <section class="part" id="daemon-api">
+        <h2><span class="num">8</span> The daemon &amp; REST API</h2>
+        <p class="lede">How "do something" requests get from the <code class="inline">snap</code> CLI (or anything else) into the overlord.</p>
+
+        <article class="card" id="daemon-package">
+          <h3>HTTP over a unix socket</h3>
+          <p>
+            snapd provides an HTTP API over the <span class="path">/run/snapd.socket</span> unix socket — this is how most of
+            the <code class="inline">snap</code> command's own operations are requested. It's implemented in the
+            <span class="path">daemon</span> package (one <code class="inline">api_*.go</code> file per API area — apps,
+            asserts, find, download, interfaces/connections, confdb, debug, quotas, validation-sets, …). Handlers mostly call
+            into overlord state-manager helpers rather than doing work themselves.
+          </p>
+        </article>
+
+        <article class="card" id="async-changes">
+          <h3>The async-change response pattern</h3>
+          <p>
+            For anything that does real work, a handler builds a <code class="inline">state.TaskSet</code> via a manager
+            helper (<code class="inline">ifacestate.Connect</code> for connecting an interface,
+            <code class="inline">snapstate.InstallWithGoal</code> for installing, etc.), wraps it in a
+            <code class="inline">state.Change</code>, and returns an <b>async response</b>: HTTP
+            <code class="inline">202 Accepted</code> with a <code class="inline">Change id</code>. The caller then polls
+            <code class="inline">GET /v2/changes/{id}</code> to watch progress/completion — this is exactly why
+            <code class="inline">snap install</code> on the CLI shows a progress bar rather than blocking the HTTP call itself.
+          </p>
+          <table>
+            <tr><th>Example endpoint</th><th>Shape</th></tr>
+            <tr><td><span class="path">GET /v2/system-info</span></td><td>sync — simple read</td></tr>
+            <tr><td><span class="path">GET,POST /v2/changes</span>, <span class="path">GET /v2/changes/{id}</span></td><td>sync — tracking an async operation</td></tr>
+            <tr><td><span class="path">POST /v2/snaps/{name}</span> (install/refresh/remove actions)</td><td>async — 202 + Change id</td></tr>
+            <tr><td><span class="path">POST /v2/interfaces</span> (connect/disconnect)</td><td>async — 202 + Change id</td></tr>
+            <tr><td><span class="path">POST,GET /v2/assertions[/{assertType}]</span></td><td>mixed — ack is sync, some operations async</td></tr>
+            <tr><td><span class="path">GET /v2/model</span>, <span class="path">GET /v2/model/serial</span></td><td>sync — device identity</td></tr>
+          </table>
+        </article>
+
+        <article class="card" id="snapctl">
+          <h3>snapctl: snaps talking back to snapd</h3>
+          <p>
+            A snap (typically from inside a hook) calls back into snapd via <code class="inline">snapctl</code>, which
+            internally hits the <span class="path">/v2/snapctl</span> endpoint over a <em>different</em> socket,
+            <span class="path">/run/snapd-snap.socket</span>. The command itself is a thin forwarder: it ships parameters to
+            the endpoint and relays output/exit code back. The real subcommand logic
+            (<code class="inline">set</code>, <code class="inline">get</code>, <code class="inline">services</code>,
+            <code class="inline">is-connected</code>, …) lives in <span class="path">overlord/hookstate/ctlcmd</span>.
+          </p>
+        </article>
+      </section>
+
+      <!-- ============================================================ -->
+      <section class="part" id="managers-map">
+        <h2><span class="num">9</span> The state-manager map</h2>
+        <p class="lede">Every manager wired into the current Overlord, what it owns, and how the import graph between them is kept acyclic.</p>
+
+        <article class="card" id="managers-table">
+          <h3>Managers wired in overlord.New</h3>
+          <table>
+            <tr><th>Manager</th><th>Package</th><th>Owns</th></tr>
+            <tr><td>RestartManager</td><td><span class="path">overlord/restart</span></td><td>Tracking pending daemon/system restarts and reboots across the whole Overlord.</td></tr>
+            <tr><td>HookManager</td><td><span class="path">overlord/hookstate</span></td><td>Running snap hooks (<code class="inline">run-hook</code>), <code class="inline">snapctl</code> backend (<span class="path">hookstate/ctlcmd</span>).</td></tr>
+            <tr><td><b>SnapManager</b></td><td><span class="path">overlord/snapstate</span></td><td>Per-snap persisted state (<code class="inline">SnapState</code>), install/refresh/remove/revert lifecycle for snaps and components, automatic-update scheduling. Delegates on-disk work to <span class="path">overlord/snapstate/backend</span>, which uses <span class="path">wrappers</span> for app symlinks/systemd units/desktop files.</td></tr>
+            <tr><td>ServiceManager</td><td><span class="path">overlord/servicestate</span></td><td>Service start/stop/enable, quotas, via <span class="path">wrappers</span> → <span class="path">systemd</span>.</td></tr>
+            <tr><td><b>AssertManager</b></td><td><span class="path">overlord/assertstate</span></td><td>The assertion database: fetching, refreshing, verifying (<code class="inline">validate-snap</code>, <code class="inline">validate-component</code>), via the <span class="path">asserts</span> package.</td></tr>
+            <tr><td><b>InterfaceManager</b></td><td><span class="path">overlord/ifacestate</span></td><td>Interface connections and security-profile regeneration; see Section&nbsp;7.</td></tr>
+            <tr><td><b>DeviceManager</b></td><td><span class="path">overlord/devicestate</span></td><td>Device identity/registration, seeding, boot/install/remodel orchestration; see Section&nbsp;12.</td></tr>
+            <tr><td>ClusterManager</td><td><span class="path">overlord/clusterstate</span></td><td>Multi-device cluster membership features.</td></tr>
+            <tr><td>CommandManager</td><td><span class="path">overlord/cmdstate</span></td><td>Generic "run this exec task" plumbing used by a few other managers.</td></tr>
+            <tr><td>SnapshotManager</td><td><span class="path">overlord/snapshotstate</span></td><td>Snapshot (save/restore/forget) of per-snap user data.</td></tr>
+            <tr><td>FDEManager</td><td><span class="path">overlord/fdestate</span></td><td>Full Disk Encryption key management tied to boot-asset measurement; see Section&nbsp;12.5.</td></tr>
+            <tr><td>NoticeManager</td><td><span class="path">overlord/notices</span></td><td>The notices subsystem (structured async event log consumed via the API).</td></tr>
+            <tr><td>ConfdbManager</td><td><span class="path">overlord/confdbstate</span></td><td>Confdb (configuration database) schema/state.</td></tr>
+            <tr><td>DeviceMgmtManager</td><td><span class="path">overlord/devicemgmtstate</span></td><td>Device-management-service integration.</td></tr>
+            <tr><td>CertManager</td><td><span class="path">overlord/certstate</span></td><td>Certificate state tracking.</td></tr>
+          </table>
+          <p>Plus <code class="inline">ConfigManager</code> (<span class="path">overlord/configstate</span>) for <code class="inline">snap set/get</code> config, wired alongside the others.</p>
+        </article>
+
+        <article class="card" id="dependency-rules">
+          <h3>Keeping the import graph acyclic</h3>
+          <p>
+            Manager-package import rules apply to the package roots themselves, not recursively to every file beneath a
+            directory:
+          </p>
+          <ul>
+            <li><span class="path">overlord/snapstate</span> is imported by peer managers and <b>must not import their package roots back</b>. It defines fundamental shared types (e.g. <code class="inline">DeviceContext</code>) that nearly everything else depends on.</li>
+            <li><span class="path">overlord/assertstate</span> and <span class="path">overlord/hookstate</span> should likewise be mostly <i>consumed</i>, not consumers of peer managers.</li>
+            <li><span class="path">overlord/devicestate</span> sits at the opposite end — it <i>uses</i> most other managers, since device/boot orchestration legitimately needs to reach into snap, assertion, and interface state.</li>
+            <li>Subpackages like <span class="path">overlord/ifacestate/ifacerepo</span>, <span class="path">overlord/snapstate/backend</span>, or <span class="path">overlord/configstate/config</span> are distinct package boundaries — importable when the dependency direction is sound and there's local precedent.</li>
+          </ul>
+          <p>When a cycle is otherwise unavoidable, break it with an exported function-hook variable, assigned from the dependent package's <code class="inline">init()</code> or manager constructor:</p>
+          <div class="kindlist">
+            <code>snapstate.ValidateRefreshes</code> ← assigned by assertstate's delayed cross-manager init
+            <code>boot.HasFDESetupHook</code> ← assigned by devicestate's manager constructor
+          </div>
+          <p>or a registration mechanism, e.g. <code class="inline">snapstate.AddCheckSnapCallback</code>, <code class="inline">snapstate.RegisterAffectedSnapsByAttr</code>.</p>
+          <div class="callout warn"><b class="label">Also:</b> almost everything under <span class="path">overlord</span> is daemon-only and must not be imported by other snapd tools/binaries (it would bloat them significantly). The one sanctioned exception is the <code class="inline">nomanagers</code>-tagged subset of <span class="path">overlord/configstate/configcore</span>.</div>
+        </article>
+      </section>
+
+      <!-- ============================================================ -->
+      <section class="part" id="assertions">
+        <h2><span class="num">10</span> Assertions &amp; trust</h2>
+        <p class="lede">How snapd decides what's allowed to install, boot, and connect to what — without a central server being reachable at the moment it matters.</p>
+
+        <article class="card" id="assertion-basics">
+          <h3>Signed documents as policy</h3>
+          <p>
+            Assertions are signed documents carrying policy or verification data, implemented in the <span class="path">asserts</span>
+            package and persisted by <code class="inline">overlord/assertstate.AssertManager</code>. Key types:
+          </p>
+          <table>
+            <tr><th>Assertion</th><th>Carries</th></tr>
+            <tr><td><code class="inline">account</code> / <code class="inline">account-key</code></td><td>Identity of a publisher and their public signing key.</td></tr>
+            <tr><td><code class="inline">snap-declaration</code></td><td>Identity and sandbox-policy overrides for a specific snap (store-controlled interface rules — Section&nbsp;7.4).</td></tr>
+            <tr><td><code class="inline">snap-revision</code></td><td>Verification info for one specific snap build/revision.</td></tr>
+            <tr><td><code class="inline">model</code></td><td>Defines a device "model": brand, gadget/kernel/base snaps, grade, store. The root of device identity on Ubuntu Core.</td></tr>
+            <tr><td><code class="inline">serial</code></td><td>Ties a concrete device instance to its <code class="inline">model</code>.</td></tr>
+            <tr><td><code class="inline">validation-set</code></td><td>A named, versioned bundle of "these snaps at these revisions/presences are required/allowed together" — used for fleet-wide consistency.</td></tr>
+          </table>
+          <p>
+            Paradigmatic functionality in <span class="path">overlord/assertstate</span>: <code class="inline">DB</code> for
+            read-only database access, direct retrieval helpers like <code class="inline">SnapDeclaration</code>,
+            <code class="inline">RefreshSnapAssertions</code>, and the <code class="inline">verify-snap</code> task.
+          </p>
+        </article>
+      </section>
+
+      <!-- ============================================================ -->
+      <section class="part" id="install-walkthrough">
+        <h2><span class="num">11</span> Install/refresh walkthrough, end to end</h2>
+        <p class="lede">Tying Sections 5–10 together into one concrete, ordered story: <code class="inline">snap install foo</code>.</p>
+
+        <div class="diagram">
+          <svg viewBox="0 0 760 440" width="100%" height="440">
+            <defs>
+              <marker id="arrow4" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                <path d="M0,0 L10,5 L0,10 z" fill="var(--diagram-line)"/>
+              </marker>
+            </defs>
+            <style>
+              .wb{fill:var(--diagram-box);stroke:var(--diagram-box-border);stroke-width:1.3;}
+              .wt{fill:var(--diagram-text);font-size:12px;font-family:inherit;}
+              .wl{stroke:var(--diagram-line);stroke-width:1.5;marker-end:url(#arrow4);fill:none;}
+              .wn{fill:var(--accent);font-size:11px;font-weight:700;font-family:inherit;}
+            </style>
+            <text x="16" y="20" class="wn">CLI / API</text>
+            <rect x="16" y="26" width="200" height="30" rx="6" class="wb"/><text x="26" y="46" class="wt">snap install foo</text>
+            <line x1="116" y1="56" x2="116" y2="78" class="wl"/>
+
+            <text x="16" y="94" class="wn">daemon</text>
+            <rect x="16" y="100" width="200" height="30" rx="6" class="wb"/><text x="26" y="120" class="wt">POST /v2/snaps/foo → 202 + Change id</text>
+            <line x1="116" y1="130" x2="116" y2="152" class="wl"/>
+
+            <text x="16" y="168" class="wn">assertstate</text>
+            <rect x="16" y="174" width="200" height="30" rx="6" class="wb"/><text x="26" y="194" class="wt">fetch/verify snap-declaration, snap-revision</text>
+            <line x1="116" y1="204" x2="116" y2="226" class="wl"/>
+
+            <text x="16" y="242" class="wn">snapstate</text>
+            <rect x="16" y="248" width="200" height="30" rx="6" class="wb"/><text x="26" y="268" class="wt">download-snap</text>
+            <line x1="116" y1="278" x2="116" y2="300" class="wl"/>
+            <rect x="16" y="302" width="200" height="30" rx="6" class="wb"/><text x="26" y="322" class="wt">mount-snap, copy-snap-data</text>
+            <line x1="116" y1="332" x2="116" y2="354" class="wl"/>
+            <rect x="16" y="356" width="200" height="30" rx="6" class="wb"/><text x="26" y="376" class="wt">link-snap (SnapState updated, exposed)</text>
+
+            <line x1="216" y1="371" x2="290" y2="371" class="wl"/>
+            <text x="300" y="30" class="wn">ifacestate</text>
+            <rect x="300" y="356" width="200" height="30" rx="6" class="wb"/><text x="310" y="376" class="wt">setup-profiles, auto-connect</text>
+            <line x1="400" y1="356" x2="400" y2="30" class="wl" marker-end="none" stroke-dasharray="3 4"/>
+
+            <line x1="500" y1="371" x2="570" y2="371" class="wl"/>
+            <text x="580" y="30" class="wn">hookstate</text>
+            <rect x="580" y="356" width="160" height="30" rx="6" class="wb"/><text x="590" y="376" class="wt">run-hook (install, configure)</text>
+
+            <rect x="300" y="36" width="440" height="56" rx="8" class="wb" fill="var(--core-bg)" stroke="var(--core-border)"/>
+            <text x="320" y="58" class="wt">servicestate: start-snap-services</text>
+            <text x="320" y="76" class="wt" opacity=".7">snap is now installed, confined, connected, running</text>
+          </svg>
+          <div class="diagram-caption">Columns run left→right in rough chronological order; several of these tasks actually run concurrently where dependencies allow.</div>
+        </div>
+
+        <article class="card" id="walkthrough-steps">
+          <h3>Step by step</h3>
+          <ol>
+            <li><b>Request arrives.</b> <code class="inline">snap install foo</code> hits <span class="path">/v2/snaps/foo</span>; the daemon handler calls a <span class="path">overlord/snapstate</span> helper (e.g. <code class="inline">InstallWithGoal</code>), which returns a <code class="inline">state.TaskSet</code>; the daemon wraps it in a <code class="inline">state.Change</code> and replies <code class="inline">202</code> with the Change id.</li>
+            <li><b>Assertions.</b> <code class="inline">assertstate</code> fetches/verifies the snap's <code class="inline">snap-declaration</code> and the specific <code class="inline">snap-revision</code> assertion from the store — this is how snapd trusts the download without re-deriving trust from scratch, and where the declaration's interface policy (Section 7.4) comes from.</li>
+            <li><b>Fetch &amp; stage.</b> <code class="inline">download-snap</code> pulls the SquashFS; <code class="inline">mount-snap</code> mounts it; <code class="inline">copy-snap-data</code> migrates/prepares per-revision data dirs.</li>
+            <li><b>Expose to the system.</b> <code class="inline">link-snap</code> updates <code class="inline">SnapState</code> and makes this revision "current" — symlinks, metadata now visible to the rest of snapd.</li>
+            <li><b>Confine it.</b> <code class="inline">ifacestate</code> runs <code class="inline">setup-profiles</code> (regenerate AppArmor/seccomp/udev/… artifacts for this snap) and <code class="inline">auto-connect</code> (wire up any interfaces whose policy allows automatic connection, per Section 7.4).</li>
+            <li><b>Hooks.</b> <code class="inline">hookstate</code> runs the snap's <code class="inline">install</code> and <code class="inline">configure</code> hooks (<code class="inline">run-hook</code> tasks) if present.</li>
+            <li><b>Services.</b> <code class="inline">servicestate</code> starts any daemons the snap declares (<code class="inline">start-snap-services</code>), via <span class="path">wrappers</span> → systemd.</li>
+            <li><b>Done.</b> The Change reaches <code class="inline">DoneStatus</code>; <code class="inline">GET /v2/changes/{id}</code> now reports completion. If anything failed partway, the already-completed prerequisite tasks are undone in reverse order (<code class="inline">unlink-snap</code>, discarding the download, etc.) following exactly the same do/undo contract as Section 6.</li>
+          </ol>
+          <div class="callout classic"><b class="label">Refresh vs. install:</b> a refresh is the same shape but starts from an already-linked snap, adds a <code class="inline">prerequisites</code>/<code class="inline">check-rerefresh</code> step, and keeps the old revision mounted (not discarded) until the new one is confirmed healthy, so <code class="inline">snap revert</code> stays cheap.</div>
+        </article>
+      </section>
+
+      <!-- ============================================================ -->
+      <section class="part" id="ubuntu-core">
+        <h2><span class="num">12</span> Ubuntu Core &amp; devices</h2>
+        <p class="lede">Same snapd, same overlord — but here snapd also owns the boot process and the device's entire lifecycle.</p>
+
+        <article class="card" id="core-anatomy">
+          <h3>What makes a system "Core"</h3>
+          <p>On Ubuntu Core, boot assets are themselves snaps:</p>
+          <ul>
+            <li><b>base snap</b> — the root filesystem itself (mounted read-only, like any base a regular snap uses).</li>
+            <li><b>kernel snap</b> — kernel image, initrd pieces, and modules, replacing a distro kernel package.</li>
+            <li><b>gadget snap</b> — defines the device: bootloader configuration, disk layout, device-specific defaults, and which other snaps/interfaces are pre-seeded.</li>
+          </ul>
+          <p>
+            Because all three can be refreshed like any other snap — with the exact same <code class="inline">state.Change</code>/task
+            machinery from Section 6 — the whole device gets snapd's reliability guarantees (survive-a-failed-update,
+            automatic rollback) applied to its boot chain, not just to applications.
+          </p>
+        </article>
+
+        <article class="card" id="devicemanager">
+          <h3>DeviceManager's job</h3>
+          <p>
+            <code class="inline">overlord/devicestate.DeviceManager</code> is the state manager orchestrating all of this. On
+            classic systems its job is comparatively small: device identity for snap-store purposes. On Ubuntu Core it also:
+          </p>
+          <ul>
+            <li>Drives full device installation from a never-before-booted Core image, or a more limited installation of a snap set on first boot from a <b>seed system</b>.</li>
+            <li>Registers the device and gives it an identity — a <code class="inline">serial</code> assertion tied to the device's <code class="inline">model</code> assertion — with device services and/or the store.</li>
+            <li>Drives <b>remodeling</b>: transitioning a live device to a different model assertion (different brand/gadget/kernel/base/store), which is why task handlers that need device info must fetch a <i>task-aware</i> <code class="inline">DeviceContext</code> (<code class="inline">snapstate.DeviceCtx(st, task, nil)</code>) rather than a global one — mid-remodel, a task may need to see the <i>new</i> model, not the system's current one.</li>
+          </ul>
+          <p>Representative task kinds owned here: <code class="inline">generate-device-key</code>, <code class="inline">request-serial</code>, <code class="inline">mark-seeded</code>, <code class="inline">create-recovery-system</code>, <code class="inline">prepare-remodeling</code>, <code class="inline">setup-run-system</code>, <code class="inline">restart-system-to-run-mode</code>, <code class="inline">factory-reset-run-system</code>.</p>
+        </article>
+
+        <article class="card" id="boot-packages">
+          <h3>boot, gadget, kernel, bootloader</h3>
+          <p>For boot/disk configuration and boot-asset management, <code class="inline">devicestate</code> and <code class="inline">snapstate</code> lean on four lower-level packages:</p>
+          <table>
+            <tr><th>Package</th><th>Responsibility</th></tr>
+            <tr><td><span class="path">boot</span></td><td>Boot-state bookkeeping (<code class="inline">modeenv</code>, boot chains for measured boot), deciding which kernel/base/gadget revision should be booted next, orchestrating boot-asset updates.</td></tr>
+            <tr><td><span class="path">gadget</span></td><td>Parsing <code class="inline">gadget.yaml</code>, disk layout/partitioning rules, installing gadget content to disk (<span class="path">gadget/install</span>).</td></tr>
+            <tr><td><span class="path">kernel</span></td><td>Kernel-snap-specific asset handling (kernel.yaml, modules/firmware trees).</td></tr>
+            <tr><td><span class="path">bootloader</span></td><td>Bootloader-specific code (GRUB, u-boot, etc.) — used almost exclusively <i>through</i> <span class="path">boot</span>, not called directly by managers.</td></tr>
+          </table>
+        </article>
+
+        <article class="card" id="snap-bootstrap">
+          <h3>core-initrd &amp; snap-bootstrap</h3>
+          <p>
+            On Ubuntu Core 20+ (and non-Core Ubuntu configured to use a kernel+gadget snap), a systemd-based initrd defined
+            per-Ubuntu-version under <span class="path">core-initrd/</span> is in use. Its main integration point is running
+            <code class="inline">snap-bootstrap</code> (<span class="path">cmd/snap-bootstrap</span>), which initializes and
+            mounts the essential snaps needed to bring up the running system. Driven by the kernel command line, it supports
+            distinct lifecycle modes:
+          </p>
+          <div class="kindlist">
+            <code>install</code><code>run</code><code>recover</code><code>factory-reset</code>
+          </div>
+          <p>
+            This is the piece of snapd that runs <i>before</i> the daemon itself exists — it's doing its work from inside the
+            initrd, assembling the root filesystem the rest of the system (including snapd) will boot into.
+          </p>
+        </article>
+
+        <article class="card" id="fde">
+          <h3>Full Disk Encryption</h3>
+          <p>
+            <code class="inline">snap-bootstrap</code> is also central to FDE support, tying encryption to the specific
+            device via TPM+UEFI, OP-TEE on ARM, or hooks for other TEEs — obtaining device-protected keys from those
+            security modules to unlock encrypted disks. Low-level helper logic lives in <span class="path">secboot</span>
+            (a wrapper around the external <code class="inline">secboot</code> package).
+          </p>
+          <p>
+            Because TPM-based FDE requires <i>measuring</i> boot assets to unseal keys, the implementation must stay in sync
+            with the update logic for essential snaps — any update to kernel/base/gadget changes the measurements. Both
+            <span class="path">boot</span> and the dedicated <code class="inline">overlord/fdestate.FDEManager</code> carry the
+            logic for keeping key-sealing policy consistent with the snaps currently/about-to-be booted.
+          </p>
+        </article>
+
+        <article class="card" id="seeding-remodel">
+          <h3>Seeding &amp; remodeling, briefly</h3>
+          <ul>
+            <li><b>Seeding</b> is first-boot population of the system from a pre-baked set of snaps/assertions (a "seed") — either a full Core image install, or a lighter-weight seeded set of snaps on a more general system. <code class="inline">mark-seeded</code> flags completion.</li>
+            <li><b>Remodeling</b> changes which <code class="inline">model</code> assertion a live device is on — different gadget/kernel/base/store/brand — without reflashing. Handlers live in <span class="path">overlord/devicestate/handlers_remodel.go</span>; this is the scenario that makes the task-aware <code class="inline">DeviceContext</code> (Section 12.2) necessary.</li>
+            <li><b>Recovery systems</b> are bootable "known good" snap sets kept alongside the running one, so a factory-reset or recovery boot has somewhere trustworthy to recover to — <code class="inline">create-recovery-system</code> / <code class="inline">finalize-recovery-system</code> / <code class="inline">remove-recovery-system</code>.</li>
+          </ul>
+        </article>
+
+        <article class="card" id="classic-core-shared">
+          <h3>How classic and Core share one codebase</h3>
+          <p>
+            There's no separate "classic snapd" vs. "Core snapd" binary. The same <span class="path">overlord</span>,
+            same managers, same task kinds run everywhere. What actually changes behavior:
+          </p>
+          <ul>
+            <li><b>Which snaps are installed.</b> A system without gadget/kernel/base snaps simply never exercises the Core-specific <code class="inline">devicestate</code>/<code class="inline">boot</code> task kinds — there's nothing for them to do.</li>
+            <li><code class="inline">release.OnClassic</code> and friends — small runtime checks that steer specific decisions (e.g. interface auto-connection defaults in the declaration policy, Section 7.4's <code class="inline">on-classic</code> constraints).</li>
+            <li>The <code class="inline">asserts.Model</code> assertion's fields (<code class="inline">classic: true/false</code>, grade, gadget/kernel/base references) describe which shape a given device is.</li>
+            <li><code class="inline">snapstate.DeviceContext</code> is the interface <span class="path">snapstate</span> defines to ask "what kind of device/model am I on" without importing <code class="inline">devicestate</code> back (Section 9.3's acyclic-import rule in action) — concrete implementations come from <code class="inline">devicestate</code>.</li>
+          </ul>
+          <p>
+            Net effect: adding a Core-only feature almost always means adding new task kinds/handlers in
+            <span class="path">overlord/devicestate</span> (and maybe <span class="path">boot</span>/<span class="path">gadget</span>),
+            not forking any shared code path.
+          </p>
+        </article>
+      </section>
+
+      <!-- ============================================================ -->
+      <section class="part" id="feature-finder">
+        <h2><span class="num">13</span> Where do I work on X?</h2>
+        <p class="lede">Click a category you're adding to. This is a map, not a rulebook — real changes often touch more than one of these.</p>
+
+        <article class="card">
+          <div class="finder-grid" id="finderGrid">
+            <button class="finder-btn" data-a="install">Install/refresh/remove behavior</button>
+            <button class="finder-btn" data-a="confine">A new way to sandbox / confine a snap</button>
+            <button class="finder-btn" data-a="iface">A new resource a snap can access</button>
+            <button class="finder-btn" data-a="api">A new REST API endpoint</button>
+            <button class="finder-btn" data-a="hook">Hook / snapctl behavior</button>
+            <button class="finder-btn" data-a="service">Service start/stop/quota behavior</button>
+            <button class="finder-btn" data-a="assert">A new kind of assertion/trust rule</button>
+            <button class="finder-btn" data-a="core">Boot, gadget, or device lifecycle (Core)</button>
+            <button class="finder-btn" data-a="fde">Disk encryption behavior</button>
+            <button class="finder-btn" data-a="cli">A new `snap` CLI subcommand</button>
+            <button class="finder-btn" data-a="config">Snap configuration (`snap set/get`)</button>
+            <button class="finder-btn" data-a="snapshot">Snapshot save/restore behavior</button>
+          </div>
+
+          <div class="finder-answer" data-ans="install">
+            <h4>Install / refresh / remove</h4>
+            <p>Start in <span class="path">overlord/snapstate</span> — the task graph builders (<code class="inline">Install*</code>, <code class="inline">Update*</code>, <code class="inline">Remove*</code>) and the task handlers in <span class="path">overlord/snapstate/handlers.go</span>. On-disk mechanics live one layer down in <span class="path">overlord/snapstate/backend</span>, which uses <span class="path">wrappers</span>. Don't forget the daemon-side entry point in <span class="path">daemon/api_snaps.go</span>-style files if you're exposing new behavior via the API.</p>
+          </div>
+          <div class="finder-answer" data-ans="confine">
+            <h4>Sandbox / confinement mechanics</h4>
+            <p>Low-level sandbox setup is C in <span class="path">cmd/snap-confine</span>; the final in-sandbox setup is Go in <span class="path">cmd/snap-exec</span>. If the change is about <i>what policy gets applied</i> rather than the mechanism itself, you probably want Section 7's interfaces/security-backends instead (<span class="path">interfaces/apparmor</span>, <span class="path">interfaces/seccomp</span>, etc.), driven from <span class="path">overlord/ifacestate</span>.</p>
+          </div>
+          <div class="finder-answer" data-ans="iface">
+            <h4>A new resource a snap can access</h4>
+            <p>This is almost always a new built-in interface: <span class="path">interfaces/builtin/&lt;name&gt;.go</span>, registered in <span class="path">interfaces/builtin/all.go</span>. Decide its base-declaration policy pattern first (§7.4) — that choice drives most of the implementation. Add backend contributions only for the backends actually relevant (AppArmor/seccomp/udev/kmod/mount/dbus/polkit).</p>
+          </div>
+          <div class="finder-answer" data-ans="api">
+            <h4>A new REST API endpoint</h4>
+            <p><span class="path">daemon/api_*.go</span> — add a <code class="inline">Command</code> entry and handler, following the sync-vs-async pattern of Section 8.2. If it triggers real work, the handler should build a <code class="inline">state.TaskSet</code> from a manager helper rather than doing the work inline.</p>
+          </div>
+          <div class="finder-answer" data-ans="hook">
+            <h4>Hook / snapctl behavior</h4>
+            <p><span class="path">overlord/hookstate</span> for hook execution/scheduling (<code class="inline">run-hook</code> task), <span class="path">overlord/hookstate/ctlcmd</span> for a new <code class="inline">snapctl</code> subcommand.</p>
+          </div>
+          <div class="finder-answer" data-ans="service">
+            <h4>Service start/stop/quota behavior</h4>
+            <p><span class="path">overlord/servicestate</span>, calling down into <span class="path">wrappers</span> → <span class="path">systemd</span>. Quota-group specific logic also lives in <span class="path">overlord/servicestate</span>.</p>
+          </div>
+          <div class="finder-answer" data-ans="assert">
+            <h4>A new kind of assertion or trust rule</h4>
+            <p>Assertion types and format live in <span class="path">asserts</span> (interface-declaration constraint semantics specifically in <code class="inline">asserts/ifacedecls.go</code>). State-side handling (fetch/refresh/verify tasks) is <span class="path">overlord/assertstate</span>.</p>
+          </div>
+          <div class="finder-answer" data-ans="core">
+            <h4>Boot, gadget, or device lifecycle (Ubuntu Core)</h4>
+            <p>Orchestration/task handlers in <span class="path">overlord/devicestate</span> (see the <code class="inline">handlers_*.go</code> split: install, remodel, gadget, systems, serial, bootconfig). Lower-level mechanics in <span class="path">boot</span>, <span class="path">gadget</span>, <span class="path">kernel</span>, <span class="path">bootloader</span>. Initrd-time behavior is <span class="path">cmd/snap-bootstrap</span> plus <span class="path">core-initrd</span>.</p>
+          </div>
+          <div class="finder-answer" data-ans="fde">
+            <h4>Disk encryption behavior</h4>
+            <p><code class="inline">overlord/fdestate.FDEManager</code> for state/task orchestration, <span class="path">secboot</span> for the low-level TPM/OP-TEE/hook mechanics, <span class="path">boot</span> where key-sealing needs to track boot-asset measurement changes, <span class="path">cmd/snap-bootstrap</span> for initrd-time unlocking.</p>
+          </div>
+          <div class="finder-answer" data-ans="cli">
+            <h4>A new `snap` CLI subcommand</h4>
+            <p>CLI subcommands live under <span class="path">cmd/snap</span> (not shown in the manager map above since it's client-side, not a daemon package) and talk to the daemon via <span class="path">client</span>, which wraps the REST API.</p>
+          </div>
+          <div class="finder-answer" data-ans="config">
+            <h4>Snap configuration (`snap set`/`snap get`)</h4>
+            <p><span class="path">overlord/configstate</span>, with the low-level façade in <span class="path">overlord/configstate/config</span> (the one subpackage explicitly built to be consumed outside the daemon too, under the <code class="inline">nomanagers</code> tag).</p>
+          </div>
+          <div class="finder-answer" data-ans="snapshot">
+            <h4>Snapshot save/restore behavior</h4>
+            <p><span class="path">overlord/snapshotstate</span>.</p>
+          </div>
+        </article>
+      </section>
+
+      <!-- ============================================================ -->
+      <section class="part" id="conventions">
+        <h2><span class="num">14</span> Conventions &amp; validation</h2>
+        <p class="lede">The project-specific rules that make a diff look like it belongs in this codebase.</p>
+
+        <article class="card" id="naming-errors">
+          <h3>Naming &amp; errors, condensed</h3>
+          <ul>
+            <li>Follow <code class="inline">gofmt -s</code> and standard Go naming conventions; prefer concision for locals, clarity for exported names; stay consistent with neighboring code's terminology.</li>
+            <li>Error messages: start lowercase, no trailing period, prefer <i>"cannot …"</i> over <i>"failed to …"</i>, avoid repeated "cannot: cannot:" when errors get wrapped, and prefix genuine programming errors with <code class="inline">"internal error: "</code>.</li>
+            <li>Don't introduce an exported <code class="inline">*Error</code> type until a caller actually needs to inspect it.</li>
+            <li>Package layout: a responsibility split across packages should go from higher- to lower-level abstraction (e.g. <span class="path">snapstate</span> → <span class="path">snapstate/backend</span> → <span class="path">boot</span> → <span class="path">bootloader</span>), not splitting the same abstraction level across packages.</li>
+          </ul>
+        </article>
+
+        <article class="card" id="testing-conventions">
+          <h3>Testing conventions</h3>
+          <ul>
+            <li>Prefer tests in a dedicated <code class="inline">&lt;package&gt;_test</code> package, exercising the exported API; reach for <code class="inline">export_test.go</code> re-assignment only when internals genuinely need covering.</li>
+            <li>snapd tests use <b>gocheck</b> plus the project's own <span class="path">testutil</span>; benchmarks use the standard <code class="inline">testing</code> package.</li>
+            <li>Mocking convention: <code class="inline">Mock*</code> helpers in <code class="inline">export_test.go</code>, each returning a parameterless restore function.</li>
+            <li>For task handlers specifically: test that undo correctly reverses do, that handling is idempotent under partial execution, and that error paths undo previous state as needed (Section 6.7's checklist).</li>
+          </ul>
+        </article>
+
+        <article class="card" id="pr-conventions">
+          <h3>PR &amp; commit conventions</h3>
+          <p>Titles and commit subjects: <code class="inline">affected/packages: short summary in lowercase</code>. Full PR/commit/merge policy is in <span class="path">CODING.md</span>.</p>
+        </article>
+
+        <article class="card" id="validation-table">
+          <h3>Validation: narrowest check first</h3>
+          <table>
+            <tr><th>Touched surface</th><th>Focused validation</th></tr>
+            <tr><td>Go package</td><td>Run the relevant package + gocheck test pattern; <code class="inline">LANG=C.UTF-8</code> where locale matters</td></tr>
+            <tr><td>Shared Go behavior</td><td>Expand to affected packages, then <code class="inline">./run-checks</code> before committing</td></tr>
+            <tr><td>C code under <span class="path">cmd</span></td><td>Relevant target, commonly <code class="inline">make -C cmd check</code></td></tr>
+            <tr><td>Spread task definition</td><td><code class="inline">spread-shellcheck</code> + <code class="inline">check-test-format</code> on the task path</td></tr>
+            <tr><td>Spread test / system behavior</td><td>The <code class="inline">run-spread-test</code> skill, targeting a specific test path</td></tr>
+            <tr><td>Agent skill script</td><td><code class="inline">python3 -m unittest discover -s .agents/skills/&lt;skill&gt;/scripts</code></td></tr>
+            <tr><td>Documentation only</td><td>Applicable linter + <code class="inline">git diff --check</code></td></tr>
+          </table>
+        </article>
+
+        <article class="card" id="safety-approval">
+          <h3>Safety &amp; approval</h3>
+          <p>Get explicit approval before using root privileges or changing host state: installing/removing/refreshing snaps or system packages, stopping/starting/restarting host services, or replacing/running the host's snapd daemon. Prefer spread with the <code class="inline">garden</code> backend, a VM, or another isolated environment for system-level testing.</p>
+        </article>
+      </section>
+
+      <!-- ============================================================ -->
+      <section class="part" id="glossary">
+        <h2><span class="num">15</span> Glossary</h2>
+        <p class="lede">Quick lookups for terms used throughout this page.</p>
+        <article class="card">
+          <dl class="glossary">
+            <dt>Security tag</dt><dd>The identifier (snap + app/hook name) a confined process runs under; AppArmor/seccomp profiles are keyed by it.</dd>
+            <dt>Base declaration</dt><dd>The interface policy hardcoded into snapd's source (via <code class="inline">commonInterface.baseDeclarationSlots/Plugs</code>), applied when no store override exists.</dd>
+            <dt>Snap declaration</dt><dd>A store-published assertion that can override the base declaration's policy for one specific snap.</dd>
+            <dt>Super-privileged interface</dt><dd>One whose base declaration denies installation by default — unusable without a store snap-declaration explicitly allowing it.</dd>
+            <dt>DeviceContext</dt><dd>The <span class="path">snapstate</span>-defined interface for asking "what model/store am I on," implemented by <span class="path">devicestate</span>, fetched task-aware during handlers because remodels can make it change mid-Change.</dd>
+            <dt>Lane</dt><dd>An independent failure domain for a subset of a Change's tasks — see §6.4.</dd>
+            <dt>Ensure loop</dt><dd>The recurring (≥ every 5 min, or on-demand) cycle that calls every manager's <code class="inline">Ensure()</code>, then <code class="inline">TaskRunner.Ensure()</code> last.</dd>
+            <dt>Seeding</dt><dd>First-boot population of the system from a pre-baked set of snaps/assertions.</dd>
+            <dt>Remodel</dt><dd>Changing which <code class="inline">model</code> assertion a live device is on.</dd>
+            <dt>Recovery system</dt><dd>A bootable, known-good snap set kept alongside the running one for recovery/factory-reset.</dd>
+            <dt>Gadget snap</dt><dd>Defines a Core device: bootloader config, disk layout, device defaults.</dd>
+            <dt>Hotplug</dt><dd>Runtime handling of devices appearing/disappearing (e.g. USB) without a reboot — creates/removes slots and reconnects live.</dd>
+          </dl>
+        </article>
+      </section>
+
+      <footer class="pagefoot">
+        Built from the repository's own authoritative references — <span class="path">ARCHITECTURE.md</span>,
+        <span class="path">overlord/README.md</span>, <span class="path">interfaces/builtin/README.md</span>, and
+        <span class="path">CODING.md</span> — plus direct inspection of <span class="path">cmd/</span>,
+        <span class="path">overlord/</span>, <span class="path">interfaces/</span>, <span class="path">daemon/</span>,
+        <span class="path">boot/</span>, <span class="path">gadget/</span>, and <span class="path">devicestate</span>
+        source. When this page and the source code disagree, trust the source code and update this page.
+      </footer>
+
+    </div>
+  </main>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  // ---------- Theme ----------
+  var root = document.documentElement;
+  var themeButtons = document.querySelectorAll(".theme-toggle button");
+  function applyTheme(mode){
+    if(mode === "light"){ root.setAttribute("data-theme","light"); }
+    else if(mode === "dark"){ root.setAttribute("data-theme","dark"); }
+    else { root.removeAttribute("data-theme"); }
+    themeButtons.forEach(function(b){ b.classList.toggle("active", b.dataset.theme === mode); });
+  }
+  var savedTheme = "auto";
+  try { savedTheme = localStorage.getItem("sd-arch-theme") || "auto"; } catch(e){}
+  applyTheme(savedTheme);
+  themeButtons.forEach(function(b){
+    b.addEventListener("click", function(){
+      var mode = b.dataset.theme;
+      applyTheme(mode);
+      try { localStorage.setItem("sd-arch-theme", mode); } catch(e){}
+    });
+  });
+
+  // ---------- Mobile sidebar ----------
+  var sidebar = document.getElementById("sidebar");
+  var menuBtn = document.getElementById("menuBtn");
+  var scrim = document.getElementById("scrim");
+  function closeMenu(){ sidebar.classList.remove("open"); scrim.classList.remove("show"); }
+  if(menuBtn){
+    menuBtn.addEventListener("click", function(){
+      sidebar.classList.toggle("open");
+      scrim.classList.toggle("show");
+    });
+  }
+  scrim.addEventListener("click", closeMenu);
+  document.querySelectorAll("nav.toc a").forEach(function(a){
+    a.addEventListener("click", closeMenu);
+  });
+
+  // ---------- Search / filter sidebar ----------
+  var search = document.getElementById("search");
+  var countEl = document.getElementById("searchCount");
+  var navItems = Array.prototype.slice.call(document.querySelectorAll("nav.toc li"));
+  search.addEventListener("input", function(){
+    var q = search.value.trim().toLowerCase();
+    var shown = 0;
+    navItems.forEach(function(li){
+      var text = li.textContent.toLowerCase();
+      var match = q === "" || text.indexOf(q) !== -1;
+      li.classList.toggle("hidden", !match);
+      if(match) shown++;
+    });
+    countEl.textContent = q === "" ? "" : (shown + " match" + (shown===1?"":"es"));
+    document.querySelectorAll(".part-label").forEach(function(lbl){
+      var next = lbl.nextElementSibling;
+      var anyVisible = next && Array.prototype.slice.call(next.children).some(function(li){ return !li.classList.contains("hidden"); });
+      lbl.style.display = (q === "" || anyVisible) ? "" : "none";
+    });
+  });
+
+  // ---------- Scrollspy ----------
+  var links = Array.prototype.slice.call(document.querySelectorAll("nav.toc li.sec > a"));
+  var targets = links.map(function(a){ return document.querySelector(a.getAttribute("href")); }).filter(Boolean);
+  function setCurrent(id){
+    links.forEach(function(a){ a.classList.toggle("current", a.getAttribute("href") === "#" + id); });
+  }
+  if("IntersectionObserver" in window && targets.length){
+    var observer = new IntersectionObserver(function(entries){
+      var best = null;
+      entries.forEach(function(entry){
+        if(entry.isIntersecting){
+          if(!best || entry.boundingClientRect.top < best.boundingClientRect.top){ best = entry; }
+        }
+      });
+      if(best){ setCurrent(best.target.id); }
+    }, { rootMargin: "-10% 0px -70% 0px", threshold: [0, 1] });
+    targets.forEach(function(t){ observer.observe(t); });
+  }
+
+  // ---------- Feature finder ----------
+  var finderButtons = document.querySelectorAll(".finder-btn");
+  var finderAnswers = document.querySelectorAll(".finder-answer");
+  finderButtons.forEach(function(btn){
+    btn.addEventListener("click", function(){
+      var key = btn.dataset.a;
+      var alreadyActive = btn.classList.contains("active");
+      finderButtons.forEach(function(b){ b.classList.remove("active"); });
+      finderAnswers.forEach(function(a){ a.classList.remove("show"); });
+      if(!alreadyActive){
+        btn.classList.add("active");
+        var ans = document.querySelector('.finder-answer[data-ans="' + key + '"]');
+        if(ans){ ans.classList.add("show"); ans.scrollIntoView({behavior:"smooth", block:"nearest"}); }
+      }
+    });
+  });
+
+  // ---------- Checklist persistence (per-viewer convenience only) ----------
+  var checklistInputs = document.querySelectorAll("#handlerChecklist input[type=checkbox]");
+  var CHECK_KEY = "sd-arch-handler-checklist";
+  var savedChecks = {};
+  try { savedChecks = JSON.parse(localStorage.getItem(CHECK_KEY) || "{}"); } catch(e){ savedChecks = {}; }
+  checklistInputs.forEach(function(input){
+    var k = input.dataset.k;
+    if(savedChecks[k]){ input.checked = true; input.closest("label").classList.add("done"); }
+    input.addEventListener("change", function(){
+      input.closest("label").classList.toggle("done", input.checked);
+      savedChecks[k] = input.checked;
+      try { localStorage.setItem(CHECK_KEY, JSON.stringify(savedChecks)); } catch(e){}
+    });
+  });
+})();
+</script>
+</body>
+</html>

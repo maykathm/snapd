@@ -1,5 +1,7 @@
 The snap daemon, `snapd`, together with all the other binaries defined in this repository, manage the installation, lifecycle and updates of software packaged as a *snap* across many Linux distributions.
 
+> New to snapd? [`docs/architecture-explorer/index.html`](docs/architecture-explorer/index.html) walks through everything on this page interactively, with diagrams, a task-handler checklist, and a "where do I work on X?" feature finder.
+
 A snap package is a self-contained read-only SquashFS file carrying application-specific content alongside metadata, chiefly in `meta/snap.yaml`. When installing a snap, snapd ensures that the SquashFS content will be available by mounting it.
 
 Alongside individual snaps, snapd can also orchestrate the lifecycle of an entire system when all the components are snaps. This is the principle behind [Ubuntu Core](https://ubuntu.com/core) systems. There the root filesystem is a *base* snap mounted in combination with writable space, alongside a kernel installed from its own snap and a *gadget* snap that defines the device.

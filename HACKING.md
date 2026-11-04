@@ -4,6 +4,12 @@ Hacking on `snapd` is fun and straightforward. The code is extensively unit
 tested and we use the [spread](https://github.com/canonical/spread-plus)
 integration test framework for the integration/system level tests.
 
+New to the codebase? [`docs/architecture-explorer/index.html`](./docs/architecture-explorer/index.html)
+is an interactive guide to how snapd is put together — entry points,
+confinement, the overlord/ensure-loop model, tasks and changes, interfaces,
+and Ubuntu Core — with a "where do I work on X?" feature finder. Open it
+directly in a browser, no build step needed.
+
 For non-technical details on contributing to the project, including how to
 approach a pull request, see [Contributing to snapd](./CONTRIBUTING.md).
 
