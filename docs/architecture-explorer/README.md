@@ -10,15 +10,27 @@ architecture, aimed at developers who are new to the codebase. It covers:
 - the snap lifecycle: an install/refresh task-chain walkthrough, data layout,
   services, hooks, configuration, auto-refresh, the store, validation sets,
   components, desktop integration, snapshots, notices and prompting;
+- more of snapd: confdb (schemas, views, hooks, transactions), remote device
+  management and clusters, smaller managers and cross-cutting features (CA
+  certificates, health checks, standby, feature flags, FIPS, security
+  logging), snap file format and naming rules, distribution packaging,
+  SELinux, build tags and the release process;
+- inside the sandbox: the mount namespace layout, cgroup tracking and desktop
+  session helpers;
 - Ubuntu Core in depth: device anatomy and partitions, a stage-by-stage boot
   process, image building and install mode, recovery systems and factory reset,
   gadget/kernel/snapd updates, registration, system configuration, snap-repair,
   remodeling and full disk encryption;
-- a "where do I work on X?" finder, conventions and a glossary.
+- working in the codebase: a "where do I work on X?" finder, a reference for the
+  `snap` command and REST API, debugging, testing and CI, a repository map of
+  every package and binary, conventions and a glossary. The assertion section
+  catalogues all 26 assertion types and the interface section all 222
+  built-in interfaces.
 
-Eight interactive, annotated diagram tours (system map, launching a snap,
-the daemon's request lifecycle, Ubuntu Core boot, try-boot updates, install
-mode, mode switching/factory reset, and disk encryption) are collected in the
+Ten interactive, annotated diagram tours (system map, launching a snap,
+the daemon's request lifecycle, interfaces from plug to enforcement, confdb,
+Ubuntu Core boot, try-boot updates, install mode, mode switching/factory
+reset, and disk encryption) are collected in the
 "Visual tours" section and embedded where they belong. Each has a guided
 step-by-step tour, click-anything explore mode, full-screen view, and a plain
 text transcript.
