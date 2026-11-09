@@ -37,6 +37,7 @@ import (
 	"github.com/snapcore/snapd/overlord/snapstate"
 	"github.com/snapcore/snapd/overlord/snapstate/snapstatetest"
 	"github.com/snapcore/snapd/snap"
+	"github.com/snapcore/snapd/snap/naming"
 	"github.com/snapcore/snapd/snap/quota"
 	"github.com/snapcore/snapd/snap/snaptest"
 	"github.com/snapcore/snapd/systemd"
@@ -289,7 +290,7 @@ func (s *vitalitySuite) TestConfigureVitalityManySnaps(c *C) {
 		si := &snap.SideInfo{RealName: snapName, Revision: snap.R(1)}
 		snaptest.MockSnap(c, mockSnapWithService, si)
 		s.state.Lock()
-		snapstate.Set(s.state, snapName, &snapstate.SnapState{
+		snapstate.Set(s.state, naming.InstanceName(snapName), &snapstate.SnapState{
 			Sequence: snapstatetest.NewSequenceFromSnapSideInfos([]*snap.SideInfo{si}),
 			Current:  snap.R(1),
 			Active:   true,
@@ -320,7 +321,7 @@ func (s *vitalitySuite) TestConfigureVitalityManySnapsDelta(c *C) {
 		si := &snap.SideInfo{RealName: snapName, Revision: snap.R(1)}
 		snaptest.MockSnap(c, mockSnapWithService, si)
 		s.state.Lock()
-		snapstate.Set(s.state, snapName, &snapstate.SnapState{
+		snapstate.Set(s.state, naming.InstanceName(snapName), &snapstate.SnapState{
 			Sequence: snapstatetest.NewSequenceFromSnapSideInfos([]*snap.SideInfo{si}),
 			Current:  snap.R(1),
 			Active:   true,
@@ -355,7 +356,7 @@ func (s *vitalitySuite) TestConfigureVitalityManySnapsOneRemovedOneUnchanged(c *
 		si := &snap.SideInfo{RealName: snapName, Revision: snap.R(1)}
 		snaptest.MockSnap(c, mockSnapWithService, si)
 		s.state.Lock()
-		snapstate.Set(s.state, snapName, &snapstate.SnapState{
+		snapstate.Set(s.state, naming.InstanceName(snapName), &snapstate.SnapState{
 			Sequence: snapstatetest.NewSequenceFromSnapSideInfos([]*snap.SideInfo{si}),
 			Current:  snap.R(1),
 			Active:   true,

@@ -31,6 +31,7 @@ import (
 	"github.com/snapcore/snapd/overlord/snapstate"
 	"github.com/snapcore/snapd/overlord/state"
 	"github.com/snapcore/snapd/snap"
+	"github.com/snapcore/snapd/snap/naming"
 )
 
 type patch1Suite struct{}
@@ -128,7 +129,7 @@ func (s *patch1Suite) TestPatch1(c *C) {
 
 	for _, exp := range expected {
 		var snapst snapstate.SnapState
-		err := snapstate.Get(st, exp.name, &snapst)
+		err := snapstate.Get(st, naming.InstanceName(exp.name), &snapst)
 		c.Assert(err, IsNil)
 		c.Check(snap.Type(snapst.SnapType), Equals, exp.typ)
 		c.Check(snapst.Current, Equals, exp.cur)

@@ -283,7 +283,7 @@ func createTestSnapSetup(info *snap.Info, flags snapstate.Flags) *snapstate.Snap
 func setStateWithOneSnap(st *state.State, snapName string, snapRev snap.Revision) {
 	ssi := &snap.SideInfo{RealName: snapName, Revision: snapRev,
 		SnapID: "some-snap-id"}
-	snapstate.Set(st, snapName, &snapstate.SnapState{
+	snapstate.Set(st, naming.InstanceName(snapName), &snapstate.SnapState{
 		Active: true,
 		Sequence: snapstatetest.NewSequenceFromRevisionSideInfos(
 			[]*sequence.RevisionSideState{
@@ -304,7 +304,7 @@ func setStateWithComponents(st *state.State, snapName string,
 	snapRev snap.Revision, comps []*sequence.ComponentState) {
 	ssi := &snap.SideInfo{RealName: snapName, Revision: snapRev,
 		SnapID: "some-snap-id"}
-	snapstate.Set(st, snapName, &snapstate.SnapState{
+	snapstate.Set(st, naming.InstanceName(snapName), &snapstate.SnapState{
 		Active: true,
 		Sequence: snapstatetest.NewSequenceFromRevisionSideInfos(
 			[]*sequence.RevisionSideState{
@@ -376,7 +376,7 @@ func (s *snapmgrTestSuite) testInstallComponentPath(c *C, opts testInstallCompon
 
 	ssi := &snap.SideInfo{RealName: snapName, Revision: snapRev,
 		SnapID: "some-snap-id"}
-	snapstate.Set(s.state, snapName, &snapstate.SnapState{
+	snapstate.Set(s.state, naming.InstanceName(snapName), &snapstate.SnapState{
 		Active: true,
 		Sequence: snapstatetest.NewSequenceFromRevisionSideInfos(
 			[]*sequence.RevisionSideState{
@@ -530,7 +530,7 @@ func (s *snapmgrTestSuite) TestInstallComponentPathForParallelInstall(c *C) {
 	// The instance is already installed to make sure it is checked
 	instanceName := snap.InstanceName(snapName, snapKey).String()
 	ssi := &snap.SideInfo{RealName: snapName, Revision: snapRev}
-	snapstate.Set(s.state, instanceName, &snapstate.SnapState{
+	snapstate.Set(s.state, naming.InstanceName(instanceName), &snapstate.SnapState{
 		Active: true,
 		Sequence: snapstatetest.NewSequenceFromRevisionSideInfos(
 			[]*sequence.RevisionSideState{
@@ -627,7 +627,7 @@ func (s *snapmgrTestSuite) TestInstallComponentPathCompRevisionPresentDiffSnapRe
 	ssi2 := &snap.SideInfo{RealName: snapName, Revision: snapRev2,
 		SnapID: "some-snap-id"}
 	csi := snap.NewComponentSideInfo(naming.NewComponentRef(snapName, compName), compRev)
-	snapstate.Set(s.state, snapName, &snapstate.SnapState{
+	snapstate.Set(s.state, naming.InstanceName(snapName), &snapstate.SnapState{
 		Active: true,
 		Sequence: snapstatetest.NewSequenceFromRevisionSideInfos(
 			[]*sequence.RevisionSideState{
@@ -688,7 +688,7 @@ func (s *snapmgrTestSuite) TestInstallComponentPathSnapNotActive(c *C) {
 
 	ssi := &snap.SideInfo{RealName: snapName, Revision: snapRev}
 	csi := snap.NewComponentSideInfo(naming.NewComponentRef(snapName, compName), compRev)
-	snapstate.Set(s.state, snapName, &snapstate.SnapState{
+	snapstate.Set(s.state, naming.InstanceName(snapName), &snapstate.SnapState{
 		Active: false,
 		Sequence: snapstatetest.NewSequenceFromRevisionSideInfos(
 			[]*sequence.RevisionSideState{
@@ -996,7 +996,7 @@ func (s *snapmgrTestSuite) TestInstallComponentPathCompRevisionPresentInTwoSeqPt
 			}),
 		Current: snapRev,
 	}
-	snapstate.Set(s.state, snapName, snapst)
+	snapstate.Set(s.state, naming.InstanceName(snapName), snapst)
 
 	csi := snap.NewComponentSideInfo(naming.ComponentRef{
 		SnapName: snapName, ComponentName: compName}, compRev)
@@ -1046,7 +1046,7 @@ func (s *snapmgrTestSuite) TestInstallComponentPathRun(c *C) {
 	verifyComponentInstallTasks(c, compOptIsLocal, ts)
 
 	var snapst snapstate.SnapState
-	c.Assert(snapstate.Get(s.state, snapName, &snapst), IsNil)
+	c.Assert(snapstate.Get(s.state, naming.InstanceName(snapName), &snapst), IsNil)
 
 	c.Assert(snapst.IsComponentInCurrentSeq(cref), Equals, true)
 }
@@ -1144,7 +1144,7 @@ func (s *snapmgrTestSuite) testInstallComponents(c *C, opts testInstallComponent
 		setStateWithOneSnap(s.state, snapName, snapRev)
 	}
 
-	snapstate.Set(s.state, instanceName, &snapstate.SnapState{
+	snapstate.Set(s.state, naming.InstanceName(instanceName), &snapstate.SnapState{
 		Active: true,
 		Sequence: snapstatetest.NewSequenceFromRevisionSideInfos([]*sequence.RevisionSideState{
 			sequence.NewRevisionSideState(si, nil),
@@ -1321,7 +1321,7 @@ func (s *snapmgrTestSuite) TestInstallComponentsAlreadyInstalledError(c *C) {
 		Revision:  snap.R(1),
 	}, snap.StandardComponent))
 
-	snapstate.Set(s.state, snapName, &snapstate.SnapState{
+	snapstate.Set(s.state, naming.InstanceName(snapName), &snapstate.SnapState{
 		Active:          true,
 		Sequence:        seq,
 		Current:         snapRev,
@@ -1474,7 +1474,7 @@ func (s *snapmgrTestSuite) testInstallComponentsWithValidationSets(c *C, compNam
 	defer s.state.Unlock()
 
 	ssi := &snap.SideInfo{RealName: snapName, Revision: snapRev, SnapID: snapID}
-	snapstate.Set(s.state, snapName, &snapstate.SnapState{
+	snapstate.Set(s.state, naming.InstanceName(snapName), &snapstate.SnapState{
 		Active: true,
 		Sequence: snapstatetest.NewSequenceFromRevisionSideInfos(
 			[]*sequence.RevisionSideState{sequence.NewRevisionSideState(ssi, nil)}),

@@ -62,6 +62,7 @@ import (
 	"github.com/snapcore/snapd/seclog"
 	"github.com/snapcore/snapd/seed"
 	"github.com/snapcore/snapd/snap"
+	"github.com/snapcore/snapd/snap/naming"
 	"github.com/snapcore/snapd/snap/snapfile"
 	"github.com/snapcore/snapd/snapdenv"
 	"github.com/snapcore/snapd/strutil"
@@ -780,7 +781,7 @@ func (m *DeviceManager) ensureOperationalAfterSeed(deviceCtx snapstate.DeviceCon
 	var hasPrepareDeviceHook bool
 	// if there's a gadget specified wait for it
 	if gadget != "" {
-		gadgetInfo, err := snapstate.CurrentInfo(m.state, gadget)
+		gadgetInfo, err := snapstate.CurrentInfo(m.state, naming.InstanceName(gadget))
 		if err != nil {
 			return err
 		}
@@ -1517,7 +1518,7 @@ func (m *DeviceManager) ensureCloudInitRestrictedAfterSeed(deviceCtx snapstate.D
 // hasInstallDeviceHook returns whether the gadget has an install-device hook.
 // It can return an error if the device has no gadget snap
 func (m *DeviceManager) hasInstallDeviceHook(model *asserts.Model) (bool, error) {
-	gadgetInfo, err := snapstate.CurrentInfo(m.state, model.Gadget())
+	gadgetInfo, err := snapstate.CurrentInfo(m.state, naming.InstanceName(model.Gadget()))
 	if err != nil {
 		return false, fmt.Errorf("device is seeded in install mode but has no gadget snap: %v", err)
 	}

@@ -6035,7 +6035,7 @@ epoch: 1
 
 	for _, name := range snapNames {
 		var snapst snapstate.SnapState
-		err = snapstate.Get(s.state, name, &snapst)
+		err = snapstate.Get(s.state, naming.InstanceName(name), &snapst)
 		c.Assert(err, IsNil)
 		c.Check(snapst.Current, Equals, snap.R("3"))
 	}
@@ -6140,7 +6140,7 @@ epoch: 1
 
 	for _, name := range snapNames {
 		var snapst snapstate.SnapState
-		err = snapstate.Get(s.state, name, &snapst)
+		err = snapstate.Get(s.state, naming.InstanceName(name), &snapst)
 		c.Assert(err, IsNil)
 		c.Check(snapst.Current, Equals, snap.R("3"))
 	}
@@ -6202,7 +6202,7 @@ func (s *snapmgrTestSuite) TestInstallPathManyAsUpdate(c *C) {
 			RealName: name,
 			Revision: snap.R("1"),
 		}
-		snapstate.Set(s.state, name, &snapstate.SnapState{
+		snapstate.Set(s.state, naming.InstanceName(name), &snapstate.SnapState{
 			Active:   true,
 			Sequence: snapstatetest.NewSequenceFromSnapSideInfos([]*snap.SideInfo{si}),
 			Current:  si.Revision,
@@ -6240,7 +6240,7 @@ epoch: 1
 
 	for _, name := range snapNames {
 		var snapst snapstate.SnapState
-		err = snapstate.Get(s.state, name, &snapst)
+		err = snapstate.Get(s.state, naming.InstanceName(name), &snapst)
 		c.Assert(err, IsNil)
 		c.Check(snapst.Current, Equals, snap.R("2"))
 	}
@@ -6422,7 +6422,7 @@ func (s *snapmgrTestSuite) TestInstallPathManyClassicAsUpdate(c *C) {
 			RealName: name,
 			Revision: snap.R("1"),
 		}
-		snapstate.Set(s.state, name, &snapstate.SnapState{
+		snapstate.Set(s.state, naming.InstanceName(name), &snapstate.SnapState{
 			Active:   true,
 			Sequence: snapstatetest.NewSequenceFromSnapSideInfos([]*snap.SideInfo{si}),
 			Current:  si.Revision,
@@ -6693,7 +6693,7 @@ func (s *snapmgrTestSuite) testUndoMigrateOnInstallWithCore22(c *C, expectSeqFil
 
 	// nothing in state
 	var snapst snapstate.SnapState
-	c.Assert(snapstate.Get(s.state, snapName, &snapst), testutil.ErrorIs, state.ErrNoState)
+	c.Assert(snapstate.Get(s.state, naming.InstanceName(snapName), &snapst), testutil.ErrorIs, state.ErrNoState)
 
 	if expectSeqFile {
 		// seq file exists but is zeroed out
@@ -7645,14 +7645,14 @@ func (s *snapmgrTestSuite) testInstallComponentsRunThrough(c *C, opts testInstal
 
 	if opts.undo {
 		var snapst snapstate.SnapState
-		err = snapstate.Get(s.state, instanceName.String(), &snapst)
+		err = snapstate.Get(s.state, naming.InstanceName(instanceName), &snapst)
 		c.Assert(err, testutil.ErrorIs, state.ErrNoState)
 
 		c.Check(backend.AuxStoreInfoFilename(snapID), testutil.FileAbsent)
 	} else {
 		// verify snap in the system state
 		var snapst snapstate.SnapState
-		err = snapstate.Get(s.state, instanceName.String(), &snapst)
+		err = snapstate.Get(s.state, naming.InstanceName(instanceName), &snapst)
 		c.Assert(err, IsNil)
 
 		c.Check(snapst.Active, Equals, true)
@@ -8046,12 +8046,12 @@ components:
 
 	if opts.undo {
 		var snapst snapstate.SnapState
-		err = snapstate.Get(s.state, instanceName.String(), &snapst)
+		err = snapstate.Get(s.state, naming.InstanceName(instanceName), &snapst)
 		c.Assert(err, testutil.ErrorIs, state.ErrNoState)
 	} else {
 		// verify snap in the system state
 		var snapst snapstate.SnapState
-		err = snapstate.Get(s.state, instanceName.String(), &snapst)
+		err = snapstate.Get(s.state, naming.InstanceName(instanceName), &snapst)
 		c.Assert(err, IsNil)
 
 		c.Check(snapst.Active, Equals, true)
@@ -8457,7 +8457,7 @@ func (s *validationSetsSuite) testUpdateComponentsValidationSets(c *C, opts test
 		snap.TestComponent,
 	)})
 
-	snapstate.Set(s.state, instanceName.String(), &snapstate.SnapState{
+	snapstate.Set(s.state, naming.InstanceName(instanceName), &snapstate.SnapState{
 		Active:      true,
 		Sequence:    sequence.SnapSequence{Revisions: []*sequence.RevisionSideState{revisionSideState}},
 		Current:     snap.R(7),

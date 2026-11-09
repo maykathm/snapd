@@ -102,12 +102,12 @@ func allActiveSnapNames(st *state.State) ([]string, error) {
 	return names, nil
 }
 
-func EstimateSnapshotSize(st *state.State, instanceName string, users []string) (uint64, error) {
+func EstimateSnapshotSize(st *state.State, instanceName naming.InstanceName, users []string) (uint64, error) {
 	cur, err := snapstateCurrentInfo(st, instanceName)
 	if err != nil {
 		return 0, err
 	}
-	rawCfg, err := configGetSnapConfig(st, instanceName)
+	rawCfg, err := configGetSnapConfig(st, instanceName.String())
 	if err != nil {
 		return 0, err
 	}

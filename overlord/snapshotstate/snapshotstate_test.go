@@ -646,7 +646,7 @@ func (snapshotSuite) TestSaveIntegration(c *check.C) {
 	snapshots := make(map[string]*client.Snapshot, 3)
 	for i, name := range []string{"one-snap", "too-snap", "tri-snap"} {
 		sideInfo := &snap.SideInfo{RealName: name, Revision: snap.R(i + 1)}
-		snapstate.Set(st, name, &snapstate.SnapState{
+		snapstate.Set(st, naming.InstanceName(name), &snapstate.SnapState{
 			Active:   true,
 			Sequence: snapstatetest.NewSequenceFromSnapSideInfos([]*snap.SideInfo{sideInfo}),
 			Current:  sideInfo.Revision,
@@ -757,7 +757,7 @@ exec /bin/tar "$@"
 
 	for i, name := range []string{"one-snap", "too-snap", "tri-snap"} {
 		sideInfo := &snap.SideInfo{RealName: name, Revision: snap.R(i + 1)}
-		snapstate.Set(st, name, &snapstate.SnapState{
+		snapstate.Set(st, naming.InstanceName(name), &snapstate.SnapState{
 			Active:   true,
 			Sequence: snapstatetest.NewSequenceFromSnapSideInfos([]*snap.SideInfo{sideInfo}),
 			Current:  sideInfo.Revision,
@@ -1257,7 +1257,7 @@ func testRestoreIntegration(c *check.C, snapDataDir string, opts *dirs.SnapDirOp
 
 	for i, name := range []string{"one-snap", "too-snap", "tri-snap"} {
 		sideInfo := &snap.SideInfo{RealName: name, Revision: snap.R(i + 1)}
-		snapstate.Set(st, name, &snapstate.SnapState{
+		snapstate.Set(st, naming.InstanceName(name), &snapstate.SnapState{
 			Active:   true,
 			Sequence: snapstatetest.NewSequenceFromSnapSideInfos([]*snap.SideInfo{sideInfo}),
 			Current:  sideInfo.Revision,
@@ -1338,7 +1338,7 @@ func (snapshotSuite) TestRestoreIntegrationFails(c *check.C) {
 
 	for i, name := range []string{"one-snap", "too-snap", "tri-snap"} {
 		sideInfo := &snap.SideInfo{RealName: name, Revision: snap.R(i + 1)}
-		snapstate.Set(st, name, &snapstate.SnapState{
+		snapstate.Set(st, naming.InstanceName(name), &snapstate.SnapState{
 			Active:   true,
 			Sequence: snapstatetest.NewSequenceFromSnapSideInfos([]*snap.SideInfo{sideInfo}),
 			Current:  sideInfo.Revision,

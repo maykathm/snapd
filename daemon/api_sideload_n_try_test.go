@@ -870,7 +870,7 @@ func (s *sideloadSuite) sideloadComponentCheck(
 		Revision: snap.R(1),
 		SnapID:   snaptest.AssertedSnapID("local"),
 	}
-	snapstate.Set(st, expectedInstanceName, &snapstate.SnapState{
+	snapstate.Set(st, naming.InstanceName(expectedInstanceName), &snapstate.SnapState{
 		Active: true,
 		Sequence: snapstatetest.NewSequenceFromRevisionSideInfos(
 			[]*sequence.RevisionSideState{
@@ -1547,7 +1547,7 @@ func (s *sideloadSuite) testSideloadManySnapsAndComponents(c *check.C, opts side
 		}
 
 		st.Lock()
-		snapstate.Set(d.Overlord().State(), name, &snapstate.SnapState{
+		snapstate.Set(d.Overlord().State(), naming.InstanceName(name), &snapstate.SnapState{
 			Active: true,
 			Sequence: snapstatetest.NewSequenceFromRevisionSideInfos([]*sequence.RevisionSideState{
 				sequence.NewRevisionSideState(ssi, nil),

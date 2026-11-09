@@ -231,7 +231,7 @@ func (m *InterfaceManager) regenerateAllSecurityProfiles(tm timings.Measurer, un
 
 	computeConfinementOpts := func(instanceName naming.InstanceName) (interfaces.ConfinementOptions, error) {
 		var snapst snapstate.SnapState
-		if err := snapstate.Get(m.state, instanceName.String(), &snapst); err != nil {
+		if err := snapstate.Get(m.state, instanceName, &snapst); err != nil {
 			return interfaces.ConfinementOptions{}, err
 		}
 		snapInfo, err := snapst.CurrentInfo()
@@ -372,7 +372,7 @@ var removeStaleConnections = func(st *state.State) error {
 			return err
 		}
 		var snapst snapstate.SnapState
-		if err := snapstate.Get(st, connRef.PlugRef.Snap.String(), &snapst); err != nil {
+		if err := snapstate.Get(st, connRef.PlugRef.Snap, &snapst); err != nil {
 			if !errors.Is(err, state.ErrNoState) {
 				return err
 			}
@@ -386,7 +386,7 @@ var removeStaleConnections = func(st *state.State) error {
 			staleConns = append(staleConns, id)
 			continue
 		}
-		if err := snapstate.Get(st, connRef.SlotRef.Snap.String(), &snapst); err != nil {
+		if err := snapstate.Get(st, connRef.SlotRef.Snap, &snapst); err != nil {
 			if !errors.Is(err, state.ErrNoState) {
 				return err
 			}
@@ -413,7 +413,7 @@ var removeStaleConnections = func(st *state.State) error {
 
 func isBroken(st *state.State, snapName string) (bool, error) {
 	var snapst snapstate.SnapState
-	err := snapstate.Get(st, snapName, &snapst)
+	err := snapstate.Get(st, naming.InstanceName(snapName), &snapst)
 	if errors.Is(err, state.ErrNoState) {
 		return false, nil
 	}
@@ -824,7 +824,7 @@ func (gc *gadgetConnect) addGadgetConnections(newconns map[string]*interfaces.Co
 	snapName := gc.instanceName
 
 	var snapst snapstate.SnapState
-	if err := snapstate.Get(gc.st, snapName, &snapst); err != nil {
+	if err := snapstate.Get(gc.st, naming.InstanceName(snapName), &snapst); err != nil {
 		return err
 	}
 
@@ -1572,7 +1572,7 @@ func SystemSnapName() naming.InstanceName {
 
 // systemSnapInfo returns current info for system snap.
 func systemSnapInfo(st *state.State) (*snap.Info, error) {
-	return snapstate.CurrentInfo(st, SystemSnapName().String())
+	return snapstate.CurrentInfo(st, SystemSnapName())
 }
 
 func connectDisconnectAffectedSnaps(t *state.Task) ([]string, error) {
@@ -1737,7 +1737,7 @@ func appSetForTask(t *state.Task, info *snap.Info) (*interfaces.SnapAppSet, erro
 	st := t.State()
 
 	var snapst snapstate.SnapState
-	if err := snapstate.Get(st, info.InstanceName().String(), &snapst); err != nil {
+	if err := snapstate.Get(st, info.InstanceName(), &snapst); err != nil {
 		// if the snap isn't in the state, then we know that there aren't any
 		// pre-existing components to consider
 		if errors.Is(err, state.ErrNoState) {
@@ -1761,7 +1761,7 @@ func appSetForTask(t *state.Task, info *snap.Info) (*interfaces.SnapAppSet, erro
 
 func appSetForSnapRevision(st *state.State, info *snap.Info) (*interfaces.SnapAppSet, error) {
 	var snapst snapstate.SnapState
-	if err := snapstate.Get(st, info.InstanceName().String(), &snapst); err != nil {
+	if err := snapstate.Get(st, info.InstanceName(), &snapst); err != nil {
 		return nil, err
 	}
 

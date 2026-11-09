@@ -241,7 +241,7 @@ func (s *snapmgrTestSuite) TestRemoveDiskSpaceCheckSkippedIfReservationUnset(c *
 	defer s.state.Unlock()
 
 	var snapshotSizeCalls int
-	snapstate.EstimateSnapshotSize = func(st *state.State, instanceName string, users []string) (uint64, error) {
+	snapstate.EstimateSnapshotSize = func(st *state.State, instanceName naming.InstanceName, users []string) (uint64, error) {
 		snapshotSizeCalls++
 		return 1, nil
 	}
@@ -1607,7 +1607,7 @@ func (s *snapmgrTestSuite) testRemoveManyDiskSpaceCheck(c *C, checkEnabled, auto
 	var checkFreeSpaceCall, snapshotSizeCall int
 
 	// restored by TearDownTest
-	snapstate.EstimateSnapshotSize = func(st *state.State, instanceName string, users []string) (uint64, error) {
+	snapstate.EstimateSnapshotSize = func(st *state.State, instanceName naming.InstanceName, users []string) (uint64, error) {
 		snapshotSizeCall++
 		// expect two snapshot size estimations
 		switch instanceName {
@@ -1708,7 +1708,7 @@ func (s *snapmgrTestSuite) TestRemoveConfigureDiskSpaceReservation(c *C) {
 	})
 	defer restore()
 
-	snapstate.EstimateSnapshotSize = func(st *state.State, instanceName string, users []string) (uint64, error) {
+	snapstate.EstimateSnapshotSize = func(st *state.State, instanceName naming.InstanceName, users []string) (uint64, error) {
 		return 123, nil
 	}
 
@@ -1771,9 +1771,9 @@ func (s *snapmgrTestSuite) TestRemoveManyDiskSpaceReservationZeroChecksSnapshotS
 	defer s.state.Unlock()
 
 	var snapshotSizeCall int
-	snapstate.EstimateSnapshotSize = func(st *state.State, instanceName string, users []string) (uint64, error) {
+	snapstate.EstimateSnapshotSize = func(st *state.State, instanceName naming.InstanceName, users []string) (uint64, error) {
 		snapshotSizeCall++
-		c.Check(instanceName, Equals, "one")
+		c.Check(instanceName, Equals, naming.InstanceName("one"))
 		return 123, nil
 	}
 
@@ -2124,7 +2124,7 @@ func (s *snapmgrTestSuite) TestRemovePrunesRefreshGatingDataOnLastRevision(c *C)
 		}
 
 		t := time.Now()
-		snapstate.Set(s.state, sn, &snapstate.SnapState{
+		snapstate.Set(s.state, naming.InstanceName(sn), &snapstate.SnapState{
 			Active:          true,
 			Sequence:        snapstatetest.NewSequenceFromSnapSideInfos([]*snap.SideInfo{&si}),
 			Current:         si.Revision,
@@ -2733,7 +2733,7 @@ func (s *snapmgrTestSuite) TestRemoveWithCompsTasks(c *C) {
 						comp22si, snap.StandardComponent),
 				}),
 		})
-	snapstate.Set(s.state, snapName, &snapstate.SnapState{
+	snapstate.Set(s.state, naming.InstanceName(snapName), &snapstate.SnapState{
 		Active:   true,
 		Sequence: seq,
 		Current:  snap.R(1),
@@ -2991,13 +2991,13 @@ func (s *snapmgrTestSuite) TestRemoveParallelInstanceWithComps(c *C) {
 				}),
 			})
 	}
-	snapstate.Set(s.state, snapName, &snapstate.SnapState{
+	snapstate.Set(s.state, naming.InstanceName(snapName), &snapstate.SnapState{
 		Active:   true,
 		Sequence: newSeq(),
 		Current:  snap.R(1),
 		SnapType: "app",
 	})
-	snapstate.Set(s.state, instanceName, &snapstate.SnapState{
+	snapstate.Set(s.state, naming.InstanceName(instanceName), &snapstate.SnapState{
 		Active:      true,
 		Sequence:    newSeq(),
 		Current:     snap.R(1),
@@ -3035,7 +3035,7 @@ func (s *snapmgrTestSuite) TestRemoveParallelInstanceWithComps(c *C) {
 
 	var snapst snapstate.SnapState
 	c.Assert(snapstate.Get(s.state, instanceName, &snapst), testutil.ErrorIs, state.ErrNoState)
-	c.Assert(snapstate.Get(s.state, snapName, &snapst), IsNil)
+	c.Assert(snapstate.Get(s.state, naming.InstanceName(snapName), &snapst), IsNil)
 	c.Check(snapst.IsComponentInCurrentSeq(cref), Equals, true)
 }
 
@@ -3141,7 +3141,7 @@ func (s *snapmgrTestSuite) TestRemoveWithNFSSnapDirMustPurge(c *C) {
 	defer s.state.Unlock()
 
 	for _, sn := range []string{"some-snap", "foo"} {
-		snapstate.Set(s.state, sn, &snapstate.SnapState{
+		snapstate.Set(s.state, naming.InstanceName(sn), &snapstate.SnapState{
 			Sequence: snapstatetest.NewSequenceFromSnapSideInfos([]*snap.SideInfo{
 				{RealName: sn, SnapID: sn + "-id", Revision: snap.R(1)},
 			}),

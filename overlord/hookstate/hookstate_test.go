@@ -142,7 +142,7 @@ func (s *baseHookManagerSuite) setUpSnap(c *C, instanceName string, yaml string)
 
 	sideInfo := &snap.SideInfo{RealName: snapName, SnapID: "some-snap-id", Revision: snap.R(1)}
 	snaptest.MockSnapInstance(c, instanceName, yaml, sideInfo)
-	snapstate.Set(s.state, instanceName, &snapstate.SnapState{
+	snapstate.Set(s.state, naming.InstanceName(instanceName), &snapstate.SnapState{
 		Active:      true,
 		Sequence:    snapstatetest.NewSequenceFromSnapSideInfos([]*snap.SideInfo{sideInfo}),
 		Current:     snap.R(1),
@@ -1083,11 +1083,11 @@ func (s *hookManagerSuite) TestConfdbHookTasksWaitForActiveBase(c *C) {
 func (s *hookManagerSuite) testConfdbHookTasksWaitUntilActive(c *C, conflictSnap string) {
 	setActive := func(active bool) {
 		var snapst snapstate.SnapState
-		err := snapstate.Get(s.state, conflictSnap, &snapst)
+		err := snapstate.Get(s.state, naming.InstanceName(conflictSnap), &snapst)
 		c.Assert(err, IsNil)
 
 		snapst.Active = active
-		snapstate.Set(s.state, conflictSnap, &snapst)
+		snapstate.Set(s.state, naming.InstanceName(conflictSnap), &snapst)
 	}
 
 	s.state.Lock()
@@ -1222,9 +1222,9 @@ func (s *hookManagerSuite) TestUndoHookTasksBlockedWhileInactive(c *C) {
 
 func (s *hookManagerSuite) setActive(c *C, snapName string, active bool) {
 	var snapst snapstate.SnapState
-	c.Assert(snapstate.Get(s.state, snapName, &snapst), IsNil)
+	c.Assert(snapstate.Get(s.state, naming.InstanceName(snapName), &snapst), IsNil)
 	snapst.Active = active
-	snapstate.Set(s.state, snapName, &snapst)
+	snapstate.Set(s.state, naming.InstanceName(snapName), &snapst)
 }
 
 type MockConcurrentHandler struct {
@@ -1615,7 +1615,7 @@ components:
 		Revision: snap.R(1),
 	})
 
-	snapstate.Set(s.state, instanceName, &snapstate.SnapState{
+	snapstate.Set(s.state, naming.InstanceName(instanceName), &snapstate.SnapState{
 		Active: true,
 		Sequence: snapstatetest.NewSequenceFromRevisionSideInfos([]*sequence.RevisionSideState{{
 			Snap: sideInfo,

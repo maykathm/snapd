@@ -300,7 +300,7 @@ func (ig *setupInfoGetter) ComponentInfo(st *state.State, cref naming.ComponentR
 	// use the components that are already installed
 
 	var snapst snapstate.SnapState
-	if err := snapstate.Get(st, snapInfo.InstanceName().String(), &snapst); err != nil {
+	if err := snapstate.Get(st, snapInfo.InstanceName(), &snapst); err != nil {
 		if errors.Is(err, state.ErrNoState) {
 			return nil, "", false, nil
 		}
@@ -392,7 +392,7 @@ func (ig *setupInfoGetter) SnapInfo(st *state.State, name string) (info *snap.In
 	// system, in which case we use the snaps that are already
 	// installed
 
-	info, err = snapstate.CurrentInfo(st, name)
+	info, err = snapstate.CurrentInfo(st, naming.InstanceName(name))
 	if err == nil {
 		hash, _, err := asserts.SnapFileSHA3_384(info.MountFile())
 		if err != nil {

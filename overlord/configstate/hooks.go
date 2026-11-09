@@ -73,7 +73,7 @@ func (h *configureHandler) Before() error {
 		// hook, for other snaps double check that the hook is present
 		if len(patch) != 0 && instanceName != naming.Core {
 			// TODO: helper on context?
-			info, err := snapstate.CurrentInfo(st, instanceName.String())
+			info, err := snapstate.CurrentInfo(st, instanceName)
 			if err != nil {
 				return err
 			}
@@ -129,7 +129,7 @@ func (h *defaultConfigureHandler) Before() error {
 
 	instanceName := h.context.InstanceName()
 	st := h.context.State()
-	info, err := snapstate.CurrentInfo(st, instanceName.String())
+	info, err := snapstate.CurrentInfo(st, instanceName)
 	if err != nil {
 		return err
 	}

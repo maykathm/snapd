@@ -145,7 +145,7 @@ func (h *gateAutoRefreshHookHandler) Before() error {
 	defer st.Unlock()
 
 	instanceName := h.context.InstanceName()
-	snapInfo, err := snapstate.CurrentInfo(st, instanceName.String())
+	snapInfo, err := snapstate.CurrentInfo(st, instanceName)
 	if err != nil {
 		return err
 	}

@@ -30,6 +30,7 @@ import (
 	"github.com/snapcore/snapd/sandbox/apparmor"
 	"github.com/snapcore/snapd/sandbox/cgroup"
 	"github.com/snapcore/snapd/snap"
+	"github.com/snapcore/snapd/snap/naming"
 )
 
 var cgroupSnapNameFromPid = cgroup.SnapNameFromPid
@@ -112,7 +113,7 @@ func (c *isConnectedCommand) Execute(args []string) error {
 	st.Lock()
 	defer st.Unlock()
 
-	info, err := snapstate.CurrentInfo(st, instanceName.String())
+	info, err := snapstate.CurrentInfo(st, instanceName)
 	if err != nil {
 		return fmt.Errorf("internal error: cannot get snap info: %s", err)
 	}
@@ -142,7 +143,7 @@ func (c *isConnectedCommand) Execute(args []string) error {
 		if err != nil {
 			return &UnsuccessfulError{ExitCode: notASnapCode}
 		}
-		otherSnap, err = snapstate.CurrentInfo(st, name)
+		otherSnap, err = snapstate.CurrentInfo(st, naming.InstanceName(name))
 		if err != nil {
 			return fmt.Errorf("internal error: cannot get snap info for AppArmor label %q: %s", c.AppArmorLabel, err)
 		}
@@ -158,7 +159,7 @@ func (c *isConnectedCommand) Execute(args []string) error {
 			// Indicate that this pid is not a snap
 			return &UnsuccessfulError{ExitCode: notASnapCode}
 		}
-		otherSnap, err = snapstate.CurrentInfo(st, name)
+		otherSnap, err = snapstate.CurrentInfo(st, naming.InstanceName(name))
 		if err != nil {
 			return fmt.Errorf("internal error: cannot get snap info for pid %d: %s", c.Pid, err)
 		}

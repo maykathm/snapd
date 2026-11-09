@@ -386,7 +386,7 @@ func (s *snapmgrBaseTest) SetUpTest(c *C) {
 	}))
 
 	oldEstimateSnapshotSize := snapstate.EstimateSnapshotSize
-	snapstate.EstimateSnapshotSize = func(st *state.State, instanceName string, users []string) (uint64, error) {
+	snapstate.EstimateSnapshotSize = func(st *state.State, instanceName naming.InstanceName, users []string) (uint64, error) {
 		return 1, nil
 	}
 	restoreInstallSize := snapstate.MockInstallSize(func(st *state.State, snaps []snapstate.MinimalInstallInfo, userID int, prqt snapstate.PrereqTracker) (uint64, error) {
@@ -3938,7 +3938,7 @@ SNAPD_APPARMOR_REEXEC=1
 	if snapName == "snapd" {
 		snapSt.SnapType = "snapd"
 	}
-	snapstate.Set(s.state, snapName, snapSt)
+	snapstate.Set(s.state, naming.InstanceName(snapName), snapSt)
 	st.Unlock()
 
 	// special policy only on classic
@@ -5408,7 +5408,7 @@ func (s *snapmgrQuerySuite) TestCoreInfoInternal(c *C) {
 				Revision: snap.R(1),
 			}
 			snaptest.MockSnap(c, fmt.Sprintf("name: %q\ntype: os\nversion: %q\n", snapName, snapName), sideInfo)
-			snapstate.Set(st, snapName, &snapstate.SnapState{
+			snapstate.Set(st, naming.InstanceName(snapName), &snapstate.SnapState{
 				SnapType: string(snap.TypeOS),
 				Active:   true,
 				Sequence: snapstatetest.NewSequenceFromSnapSideInfos([]*snap.SideInfo{sideInfo}),
@@ -5466,7 +5466,7 @@ func (s *snapmgrQuerySuite) TestHasSnapOfType(c *C) {
 			RealName: x.snapName,
 			Revision: snap.R(2),
 		}
-		snapstate.Set(st, x.snapName, &snapstate.SnapState{
+		snapstate.Set(st, naming.InstanceName(x.snapName), &snapstate.SnapState{
 			SnapType: string(x.snapType),
 			Active:   true,
 			Sequence: snapstatetest.NewSequenceFromSnapSideInfos([]*snap.SideInfo{sideInfo}),
@@ -6691,7 +6691,7 @@ func (s *snapmgrTestSuite) checkForceDevModeCleanupRuns(c *C, name string, shoul
 	s.state.Lock()
 	defer s.state.Unlock()
 
-	snapstate.Set(s.state, name, &snapstate.SnapState{
+	snapstate.Set(s.state, naming.InstanceName(name), &snapstate.SnapState{
 		Active: true,
 		Sequence: snapstatetest.NewSequenceFromSnapSideInfos([]*snap.SideInfo{{
 			RealName: name,
@@ -6704,13 +6704,13 @@ func (s *snapmgrTestSuite) checkForceDevModeCleanupRuns(c *C, name string, shoul
 
 	var snapst1 snapstate.SnapState
 	// validity check
-	snapstate.Get(s.state, name, &snapst1)
+	snapstate.Get(s.state, naming.InstanceName(name), &snapst1)
 	c.Assert(snapst1.DevMode, Equals, true)
 
 	s.settle(c)
 
 	var snapst2 snapstate.SnapState
-	snapstate.Get(s.state, name, &snapst2)
+	snapstate.Get(s.state, naming.InstanceName(name), &snapst2)
 
 	c.Check(snapst2.DevMode, Equals, !shouldBeReset)
 
@@ -6985,7 +6985,7 @@ func (s *snapmgrTestSuite) TestConflictMany(c *C) {
 	defer s.state.Unlock()
 
 	for _, instanceName := range []string{"a-snap", "b-snap"} {
-		snapstate.Set(s.state, instanceName, &snapstate.SnapState{
+		snapstate.Set(s.state, naming.InstanceName(instanceName), &snapstate.SnapState{
 			Sequence: snapstatetest.NewSequenceFromSnapSideInfos([]*snap.SideInfo{
 				{RealName: instanceName, Revision: snap.R(11)},
 			}),
@@ -7029,7 +7029,7 @@ func (s *snapmgrTestSuite) TestConflictChangeId(c *C) {
 	changes := make([]*state.Change, len(snaps))
 
 	for i, name := range snaps {
-		snapstate.Set(s.state, name, &snapstate.SnapState{
+		snapstate.Set(s.state, naming.InstanceName(name), &snapstate.SnapState{
 			Sequence: snapstatetest.NewSequenceFromSnapSideInfos([]*snap.SideInfo{
 				{RealName: name, Revision: snap.R(11)},
 			}),
@@ -10381,7 +10381,7 @@ func (s *snapmgrTestSuite) TestResolveValidationSetsEnforcementErrorSnapdAndTwoA
 		}
 		s.fakeStore.registerID(name, sid)
 
-		snapstate.Set(s.state, name, &snapstate.SnapState{
+		snapstate.Set(s.state, naming.InstanceName(name), &snapstate.SnapState{
 			Active: true,
 			Sequence: snapstatetest.NewSequenceFromSnapSideInfos([]*snap.SideInfo{{
 				RealName: name,
@@ -10522,10 +10522,10 @@ func (s *snapmgrTestSuite) testResolveValidationSetsEnforcementErrorSplitRefresh
 		s.fakeStore.registerID(info.RealName, info.SnapID)
 
 		var snapst snapstate.SnapState
-		err := snapstate.Get(s.state, info.RealName, &snapst)
+		err := snapstate.Get(s.state, naming.InstanceName(info.RealName), &snapst)
 		c.Assert(err, IsNil)
 
-		snapstate.Set(s.state, info.RealName, &snapstate.SnapState{
+		snapstate.Set(s.state, naming.InstanceName(info.RealName), &snapstate.SnapState{
 			Active: snapst.Active,
 			Sequence: snapstatetest.NewSequenceFromSnapSideInfos([]*snap.SideInfo{{
 				RealName: info.RealName, SnapID: info.SnapID, Revision: snapst.Current},
@@ -10795,7 +10795,7 @@ func (s *snapmgrTestSuite) testResolveValidationSetsEnforcementErrorComponents(c
 
 	for _, sn := range opts.current {
 		name := sn.CurrentSideInfo().RealName
-		snapstate.Set(s.state, name, &sn)
+		snapstate.Set(s.state, naming.InstanceName(name), &sn)
 	}
 
 	for _, name := range opts.affected {
@@ -10882,7 +10882,7 @@ func (s *snapmgrTestSuite) testResolveValidationSetsEnforcementErrorComponents(c
 
 	for _, sn := range opts.expected {
 		var got snapstate.SnapState
-		err := snapstate.Get(s.state, sn.SnapName().String(), &got)
+		err := snapstate.Get(s.state, sn.SnapName().AsInstanceName(), &got)
 		c.Assert(err, IsNil)
 		c.Check(got.Current, Equals, sn.Revision)
 
@@ -11484,7 +11484,7 @@ components:
 				sequence.NewRevisionSideState(si, []*sequence.ComponentState{componentState}),
 			},
 		)
-		snapstate.Set(s.state, name.String(), &snapstate.SnapState{
+		snapstate.Set(s.state, naming.InstanceName(name), &snapstate.SnapState{
 			Active:          true,
 			Sequence:        seq,
 			Current:         snapRev,
@@ -13471,7 +13471,7 @@ plugs:
 	} {
 		instanceName := snap.InstanceName("some-snap", tc.instanceKey).String()
 		snaptest.MockSnapInstance(c, instanceName, tc.yaml, si)
-		snapstate.Set(s.state, instanceName, &snapstate.SnapState{
+		snapstate.Set(s.state, naming.InstanceName(instanceName), &snapstate.SnapState{
 			Active:      true,
 			Sequence:    snapstatetest.NewSequenceFromSnapSideInfos([]*snap.SideInfo{si}),
 			Current:     si.Revision,
@@ -13504,7 +13504,7 @@ func (s *snapmgrTestSuite) TestMigrateParallelInstancesWithUnsupportedInterfaces
 		"some-snap_nok": true,
 	} {
 		var snapst snapstate.SnapState
-		c.Assert(snapstate.Get(s.state, name, &snapst), IsNil)
+		c.Assert(snapstate.Get(s.state, naming.InstanceName(name), &snapst), IsNil)
 		c.Check(snapst.AllowUnsupportedInstances, Equals, expected, Commentf(name))
 	}
 

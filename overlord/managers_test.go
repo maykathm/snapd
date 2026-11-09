@@ -669,7 +669,7 @@ func (ms *baseMgrsSuite) mockInstalledSnapWithRevAndFiles(c *C, snapYaml string,
 		SnapID:   fakeSnapID(info.SnapName().String()),
 		Revision: info.Revision,
 	}
-	snapstate.Set(st, info.InstanceName().String(), &snapstate.SnapState{
+	snapstate.Set(st, info.InstanceName(), &snapstate.SnapState{
 		Active:   true,
 		Sequence: snapstatetest.NewSequenceFromSnapSideInfos([]*snap.SideInfo{si}),
 		Current:  info.Revision,
@@ -888,7 +888,7 @@ hooks:
 
 func (s *mgrsSuite) TestHappyRemove(c *C) {
 	oldEstimateSnapshotSize := snapstate.EstimateSnapshotSize
-	snapstate.EstimateSnapshotSize = func(st *state.State, instanceName string, users []string) (uint64, error) {
+	snapstate.EstimateSnapshotSize = func(st *state.State, instanceName naming.InstanceName, users []string) (uint64, error) {
 		return 0, nil
 	}
 	defer func() {
@@ -1806,7 +1806,7 @@ func (s *mgrsSuite) TestHappyRemoteInstallAndUpdateManyWithEpochBump(c *C) {
 
 	// validity checks
 	for _, name := range snapNames {
-		info, err := snapstate.CurrentInfo(st, name.String())
+		info, err := snapstate.CurrentInfo(st, name)
 		c.Assert(err, IsNil)
 		c.Assert(info.Revision, Equals, snap.R(1))
 		c.Assert(info.SnapID, Equals, fakeSnapID(name.String()))
@@ -1841,7 +1841,7 @@ func (s *mgrsSuite) TestHappyRemoteInstallAndUpdateManyWithEpochBump(c *C) {
 	c.Assert(chg.Status(), Equals, state.DoneStatus, Commentf("upgrade-snap change failed with: %v", chg.Err()))
 
 	for _, name := range snapNames {
-		info, err := snapstate.CurrentInfo(st, name.String())
+		info, err := snapstate.CurrentInfo(st, name)
 		c.Assert(err, IsNil)
 
 		c.Check(info.Revision, Equals, snap.R(4))
@@ -1890,7 +1890,7 @@ func (s *mgrsSuite) TestTransactionalInstallManyFails(c *C) {
 
 	// validity checks
 	for _, name := range snapNames {
-		_, err := snapstate.CurrentInfo(st, name.String())
+		_, err := snapstate.CurrentInfo(st, name)
 		c.Assert(err, DeepEquals,
 			&snap.NotInstalledError{Snap: name.String(), Rev: snap.Revision{N: 0}})
 	}
@@ -1934,7 +1934,7 @@ func (s *mgrsSuite) TestTransactionalInstallManyOkUpdateManyFails(c *C) {
 
 	// validity checks
 	for _, name := range snapNames {
-		info, err := snapstate.CurrentInfo(st, name.String())
+		info, err := snapstate.CurrentInfo(st, name)
 		c.Assert(err, IsNil)
 		c.Assert(info.Revision, Equals, snap.R(1))
 		c.Assert(info.SnapID, Equals, fakeSnapID(name.String()))
@@ -1974,7 +1974,7 @@ func (s *mgrsSuite) TestTransactionalInstallManyOkUpdateManyFails(c *C) {
 
 	for _, name := range snapNames {
 		comment := Commentf("%q", name)
-		info, err := snapstate.CurrentInfo(st, name.String())
+		info, err := snapstate.CurrentInfo(st, name)
 		c.Assert(err, IsNil, comment)
 
 		// All failed: still on rev 1 (epoch 0)
@@ -2023,7 +2023,7 @@ func (s *mgrsSuite) TestTransactionalInstallManyOkUpdateManyOk(c *C) {
 
 	// validity checks
 	for _, name := range snapNames {
-		info, err := snapstate.CurrentInfo(st, name.String())
+		info, err := snapstate.CurrentInfo(st, name)
 		c.Assert(err, IsNil)
 		c.Assert(info.Revision, Equals, snap.R(1))
 		c.Assert(info.SnapID, Equals, fakeSnapID(name.String()))
@@ -2058,7 +2058,7 @@ func (s *mgrsSuite) TestTransactionalInstallManyOkUpdateManyOk(c *C) {
 
 	for _, name := range snapNames {
 		comment := Commentf("%q", name)
-		info, err := snapstate.CurrentInfo(st, name.String())
+		info, err := snapstate.CurrentInfo(st, name)
 		c.Assert(err, IsNil, comment)
 
 		c.Check(info.Revision, Equals, snap.R(revno))
@@ -2102,7 +2102,7 @@ func (s *mgrsSuite) TestHappyRemoteInstallAndUpdateManyWithEpochBumpAndOneFailin
 
 	// validity checks
 	for _, name := range snapNames {
-		info, err := snapstate.CurrentInfo(st, name.String())
+		info, err := snapstate.CurrentInfo(st, name)
 		c.Assert(err, IsNil)
 		c.Assert(info.Revision, Equals, snap.R(1))
 		c.Assert(info.SnapID, Equals, fakeSnapID(name.String()))
@@ -2142,7 +2142,7 @@ func (s *mgrsSuite) TestHappyRemoteInstallAndUpdateManyWithEpochBumpAndOneFailin
 
 	for _, name := range snapNames {
 		comment := Commentf("%q", name)
-		info, err := snapstate.CurrentInfo(st, name.String())
+		info, err := snapstate.CurrentInfo(st, name)
 		c.Assert(err, IsNil, comment)
 
 		if name == "cccc" {
@@ -3263,7 +3263,7 @@ func (s *mgrsSuite) installLocalTestSnap(c *C, snapYamlContent string) *snap.Inf
 	// store current state
 	snapName := info.InstanceName().String()
 	var snapst snapstate.SnapState
-	snapstate.Get(st, snapName, &snapst)
+	snapstate.Get(st, naming.InstanceName(snapName), &snapst)
 
 	ts, err := snapstate.InstallPath(st, &snap.SideInfo{RealName: snapName}, snapPath, "", "", snapstate.Flags{DevMode: true}, nil)
 	c.Assert(err, IsNil)
@@ -5502,7 +5502,7 @@ func (s *mgrsSuiteCore) TestRemodelRequiredSnapsAddedUndo(c *C) {
 	// None of the new snaps got installed
 	var snapst snapstate.SnapState
 	for _, snapName := range []string{"foo", "bar", "baz"} {
-		err = snapstate.Get(st, snapName, &snapst)
+		err = snapstate.Get(st, naming.InstanceName(snapName), &snapst)
 		c.Assert(err, testutil.ErrorIs, state.ErrNoState)
 	}
 
@@ -6134,7 +6134,7 @@ func (ms *mgrsSuite) TestRefreshSimplePrevRev(c *C) {
 		SnapID:   fakeSnapID(info.SnapName().String()),
 		Revision: snap.R(2),
 	}
-	snapstate.Set(st, info.InstanceName().String(), &snapstate.SnapState{
+	snapstate.Set(st, info.InstanceName(), &snapstate.SnapState{
 		Active:   true,
 		Sequence: snapstatetest.NewSequenceFromSnapSideInfos([]*snap.SideInfo{si1, si2}),
 		Current:  snap.R(2),
@@ -6237,7 +6237,7 @@ func (ms *mgrsSuite) TestRefreshSimpleRevertToLocalFromLocalFile(c *C) {
 		SnapID:   fakeSnapID(info.SnapName().String()),
 		Revision: snap.R(2),
 	}
-	snapstate.Set(st, info.InstanceName().String(), &snapstate.SnapState{
+	snapstate.Set(st, info.InstanceName(), &snapstate.SnapState{
 		Active:   true,
 		Sequence: snapstatetest.NewSequenceFromSnapSideInfos([]*snap.SideInfo{si1, si2}),
 		Current:  snap.R(2),
@@ -7578,7 +7578,7 @@ func (s *mgrsSuiteCore) makeInstalledSnapInStateForRemodel(c *C, name string, re
 	}
 	snapInfo := snaptest.MakeSnapFileAndDir(c, snapYamlsForRemodel[name],
 		snapFilesForRemodel[name], si)
-	snapstate.Set(s.o.State(), name, &snapstate.SnapState{
+	snapstate.Set(s.o.State(), naming.InstanceName(name), &snapstate.SnapState{
 		SnapType:        string(snapInfo.Type()),
 		Active:          true,
 		Sequence:        snapstatetest.NewSequenceFromSnapSideInfos([]*snap.SideInfo{si}),
@@ -7953,7 +7953,7 @@ func (s *mgrsSuiteCore) testRemodelUC20WithRecoverySystem(c *C, encrypted bool) 
 	for _, name := range []string{"core20", "pc-kernel", "pc", "snapd", "foo", "bar", "baz"} {
 		c.Logf("name: %v", name)
 		var snapst snapstate.SnapState
-		err = snapstate.Get(st, name, &snapst)
+		err = snapstate.Get(st, naming.InstanceName(name), &snapst)
 		c.Assert(err, IsNil)
 		switch name {
 		case "baz":
@@ -12574,7 +12574,7 @@ base: core20
 	c.Assert(snapst.Current, Equals, snap.R(2))
 
 	for _, name := range []string{"pc-kernel", "pc", "core20"} {
-		err = snapstate.Get(st, name, &snapst)
+		err = snapstate.Get(st, naming.InstanceName(name), &snapst)
 		c.Assert(err, IsNil)
 		// the current is the old revision
 		c.Assert(snapst.Current, Equals, snap.R(1))
@@ -12692,7 +12692,7 @@ waitLoop:
 	c.Assert(snapst.Current, Equals, snap.R(2))
 
 	for _, name := range []string{"pc-kernel", "pc", "core20"} {
-		err = snapstate.Get(st, name, &snapst)
+		err = snapstate.Get(st, naming.InstanceName(name), &snapst)
 		c.Assert(err, IsNil)
 		// the current is the old revision
 		c.Assert(snapst.Current, Equals, snap.R(1))
@@ -12784,7 +12784,7 @@ base: core20
 	c.Assert(snapst.Current, Equals, snap.R(2))
 
 	for _, name := range []string{"pc-kernel", "pc", "core20"} {
-		err = snapstate.Get(st, name, &snapst)
+		err = snapstate.Get(st, naming.InstanceName(name), &snapst)
 		c.Assert(err, IsNil)
 		// the current is the old revision
 		c.Assert(snapst.Current, Equals, snap.R(2))

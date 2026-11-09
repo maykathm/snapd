@@ -26,6 +26,7 @@ import (
 	"github.com/snapcore/snapd/overlord/snapstate"
 	"github.com/snapcore/snapd/overlord/state"
 	"github.com/snapcore/snapd/snap"
+	"github.com/snapcore/snapd/snap/naming"
 )
 
 var osutilBootID = osutil.BootID
@@ -82,7 +83,7 @@ func appsToAppInfos(t *state.Task, apps map[string][]string) (map[*snap.Info][]*
 	st := t.State()
 	// best effort, ignore missing snaps and apps
 	for instanceName, appNames := range apps {
-		info, err := snapstate.CurrentInfo(st, instanceName)
+		info, err := snapstate.CurrentInfo(st, naming.InstanceName(instanceName))
 		if err != nil {
 			if _, ok := err.(*snap.NotInstalledError); ok {
 				t.Logf("after snapd restart, snap %q went missing", instanceName)

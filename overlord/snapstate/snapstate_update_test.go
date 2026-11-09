@@ -258,7 +258,7 @@ func (s *snapmgrTestSuite) installSeedRefreshSnaps(c *C, specs ...seedRefreshSna
 		}
 
 		s.fakeStore.registerID(si.RealName, si.SnapID)
-		snapstate.Set(s.state, si.RealName, &snapstate.SnapState{
+		snapstate.Set(s.state, naming.InstanceName(si.RealName), &snapstate.SnapState{
 			Active:          true,
 			Sequence:        snapstatetest.NewSequenceFromSnapSideInfos([]*snap.SideInfo{&si}),
 			Current:         si.Revision,
@@ -4647,7 +4647,7 @@ func (s *snapmgrTestSuite) TestUpdateManyAutoAliasesScenarios(c *C) {
 
 		for _, instanceName := range []string{"some-snap", "other-snap"} {
 			var snapst snapstate.SnapState
-			err := snapstate.Get(s.state, instanceName, &snapst)
+			err := snapstate.Get(s.state, naming.InstanceName(instanceName), &snapst)
 			c.Assert(err, IsNil)
 			snapst.Aliases = nil
 			snapst.AutoAliasesDisabled = false
@@ -4659,7 +4659,7 @@ func (s *snapmgrTestSuite) TestUpdateManyAutoAliasesScenarios(c *C) {
 
 				snapst.Aliases = targets
 			}
-			snapstate.Set(s.state, instanceName, &snapst)
+			snapstate.Set(s.state, naming.InstanceName(instanceName), &snapst)
 		}
 
 		pruneTsCnt := 0
@@ -4835,7 +4835,7 @@ func (s *snapmgrTestSuite) TestUpdateOneAutoAliasesScenarios(c *C) {
 
 		for _, instanceName := range []string{"some-snap", "other-snap"} {
 			var snapst snapstate.SnapState
-			err := snapstate.Get(s.state, instanceName, &snapst)
+			err := snapstate.Get(s.state, naming.InstanceName(instanceName), &snapst)
 			c.Assert(err, IsNil)
 			snapst.Aliases = nil
 			snapst.AutoAliasesDisabled = false
@@ -4847,7 +4847,7 @@ func (s *snapmgrTestSuite) TestUpdateOneAutoAliasesScenarios(c *C) {
 
 				snapst.Aliases = targets
 			}
-			snapstate.Set(s.state, instanceName, &snapst)
+			snapstate.Set(s.state, naming.InstanceName(instanceName), &snapst)
 		}
 
 		ts, err := snapstate.Update(s.state, scenario.names[0], nil, s.user.ID, snapstate.Flags{})
@@ -6063,7 +6063,7 @@ func (s *snapmgrTestSuite) TestUpdateManyOneSwitchesChannel(c *C) {
 	updates := make([]snapstate.StoreUpdate, 0, len(sideInfos))
 	for _, si := range sideInfos {
 		snaptest.MockSnap(c, fmt.Sprintf("name: %s", si.RealName), &si)
-		snapstate.Set(s.state, si.RealName, &snapstate.SnapState{
+		snapstate.Set(s.state, naming.InstanceName(si.RealName), &snapstate.SnapState{
 			Active:          true,
 			Sequence:        snapstatetest.NewSequenceFromSnapSideInfos([]*snap.SideInfo{&si}),
 			Current:         si.Revision,
@@ -6225,7 +6225,7 @@ func (s *snapmgrTestSuite) TestUpdateManyOneSwitchesChannelWithAutoAlias(c *C) {
 	updates := make([]snapstate.StoreUpdate, 0, len(sideInfos))
 	for _, si := range sideInfos {
 		snaptest.MockSnap(c, fmt.Sprintf("name: %s", si.RealName), &si)
-		snapstate.Set(s.state, si.RealName, &snapstate.SnapState{
+		snapstate.Set(s.state, naming.InstanceName(si.RealName), &snapstate.SnapState{
 			Active:          true,
 			Sequence:        snapstatetest.NewSequenceFromSnapSideInfos([]*snap.SideInfo{&si}),
 			Current:         si.Revision,
@@ -7643,7 +7643,7 @@ func (s *snapmgrTestSuite) TestUpdateSnapAndOutdatedPrereq(c *C) {
 
 	updateSnaps := []naming.InstanceName{"outdated-consumer", "outdated-producer"}
 	for _, snapName := range updateSnaps {
-		snapstate.Set(s.state, snapName.String(), &snapstate.SnapState{
+		snapstate.Set(s.state, naming.InstanceName(snapName), &snapstate.SnapState{
 			Sequence: snapstatetest.NewSequenceFromSnapSideInfos([]*snap.SideInfo{{
 				RealName: snapName.SnapName().String(),
 				SnapID:   fmt.Sprintf("%s-id", snapName),
@@ -8411,7 +8411,7 @@ func (s *validationSetsSuite) testUpdateToRevisionSnapRequiredByValidationWrongR
 	const snapName = "some-snap"
 	instanceName := snap.InstanceName(snapName, instanceKey)
 
-	snapstate.Set(s.state, instanceName.String(), &snapstate.SnapState{
+	snapstate.Set(s.state, naming.InstanceName(instanceName), &snapstate.SnapState{
 		Active: true,
 		Sequence: snapstatetest.NewSequenceFromSnapSideInfos([]*snap.SideInfo{
 			{RealName: snapName, SnapID: "some-snap-id", Revision: snap.R(1)},
@@ -9702,7 +9702,7 @@ func assertMigrationState(c *C, st *state.State, snap string, expected *dirs.Sna
 
 	// check snap state has expected migration value
 	var snapst snapstate.SnapState
-	c.Assert(snapstate.Get(st, snap, &snapst), IsNil)
+	c.Assert(snapstate.Get(st, naming.InstanceName(snap), &snapst), IsNil)
 	c.Assert(snapst.MigratedHidden, Equals, expected.HiddenSnapDataDir)
 	c.Assert(snapst.MigratedToExposedHome, Equals, expected.MigratedToExposedHome)
 
@@ -9858,7 +9858,7 @@ func (s *snapmgrTestSuite) TestUpdateBaseKernelSingleRebootHappy(c *C) {
 		if si.RealName == "core18" {
 			typ = "base"
 		}
-		snapstate.Set(s.state, si.RealName, &snapstate.SnapState{
+		snapstate.Set(s.state, naming.InstanceName(si.RealName), &snapstate.SnapState{
 			Active:          true,
 			Sequence:        snapstatetest.NewSequenceFromSnapSideInfos([]*snap.SideInfo{si}),
 			Current:         si.Revision,
@@ -9964,7 +9964,7 @@ func (s *snapmgrTestSuite) TestUpdateBaseKernelSingleRebootHappy(c *C) {
 			snapID = "core18-snap-id"
 		}
 		var snapst snapstate.SnapState
-		err = snapstate.Get(s.state, name, &snapst)
+		err = snapstate.Get(s.state, naming.InstanceName(name), &snapst)
 		c.Assert(err, IsNil)
 
 		c.Assert(snapst.Active, Equals, true)
@@ -10058,7 +10058,7 @@ func (s *snapmgrTestSuite) TestUpdateBaseKernelAndSnapdSingleRebootHappy(c *C) {
 			SnapID:   sn.id,
 		}
 		snaptest.MockSnap(c, fmt.Sprintf("name: %s\nversion: 1.2.3\ntype: %s", sn.name, sn.typ), si)
-		snapstate.Set(s.state, sn.name, &snapstate.SnapState{
+		snapstate.Set(s.state, naming.InstanceName(sn.name), &snapstate.SnapState{
 			Active:          true,
 			Sequence:        snapstatetest.NewSequenceFromSnapSideInfos([]*snap.SideInfo{si}),
 			Current:         si.Revision,
@@ -10162,7 +10162,7 @@ func (s *snapmgrTestSuite) TestUpdateBaseKernelAndSnapdSingleRebootHappy(c *C) {
 		}
 
 		var snapst snapstate.SnapState
-		err = snapstate.Get(s.state, name, &snapst)
+		err = snapstate.Get(s.state, naming.InstanceName(name), &snapst)
 		c.Assert(err, IsNil)
 
 		c.Assert(snapst.Active, Equals, true)
@@ -10231,7 +10231,7 @@ func (s *snapmgrTestSuite) TestUpdateGadgetKernelSingleRebootHappy(c *C) {
 		if si.RealName == "gadget" {
 			typ = "gadget"
 		}
-		snapstate.Set(s.state, si.RealName, &snapstate.SnapState{
+		snapstate.Set(s.state, naming.InstanceName(si.RealName), &snapstate.SnapState{
 			Active:          true,
 			Sequence:        snapstatetest.NewSequenceFromSnapSideInfos([]*snap.SideInfo{si}),
 			Current:         si.Revision,
@@ -10333,7 +10333,7 @@ func (s *snapmgrTestSuite) TestUpdateGadgetKernelSingleRebootHappy(c *C) {
 			snapID = "gadget-core18-id"
 		}
 		var snapst snapstate.SnapState
-		err = snapstate.Get(s.state, name, &snapst)
+		err = snapstate.Get(s.state, naming.InstanceName(name), &snapst)
 		c.Assert(err, IsNil)
 
 		c.Assert(snapst.Active, Equals, true)
@@ -10438,7 +10438,7 @@ func (s *snapmgrTestSuite) TestUpdateBaseGadgetSingleRebootHappy(c *C) {
 		if si.RealName == "core18" {
 			typ = "base"
 		}
-		snapstate.Set(s.state, si.RealName, &snapstate.SnapState{
+		snapstate.Set(s.state, naming.InstanceName(si.RealName), &snapstate.SnapState{
 			Active:          true,
 			Sequence:        snapstatetest.NewSequenceFromSnapSideInfos([]*snap.SideInfo{si}),
 			Current:         si.Revision,
@@ -10539,7 +10539,7 @@ func (s *snapmgrTestSuite) TestUpdateBaseGadgetSingleRebootHappy(c *C) {
 			snapID = "gadget-core18-id"
 		}
 		var snapst snapstate.SnapState
-		err = snapstate.Get(s.state, name, &snapst)
+		err = snapstate.Get(s.state, naming.InstanceName(name), &snapst)
 		c.Assert(err, IsNil)
 
 		c.Assert(snapst.Active, Equals, true)
@@ -10634,7 +10634,7 @@ func (s *snapmgrTestSuite) TestUpdateBaseKernelSingleRebootWithCannotRebootSetHa
 		if si.RealName == "core18" {
 			typ = "base"
 		}
-		snapstate.Set(s.state, si.RealName, &snapstate.SnapState{
+		snapstate.Set(s.state, naming.InstanceName(si.RealName), &snapstate.SnapState{
 			Active:          true,
 			Sequence:        snapstatetest.NewSequenceFromSnapSideInfos([]*snap.SideInfo{si}),
 			Current:         si.Revision,
@@ -10731,7 +10731,7 @@ func (s *snapmgrTestSuite) TestUpdateBaseKernelSingleRebootUnsupportedWithCoreHa
 		if si.RealName == "core18" {
 			typ = "base"
 		}
-		snapstate.Set(s.state, si.RealName, &snapstate.SnapState{
+		snapstate.Set(s.state, naming.InstanceName(si.RealName), &snapstate.SnapState{
 			Active:          true,
 			Sequence:        snapstatetest.NewSequenceFromSnapSideInfos([]*snap.SideInfo{si}),
 			Current:         si.Revision,
@@ -10811,7 +10811,7 @@ func (s *snapmgrTestSuite) TestUpdateBaseKernelSingleRebootUnsupportedWithCoreHa
 			snapID = "core-snap-id"
 		}
 		var snapst snapstate.SnapState
-		err = snapstate.Get(s.state, name, &snapst)
+		err = snapstate.Get(s.state, naming.InstanceName(name), &snapst)
 		c.Assert(err, IsNil)
 
 		c.Assert(snapst.Active, Equals, true)
@@ -10869,7 +10869,7 @@ func (s *snapmgrTestSuite) TestUpdateBaseGadgetKernelSingleReboot(c *C) {
 		} else if si.RealName == "gadget" {
 			typ = "gadget"
 		}
-		snapstate.Set(s.state, si.RealName, &snapstate.SnapState{
+		snapstate.Set(s.state, naming.InstanceName(si.RealName), &snapstate.SnapState{
 			Active:          true,
 			Sequence:        snapstatetest.NewSequenceFromSnapSideInfos([]*snap.SideInfo{si}),
 			Current:         si.Revision,
@@ -11006,7 +11006,7 @@ func (s *snapmgrTestSuite) TestUpdateBaseKernelSingleRebootUndone(c *C) {
 		if si.RealName == "core18" {
 			typ = "base"
 		}
-		snapstate.Set(s.state, si.RealName, &snapstate.SnapState{
+		snapstate.Set(s.state, naming.InstanceName(si.RealName), &snapstate.SnapState{
 			Active:          true,
 			Sequence:        snapstatetest.NewSequenceFromSnapSideInfos([]*snap.SideInfo{si}),
 			Current:         si.Revision,
@@ -11192,7 +11192,7 @@ func (s *snapmgrTestSuite) TestUpdateBaseGadgetKernelSingleRebootUndone(c *C) {
 		} else if si.RealName == "gadget" {
 			typ = "gadget"
 		}
-		snapstate.Set(s.state, si.RealName, &snapstate.SnapState{
+		snapstate.Set(s.state, naming.InstanceName(si.RealName), &snapstate.SnapState{
 			Active:          true,
 			Sequence:        snapstatetest.NewSequenceFromSnapSideInfos([]*snap.SideInfo{si}),
 			Current:         si.Revision,
@@ -11370,7 +11370,7 @@ func (s *snapmgrTestSuite) testUpdateEssentialSnapsOrder(c *C, order []naming.In
 		}
 
 		snaptest.MockSnap(c, snapYaml, si)
-		snapstate.Set(s.state, sn.String(), &snapstate.SnapState{
+		snapstate.Set(s.state, naming.InstanceName(sn), &snapstate.SnapState{
 			Active:          true,
 			Sequence:        snapstatetest.NewSequenceFromSnapSideInfos([]*snap.SideInfo{si}),
 			Current:         si.Revision,
@@ -11737,7 +11737,7 @@ func (s *snapmgrTestSuite) TestGeneralRefreshSkipsGatedSnaps(c *C) {
 		}
 
 		snaptest.MockSnap(c, `name: some-snap`, si)
-		snapstate.Set(s.state, name, &snapstate.SnapState{
+		snapstate.Set(s.state, naming.InstanceName(name), &snapstate.SnapState{
 			Active:   true,
 			Sequence: snapstatetest.NewSequenceFromSnapSideInfos([]*snap.SideInfo{si}),
 			Current:  si.Revision,
@@ -11784,7 +11784,7 @@ func (s *snapmgrTestSuite) TestSpecificRefreshRefreshesHeldSnaps(c *C) {
 		}
 
 		snaptest.MockSnap(c, `name: some-snap`, si)
-		snapstate.Set(s.state, name, &snapstate.SnapState{
+		snapstate.Set(s.state, naming.InstanceName(name), &snapstate.SnapState{
 			Active:   true,
 			Sequence: snapstatetest.NewSequenceFromSnapSideInfos([]*snap.SideInfo{si}),
 			Current:  si.Revision,
@@ -11823,7 +11823,7 @@ func (s *snapmgrTestSuite) TestUpdateManyTransactionalWithLane(c *C) {
 		}
 
 		snaptest.MockSnap(c, `name: some-snap`, si)
-		snapstate.Set(s.state, name, &snapstate.SnapState{
+		snapstate.Set(s.state, naming.InstanceName(name), &snapstate.SnapState{
 			Active:   true,
 			Sequence: snapstatetest.NewSequenceFromSnapSideInfos([]*snap.SideInfo{si}),
 			Current:  si.Revision,
@@ -11864,7 +11864,7 @@ func (s *snapmgrTestSuite) TestUpdateManyNoDelayedEffects(c *C) {
 		}
 
 		snaptest.MockSnap(c, `name: some-snap`, si)
-		snapstate.Set(s.state, name, &snapstate.SnapState{
+		snapstate.Set(s.state, naming.InstanceName(name), &snapstate.SnapState{
 			Active:   true,
 			Sequence: snapstatetest.NewSequenceFromSnapSideInfos([]*snap.SideInfo{si}),
 			Current:  si.Revision,
@@ -11894,7 +11894,7 @@ func (s *snapmgrTestSuite) TestUpdateManyLaneErrorsWithLaneButNoTransaction(c *C
 		}
 
 		snaptest.MockSnap(c, `name: some-snap`, si)
-		snapstate.Set(s.state, name, &snapstate.SnapState{
+		snapstate.Set(s.state, naming.InstanceName(name), &snapstate.SnapState{
 			Active:   true,
 			Sequence: snapstatetest.NewSequenceFromSnapSideInfos([]*snap.SideInfo{si}),
 			Current:  si.Revision,
@@ -12091,7 +12091,7 @@ func (s *snapmgrTestSuite) testAutoRefreshRecordsFailures(c *C, afterReboot bool
 	// Setup test snaps
 	s.state.Lock()
 	defer s.state.Unlock()
-	snapstate.Set(s.state, badSnap, &snapstate.SnapState{
+	snapstate.Set(s.state, naming.InstanceName(badSnap), &snapstate.SnapState{
 		Active: true,
 		Sequence: snapstatetest.NewSequenceFromSnapSideInfos([]*snap.SideInfo{
 			{RealName: badSnap, SnapID: badSnapID, Revision: snap.R(1)},
@@ -12121,7 +12121,7 @@ func (s *snapmgrTestSuite) testAutoRefreshRecordsFailures(c *C, afterReboot bool
 
 	getRefreshFailures := func(name string) *snap.RefreshFailuresInfo {
 		var snapst snapstate.SnapState
-		c.Assert(snapstate.Get(s.state, name, &snapst), IsNil)
+		c.Assert(snapstate.Get(s.state, naming.InstanceName(name), &snapst), IsNil)
 		return snapst.RefreshFailures
 	}
 	getRefreshFailed := func(chg *state.Change) []any {
@@ -12135,7 +12135,7 @@ func (s *snapmgrTestSuite) testAutoRefreshRecordsFailures(c *C, afterReboot bool
 	}
 	getRevision := func(name string) snap.Revision {
 		var snapst snapstate.SnapState
-		c.Assert(snapstate.Get(s.state, name, &snapst), IsNil)
+		c.Assert(snapstate.Get(s.state, naming.InstanceName(name), &snapst), IsNil)
 		return snapst.Current
 	}
 
@@ -12232,13 +12232,13 @@ func (s *snapmgrTestSuite) testAutoRefreshRecordsFailures(c *C, afterReboot bool
 
 	// Make sure backoff delay is capped to a reasonable value (~2 weeks)
 	var snapst snapstate.SnapState
-	c.Assert(snapstate.Get(s.state, badSnap, &snapst), IsNil)
+	c.Assert(snapstate.Get(s.state, naming.InstanceName(badSnap), &snapst), IsNil)
 	snapst.RefreshFailures = &snap.RefreshFailuresInfo{
 		Revision:        badSnapRevision,
 		FailureCount:    100,
 		LastFailureTime: time.Now().Add(-time.Duration(expectedMaxDelay) * time.Hour),
 	}
-	snapstate.Set(s.state, badSnap, &snapst)
+	snapstate.Set(s.state, naming.InstanceName(badSnap), &snapst)
 	buf.Reset()
 	forceAutoRefresh()
 	chgs = s.state.Changes()
@@ -14801,7 +14801,7 @@ func (s *snapmgrTestSuite) setupSplitRefreshAppDependsOnModelBase(c *C, core18Ba
 		infos = append(infos, newSi)
 
 		snaptest.MockSnap(c, yaml, oldSi)
-		snapstate.Set(s.state, sn, &snapstate.SnapState{
+		snapstate.Set(s.state, naming.InstanceName(sn), &snapstate.SnapState{
 			Active:          true,
 			Sequence:        snapstatetest.NewSequenceFromSnapSideInfos([]*snap.SideInfo{oldSi}),
 			Current:         oldSi.Revision,
@@ -14916,7 +14916,7 @@ func (s *snapmgrTestSuite) TestOldStyleAutoRefreshSplitEssentialWithSharedBase(c
 		snaptest.MakeTestSnapInfoWithFiles(c, yaml, nil, newSi)
 
 		snaptest.MockSnap(c, yaml, oldSi)
-		snapstate.Set(s.state, sn, &snapstate.SnapState{
+		snapstate.Set(s.state, naming.InstanceName(sn), &snapstate.SnapState{
 			Active:          true,
 			Sequence:        snapstatetest.NewSequenceFromSnapSideInfos([]*snap.SideInfo{oldSi}),
 			Current:         oldSi.Revision,
@@ -15152,7 +15152,7 @@ func (s *snapmgrTestSuite) testSplitRefreshUsesSameTransaction(c *C, createLane 
 		si := &snap.SideInfo{RealName: sn.SnapName().String(), Revision: snap.R(1), SnapID: snapIds[sn]}
 		snapYaml := fmt.Sprintf("name: %s\nversion: 1.2.3\ntype: %s", sn, types[sn])
 		snaptest.MockSnap(c, snapYaml, si)
-		snapstate.Set(s.state, sn.String(), &snapstate.SnapState{
+		snapstate.Set(s.state, naming.InstanceName(sn), &snapstate.SnapState{
 			Active:          true,
 			Sequence:        snapstatetest.NewSequenceFromSnapSideInfos([]*snap.SideInfo{si}),
 			Current:         si.Revision,
@@ -15380,7 +15380,7 @@ func (s *snapmgrTestSuite) TestSplitRefreshWithDefaultProviderDependingOnModelBa
 		snaptest.MakeTestSnapInfoWithFiles(c, yaml, nil, newSi)
 
 		snaptest.MockSnap(c, yaml, oldSi)
-		snapstate.Set(s.state, sn.String(), &snapstate.SnapState{
+		snapstate.Set(s.state, naming.InstanceName(sn), &snapstate.SnapState{
 			Active:          true,
 			Sequence:        snapstatetest.NewSequenceFromSnapSideInfos([]*snap.SideInfo{oldSi}),
 			Current:         oldSi.Revision,
@@ -15505,7 +15505,7 @@ func (s *snapmgrTestSuite) TestAutoRefreshSplitRefresh(c *C) {
 		snaptest.MakeTestSnapInfoWithFiles(c, yaml, nil, newSi)
 
 		snaptest.MockSnap(c, yaml, oldSi)
-		snapstate.Set(s.state, sn, &snapstate.SnapState{
+		snapstate.Set(s.state, naming.InstanceName(sn), &snapstate.SnapState{
 			Active:          true,
 			Sequence:        snapstatetest.NewSequenceFromSnapSideInfos([]*snap.SideInfo{oldSi}),
 			Current:         oldSi.Revision,
@@ -15723,7 +15723,7 @@ func (s *snapmgrTestSuite) TestUpdateBackToPrevRevision(c *C) {
 
 	seq := snapstatetest.NewSequenceFromSnapSideInfos([]*snap.SideInfo{&prevSI, &currentSI})
 
-	snapstate.Set(s.state, instanceName.String(), &snapstate.SnapState{
+	snapstate.Set(s.state, naming.InstanceName(instanceName), &snapstate.SnapState{
 		Active:          true,
 		Sequence:        seq,
 		Current:         currentSI.Revision,
@@ -15851,7 +15851,7 @@ func (s *snapmgrTestSuite) TestUpdateBackToPrevRevision(c *C) {
 
 	// verify snaps in the system state
 	var snapst snapstate.SnapState
-	err = snapstate.Get(s.state, instanceName.String(), &snapst)
+	err = snapstate.Get(s.state, naming.InstanceName(instanceName), &snapst)
 	c.Assert(err, IsNil)
 
 	c.Assert(snapst.LastRefreshTime, NotNil)
@@ -15952,7 +15952,7 @@ func (s *snapmgrTestSuite) testRevertWithComponents(c *C, undo bool) {
 		}, nil
 	}))
 
-	snapstate.Set(s.state, instanceName, &snapstate.SnapState{
+	snapstate.Set(s.state, naming.InstanceName(instanceName), &snapstate.SnapState{
 		Active:          true,
 		Sequence:        seq,
 		Current:         currentSI.Revision,
@@ -16111,7 +16111,7 @@ func (s *snapmgrTestSuite) testRevertWithComponents(c *C, undo bool) {
 
 	// verify snaps in the system state
 	var snapst snapstate.SnapState
-	err = snapstate.Get(s.state, instanceName, &snapst)
+	err = snapstate.Get(s.state, naming.InstanceName(instanceName), &snapst)
 	c.Assert(err, IsNil)
 
 	c.Assert(snapst.Active, Equals, true)
@@ -16277,7 +16277,7 @@ func (s *snapmgrTestSuite) TestUpdateWithComponentsBackToPrevRevision(c *C) {
 		}, nil
 	}))
 
-	snapstate.Set(s.state, snapName, &snapstate.SnapState{
+	snapstate.Set(s.state, naming.InstanceName(snapName), &snapstate.SnapState{
 		Active:          true,
 		Sequence:        seq,
 		Current:         currentSI.Revision,
@@ -16529,7 +16529,7 @@ func (s *snapmgrTestSuite) TestUpdateWithComponentsBackToPrevRevision(c *C) {
 
 	// verify snaps in the system state
 	var snapst snapstate.SnapState
-	err = snapstate.Get(s.state, snapName, &snapst)
+	err = snapstate.Get(s.state, naming.InstanceName(snapName), &snapst)
 	c.Assert(err, IsNil)
 
 	c.Assert(snapst.LastRefreshTime, NotNil)
@@ -16669,7 +16669,7 @@ func (s *snapmgrTestSuite) testUpdateWithComponentsBackToPrevRevisionAlreadyPres
 		}, nil
 	}))
 
-	snapstate.Set(s.state, snapName, &snapstate.SnapState{
+	snapstate.Set(s.state, naming.InstanceName(snapName), &snapstate.SnapState{
 		Active:          true,
 		Sequence:        seq,
 		Current:         currentSI.Revision,
@@ -16752,7 +16752,7 @@ func (s *snapmgrTestSuite) testUpdateWithComponentsBackToPrevRevisionAlreadyPres
 	c.Check(snapsup.PreUpdateKernelModuleComponents, DeepEquals, currentKmodComps)
 
 	var snapst snapstate.SnapState
-	err = snapstate.Get(s.state, snapName, &snapst)
+	err = snapstate.Get(s.state, naming.InstanceName(snapName), &snapst)
 	c.Assert(err, IsNil)
 
 	if undo {
@@ -16849,7 +16849,7 @@ func (s *snapmgrTestSuite) TestUpdateWithComponentsBackToPrevRevisionAddComponen
 		}, nil
 	}))
 
-	snapstate.Set(s.state, snapName, &snapstate.SnapState{
+	snapstate.Set(s.state, naming.InstanceName(snapName), &snapstate.SnapState{
 		Active:          true,
 		Sequence:        seq,
 		Current:         currentSI.Revision,
@@ -17073,7 +17073,7 @@ func (s *snapmgrTestSuite) TestUpdateWithComponentsBackToPrevRevisionAddComponen
 
 	// verify snaps in the system state
 	var snapst snapstate.SnapState
-	err = snapstate.Get(s.state, snapName, &snapst)
+	err = snapstate.Get(s.state, naming.InstanceName(snapName), &snapst)
 	c.Assert(err, IsNil)
 
 	c.Assert(snapst.LastRefreshTime, NotNil)
@@ -17375,7 +17375,7 @@ func (s *snapmgrTestSuite) testUpdateWithComponentsRunThrough(c *C, opts updateW
 		}, nil
 	}))
 
-	snapstate.Set(s.state, instanceName.String(), &snapstate.SnapState{
+	snapstate.Set(s.state, naming.InstanceName(instanceName), &snapstate.SnapState{
 		Active:          true,
 		Sequence:        currentSeq,
 		Current:         si.Revision,
@@ -17868,7 +17868,7 @@ func (s *snapmgrTestSuite) testUpdateWithComponentsRunThrough(c *C, opts updateW
 
 	// verify snaps in the system state
 	var snapst snapstate.SnapState
-	err = snapstate.Get(s.state, instanceName.String(), &snapst)
+	err = snapstate.Get(s.state, naming.InstanceName(instanceName), &snapst)
 	c.Assert(err, IsNil)
 
 	if !opts.undo {
@@ -18026,7 +18026,7 @@ func (s *snapmgrTestSuite) testUpdateWithComponentsRunThroughShareComponents(c *
 		}, nil
 	}))
 
-	snapstate.Set(s.state, snapName, &snapstate.SnapState{
+	snapstate.Set(s.state, naming.InstanceName(snapName), &snapstate.SnapState{
 		Active:          true,
 		Sequence:        currentSeq,
 		Current:         si.Revision,
@@ -18364,7 +18364,7 @@ func (s *snapmgrTestSuite) testUpdateWithComponentsRunThroughShareComponents(c *
 
 	// verify snaps in the system state
 	var snapst snapstate.SnapState
-	err = snapstate.Get(s.state, snapName, &snapst)
+	err = snapstate.Get(s.state, naming.InstanceName(snapName), &snapst)
 	c.Assert(err, IsNil)
 
 	if !undo {
@@ -18719,7 +18719,7 @@ func (s *snapmgrTestSuite) testUpdateWithComponentsFromPathRunThrough(c *C, inst
 		}, nil
 	}))
 
-	snapstate.Set(s.state, instanceName.String(), &snapstate.SnapState{
+	snapstate.Set(s.state, naming.InstanceName(instanceName), &snapstate.SnapState{
 		Active:          true,
 		Sequence:        currentSeq,
 		Current:         si.Revision,
@@ -19043,7 +19043,7 @@ components:
 
 	// verify snaps in the system state
 	var snapst snapstate.SnapState
-	err = snapstate.Get(s.state, instanceName.String(), &snapst)
+	err = snapstate.Get(s.state, naming.InstanceName(instanceName), &snapst)
 	c.Assert(err, IsNil)
 
 	if !undo {
@@ -19155,7 +19155,7 @@ func (s *snapmgrTestSuite) TestUpdateWithComponentsFromPathBackToInstalledRevisi
 	})
 
 	var snapst snapstate.SnapState
-	err := snapstate.Get(s.state, instanceName, &snapst)
+	err := snapstate.Get(s.state, naming.InstanceName(instanceName), &snapst)
 	c.Assert(err, IsNil)
 
 	bl := boottest.MockUC20RunBootenv(bootloadertest.Mock("mock", c.MkDir()))
@@ -19425,7 +19425,7 @@ func (s *snapmgrTestSuite) TestUpdateWithComponentsFromPathBackToInstalledRevisi
 	checkComponentSetupTasks(c, ts, compsups, "prepare-component")
 
 	// verify the new system state
-	err = snapstate.Get(s.state, instanceName, &snapst)
+	err = snapstate.Get(s.state, naming.InstanceName(instanceName), &snapst)
 	c.Assert(err, IsNil)
 
 	c.Assert(snapst.LastRefreshTime, NotNil)
@@ -19607,7 +19607,7 @@ func (s *snapmgrTestSuite) testUpdateWithComponentsRunThroughOnlyComponentUpdate
 		}, nil
 	}))
 
-	snapstate.Set(s.state, instanceName.String(), &snapstate.SnapState{
+	snapstate.Set(s.state, naming.InstanceName(instanceName), &snapstate.SnapState{
 		Active:          true,
 		Sequence:        currentSeq,
 		Current:         si.Revision,
@@ -19923,7 +19923,7 @@ func (s *snapmgrTestSuite) testUpdateWithComponentsRunThroughOnlyComponentUpdate
 
 	// verify snaps in the system state
 	var snapst snapstate.SnapState
-	err = snapstate.Get(s.state, instanceName.String(), &snapst)
+	err = snapstate.Get(s.state, naming.InstanceName(instanceName), &snapst)
 	c.Assert(err, IsNil)
 
 	if !opts.undo {
@@ -21741,7 +21741,7 @@ func setupSeedRefreshRevertSnapOfType(c *C, st *state.State, spec seedRefreshSna
 	}
 	snaptest.MockSnap(c, newSnapYaml.String(), newSideInfo)
 
-	snapstate.Set(st, spec.name.String(), &snapstate.SnapState{
+	snapstate.Set(st, spec.name, &snapstate.SnapState{
 		Active:          true,
 		Sequence:        snapstatetest.NewSequenceFromSnapSideInfos([]*snap.SideInfo{oldSideInfo, newSideInfo}),
 		Current:         newSideInfo.Revision,
@@ -21842,7 +21842,7 @@ func (s *snapmgrTestSuite) testRevertSeedRefreshRunThrough(c *C, spec seedRefres
 	c.Check(*restartRequested, DeepEquals, expectedRestarts)
 
 	var snapst snapstate.SnapState
-	c.Assert(snapstate.Get(s.state, spec.name.String(), &snapst), IsNil)
+	c.Assert(snapstate.Get(s.state, spec.name, &snapst), IsNil)
 	c.Check(snapst.Current, Equals, oldSideInfo.Revision)
 }
 

@@ -50,7 +50,7 @@ func iconGet(st *state.State, name string) Response {
 	defer st.Unlock()
 
 	var snapst snapstate.SnapState
-	err := snapstate.Get(st, name, &snapst)
+	err := snapstate.Get(st, naming.InstanceName(name), &snapst)
 	if err != nil {
 		if errors.Is(err, state.ErrNoState) {
 			return SnapNotFound(name, err)

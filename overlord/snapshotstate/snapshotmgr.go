@@ -38,6 +38,7 @@ import (
 	"github.com/snapcore/snapd/overlord/snapstate"
 	"github.com/snapcore/snapd/overlord/state"
 	"github.com/snapcore/snapd/snap"
+	"github.com/snapcore/snapd/snap/naming"
 )
 
 var (
@@ -196,7 +197,7 @@ func prepareSave(task *state.Task) (snapshot *snapshotSetup, cur *snap.Info, cfg
 	if err := task.Get("snapshot-setup", &snapshot); err != nil {
 		return nil, nil, nil, taskGetErrMsg(task, err, "snapshot")
 	}
-	cur, err = snapstateCurrentInfo(st, snapshot.Snap)
+	cur, err = snapstateCurrentInfo(st, naming.InstanceName(snapshot.Snap))
 	if err != nil {
 		return nil, nil, nil, err
 	}
