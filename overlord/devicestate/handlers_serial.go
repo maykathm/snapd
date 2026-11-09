@@ -959,7 +959,7 @@ func (m *DeviceManager) maybeRunPrepareSerialRequestHook(st *state.State, reques
 		return nil, nil
 	}
 
-	gadgetInfo, err := snapstate.CurrentInfo(st, gadgetName)
+	gadgetInfo, err := snapstate.CurrentInfo(st, naming.InstanceName(gadgetName))
 	if err != nil {
 		return nil, err
 	}

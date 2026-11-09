@@ -496,7 +496,7 @@ func (s *firstBoot20Suite) testPopulateFromSeedCore20Happy(c *C, m *boot.Modeenv
 	_, err = snapstate.CurrentInfo(state, "pc")
 	c.Check(err, IsNil)
 	if opts.withComps && m.Mode == "run" {
-		_, err := snapstate.CurrentInfo(state, compsSnap)
+		_, err := snapstate.CurrentInfo(state, naming.InstanceName(compsSnap))
 		c.Check(err, IsNil)
 		var snapst snapstate.SnapState
 		err = snapstate.Get(state, naming.InstanceName(compsSnap), &snapst)

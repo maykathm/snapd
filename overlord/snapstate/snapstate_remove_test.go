@@ -241,7 +241,7 @@ func (s *snapmgrTestSuite) TestRemoveDiskSpaceCheckSkippedIfReservationUnset(c *
 	defer s.state.Unlock()
 
 	var snapshotSizeCalls int
-	snapstate.EstimateSnapshotSize = func(st *state.State, instanceName string, users []string) (uint64, error) {
+	snapstate.EstimateSnapshotSize = func(st *state.State, instanceName naming.InstanceName, users []string) (uint64, error) {
 		snapshotSizeCalls++
 		return 1, nil
 	}
@@ -1607,7 +1607,7 @@ func (s *snapmgrTestSuite) testRemoveManyDiskSpaceCheck(c *C, checkEnabled, auto
 	var checkFreeSpaceCall, snapshotSizeCall int
 
 	// restored by TearDownTest
-	snapstate.EstimateSnapshotSize = func(st *state.State, instanceName string, users []string) (uint64, error) {
+	snapstate.EstimateSnapshotSize = func(st *state.State, instanceName naming.InstanceName, users []string) (uint64, error) {
 		snapshotSizeCall++
 		// expect two snapshot size estimations
 		switch instanceName {
@@ -1708,7 +1708,7 @@ func (s *snapmgrTestSuite) TestRemoveConfigureDiskSpaceReservation(c *C) {
 	})
 	defer restore()
 
-	snapstate.EstimateSnapshotSize = func(st *state.State, instanceName string, users []string) (uint64, error) {
+	snapstate.EstimateSnapshotSize = func(st *state.State, instanceName naming.InstanceName, users []string) (uint64, error) {
 		return 123, nil
 	}
 
@@ -1771,9 +1771,9 @@ func (s *snapmgrTestSuite) TestRemoveManyDiskSpaceReservationZeroChecksSnapshotS
 	defer s.state.Unlock()
 
 	var snapshotSizeCall int
-	snapstate.EstimateSnapshotSize = func(st *state.State, instanceName string, users []string) (uint64, error) {
+	snapstate.EstimateSnapshotSize = func(st *state.State, instanceName naming.InstanceName, users []string) (uint64, error) {
 		snapshotSizeCall++
-		c.Check(instanceName, Equals, "one")
+		c.Check(instanceName.String(), Equals, "one")
 		return 123, nil
 	}
 

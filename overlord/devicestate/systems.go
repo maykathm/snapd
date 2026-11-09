@@ -392,7 +392,7 @@ func (ig *setupInfoGetter) SnapInfo(st *state.State, name string) (info *snap.In
 	// system, in which case we use the snaps that are already
 	// installed
 
-	info, err = snapstate.CurrentInfo(st, name)
+	info, err = snapstate.CurrentInfo(st, naming.InstanceName(name))
 	if err == nil {
 		hash, _, err := asserts.SnapFileSHA3_384(info.MountFile())
 		if err != nil {

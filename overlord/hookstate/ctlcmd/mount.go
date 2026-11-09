@@ -187,7 +187,7 @@ func (m *mountCommand) checkConnections(context *hookstate.Context) error {
 		return fmt.Errorf("internal error: cannot get connections: %s", err)
 	}
 
-	m.snapInfo, err = snapstate.CurrentInfo(st, instanceName.String())
+	m.snapInfo, err = snapstate.CurrentInfo(st, instanceName)
 	if err != nil {
 		return fmt.Errorf("internal error: cannot get snap info: %s", err)
 	}

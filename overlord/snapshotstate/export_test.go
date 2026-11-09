@@ -78,7 +78,7 @@ func MockSnapstateAll(f func(*state.State) (map[naming.InstanceName]*snapstate.S
 	return testutil.Mock(&snapstateAll, f)
 }
 
-func MockSnapstateCurrentInfo(f func(*state.State, string) (*snap.Info, error)) (restore func()) {
+func MockSnapstateCurrentInfo(f func(*state.State, naming.InstanceName) (*snap.Info, error)) (restore func()) {
 	return testutil.Mock(&snapstateCurrentInfo, f)
 }
 

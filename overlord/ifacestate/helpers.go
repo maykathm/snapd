@@ -1572,7 +1572,7 @@ func SystemSnapName() naming.InstanceName {
 
 // systemSnapInfo returns current info for system snap.
 func systemSnapInfo(st *state.State) (*snap.Info, error) {
-	return snapstate.CurrentInfo(st, SystemSnapName().String())
+	return snapstate.CurrentInfo(st, SystemSnapName())
 }
 
 func connectDisconnectAffectedSnaps(t *state.Task) ([]string, error) {

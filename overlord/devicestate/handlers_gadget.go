@@ -37,6 +37,7 @@ import (
 	"github.com/snapcore/snapd/overlord/snapstate"
 	"github.com/snapcore/snapd/overlord/state"
 	"github.com/snapcore/snapd/snap"
+	"github.com/snapcore/snapd/snap/naming"
 )
 
 func makeRollbackDir(name string) (string, error) {
@@ -157,7 +158,7 @@ func (m *DeviceManager) doUpdateGadgetAssets(t *state.Task, _ *tomb.Tomb) error 
 	osutil.MaybeInjectFault("refresh-gadget-assets")
 
 	// add kernel directories
-	currentKernelInfo, err := snapstate.CurrentInfo(st, groundDeviceCtx.Model().Kernel())
+	currentKernelInfo, err := snapstate.CurrentInfo(st, naming.InstanceName(groundDeviceCtx.Model().Kernel()))
 	// XXX: switch to the normal `if err != nil { return err }` pattern
 	// here once all tests are updated and have a kernel
 	if err == nil {

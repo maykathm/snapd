@@ -2488,7 +2488,7 @@ func CreateRecoverySystem(st *state.State, label string, opts CreateRecoverySyst
 					return nil, err
 				}
 
-				info, err = snapstate.CurrentInfo(st, sn.Name)
+				info, err = snapstate.CurrentInfo(st, naming.InstanceName(sn.Name))
 				if err != nil {
 					return nil, err
 				}
@@ -2516,7 +2516,7 @@ func CreateRecoverySystem(st *state.State, label string, opts CreateRecoverySyst
 			// online case, but the currently installed snap revision is valid
 			// in the given validation sets.
 
-			info, err := snapstate.CurrentInfo(st, sn.Name)
+			info, err := snapstate.CurrentInfo(st, naming.InstanceName(sn.Name))
 			if err != nil {
 				return nil, err
 			}

@@ -627,7 +627,7 @@ var snapReadInfo = snap.ReadInfo
 // AutomaticSnapshot allows to hook snapshot manager's AutomaticSnapshot.
 var AutomaticSnapshot func(st *state.State, instanceName string) (ts *state.TaskSet, err error)
 var AutomaticSnapshotExpiration func(st *state.State) (time.Duration, error)
-var EstimateSnapshotSize func(st *state.State, instanceName string, users []string) (uint64, error)
+var EstimateSnapshotSize func(st *state.State, instanceName naming.InstanceName, users []string) (uint64, error)
 
 func readInfo(name naming.InstanceName, si *snap.SideInfo, flags int) (*snap.Info, error) {
 	info, err := snapReadInfo(name, si)

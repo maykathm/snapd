@@ -1339,7 +1339,7 @@ func ResolveValidationSetsEnforcementError(ctx context.Context, st *state.State,
 		comps = append(comps, keys(cerr.MissingComponents)...)
 		comps = append(comps, keys(cerr.WrongRevisionComponents)...)
 
-		info, err := CurrentInfo(st, snapName)
+		info, err := CurrentInfo(st, naming.InstanceName(snapName))
 		if err != nil {
 			return nil, nil, err
 		}
@@ -3231,7 +3231,7 @@ func Disable(st *state.State, name string) (*state.TaskSet, error) {
 		return nil, fmt.Errorf("snap %q already disabled", name)
 	}
 
-	info, err := Info(st, name, snapst.Current)
+	info, err := Info(st, naming.InstanceName(name), snapst.Current)
 	if err != nil {
 		return nil, err
 	}
@@ -3432,7 +3432,7 @@ func removeTasks(st *state.State, snapst *SnapState, removals map[string]bool, r
 		removeAll = len(snapst.Sequence.Revisions) == 1
 	}
 
-	info, err := Info(st, instanceName.String(), revision)
+	info, err := Info(st, instanceName, revision)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -3535,7 +3535,7 @@ func removeTasks(st *state.State, snapst *SnapState, removals map[string]bool, r
 				// aggregated snapshot sizes
 				_, isSet := diskSpaceReservation(config.NewTransaction(st))
 				if isSet {
-					snapshotSize, err = EstimateSnapshotSize(st, instanceName.String(), nil)
+					snapshotSize, err = EstimateSnapshotSize(st, instanceName, nil)
 					if err != nil {
 						return nil, 0, err
 					}
@@ -3956,7 +3956,7 @@ func revertToRevisionTaskSet(st *state.State, name string, rev snap.Revision, fl
 		}
 	}
 
-	info, err := Info(st, name, rev)
+	info, err := Info(st, naming.InstanceName(name), rev)
 	if err != nil {
 		return snapInstallTaskSet{}, err
 	}
@@ -4095,11 +4095,11 @@ func Installing(st *state.State) bool {
 
 // Info returns the information about the snap with given name and revision.
 // Works also for a mounted candidate snap in the process of being installed.
-func Info(st *state.State, name string, revision snap.Revision) (*snap.Info, error) {
+func Info(st *state.State, name naming.InstanceName, revision snap.Revision) (*snap.Info, error) {
 	var snapst SnapState
-	err := Get(st, naming.InstanceName(name), &snapst)
+	err := Get(st, name, &snapst)
 	if errors.Is(err, state.ErrNoState) {
-		return nil, &snap.NotInstalledError{Snap: name}
+		return nil, &snap.NotInstalledError{Snap: name.String()}
 	}
 	if err != nil {
 		return nil, err
@@ -4108,7 +4108,7 @@ func Info(st *state.State, name string, revision snap.Revision) (*snap.Info, err
 	sis := snapst.Sequence.SideInfos()
 	for i := len(sis) - 1; i >= 0; i-- {
 		if si := sis[i]; si.Revision == revision {
-			return readInfo(naming.InstanceName(name), si, 0)
+			return readInfo(name, si, 0)
 		}
 	}
 
@@ -4116,15 +4116,15 @@ func Info(st *state.State, name string, revision snap.Revision) (*snap.Info, err
 }
 
 // CurrentInfo returns the information about the current revision of a snap with the given name.
-func CurrentInfo(st *state.State, name string) (*snap.Info, error) {
+func CurrentInfo(st *state.State, name naming.InstanceName) (*snap.Info, error) {
 	var snapst SnapState
-	err := Get(st, naming.InstanceName(name), &snapst)
+	err := Get(st, name, &snapst)
 	if err != nil && !errors.Is(err, state.ErrNoState) {
 		return nil, err
 	}
 	info, err := snapst.CurrentInfo()
 	if err == ErrNoCurrent {
-		return nil, &snap.NotInstalledError{Snap: name}
+		return nil, &snap.NotInstalledError{Snap: name.String()}
 	}
 	return info, err
 }

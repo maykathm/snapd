@@ -2900,7 +2900,7 @@ func installModeDisabledServices(st *state.State, snapst *SnapState, currentInfo
 	// find what services the previous snap had
 	prevCurrentSvcs := map[string]bool{}
 	if psi := snapst.previousSideInfo(); psi != nil {
-		prevCurrentInfo, err := Info(st, snapst.InstanceName().String(), psi.Revision)
+		prevCurrentInfo, err := Info(st, snapst.InstanceName(), psi.Revision)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -3365,7 +3365,7 @@ func (m *SnapManager) doUnlinkSnap(t *state.Task, _ *tomb.Tomb) (retErr error) {
 		return err
 	}
 
-	info, err := Info(t.State(), snapsup.InstanceName().String(), snapsup.Revision())
+	info, err := Info(t.State(), snapsup.InstanceName(), snapsup.Revision())
 	if err != nil {
 		return err
 	}
@@ -3501,7 +3501,7 @@ func (m *SnapManager) doClearSnapData(t *state.Task, _ *tomb.Tomb) error {
 	}
 
 	st.Lock()
-	info, err := Info(t.State(), snapsup.InstanceName().String(), snapsup.Revision())
+	info, err := Info(t.State(), snapsup.InstanceName(), snapsup.Revision())
 	st.Unlock()
 	if err != nil {
 		return err

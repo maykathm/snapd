@@ -635,7 +635,7 @@ func InterfacesRequestsControlHandlerServices(st *state.State) ([]*snap.AppInfo,
 		}
 
 		sn := connRef.PlugRef.Snap
-		si, err := snapstate.CurrentInfo(st, sn.String())
+		si, err := snapstate.CurrentInfo(st, sn)
 		if err != nil {
 			return nil, err
 		}
