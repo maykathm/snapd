@@ -353,17 +353,17 @@ var removeStaleConnections = func(st *state.State) error {
 		return err
 	}
 	var staleConns []string
-	brokenCache := make(map[string]bool)
-	isBrokenCached := func(snapName string) (bool, error) {
-		broken, ok := brokenCache[snapName]
+	brokenCache := make(map[naming.InstanceName]bool)
+	isBrokenCached := func(instanceName naming.InstanceName) (bool, error) {
+		broken, ok := brokenCache[instanceName]
 		if ok {
 			return broken, nil
 		}
-		broken, err := isBroken(st, snapName)
+		broken, err := isBroken(st, instanceName)
 		if err != nil {
 			return false, err
 		}
-		brokenCache[snapName] = broken
+		brokenCache[instanceName] = broken
 		return broken, nil
 	}
 	for id := range conns {
@@ -376,7 +376,7 @@ var removeStaleConnections = func(st *state.State) error {
 			if !errors.Is(err, state.ErrNoState) {
 				return err
 			}
-			broken, err := isBrokenCached(connRef.SlotRef.Snap.String())
+			broken, err := isBrokenCached(connRef.SlotRef.Snap)
 			if err != nil {
 				return err
 			}
@@ -390,7 +390,7 @@ var removeStaleConnections = func(st *state.State) error {
 			if !errors.Is(err, state.ErrNoState) {
 				return err
 			}
-			broken, err := isBrokenCached(connRef.PlugRef.Snap.String())
+			broken, err := isBrokenCached(connRef.PlugRef.Snap)
 			if err != nil {
 				return err
 			}
@@ -411,9 +411,9 @@ var removeStaleConnections = func(st *state.State) error {
 	return nil
 }
 
-func isBroken(st *state.State, snapName string) (bool, error) {
+func isBroken(st *state.State, instanceName naming.InstanceName) (bool, error) {
 	var snapst snapstate.SnapState
-	err := snapstate.Get(st, naming.InstanceName(snapName), &snapst)
+	err := snapstate.Get(st, instanceName, &snapst)
 	if errors.Is(err, state.ErrNoState) {
 		return false, nil
 	}
@@ -584,7 +584,7 @@ ConnsLoop:
 				// only do anything about this connection if snap isn't in a broken state, otherwise
 				// leave the connection untouched.
 				for _, instanceName := range []naming.InstanceName{connRef.PlugRef.Snap, connRef.SlotRef.Snap} {
-					broken, err := isBroken(m.state, instanceName.String())
+					broken, err := isBroken(m.state, instanceName)
 					if err != nil {
 						return nil, nil, err
 					}

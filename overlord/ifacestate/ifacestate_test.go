@@ -2076,7 +2076,7 @@ func (s *interfaceManagerSuite) TestStaleConnectionsIgnoredInReloadConnections(c
 	c.Assert(logLines[1], Equals, "")
 }
 
-func (s *interfaceManagerSuite) testStaleAutoConnectionsNotRemovedIfSnapBroken(c *C, brokenSnapName string) {
+func (s *interfaceManagerSuite) testStaleAutoConnectionsNotRemovedIfSnapBroken(c *C, brokenSnapName naming.InstanceName) {
 	s.mockIfaces(&ifacetest.TestInterface{InterfaceName: "test"})
 	s.state.Lock()
 	defer s.state.Unlock()
@@ -2089,12 +2089,12 @@ func (s *interfaceManagerSuite) testStaleAutoConnectionsNotRemovedIfSnapBroken(c
 		"other-consumer:plug other-producer:slot": map[string]any{"interface": "test", "auto": true},
 	})
 	sideInfo := &snap.SideInfo{
-		RealName: brokenSnapName,
+		RealName: brokenSnapName.SnapName().String(),
 		Revision: snap.R(1),
 	}
 
 	// have one of them in state, and broken due to missing snap.yaml
-	snapstate.Set(s.state, naming.InstanceName(brokenSnapName), &snapstate.SnapState{
+	snapstate.Set(s.state, brokenSnapName, &snapstate.SnapState{
 		Active:   true,
 		Sequence: snapstatetest.NewSequenceFromSnapSideInfos([]*snap.SideInfo{sideInfo}),
 		Current:  sideInfo.Revision,
@@ -2103,7 +2103,7 @@ func (s *interfaceManagerSuite) testStaleAutoConnectionsNotRemovedIfSnapBroken(c
 
 	// validity check - snap is broken
 	var snapst snapstate.SnapState
-	c.Assert(snapstate.Get(s.state, naming.InstanceName(brokenSnapName), &snapst), IsNil)
+	c.Assert(snapstate.Get(s.state, brokenSnapName, &snapst), IsNil)
 	curInfo, err := snapst.CurrentInfo()
 	c.Assert(err, IsNil)
 	c.Check(curInfo.Broken, Matches, fmt.Sprintf(`cannot find installed snap "%s" at revision 1: missing file .*/1/meta/snap.yaml`, brokenSnapName))
@@ -2166,7 +2166,7 @@ func (s *interfaceManagerSuite) TestStaleConnectionsRemoved(c *C) {
 	c.Assert(ifaces.Connections, HasLen, 0)
 }
 
-func (s *interfaceManagerSuite) testStaleConnectionsNotRemovedIfRemainingSnapBroken(c *C, brokenSnapName string) {
+func (s *interfaceManagerSuite) testStaleConnectionsNotRemovedIfRemainingSnapBroken(c *C, brokenSnapName naming.InstanceName) {
 	s.mockIfaces(&ifacetest.TestInterface{InterfaceName: "test"})
 
 	s.state.Lock()
@@ -2175,12 +2175,12 @@ func (s *interfaceManagerSuite) testStaleConnectionsNotRemovedIfRemainingSnapBro
 		"consumer:plug producer:slot": map[string]any{"interface": "test"},
 	})
 	sideInfo := &snap.SideInfo{
-		RealName: brokenSnapName,
+		RealName: brokenSnapName.SnapName().String(),
 		Revision: snap.R(1),
 	}
 
 	// Have one of the snaps in state, and broken due to missing snap.yaml
-	snapstate.Set(s.state, naming.InstanceName(brokenSnapName), &snapstate.SnapState{
+	snapstate.Set(s.state, brokenSnapName, &snapstate.SnapState{
 		Active:   true,
 		Sequence: snapstatetest.NewSequenceFromSnapSideInfos([]*snap.SideInfo{sideInfo}),
 		Current:  sideInfo.Revision,
@@ -2189,7 +2189,7 @@ func (s *interfaceManagerSuite) testStaleConnectionsNotRemovedIfRemainingSnapBro
 
 	// Validity check - snap is broken
 	var snapst snapstate.SnapState
-	c.Assert(snapstate.Get(s.state, naming.InstanceName(brokenSnapName), &snapst), IsNil)
+	c.Assert(snapstate.Get(s.state, brokenSnapName, &snapst), IsNil)
 	curInfo, err := snapst.CurrentInfo()
 	c.Assert(err, IsNil)
 	c.Check(curInfo.Broken, Matches, fmt.Sprintf(`cannot find installed snap "%s" at revision 1: missing file .*/1/meta/snap.yaml`, brokenSnapName))
@@ -4266,12 +4266,12 @@ slots:
 
 	// Alter the state of producer and consumer snaps to get new revisions.
 	s.state.Lock()
-	for _, snapName := range []string{"producer", "consumer"} {
-		snapstate.Set(s.state, naming.InstanceName(snapName), &snapstate.SnapState{
+	for _, snapName := range []naming.InstanceName{"producer", "consumer"} {
+		snapstate.Set(s.state, snapName, &snapstate.SnapState{
 			Active: true,
 			Sequence: snapstatetest.NewSequenceFromSnapSideInfos([]*snap.SideInfo{
-				{Revision: snap.R(1), RealName: snapName},
-				{Revision: snap.R(2), RealName: snapName},
+				{Revision: snap.R(1), RealName: snapName.SnapName().String()},
+				{Revision: snap.R(2), RealName: snapName.SnapName().String()},
 			}),
 			Current:  snap.R(2),
 			SnapType: string("app"),
@@ -5641,7 +5641,7 @@ func (s *interfaceManagerSuite) testDoDiscardConns(c *C, snapName string) {
 	})
 }
 
-func (s *interfaceManagerSuite) testUndoDiscardConns(c *C, snapName string) {
+func (s *interfaceManagerSuite) testUndoDiscardConns(c *C, instanceName naming.InstanceName) {
 	s.manager(c)
 
 	s.state.Lock()
@@ -5651,11 +5651,11 @@ func (s *interfaceManagerSuite) testUndoDiscardConns(c *C, snapName string) {
 	})
 
 	// Store empty snap state. This snap has an empty sequence now.
-	snapstate.Set(s.state, naming.InstanceName(snapName), &snapstate.SnapState{})
+	snapstate.Set(s.state, instanceName, &snapstate.SnapState{})
 	s.state.Unlock()
 
 	// Run the discard-conns task and let it finish
-	change, t := s.addDiscardConnsChange(snapName)
+	change, t := s.addDiscardConnsChange(instanceName.String())
 	s.state.Lock()
 	terr := s.state.NewTask("error-trigger", "provoking undo")
 	terr.WaitFor(t)
@@ -8111,13 +8111,13 @@ plugs:
 	s.state.Lock()
 	defer s.state.Unlock()
 
-	for name, expected := range map[string]bool{
+	for name, expected := range map[naming.InstanceName]bool{
 		"consumer_ok":  false,
 		"consumer_nok": true,
 	} {
 		var snapst snapstate.SnapState
-		c.Assert(snapstate.Get(s.state, naming.InstanceName(name), &snapst), IsNil)
-		c.Check(snapst.AllowUnsupportedInstances, Equals, expected, Commentf(name))
+		c.Assert(snapstate.Get(s.state, name, &snapst), IsNil)
+		c.Check(snapst.AllowUnsupportedInstances, Equals, expected, Commentf(name.String()))
 	}
 }
 
@@ -9726,12 +9726,12 @@ func (s *interfaceManagerSuite) TestHotplugAutoconnectConflictRetry(c *C) {
 }
 
 // mockConsumer mocks a consumer snap and its single plug in the repository
-func mockConsumer(c *C, st *state.State, repo *interfaces.Repository, snapYaml, consumerSnapName, plugName string) {
-	si := &snap.SideInfo{RealName: consumerSnapName, Revision: snap.R(1)}
+func mockConsumer(c *C, st *state.State, repo *interfaces.Repository, snapYaml string, consumerSnapName naming.InstanceName, plugName string) {
+	si := &snap.SideInfo{RealName: consumerSnapName.SnapName().String(), Revision: snap.R(1)}
 	consumer := ifacetest.MockSnapAndAppSet(c, snapYaml, nil, si)
 	c.Assert(consumer.Info().Plugs[plugName], NotNil)
 	c.Assert(repo.AddAppSet(consumer), IsNil)
-	snapstate.Set(st, naming.InstanceName(consumerSnapName), &snapstate.SnapState{
+	snapstate.Set(st, consumerSnapName, &snapstate.SnapState{
 		Active:   true,
 		Sequence: snapstatetest.NewSequenceFromSnapSideInfos([]*snap.SideInfo{si}),
 		Current:  snap.R(1),
@@ -11933,13 +11933,13 @@ version: 1.0
 	})
 
 	// need to mark snap as inactive (which it would be during unlink)
-	for _, sn := range []string{"consumer2", "producer2"} {
+	for _, sn := range []naming.InstanceName{"consumer2", "producer2"} {
 		var snapst snapstate.SnapState
-		err = snapstate.Get(s.state, naming.InstanceName(sn), &snapst)
+		err = snapstate.Get(s.state, sn, &snapst)
 		c.Assert(err, IsNil)
 
 		snapst.Active = false
-		snapstate.Set(s.state, naming.InstanceName(sn), &snapst)
+		snapstate.Set(s.state, sn, &snapst)
 	}
 
 	chg := s.state.NewChange("test", "")
@@ -12169,7 +12169,7 @@ plugs:
 	s.state.Set("conns", conns)
 }
 
-func (s *interfaceManagerSuite) testDoSetupProfilesForMultiConnectedPlugOnRefresh(c *C, refreshedSnap string) (consideredConns []string) {
+func (s *interfaceManagerSuite) testDoSetupProfilesForMultiConnectedPlugOnRefresh(c *C, refreshedSnap naming.InstanceName) (consideredConns []string) {
 	// Have a plug connected to two slots. And second witness plug on a different snap.
 	s.state.Lock()
 	s.state.Set("conns", map[string]any{
@@ -12262,7 +12262,7 @@ slots:
 			} else {
 				name := appSet.InstanceName()
 				switch {
-				case refreshedSnap == name.String():
+				case refreshedSnap == name:
 					c.Check(sctx, DeepEquals, interfaces.SetupContext{Reason: interfaces.SnapSetupReasonOwnUpdate})
 				case refreshedSnap == "consumer" && (name == "producer" || name == "producer2"):
 					// Both slot provider snaps are affected by an update of connected consumer
@@ -12297,11 +12297,11 @@ slots:
 
 	// Alter the state to introduce new revision of refreshed snap
 	s.state.Lock()
-	snapstate.Set(s.state, naming.InstanceName(refreshedSnap), &snapstate.SnapState{
+	snapstate.Set(s.state, refreshedSnap, &snapstate.SnapState{
 		Active: true,
 		Sequence: snapstatetest.NewSequenceFromSnapSideInfos([]*snap.SideInfo{
-			{Revision: snap.R(1), RealName: refreshedSnap},
-			{Revision: snap.R(2), RealName: refreshedSnap},
+			{Revision: snap.R(1), RealName: refreshedSnap.SnapName().String()},
+			{Revision: snap.R(2), RealName: refreshedSnap.SnapName().String()},
 		}),
 		Current:  snap.R(2),
 		SnapType: string("app"),
@@ -12313,7 +12313,7 @@ slots:
 	change := s.state.NewChange("test", "")
 	task := s.state.NewTask("setup-profiles", "")
 	task.Set("snap-setup", &snapstate.SnapSetup{
-		SideInfo: &snap.SideInfo{RealName: refreshedSnap, Revision: snap.R(2)}})
+		SideInfo: &snap.SideInfo{RealName: refreshedSnap.SnapName().String(), Revision: snap.R(2)}})
 	change.AddTask(task)
 	s.state.Unlock()
 
@@ -12340,7 +12340,7 @@ func (s *interfaceManagerSuite) TestDoSetupProfilesForMultiConnectedPlugConsumer
 	c.Check(consideredConns, DeepEquals, []string{"consumer:plug producer2:slot", "consumer:plug producer:slot"})
 }
 
-func (s *interfaceManagerSuite) testDoSetupProfilesForCyclicallyConenctedSnap(c *C, refreshedSnap string) (consideredConns []string) {
+func (s *interfaceManagerSuite) testDoSetupProfilesForCyclicallyConenctedSnap(c *C, refreshedSnap naming.InstanceName) (consideredConns []string) {
 	// We have a cyclic connection between the producer and consumer, spiced up
 	// with producer2 carrying a single connection
 	s.state.Lock()
@@ -12425,7 +12425,7 @@ plugs:
 			} else {
 				name := appSet.InstanceName()
 				switch {
-				case refreshedSnap == name.String():
+				case refreshedSnap == name:
 					c.Check(sctx, DeepEquals, interfaces.SetupContext{Reason: interfaces.SnapSetupReasonOwnUpdate})
 				case refreshedSnap == "consumer" && name == "producer2":
 					c.Check(sctx, DeepEquals, interfaces.SetupContext{Reason: interfaces.SnapSetupReasonConnectedPlugConsumerUpdate})
@@ -12460,11 +12460,11 @@ plugs:
 
 	// Alter the state to introduce new revision of refreshed snap
 	s.state.Lock()
-	snapstate.Set(s.state, naming.InstanceName(refreshedSnap), &snapstate.SnapState{
+	snapstate.Set(s.state, refreshedSnap, &snapstate.SnapState{
 		Active: true,
 		Sequence: snapstatetest.NewSequenceFromSnapSideInfos([]*snap.SideInfo{
-			{Revision: snap.R(1), RealName: refreshedSnap},
-			{Revision: snap.R(2), RealName: refreshedSnap},
+			{Revision: snap.R(1), RealName: refreshedSnap.SnapName().String()},
+			{Revision: snap.R(2), RealName: refreshedSnap.SnapName().String()},
 		}),
 		Current:  snap.R(2),
 		SnapType: string("app"),
@@ -12476,7 +12476,7 @@ plugs:
 	change := s.state.NewChange("test", "")
 	task := s.state.NewTask("setup-profiles", "")
 	task.Set("snap-setup", &snapstate.SnapSetup{
-		SideInfo: &snap.SideInfo{RealName: refreshedSnap, Revision: snap.R(2)}})
+		SideInfo: &snap.SideInfo{RealName: refreshedSnap.SnapName().String(), Revision: snap.R(2)}})
 	change.AddTask(task)
 	s.state.Unlock()
 

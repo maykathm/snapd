@@ -4142,12 +4142,12 @@ func Get(st *state.State, name naming.InstanceName, snapst *SnapState) error {
 	// unmarshal to a clean state
 	*snapst = SnapState{}
 
-	var snaps map[string]*json.RawMessage
+	var snaps map[naming.InstanceName]*json.RawMessage
 	err := st.Get("snaps", &snaps)
 	if err != nil {
 		return err
 	}
-	raw, ok := snaps[name.String()]
+	raw, ok := snaps[name]
 	if !ok {
 		return state.ErrNoState
 	}
@@ -4225,23 +4225,23 @@ func NumSnaps(st *state.State) (int, error) {
 // Note that a SnapState with an empty Sequence will be treated as if snapst was
 // nil and name will be deleted from the state.
 func Set(st *state.State, name naming.InstanceName, snapst *SnapState) {
-	var snaps map[string]*json.RawMessage
+	var snaps map[naming.InstanceName]*json.RawMessage
 	err := st.Get("snaps", &snaps)
 	if err != nil && !errors.Is(err, state.ErrNoState) {
 		panic("internal error: cannot unmarshal snaps state: " + err.Error())
 	}
 	if snaps == nil {
-		snaps = make(map[string]*json.RawMessage)
+		snaps = make(map[naming.InstanceName]*json.RawMessage)
 	}
 	if snapst == nil || (len(snapst.Sequence.Revisions) == 0) {
-		delete(snaps, name.String())
+		delete(snaps, name)
 	} else {
 		data, err := json.Marshal(snapst)
 		if err != nil {
 			panic("internal error: cannot marshal snap state: " + err.Error())
 		}
 		raw := json.RawMessage(data)
-		snaps[name.String()] = &raw
+		snaps[name] = &raw
 	}
 	st.Set("snaps", snaps)
 }
@@ -4393,7 +4393,7 @@ func coreInfo(st *state.State) (*snap.Info, error) {
 // ConfigDefaults returns the configuration defaults for the snap as
 // specified in the gadget for the given device context.
 // If gadget is absent or the snap has no snap-id it returns ErrNoState.
-func ConfigDefaults(st *state.State, deviceCtx DeviceContext, snapName string) (map[string]any, error) {
+func ConfigDefaults(st *state.State, deviceCtx DeviceContext, instanceName naming.InstanceName) (map[string]any, error) {
 	info, err := GadgetInfo(st, deviceCtx)
 	if err != nil {
 		return nil, err
@@ -4401,9 +4401,9 @@ func ConfigDefaults(st *state.State, deviceCtx DeviceContext, snapName string) (
 
 	// system configuration is kept under "core" so apply its defaults when
 	// configuring "core"
-	isSystemDefaults := snapName == defaultCoreSnapName
+	isSystemDefaults := instanceName == defaultCoreSnapName
 	var snapst SnapState
-	if err := Get(st, naming.InstanceName(snapName), &snapst); err != nil && !errors.Is(err, state.ErrNoState) {
+	if err := Get(st, instanceName, &snapst); err != nil && !errors.Is(err, state.ErrNoState) {
 		return nil, err
 	}
 

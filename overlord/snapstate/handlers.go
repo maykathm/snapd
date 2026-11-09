@@ -4089,10 +4089,10 @@ func (m *SnapManager) undoRefreshAliases(t *state.Task, _ *tomb.Tomb) error {
 
 	// if we disabled other snap aliases try to undo that
 	conflicting := make(map[string]bool, len(otherSnapDisabled))
-	otherCurSnapStates := make(map[string]*SnapState, len(otherSnapDisabled))
+	otherCurSnapStates := make(map[naming.InstanceName]*SnapState, len(otherSnapDisabled))
 	for otherSnap, otherDisabled := range otherSnapDisabled {
 		var otherSnapState SnapState
-		err := Get(st, naming.InstanceName(otherSnap), &otherSnapState)
+		err := Get(st, otherSnap, &otherSnapState)
 		if err != nil {
 			return err
 		}
@@ -4101,7 +4101,7 @@ func (m *SnapManager) undoRefreshAliases(t *state.Task, _ *tomb.Tomb) error {
 			return err
 		}
 
-		otherCurSnapStates[otherSnap.String()] = &otherSnapState
+		otherCurSnapStates[otherSnap] = &otherSnapState
 
 		autoDisabled := otherSnapState.AutoAliasesDisabled
 		if otherDisabled.Auto {
@@ -4129,13 +4129,13 @@ func (m *SnapManager) undoRefreshAliases(t *state.Task, _ *tomb.Tomb) error {
 
 	// apply non-conflicting other
 	for otherSnap, otherSnapState := range otherCurSnapStates {
-		if conflicting[otherSnap] {
+		if conflicting[otherSnap.String()] {
 			// keep as it was
 			continue
 		}
-		newSnapSt := newSnapStates[otherSnap]
+		newSnapSt := newSnapStates[otherSnap.String()]
 		if !otherSnapState.AliasesPending {
-			if _, _, err := applyAliasesChange(naming.InstanceName(otherSnap), otherSnapState.AutoAliasesDisabled, otherSnapState.Aliases, newSnapSt.AutoAliasesDisabled, newSnapSt.Aliases, m.backend, doApply); err != nil {
+			if _, _, err := applyAliasesChange(otherSnap, otherSnapState.AutoAliasesDisabled, otherSnapState.Aliases, newSnapSt.AutoAliasesDisabled, newSnapSt.Aliases, m.backend, doApply); err != nil {
 				return err
 			}
 		}

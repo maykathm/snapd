@@ -117,7 +117,7 @@ func (s *patch1Suite) TestPatch1(c *C) {
 	defer st.Unlock()
 
 	expected := []struct {
-		name string
+		name naming.InstanceName
 		typ  snap.Type
 		cur  snap.Revision
 	}{
@@ -129,7 +129,7 @@ func (s *patch1Suite) TestPatch1(c *C) {
 
 	for _, exp := range expected {
 		var snapst snapstate.SnapState
-		err := snapstate.Get(st, naming.InstanceName(exp.name), &snapst)
+		err := snapstate.Get(st, exp.name, &snapst)
 		c.Assert(err, IsNil)
 		c.Check(snap.Type(snapst.SnapType), Equals, exp.typ)
 		c.Check(snapst.Current, Equals, exp.cur)

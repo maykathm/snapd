@@ -119,9 +119,9 @@ func (s *baseHookManagerSuite) commonTearDownTest(c *C) {
 	dirs.SetRootDir("")
 }
 
-func (s *baseHookManagerSuite) setUpSnap(c *C, instanceName string, yaml string) {
+func (s *baseHookManagerSuite) setUpSnap(c *C, instanceName naming.InstanceName, yaml string) {
 	hooksup := &hookstate.HookSetup{
-		Snap:     instanceName,
+		Snap:     instanceName.String(),
 		Hook:     "configure",
 		Revision: snap.R(1),
 	}
@@ -138,15 +138,13 @@ func (s *baseHookManagerSuite) setUpSnap(c *C, instanceName string, yaml string)
 	s.change = s.state.NewChange("kind", "summary")
 	s.change.AddTask(s.task)
 
-	snapName, instanceKey := snap.SplitInstanceName(instanceName)
-
-	sideInfo := &snap.SideInfo{RealName: snapName, SnapID: "some-snap-id", Revision: snap.R(1)}
-	snaptest.MockSnapInstance(c, instanceName, yaml, sideInfo)
-	snapstate.Set(s.state, naming.InstanceName(instanceName), &snapstate.SnapState{
+	sideInfo := &snap.SideInfo{RealName: instanceName.SnapName().String(), SnapID: "some-snap-id", Revision: snap.R(1)}
+	snaptest.MockSnapInstance(c, instanceName.String(), yaml, sideInfo)
+	snapstate.Set(s.state, instanceName, &snapstate.SnapState{
 		Active:      true,
 		Sequence:    snapstatetest.NewSequenceFromSnapSideInfos([]*snap.SideInfo{sideInfo}),
 		Current:     snap.R(1),
-		InstanceKey: instanceKey,
+		InstanceKey: instanceName.InstanceKey(),
 	})
 }
 
@@ -1080,14 +1078,14 @@ func (s *hookManagerSuite) TestConfdbHookTasksWaitForActiveBase(c *C) {
 	s.testConfdbHookTasksWaitUntilActive(c, "test-base")
 }
 
-func (s *hookManagerSuite) testConfdbHookTasksWaitUntilActive(c *C, conflictSnap string) {
+func (s *hookManagerSuite) testConfdbHookTasksWaitUntilActive(c *C, conflictSnap naming.InstanceName) {
 	setActive := func(active bool) {
 		var snapst snapstate.SnapState
-		err := snapstate.Get(s.state, naming.InstanceName(conflictSnap), &snapst)
+		err := snapstate.Get(s.state, conflictSnap, &snapst)
 		c.Assert(err, IsNil)
 
 		snapst.Active = active
-		snapstate.Set(s.state, naming.InstanceName(conflictSnap), &snapst)
+		snapstate.Set(s.state, conflictSnap, &snapst)
 	}
 
 	s.state.Lock()
@@ -1166,7 +1164,7 @@ func (s *hookManagerSuite) TestUndoHookTasksBlockedWhileInactive(c *C) {
 
 	const confdbHook = "change-view-setup-wifi"
 	for _, tc := range []struct {
-		inactiveSnap string
+		inactiveSnap naming.InstanceName
 		status       state.Status
 		hook         string
 		undoHook     string
@@ -1220,11 +1218,11 @@ func (s *hookManagerSuite) TestUndoHookTasksBlockedWhileInactive(c *C) {
 	}
 }
 
-func (s *hookManagerSuite) setActive(c *C, snapName string, active bool) {
+func (s *hookManagerSuite) setActive(c *C, snapName naming.InstanceName, active bool) {
 	var snapst snapstate.SnapState
-	c.Assert(snapstate.Get(s.state, naming.InstanceName(snapName), &snapst), IsNil)
+	c.Assert(snapstate.Get(s.state, snapName, &snapst), IsNil)
 	snapst.Active = active
-	snapstate.Set(s.state, naming.InstanceName(snapName), &snapst)
+	snapstate.Set(s.state, snapName, &snapst)
 }
 
 type MockConcurrentHandler struct {

@@ -318,7 +318,7 @@ func setInstanceStateWithComponents(st *state.State, snapName, instanceKey strin
 	snapRev snap.Revision, comps []*sequence.ComponentState) {
 	ssi := &snap.SideInfo{RealName: snapName, Revision: snapRev,
 		SnapID: "some-snap-id"}
-	snapstate.Set(st, naming.InstanceName(snap.InstanceName(snapName, instanceKey)), &snapstate.SnapState{
+	snapstate.Set(st, snap.InstanceName(snapName, instanceKey), &snapstate.SnapState{
 		Active: true,
 		Sequence: snapstatetest.NewSequenceFromRevisionSideInfos(
 			[]*sequence.RevisionSideState{

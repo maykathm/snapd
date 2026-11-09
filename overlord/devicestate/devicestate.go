@@ -2407,7 +2407,7 @@ func CreateRecoverySystem(st *state.State, label string, opts CreateRecoverySyst
 			return nil, err
 		}
 
-		installed, currentRevision, err := installedSnapRevision(st, sn.Name)
+		installed, currentRevision, err := installedSnapRevision(st, naming.InstanceName(sn.Name))
 		if err != nil {
 			return nil, err
 		}
@@ -2674,9 +2674,9 @@ func offlineComponentInfo(cref naming.ComponentRef, rev snap.Revision, comps []s
 	return comp, nil
 }
 
-func installedSnapRevision(st *state.State, name string) (bool, snap.Revision, error) {
+func installedSnapRevision(st *state.State, name naming.InstanceName) (bool, snap.Revision, error) {
 	var snapst snapstate.SnapState
-	if err := snapstate.Get(st, naming.InstanceName(name), &snapst); err != nil {
+	if err := snapstate.Get(st, name, &snapst); err != nil {
 		if errors.Is(err, state.ErrNoState) {
 			return false, snap.Revision{}, nil
 		}

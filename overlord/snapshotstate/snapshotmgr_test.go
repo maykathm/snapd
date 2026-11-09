@@ -274,7 +274,7 @@ func (snapshotSuite) TestDoSave(c *check.C) {
 		Version: "1.33",
 	}
 	defer snapshotstate.MockSnapstateCurrentInfo(func(_ *state.State, snapname naming.InstanceName) (*snap.Info, error) {
-		c.Check(snapname, check.Equals, naming.InstanceName("a-snap"))
+		c.Check(snapname.String(), check.Equals, "a-snap")
 		return &snapInfo, nil
 	})()
 	defer snapshotstate.MockConfigGetSnapConfig(func(_ *state.State, snapname string) (*json.RawMessage, error) {
@@ -510,7 +510,7 @@ func (snapshotSuite) TestDoSaveMountExcludes(c *check.C) {
 		},
 	}
 	defer snapshotstate.MockSnapstateCurrentInfo(func(_ *state.State, snapname naming.InstanceName) (*snap.Info, error) {
-		c.Check(snapname, check.Equals, naming.InstanceName("a-snap"))
+		c.Check(snapname.String(), check.Equals, "a-snap")
 		return &snapInfo, nil
 	})()
 	defer snapshotstate.MockConfigGetSnapConfig(func(*state.State, string) (*json.RawMessage, error) {
@@ -600,7 +600,7 @@ func (snapshotSuite) TestDoSaveMountExcludesPreservesSetupOptions(c *check.C) {
 		},
 	}
 	defer snapshotstate.MockSnapstateCurrentInfo(func(_ *state.State, snapname naming.InstanceName) (*snap.Info, error) {
-		c.Check(snapname, check.Equals, naming.InstanceName("a-snap"))
+		c.Check(snapname.String(), check.Equals, "a-snap")
 		return &snapInfo, nil
 	})()
 	defer snapshotstate.MockConfigGetSnapConfig(func(*state.State, string) (*json.RawMessage, error) {
@@ -649,7 +649,7 @@ func (snapshotSuite) TestDoSaveMountExcludesLoadMountInfoError(c *check.C) {
 		},
 	}
 	defer snapshotstate.MockSnapstateCurrentInfo(func(_ *state.State, snapname naming.InstanceName) (*snap.Info, error) {
-		c.Check(snapname, check.Equals, naming.InstanceName("a-snap"))
+		c.Check(snapname.String(), check.Equals, "a-snap")
 		return &snapInfo, nil
 	})()
 	defer snapshotstate.MockConfigGetSnapConfig(func(*state.State, string) (*json.RawMessage, error) {
@@ -695,7 +695,7 @@ func (snapshotSuite) TestDoSaveNoMounts(c *check.C) {
 		},
 	}
 	defer snapshotstate.MockSnapstateCurrentInfo(func(_ *state.State, snapname naming.InstanceName) (*snap.Info, error) {
-		c.Check(snapname, check.Equals, naming.InstanceName("a-snap"))
+		c.Check(snapname.String(), check.Equals, "a-snap")
 		return &snapInfo, nil
 	})()
 	defer snapshotstate.MockConfigGetSnapConfig(func(*state.State, string) (*json.RawMessage, error) {
@@ -735,7 +735,7 @@ func (snapshotSuite) TestDoSaveMountExcludesMapDirToVarError(c *check.C) {
 		},
 	}
 	defer snapshotstate.MockSnapstateCurrentInfo(func(_ *state.State, snapname naming.InstanceName) (*snap.Info, error) {
-		c.Check(snapname, check.Equals, naming.InstanceName("a-snap"))
+		c.Check(snapname.String(), check.Equals, "a-snap")
 		return &snapInfo, nil
 	})()
 	defer snapshotstate.MockConfigGetSnapConfig(func(*state.State, string) (*json.RawMessage, error) {
@@ -793,7 +793,7 @@ func (snapshotSuite) TestDoSaveGetsSnapDirOpts(c *check.C) {
 		Version: "1.33",
 	}
 	defer snapshotstate.MockSnapstateCurrentInfo(func(_ *state.State, snapname naming.InstanceName) (*snap.Info, error) {
-		c.Check(snapname, check.Equals, naming.InstanceName("a-snap"))
+		c.Check(snapname.String(), check.Equals, "a-snap")
 		return &snapInfo, nil
 	})()
 	defer osutil.MockMountInfo("")()

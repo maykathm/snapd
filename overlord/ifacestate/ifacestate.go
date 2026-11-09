@@ -145,7 +145,7 @@ func connect(st *state.State, plugSnap naming.InstanceName, plugName string, slo
 		return nil, err
 	}
 
-	plugStatic, slotStatic, err := initialConnectAttributes(st, plugSnapInfo, plugSnap.String(), plugName, slotSnapInfo, slotSnap.String(), slotName)
+	plugStatic, slotStatic, err := initialConnectAttributes(st, plugSnapInfo, plugSnap, plugName, slotSnapInfo, slotSnap, slotName)
 	if err != nil {
 		return nil, err
 	}
@@ -285,10 +285,10 @@ func connect(st *state.State, plugSnap naming.InstanceName, plugName string, slo
 	return tasks, nil
 }
 
-func initialConnectAttributes(st *state.State, plugSnapInfo *snap.Info, plugSnap string, plugName string, slotSnapInfo *snap.Info, slotSnap string, slotName string) (plugStatic, slotStatic map[string]any, err error) {
+func initialConnectAttributes(st *state.State, plugSnapInfo *snap.Info, plugSnap naming.InstanceName, plugName string, slotSnapInfo *snap.Info, slotSnap naming.InstanceName, slotName string) (plugStatic, slotStatic map[string]any, err error) {
 	var plugSnapst snapstate.SnapState
 
-	if err = snapstate.Get(st, naming.InstanceName(plugSnap), &plugSnapst); err != nil {
+	if err = snapstate.Get(st, plugSnap, &plugSnapst); err != nil {
 		return nil, nil, err
 	}
 
@@ -303,7 +303,7 @@ func initialConnectAttributes(st *state.State, plugSnapInfo *snap.Info, plugSnap
 
 	var slotSnapst snapstate.SnapState
 
-	if err = snapstate.Get(st, naming.InstanceName(slotSnap), &slotSnapst); err != nil {
+	if err = snapstate.Get(st, slotSnap, &slotSnapst); err != nil {
 		return nil, nil, err
 	}
 
@@ -398,7 +398,7 @@ func disconnectTasks(st *state.State, conn *interfaces.Connection, flags disconn
 	if err := snapstate.Get(st, slotSnap, &slotSnapst); err != nil {
 		return nil, err
 	}
-	if err := snapstate.Get(st, naming.InstanceName(plugSnap), &plugSnapst); err != nil {
+	if err := snapstate.Get(st, plugSnap, &plugSnapst); err != nil {
 		return nil, err
 	}
 

@@ -1060,7 +1060,7 @@ func affectsRunningHooks(cand *state.Task, running []*state.Task) (block bool) {
 		}
 
 		type hookSetup struct {
-			Snap string `json:"snap"`
+			Snap naming.InstanceName `json:"snap"`
 		}
 
 		var hooksup hookSetup
@@ -1070,12 +1070,12 @@ func affectsRunningHooks(cand *state.Task, running []*state.Task) (block bool) {
 		}
 
 		// this snap has a hook running, retry later
-		if candSnap.String() == hooksup.Snap {
+		if candSnap == hooksup.Snap {
 			return true
 		}
 
 		var hookSnapst SnapState
-		if err := Get(st, naming.InstanceName(hooksup.Snap), &hookSnapst); err != nil {
+		if err := Get(st, hooksup.Snap, &hookSnapst); err != nil {
 			logger.Noticef("internal error: cannot get snapstate for %q: %v", hooksup.Snap, err)
 			return false
 		}

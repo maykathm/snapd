@@ -3261,11 +3261,11 @@ func (s *mgrsSuite) installLocalTestSnap(c *C, snapYamlContent string) *snap.Inf
 	c.Assert(err, IsNil)
 
 	// store current state
-	snapName := info.InstanceName().String()
+	instanceName := info.InstanceName()
 	var snapst snapstate.SnapState
-	snapstate.Get(st, naming.InstanceName(snapName), &snapst)
+	snapstate.Get(st, instanceName, &snapst)
 
-	ts, err := snapstate.InstallPath(st, &snap.SideInfo{RealName: snapName}, snapPath, "", "", snapstate.Flags{DevMode: true}, nil)
+	ts, err := snapstate.InstallPath(st, &snap.SideInfo{RealName: instanceName.SnapName().String()}, snapPath, "", "", snapstate.Flags{DevMode: true}, nil)
 	c.Assert(err, IsNil)
 	chg := st.NewChange("install-snap", "...")
 	chg.AddAll(ts)
@@ -5501,8 +5501,8 @@ func (s *mgrsSuiteCore) TestRemodelRequiredSnapsAddedUndo(c *C) {
 
 	// None of the new snaps got installed
 	var snapst snapstate.SnapState
-	for _, snapName := range []string{"foo", "bar", "baz"} {
-		err = snapstate.Get(st, naming.InstanceName(snapName), &snapst)
+	for _, snapName := range []naming.InstanceName{"foo", "bar", "baz"} {
+		err = snapstate.Get(st, snapName, &snapst)
 		c.Assert(err, testutil.ErrorIs, state.ErrNoState)
 	}
 
@@ -7570,15 +7570,15 @@ var (
 	}
 )
 
-func (s *mgrsSuiteCore) makeInstalledSnapInStateForRemodel(c *C, name string, rev snap.Revision, channel string) *snap.Info {
+func (s *mgrsSuiteCore) makeInstalledSnapInStateForRemodel(c *C, name naming.InstanceName, rev snap.Revision, channel string) *snap.Info {
 	si := &snap.SideInfo{
-		RealName: name,
-		SnapID:   fakeSnapID(name),
+		RealName: name.SnapName().String(),
+		SnapID:   fakeSnapID(name.String()),
 		Revision: rev,
 	}
-	snapInfo := snaptest.MakeSnapFileAndDir(c, snapYamlsForRemodel[name],
-		snapFilesForRemodel[name], si)
-	snapstate.Set(s.o.State(), naming.InstanceName(name), &snapstate.SnapState{
+	snapInfo := snaptest.MakeSnapFileAndDir(c, snapYamlsForRemodel[name.String()],
+		snapFilesForRemodel[name.String()], si)
+	snapstate.Set(s.o.State(), name, &snapstate.SnapState{
 		SnapType:        string(snapInfo.Type()),
 		Active:          true,
 		Sequence:        snapstatetest.NewSequenceFromSnapSideInfos([]*snap.SideInfo{si}),
@@ -7588,7 +7588,7 @@ func (s *mgrsSuiteCore) makeInstalledSnapInStateForRemodel(c *C, name string, re
 	sha3_384, size, err := asserts.SnapFileSHA3_384(snapInfo.MountFile())
 	c.Assert(err, IsNil)
 
-	snapRev := s.makeStoreSnapRevision(c, name, rev.String(), sha3_384, size)
+	snapRev := s.makeStoreSnapRevision(c, name.String(), rev.String(), sha3_384, size)
 	err = assertstate.Add(s.o.State(), snapRev)
 	c.Assert(err, IsNil)
 	return snapInfo
@@ -7950,10 +7950,10 @@ func (s *mgrsSuiteCore) testRemodelUC20WithRecoverySystem(c *C, encrypted bool) 
 		"snapd_good_recovery_systems": "1234," + expectedLabel,
 	})
 
-	for _, name := range []string{"core20", "pc-kernel", "pc", "snapd", "foo", "bar", "baz"} {
+	for _, name := range []naming.InstanceName{"core20", "pc-kernel", "pc", "snapd", "foo", "bar", "baz"} {
 		c.Logf("name: %v", name)
 		var snapst snapstate.SnapState
-		err = snapstate.Get(st, naming.InstanceName(name), &snapst)
+		err = snapstate.Get(st, name, &snapst)
 		c.Assert(err, IsNil)
 		switch name {
 		case "baz":
@@ -12573,8 +12573,8 @@ base: core20
 	c.Assert(err, IsNil)
 	c.Assert(snapst.Current, Equals, snap.R(2))
 
-	for _, name := range []string{"pc-kernel", "pc", "core20"} {
-		err = snapstate.Get(st, naming.InstanceName(name), &snapst)
+	for _, name := range []naming.InstanceName{"pc-kernel", "pc", "core20"} {
+		err = snapstate.Get(st, name, &snapst)
 		c.Assert(err, IsNil)
 		// the current is the old revision
 		c.Assert(snapst.Current, Equals, snap.R(1))
@@ -12691,8 +12691,8 @@ waitLoop:
 	c.Assert(err, IsNil)
 	c.Assert(snapst.Current, Equals, snap.R(2))
 
-	for _, name := range []string{"pc-kernel", "pc", "core20"} {
-		err = snapstate.Get(st, naming.InstanceName(name), &snapst)
+	for _, name := range []naming.InstanceName{"pc-kernel", "pc", "core20"} {
+		err = snapstate.Get(st, name, &snapst)
 		c.Assert(err, IsNil)
 		// the current is the old revision
 		c.Assert(snapst.Current, Equals, snap.R(1))
@@ -12783,8 +12783,8 @@ base: core20
 	c.Assert(err, IsNil)
 	c.Assert(snapst.Current, Equals, snap.R(2))
 
-	for _, name := range []string{"pc-kernel", "pc", "core20"} {
-		err = snapstate.Get(st, naming.InstanceName(name), &snapst)
+	for _, name := range []naming.InstanceName{"pc-kernel", "pc", "core20"} {
+		err = snapstate.Get(st, name, &snapst)
 		c.Assert(err, IsNil)
 		// the current is the old revision
 		c.Assert(snapst.Current, Equals, snap.R(2))

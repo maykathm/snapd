@@ -64,7 +64,7 @@ func (m *DeviceManager) doSetModel(t *state.Task, _ *tomb.Tomb) (err error) {
 	new := remodCtx.Model()
 
 	// unmark no-longer required snaps
-	var cleanedRequiredSnaps []string
+	var cleanedRequiredSnaps []naming.InstanceName
 	requiredSnaps := getAllRequiredSnapsForModel(new)
 	// TODO|XXX: have AllByRef
 	snapStates, err := snapstate.All(st)
@@ -86,7 +86,7 @@ func (m *DeviceManager) doSetModel(t *state.Task, _ *tomb.Tomb) (err error) {
 		if snapst.Flags.Required && !requiredSnaps.Contains(naming.Snap(instanceName)) {
 			snapst.Flags.Required = false
 			snapstate.Set(st, instanceName, snapst)
-			cleanedRequiredSnaps = append(cleanedRequiredSnaps, instanceName.String())
+			cleanedRequiredSnaps = append(cleanedRequiredSnaps, instanceName)
 		}
 		// TODO: clean "required" flag of "core" if a remodel
 		//       moves from the "core" snap to a different
@@ -99,9 +99,9 @@ func (m *DeviceManager) doSetModel(t *state.Task, _ *tomb.Tomb) (err error) {
 		}
 		var snapst snapstate.SnapState
 		for _, snapName := range cleanedRequiredSnaps {
-			if err := snapstate.Get(st, naming.InstanceName(snapName), &snapst); err == nil {
+			if err := snapstate.Get(st, snapName, &snapst); err == nil {
 				snapst.Flags.Required = true
-				snapstate.Set(st, naming.InstanceName(snapName), &snapst)
+				snapstate.Set(st, snapName, &snapst)
 			}
 		}
 	}()

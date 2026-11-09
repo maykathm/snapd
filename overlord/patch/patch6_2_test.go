@@ -369,9 +369,9 @@ func (s *patch62Suite) TestPatch62StopsAfterFirstSnapd(c *C) {
 		defer st.Unlock()
 
 		var snapdCount int
-		for _, name := range []string{"snapd", "other"} {
+		for _, name := range []naming.InstanceName{"snapd", "other"} {
 			var snapst snapstate.SnapState
-			c.Assert(snapstate.Get(st, naming.InstanceName(name), &snapst), IsNil)
+			c.Assert(snapstate.Get(st, name, &snapst), IsNil)
 			if snapst.SnapType == "snapd" {
 				snapdCount++
 			}

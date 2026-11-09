@@ -5989,7 +5989,7 @@ func (s *snapmgrTestSuite) TestInstallPathMany(c *C) {
 	var paths []string
 	var sideInfos []*snap.SideInfo
 
-	snapNames := []string{"some-snap", "other-snap"}
+	snapNames := []naming.InstanceName{"some-snap", "other-snap"}
 	for _, name := range snapNames {
 		yaml := fmt.Sprintf(`name: %s
 version: 1.0
@@ -5997,7 +5997,7 @@ epoch: 1
 `, name)
 		paths = append(paths, makeTestSnap(c, yaml))
 		si := &snap.SideInfo{
-			RealName: name,
+			RealName: name.SnapName().String(),
 			Revision: snap.R("3"),
 		}
 		sideInfos = append(sideInfos, si)
@@ -6035,7 +6035,7 @@ epoch: 1
 
 	for _, name := range snapNames {
 		var snapst snapstate.SnapState
-		err = snapstate.Get(s.state, naming.InstanceName(name), &snapst)
+		err = snapstate.Get(s.state, name, &snapst)
 		c.Assert(err, IsNil)
 		c.Check(snapst.Current, Equals, snap.R("3"))
 	}
@@ -6100,7 +6100,7 @@ func (s *snapmgrTestSuite) TestInstallPathManyTransactionally(c *C) {
 	var paths []string
 	var sideInfos []*snap.SideInfo
 
-	snapNames := []string{"some-snap", "other-snap"}
+	snapNames := []naming.InstanceName{"some-snap", "other-snap"}
 	for _, name := range snapNames {
 		yaml := fmt.Sprintf(`name: %s
 version: 1.0
@@ -6108,7 +6108,7 @@ epoch: 1
 `, name)
 		paths = append(paths, makeTestSnap(c, yaml))
 		si := &snap.SideInfo{
-			RealName: name,
+			RealName: name.SnapName().String(),
 			Revision: snap.R("3"),
 		}
 		sideInfos = append(sideInfos, si)
@@ -6140,7 +6140,7 @@ epoch: 1
 
 	for _, name := range snapNames {
 		var snapst snapstate.SnapState
-		err = snapstate.Get(s.state, naming.InstanceName(name), &snapst)
+		err = snapstate.Get(s.state, name, &snapst)
 		c.Assert(err, IsNil)
 		c.Check(snapst.Current, Equals, snap.R("3"))
 	}
@@ -6196,13 +6196,13 @@ func (s *snapmgrTestSuite) TestInstallPathManyAsUpdate(c *C) {
 	var paths []string
 	var sideInfos []*snap.SideInfo
 
-	snapNames := []string{"some-snap", "other-snap"}
+	snapNames := []naming.InstanceName{"some-snap", "other-snap"}
 	for _, name := range snapNames {
 		si := &snap.SideInfo{
-			RealName: name,
+			RealName: name.SnapName().String(),
 			Revision: snap.R("1"),
 		}
-		snapstate.Set(s.state, naming.InstanceName(name), &snapstate.SnapState{
+		snapstate.Set(s.state, name, &snapstate.SnapState{
 			Active:   true,
 			Sequence: snapstatetest.NewSequenceFromSnapSideInfos([]*snap.SideInfo{si}),
 			Current:  si.Revision,
@@ -6215,7 +6215,7 @@ epoch: 1
 `, name)
 
 		newSi := &snap.SideInfo{
-			RealName: name,
+			RealName: name.SnapName().String(),
 			Revision: snap.R("2"),
 		}
 		path, _ := snaptest.MakeTestSnapInfoWithFiles(c, yaml, nil, newSi)
@@ -6240,7 +6240,7 @@ epoch: 1
 
 	for _, name := range snapNames {
 		var snapst snapstate.SnapState
-		err = snapstate.Get(s.state, naming.InstanceName(name), &snapst)
+		err = snapstate.Get(s.state, name, &snapst)
 		c.Assert(err, IsNil)
 		c.Check(snapst.Current, Equals, snap.R("2"))
 	}
@@ -6416,13 +6416,13 @@ func (s *snapmgrTestSuite) TestInstallPathManyClassicAsUpdate(c *C) {
 	var paths []string
 	var sideInfos []*snap.SideInfo
 
-	snapNames := []string{"some-snap", "other-snap"}
+	snapNames := []naming.InstanceName{"some-snap", "other-snap"}
 	for _, name := range snapNames {
 		si := &snap.SideInfo{
-			RealName: name,
+			RealName: name.SnapName().String(),
 			Revision: snap.R("1"),
 		}
-		snapstate.Set(s.state, naming.InstanceName(name), &snapstate.SnapState{
+		snapstate.Set(s.state, name, &snapstate.SnapState{
 			Active:   true,
 			Sequence: snapstatetest.NewSequenceFromSnapSideInfos([]*snap.SideInfo{si}),
 			Current:  si.Revision,
@@ -6435,7 +6435,7 @@ confinement: classic
 		paths = append(paths, makeTestSnap(c, yaml))
 
 		si = &snap.SideInfo{
-			RealName: name,
+			RealName: name.SnapName().String(),
 			Revision: snap.R("2"),
 		}
 		sideInfos = append(sideInfos, si)
@@ -7645,14 +7645,14 @@ func (s *snapmgrTestSuite) testInstallComponentsRunThrough(c *C, opts testInstal
 
 	if opts.undo {
 		var snapst snapstate.SnapState
-		err = snapstate.Get(s.state, naming.InstanceName(instanceName), &snapst)
+		err = snapstate.Get(s.state, instanceName, &snapst)
 		c.Assert(err, testutil.ErrorIs, state.ErrNoState)
 
 		c.Check(backend.AuxStoreInfoFilename(snapID), testutil.FileAbsent)
 	} else {
 		// verify snap in the system state
 		var snapst snapstate.SnapState
-		err = snapstate.Get(s.state, naming.InstanceName(instanceName), &snapst)
+		err = snapstate.Get(s.state, instanceName, &snapst)
 		c.Assert(err, IsNil)
 
 		c.Check(snapst.Active, Equals, true)
@@ -8046,12 +8046,12 @@ components:
 
 	if opts.undo {
 		var snapst snapstate.SnapState
-		err = snapstate.Get(s.state, naming.InstanceName(instanceName), &snapst)
+		err = snapstate.Get(s.state, instanceName, &snapst)
 		c.Assert(err, testutil.ErrorIs, state.ErrNoState)
 	} else {
 		// verify snap in the system state
 		var snapst snapstate.SnapState
-		err = snapstate.Get(s.state, naming.InstanceName(instanceName), &snapst)
+		err = snapstate.Get(s.state, instanceName, &snapst)
 		c.Assert(err, IsNil)
 
 		c.Check(snapst.Active, Equals, true)
@@ -8457,7 +8457,7 @@ func (s *validationSetsSuite) testUpdateComponentsValidationSets(c *C, opts test
 		snap.TestComponent,
 	)})
 
-	snapstate.Set(s.state, naming.InstanceName(instanceName), &snapstate.SnapState{
+	snapstate.Set(s.state, instanceName, &snapstate.SnapState{
 		Active:      true,
 		Sequence:    sequence.SnapSequence{Revisions: []*sequence.RevisionSideState{revisionSideState}},
 		Current:     snap.R(7),
