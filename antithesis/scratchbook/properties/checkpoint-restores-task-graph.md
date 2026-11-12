@@ -66,7 +66,8 @@ The snapshot/comparison mechanism is proposed, not an existing helper API.
 
 **Instrumentation status: missing**, per
 [existing-assertions](../existing-assertions.md#L11). Serialization tests and
-the unrelated existing Hold assertion do not implement this SDK property.
+the current control-flow assertions do not implement this restored-graph
+property.
 
 ## Workload, Fault Timing, and Boundaries
 

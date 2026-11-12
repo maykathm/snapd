@@ -47,9 +47,10 @@ and test-only generation/hash in details. The wrapper and generation ledger
 are proposed instrumentation, not existing APIs or persisted snapd fields.
 
 **Instrumentation status: missing**, per
-[existing-assertions](../existing-assertions.md#L11); the inventory has only
-the change-Hold assertion. Gate the expensive readback to the research build:
-SDK no-op mode does not prevent filesystem argument evaluation.
+[existing-assertions](../existing-assertions.md#L11); the inventory has no
+checkpoint readback oracle. The former broad change-Hold assertion was unrelated
+and has been removed. Gate expensive readback to the research build: SDK no-op
+mode does not prevent filesystem argument evaluation.
 
 ## Workload, Fault Timing, and Boundaries
 

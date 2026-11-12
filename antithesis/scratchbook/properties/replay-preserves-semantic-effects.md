@@ -95,11 +95,11 @@ recovery deadline. These are missing harness mechanisms, not present APIs.
 
 **Missing**, per [existing-assertions.md](../existing-assertions.md): no replay
 effect invariant or do/undo recovery anchors exist. Proposed placement combines
-runner/handler observational outcome anchors with an independent stable checker;
-the existing Hold assertion is not a replay oracle. Fixture choice, barrier,
-preserved storage, fault availability and calibrated quiet budget remain the
-catalog-wide plan in [assertion-placement.md](../assertion-placement.md) and
-[deployment-topology.md](../deployment-topology.md), not existing APIs.
+runner/handler observational outcome anchors with an independent stable checker.
+The former broad Hold assertion was not a replay oracle and has been removed.
+Fixture choice, barrier, preserved storage, fault availability and calibrated
+quiet budget are in the [canonical plan](../implementation-plan.md); placement
+and topology documents retain implementation rationale, not a second plan.
 
 **Open Questions:** None within this initial scope.
 

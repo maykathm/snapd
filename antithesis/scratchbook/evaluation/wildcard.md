@@ -13,6 +13,9 @@ existing assertion inventory, with selected property evidence and local source.
 No SUT changes, external research or spawned agents. Findings are not
 categorized; synthesis belongs to the orchestrator. These are weaknesses in
 the proposed evaluation contract, not confirmed snapd defects.
+Implementation sequencing for these findings is maintained in the single
+[Antithesis implementation plan](../implementation-plan.md); this report retains
+the analysis and discriminating checks.
 
 Other lenses supplied: Antithesis Fit checks sweet spot/types; Coverage Balance
 compares the portfolio to targeted risks; Implementability checks observable,
@@ -46,14 +49,9 @@ the replay evidence says to "independently classify" success or rollback but
 does not specify recovery of an unknown change ID or which failures authorize
 rollback. The retained-resource oracle relies on completed-operation history.
 
-**Suggested action:** ledger intent before sending; distinguish acknowledged,
-definitely rejected and outcome-unknown requests. For the first campaign,
-serialize outstanding requests per full instance and reconcile unknown requests
-with change history before retry/pruning. Do not claim API idempotency or invent
-a supported request token. Define allowed results before faulting: supported
-restart with restored dependencies versus an intentionally failed refresh are
-different experiments. Keep unexpected errors, cancellations and disappearing
-changes visible rather than reclassifying them as expected rollback.
+**Plan disposition:** The shared prerequisite and Workstream 5 require intent
+before submission, explicit unknown-response reconciliation, and predeclared
+allowed outcomes. This remains the ledger contract, not a separate workload plan.
 
 **Discriminating check:** lose the response after change creation, then recover.
 The ledger must account for that operation without blindly resubmitting it.
@@ -82,13 +80,9 @@ before admission. [Replay evidence](../properties/replay-preserves-semantic-effe
 already rejects S1/S2 equality alone and requires both to match the ledger.
 These are sound intended safeguards, not an implemented trust protocol.
 
-**Suggested action:** freeze fixture ID/revision/digest/size and expected tokens
-before the campaign, separately from writable store/SUT state. Declare checker
-restart/fault policy and preserve outstanding intents across permitted restarts.
-Treat missing ledger, manifest, RPC response or eligible resource observations
-as failed checks or explicit invalid experiments, never as no eligible work.
-Record a nonempty cohort witness. Do not duplicate SUT decoding/selection logic
-as the only expected-result computation.
+**Plan disposition:** The shared campaign prerequisites require immutable fixture
+expectations, independent checker/ledger state, and explicit handling of missing
+observations. Checker self-tests remain an acceptance gate for Workstreams 3-5.
 
 **Discriminating check:** checker self-tests must reject a stable wrong revision
 in both S1 and S2, a matching-size wrong blob, and a missing ledger entry. These
@@ -115,12 +109,10 @@ explicitly prevents committed mutation from being rerun. Replay evidence
 requests direction/attempt observations and distinct replay anchors, but its
 S1/S2 experiment begins only after an eligible stable outcome.
 
-**Suggested action:** retain S1/S2 as a stability check with that name. In a
-dedicated replay campaign require the same task ID and direction to have a new
-handler attempt from persisted Doing/Undoing, with a verified effect-before-
-checkpoint interruption. Also interrupt recovery itself and recover again;
-check the original ledger obligations, not a new baseline made from partial
-recovery. No manual handler invocation or status rewriting is needed.
+**Plan disposition:** Workstreams 2 and 5 distinguish in-process status coverage
+from persisted replay. A replay witness must identify the same task and direction
+with a new attempt after a verified effect-before-checkpoint interruption; a
+clean restart is only a stability check.
 
 **Discriminating check:** a clean restart with no resumed task must not satisfy
 the do/undo replay witness. An interrupted recovery must preserve the same
@@ -150,14 +142,10 @@ Replay/retention evidence likewise gates snapshots on drained background work.
 The catalog already recognizes that Settle nil is insufficient, but does not
 state whether barrier failure itself is judged independently.
 
-**Suggested action:** separate closing workload admission, allowing recovery
-execution, and acquiring a bounded read-only snapshot barrier. Run the cohort
-deadline from a checker context that does not wait indefinitely for the barrier;
-a missing stable observation by that deadline cannot silently skip evaluation.
-Prevent new background admissions only at observation, and document any
-campaign-wide suppression as a limitation. Exercise a selected unrelated
-ordinary-app operation during recovery before freezing observations; do not
-expand this into a broad background-feature audit.
+**Plan disposition:** The shared prerequisites require a bounded observation
+barrier that does not stop recovery and an independent liveness deadline. The
+barrier test must include a stuck affecting handler and a due retry, as recorded
+in the canonical plan.
 
 **Discriminating check:** simulate a never-returning affecting handler. The
 deadline must still report the unresolved obligation/barrier timeout. With a
@@ -186,15 +174,11 @@ does not verify a successfully created archive against the fixture sentinel.
 core24 beside hello-world: existing scripts are not proof that each new app
 campaign avoids excluded base/boot lifecycle work.
 
-**Suggested action:** explicitly choose Purge for the initial no-snapshot
-removal campaign and record that restriction. Alternatively, retain default
-removal and add a narrowly scoped snapshot/content expectation for controlled
-tokens, with an interruption between snapshot completion and deletion. Define
-failed destructive removal as partial target loss with unrelated preservation,
-not generic target rollback. Validate provisioned bases and fixture task kinds
-before claiming the ordinary-app campaign excludes boot/self-refresh work;
 unexpected special tasks invalidate that campaign claim rather than being
-silently filtered from its ledger.
+**Plan disposition:** Workstream 5 requires an explicit purge-versus-snapshot
+choice, survivor checks after terminal failures, and validation that fixtures do
+not introduce excluded base/boot work. This report retains the ownership and
+snapshot rationale.
 
 **Discriminating check:** compare full-removal task plans with and without
 Purge. For a default-removal fixture, a wrong/missing expected saved sentinel
@@ -209,8 +193,8 @@ bounded app/snapshot interaction, not a full snapshot, Core or security audit.
 - Disabled apps, non-last deletion, shared ownership and destructive-removal
   limits are already distinguished. Parallel instances/components are openly
   deferred rather than accidentally advertised as covered.
-- The sole existing Hold assertion is inventoried and its premise challenged;
-  no duplicate instrumentation is proposed by this evaluation.
+- The former broad Hold assertion was inventoried and its premise challenged;
+  it has since been removed and replaced by scoped cancellation checks.
 
 ## Assumptions And Uncertainties
 

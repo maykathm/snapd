@@ -8,10 +8,11 @@ external_references: []
 # Antithesis Fit Evaluation
 
 Scope answer (verbatim): "just this directory".
-Fresh evaluation of the eighteen-property targeted portfolio, not discovery.
-No properties, harness files or production instrumentation were changed.
-Observation categories below describe this lens's concerns; synthesis owns
-subsequent classification and disposition.
+Evaluation of the then-current eighteen-property portfolio, not discovery.
+Subsequent implementation and portfolio changes are recorded elsewhere.
+Observation categories below describe this lens's concerns; the single
+[implementation plan](../implementation-plan.md) owns current sequencing and
+disposition.
 
 ## Basis and Overall Assessment
 
@@ -59,12 +60,10 @@ return counts primarily observe that loop. `TestEnsure` and `TestEnsureError`
 and continuing after errors. A stalled manager never reaches the assertion;
 pausing it does not turn this completion check into progress verification.
 
-**Action:** retain cheap checks if useful for regression detection and reporting
-smoke tests, with focused deterministic tests for their gates. Do not allocate
-dedicated fault campaigns to them or treat passing them as persistence/progress
 evidence. Move search effort to `checkpoint-crash-generations`,
-`checkpoint-readback-matches`, `ensure-requests-progress` and replay outcomes.
-Do not lower integrity severity solely because local control flow is simple.
+**Plan disposition:** The current plan retains these inexpensive checks as
+regression/reporting safeguards and prioritizes independent persistence,
+progress and replay outcomes for campaign effort.
 
 ### Search Budget: Fixed Inputs Versus History-Sensitive Oracles
 
@@ -87,11 +86,9 @@ and cache reuse validates a history-sensitive content acceptance boundary.
 The catalog explicitly names these histories and restricts digest checking to
 known signed fixtures, so the latter is a good fit rather than redundant hashing.
 
-**Action:** unit-test projection normalization and predicates first. Retain these
-assertions as companion oracles in lifecycle/recovery/download campaigns;
-require varied revisions, graphs and resume/cache histories rather than spending
-search budget on repeated unchanged projections. Report the exercised history
-in details. No priority reduction is warranted for accepted-content safety.
+**Plan disposition:** Workstreams 3-5 use the source checks as companion oracles
+to history-sensitive fixture campaigns; projection normalization and incorrect
+content are covered by deterministic oracle tests first.
 
 ### Assertion Types: Optional Safety Needs Scenario Coverage
 
@@ -107,15 +104,9 @@ mean the path never occurred. The catalog already reserves mandatory Reachable
 coverage for a dedicated campaign that constructs the outcome; semantic replay
 explicitly supplies distinct do/undo outcome anchors.
 
-**Action:** make that campaign policy an acceptance gate, not an inference from
-the safety result. Dedicated checkpoint, rollback, cancellation and cleanup
-campaigns should each name the relevant outcome witness, with safety evaluated
-separately. For example, witnessing an abort request is not witnessing its race
-with successful completion; entering cleanup is not witnessing the guarded
-successful clean commit. Do not require these outcomes in unrelated templates,
-replace their safety checks with Sometimes, or force SUT statuses to obtain
-coverage. This is a handoff requirement, not a claim that the current catalog
-incorrectly chose its optional assertion types.
+**Plan disposition:** The canonical plan requires campaign-specific Reachable
+witnesses separate from optional safety checks. It does not force rare outcomes
+in unrelated templates or replace safety assertions with `Sometimes`.
 
 ### Replay Guidance: Outcomes and Dangerous Windows Are Complementary
 
@@ -139,15 +130,9 @@ one successful recovery establish that every interrupted obligation resolved.
 The independent ledger and second stable recovery comparison are stronger
 semantic oracles than invocation counts or equality with partial pre-crash state.
 
-**Action:** preserve distinct do/undo outcome anchors and associate them with
-observational window markers around external effects and durable completion.
-Use fixed messages and put incarnation, task, direction, attempt and generation
-in details. For semantic Sometimes guidance, use a meaningful witnessed state
-such as consistent recovery following interruption, not `Sometimes(true)`.
-Use Reachable for a pure window/outcome visit. Keep markers non-mutating and
-cheap; they guide search/replay but neither prove durability nor replace the
-stable safety and finite-cohort checks. Confirm actual encounter frequency in
-an isolated pilot before claiming these anchors make rare windows accessible.
+**Plan disposition:** Workstreams 2, 4 and 5 require distinct fixed-message
+outcome witnesses and task/direction/attempt details. Window visits remain
+separate from recovered outcomes and from the stable safety/cohort oracles.
 
 ### Reliability Blockers: Faults, Quiet Oracles and Finite Progress
 
@@ -173,34 +158,21 @@ actual binary/catalog reporting unresolved. These are material fit conditions:
   binaries emit catalogs and report encounters. Existing hello-world execution
   is not a verified crash template or independent recovery oracle.
 
-**Action:** keep high-fit recommendations conditional. Verify termination and
-storage, barrier behavior, reporting and quiet deadlines in disposable runs
-before declaring readiness or allocating sustained search budget. If crash
-support cannot be demonstrated, run pause/interleaving campaigns only and mark
-crash properties unexercised, not passed. Retain universal cohort deadline checks
-alongside Sometimes guidance; track interruption/recovery witnesses separately
-so an unvisited recovery scenario cannot masquerade as successful recovery.
+**Plan disposition:** The shared prerequisites gate faulted runs on verified
+fault routing, storage, reporting, a safe observation barrier and an independent
+quiet deadline. Unsupported crash scenarios remain unexercised, not passed.
 
-### Existing Instrumentation: Hold Is Not Cancellation Failure
+### Historical Finding: Hold Is Not Cancellation Failure
 
 **Properties:** `abort-wins-completion-race`; recovery/rollback campaigns that
 can legitimately abort pending work.
-**Scope:** property-specific existing assertion premise.
-**Blocking trustworthy cancellation findings** if left as the sole active
-correctness instrumentation in the campaign.
+**Scope:** property-specific historical assertion premise. This finding has
+since been resolved by the scoped cancellation implementation.
 
-`existing-assertions.md` inventories `Always(new != HoldStatus)` with message
-`change never enters hold status` at `overlord/state/change.go:451`. It cites
-explicit Hold and all-pending abort paths and their tests as legitimate behavior.
-The catalog correctly invalidates the broad premise and proposes scoped
-cancellation transitions instead. Fault exploration can therefore report an
-expected Hold as a property failure before testing the intended cancellation
-race contract. This is a known instrumentation mismatch, not a new snapd defect.
-
-**Action:** in the later implementation pass, correct the existing premise rather
-than duplicate it. Validate legitimate Hold cases and cancellation-race cases
-deterministically, then use race exploration with the scoped invariant. Until
-then, identify this message as an invalid oracle, not evidence of broken replay.
+The former broad `change never enters hold status` assertion was removed.
+Explicit Hold remains a supported outcome; scoped setter/finalization checks and
+the accepted-abort scenario now cover the intended cancellation boundary. This
+was an instrumentation mismatch, not a snapd defect.
 
 ## Portfolio Passes
 
