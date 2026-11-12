@@ -330,6 +330,7 @@ parts:
             lib/snapd/snapctl)
 
       for cmd in "${CMDS[@]}"; do
+        RACE_FLAGS=()
         case "${cmd}" in
            # FIXME: some binaries need to be run confined in apps. But
            # instead we should allow apps to access dynamic linkers
@@ -359,7 +360,9 @@ parts:
                  # https://bugs.launchpad.net/ubuntu/+source/snapd/+bug/1822738
                  ;;
                *)
-                 GO_LD_FLAGS+=(-buildmode=pie)
+                  if [ "${cmd}" != lib/snapd/snapd ]; then
+                    GO_LD_FLAGS+=(-buildmode=pie)
+                  fi
                  ;;
              esac
              unset CHECK_STATIC
@@ -395,7 +398,11 @@ parts:
          esac
 
         output="${CRAFT_PART_INSTALL}/usr/${cmd}"
-        go build -mod=mod -tags "${TAGS[*]}" "${GO_LD_FLAGS[@]}" ${EXTRA_GO_FLAGS-} -o "${output}" "github.com/snapcore/snapd/cmd/$(basename ${cmd})"
+        GO_RACE_FLAG=
+        if [ "${cmd}" = lib/snapd/snapd ]; then
+          GO_RACE_FLAG=-race
+        fi
+        go build -mod=mod -tags "${TAGS[*]}" "${GO_LD_FLAGS[@]}" ${EXTRA_GO_FLAGS-} ${GO_RACE_FLAG} -o "${output}" "github.com/snapcore/snapd/cmd/$(basename ${cmd})"
         if [ "${CHECK_STATIC-}" = 1 ]; then
           if objdump -p "${output}" | grep INTERP; then
             echo "${output} is not static!" 1>&2
