@@ -1,0 +1,8 @@
+#!/bin/sh
+set -eu
+
+mkdir -p "$SNAP_COMMON"
+printf '%s\n' started > "$SNAP_COMMON/install-started"
+while [ ! -e "$SNAP_COMMON/release-install" ]; do
+    sleep 0.1
+done

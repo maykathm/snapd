@@ -5,7 +5,7 @@ set -euo pipefail
 
 script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 
-if ! [ -d "$script_dir/../built-snap" ]; then
+if ! find "$script_dir/../built-snap" -maxdepth 1 -type f -name "*.snap.keep" -print -quit | grep -q .; then
 	(
 		cd "$script_dir"/../
 		tests/build-test-snapd-snap
@@ -39,7 +39,7 @@ cat > "$PREP_DIR"/fakestore.dockerfile << EOF
 FROM scratch
 COPY fakestore-image.tar.gz /fakestore-image.tar.gz
 EOF
-docker build -t snapd-fakestore -f fakestore.dockerfile .
+tar -cf - fakestore.dockerfile fakestore-image.tar.gz | docker build -t snapd-fakestore -f fakestore.dockerfile -
 
 bash "$script_dir/build-testing-image.sh" "$SNAPD_SNAP_PATH" "$PREP_DIR/testing-image.tar.gz"
 cat > "$PREP_DIR"/testing-image.dockerfile << EOF
@@ -47,7 +47,7 @@ FROM scratch
 COPY testing-image.tar.gz /testing-image.tar.gz
 COPY symbols /symbols
 EOF
-docker build -t snapd-testing-image -f "$PREP_DIR"/testing-image.dockerfile .
+tar -cf - testing-image.dockerfile testing-image.tar.gz symbols | docker build -t snapd-testing-image -f testing-image.dockerfile -
 
 wget https://github.com/canonical/spread-plus/releases/download/2026.09.22/spread-plus-amd64.tar.gz
 tar -xf spread-plus-amd64.tar.gz -C "$PREP_DIR"
@@ -68,6 +68,6 @@ COPY incus-discard.sh /incus-discard.sh
 COPY run.sh /run.sh
 EOF
 
-docker build -t snapd-run-on-host -f "$PREP_DIR"/run-on-host.dockerfile .
+tar -cf - run-on-host.dockerfile spread-plus spread.yaml tests incus-allocate.sh incus-discard.sh run.sh | docker build -t snapd-run-on-host -f run-on-host.dockerfile -
 
 popd

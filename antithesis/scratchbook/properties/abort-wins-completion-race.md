@@ -3,10 +3,8 @@
 ## Scope and Property
 
 Scope answer (verbatim): "just this directory". External references: `[]`.
-Evidence revision: `e88ec08852fbc8af019dc39e22097e5720aa6dfd` (2026-10-13).
-Source implementation follow-up: HEAD `47c5d1a904a84975393d03359ded48d78d2840f6`
-plus working-tree changes (2026-10-14).
-Focus: concurrency, lifecycle and replay; source-only cancellation checks.
+Evidence revision: `d7d23f20732844eb538dab1169f8b8b372376911` (2026-11-12).
+Focus: concurrency, lifecycle and replay; source and workload cancellation checks.
 
 Priority: **P0 (critical)**. Type: **Safety**. Confidence: **high** for the
 locked transition contract; this does not prove rollback eventually succeeds.
@@ -17,11 +15,14 @@ Abort into its defined undo/hold/error path rather than ordinary success.
 
 ## Code and Test Evidence
 
-- [overlord/state/change.go](../../../overlord/state/change.go#L685), `Change.Abort`, and
-  [overlord/state/change.go](../../../overlord/state/change.go#L792), `abortTasks`:
+- [overlord/state/change.go](../../../overlord/state/change.go#L680), `Change.Abort`, and
+  [overlord/state/change.go](../../../overlord/state/change.go#L787), `abortTasks`:
   pending Do becomes Hold, Doing becomes Abort and Done becomes Undo. Effective
   Wait status is used. AbortLanes can preserve a task sharing a healthy lane;
   do not apply this property to every task merely because a lane was aborted.
+- [overlord/state/change.go](../../../overlord/state/change.go#L802), `abortTasks`:
+  a fixed-message `Reachable` anchor fires only when an in-flight Doing task is
+  accepted into AbortStatus; pending, terminal and rejected aborts do not fire it.
 - [overlord/state/task.go](../../../overlord/state/task.go#L262), `SetStatus`:
   a requested Done when old status is Abort is ignored.
 - [overlord/state/task.go](../../../overlord/state/task.go#L282), `SetToWait`:
@@ -35,7 +36,7 @@ Abort into its defined undo/hold/error path rather than ordinary success.
   Abort at [overlord/state/taskrunner.go](../../../overlord/state/taskrunner.go#L286)
   becomes Undo and requests another pass. Non-retry/wait errors abort lanes
   and set Error, not Done.
-- [overlord/state/taskrunner.go](../../../overlord/state/taskrunner.go#L366), `tryUndo`:
+- [overlord/state/taskrunner.go](../../../overlord/state/taskrunner.go#L417), `tryUndo`:
   knowingly aborted work without undo becomes Hold; otherwise it becomes Undo.
 - [overlord/state/task_test.go](../../../overlord/state/task_test.go#L147),
   `TestSetDoneAfterAbortNoop`, and
@@ -51,6 +52,13 @@ Abort into its defined undo/hold/error path rather than ordinary success.
 - [overlord/state/taskrunner_test.go](../../../overlord/state/taskrunner_test.go#L581),
   `TestUndoSingleLane`: an explicit Done attempt in a slow handler races with
   lane failure; final tasks are Undone/Hold except the failing task's Error.
+- [overlord/state/taskrunner_assertions_test.go](../../../overlord/state/taskrunner_assertions_test.go#L40),
+  `TestAcceptedAbortAssertion`: local SDK output confirms one Reachable encounter
+  for the accepted Doing-to-Abort transition.
+- [tests/main/abort-accepted/task.yaml](../../../tests/main/abort-accepted/task.yaml):
+  holds a local snap's install hook until the change is Doing, requests abort,
+  then verifies terminal task statuses and absence of the installed snap and
+  revision resources.
 
 ## SDK Checks and Safe Condition
 
@@ -117,12 +125,17 @@ Existing locking, callbacks, status transitions and Ensure requests are unchange
 messages with true conditions and `must_hit: false`. Ordinary test execution
 does not establish actual harness cataloging or tenant reporting.
 
-**Deferred**: a dedicated cancellation workload and its accepted-cancellation
-Reachable outcome anchor, cataloged harness-binary verification and campaign
-validation. Do not add mandatory outcome coverage to unrelated workloads.
-The user approved a source-only correction and unit tests while preserving the
-existing Incus/Spread harness. `snouty` 0.7.2 was installed user-locally, but no
-runnable Compose configuration exists for workload-skill validation.
+**Implemented locally**: the accepted-abort Reachable anchor, its SDK-output
+unit test, and the `abort-accepted` Spread task are present. The task passed as
+one job in the local disposable Incus harness against the rebuilt race-enabled
+snap. The SUT-side local SDK JSONL recorded the Reachable event with a true
+condition and the accepted change/task IDs. The original selected unfaulted
+baseline passed ten jobs; the refreshed selection passed eleven jobs, including
+`abort-accepted`. The host Spread runner's own `sdk.jsonl` contains only
+setup-complete because the local SUT does not receive Antithesis'
+`ANTITHESIS_OUTPUT_DIR` mount; actual tenant reporting and thread-pausing
+campaign encounters remain unverified. Do not add mandatory outcome coverage
+to unrelated workloads.
 
 ## Open Questions
 
@@ -137,6 +150,7 @@ success or monotonic no-Done guarantee is claimed.
   completion branches, tryUndo and no-undo Ensure; direct guard and runner tests.
 - Found: pending/no-undo abort can Hold; nil/Abort goes to Undo even without undo;
   later no-undo Undo can become Done; healthy shared lanes can survive lane abort.
-- Missing: scoped SDK checks; no unresolved local transition rule remains.
+- Missing: a faulted Antithesis encounter and tenant-side reporting; no unresolved
+  local transition rule remains.
 - Conclusion: reject the existing global no-Hold premise and assert the exact
   immediate race transition instead of inventing blanket terminal-status rules.

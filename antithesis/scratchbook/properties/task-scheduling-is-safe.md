@@ -3,7 +3,7 @@
 ## Scope and Property
 
 Scope answer (verbatim): "just this directory". External references: `[]`.
-Evidence revision: `e88ec08852fbc8af019dc39e22097e5720aa6dfd` (2026-10-13).
+Evidence revision: `d7d23f20732844eb538dab1169f8b8b372376911` (2026-11-12).
 Focus: concurrency and replay; evidence only.
 
 Priority: **P0 (critical)**. Type: **Safety**. Confidence: **high** for runner
@@ -14,22 +14,22 @@ handler or cleanup for that task in the same runner incarnation.
 
 ## Code and Test Evidence
 
-- [overlord/state/taskrunner.go](../../../overlord/state/taskrunner.go#L383), `Ensure`:
+- [overlord/state/taskrunner.go](../../../overlord/state/taskrunner.go#L434), `Ensure`:
   holds `r.mu`, then the state lock; stopped runners return without dispatch.
   Unknown kinds with nil do handlers are skipped, including kinds owned by
   another runner. An existing task tomb prevents another dispatch or cleanup.
-- [overlord/state/taskrunner.go](../../../overlord/state/taskrunner.go#L491), `mustWait`:
+- [overlord/state/taskrunner.go](../../../overlord/state/taskrunner.go#L570), `mustWait`:
   fresh Do waits for every WaitTask to be Done; fresh Undo waits for every
   HaltTask to be ready. Doing and Undoing deliberately bypass these dependency
   checks to resume previously attempted work. Wait is not dispatched.
-- [overlord/state/taskrunner.go](../../../overlord/state/taskrunner.go#L447): Undo without
+- [overlord/state/taskrunner.go](../../../overlord/state/taskrunner.go#L498): Undo without
   an undo handler waits for dependencies first, then becomes Done without a
   handler invocation. This does not license nil-handler dispatch.
-- [overlord/state/taskrunner.go](../../../overlord/state/taskrunner.go#L458): a future
+- [overlord/state/taskrunner.go](../../../overlord/state/taskrunner.go#L510): a future
   AtTime prevents dispatch; Ensure tracks the earliest future schedule. Blocking
   predicates see existing tomb tasks and previously dispatched tasks appended
   to `running` during this pass. The predicates can be stateful.
-- [overlord/state/taskrunner.go](../../../overlord/state/taskrunner.go#L192), `run`:
+- [overlord/state/taskrunner.go](../../../overlord/state/taskrunner.go#L194), `run`:
   selects direction, promotes Do/Undo to Doing/Undoing, clears AtTime, publishes
   a tomb before starting the handler, and finalizes under the same lock order.
   Handler return precedes tomb removal. Single flight is about handler activity,
@@ -38,25 +38,36 @@ handler or cleanup for that task in the same runner incarnation.
   `sequenceTests`, executed by
   [overlord/state/taskrunner_test.go](../../../overlord/state/taskrunner_test.go#L150),
   `TestSequenceTests`: dependency sequencing, resumed Doing, retries and rollback.
-- [overlord/state/taskrunner_test.go](../../../overlord/state/taskrunner_test.go#L861),
+- [overlord/state/taskrunner_test.go](../../../overlord/state/taskrunner_test.go#L939),
   `TestRetryAfterDuration`: Doing remains scheduled and cannot rerun too early;
   at eligibility it reruns, completes and clears its schedule.
-- [overlord/state/taskrunner_test.go](../../../overlord/state/taskrunner_test.go#L938),
+- [overlord/state/taskrunner_test.go](../../../overlord/state/taskrunner_test.go#L1016),
   `testTaskSerialization`, and its SetBlocked/AddBlocked callers at
-  [overlord/state/taskrunner_test.go](../../../overlord/state/taskrunner_test.go#L1014)
-  and [overlord/state/taskrunner_test.go](../../../overlord/state/taskrunner_test.go#L1030):
+  [overlord/state/taskrunner_test.go](../../../overlord/state/taskrunner_test.go#L1092)
+  and [overlord/state/taskrunner_test.go](../../../overlord/state/taskrunner_test.go#L1108):
   a repeated Ensure cannot start another task while the predicate blocks it;
   completing the first requests a new pass.
-- [overlord/state/taskrunner_test.go](../../../overlord/state/taskrunner_test.go#L1120),
+- [overlord/state/taskrunner_test.go](../../../overlord/state/taskrunner_test.go#L1198),
   `TestUndoSequence`: reverse dependency ordering across tasks without undo.
+- [overlord/state/taskrunner.go](../../../overlord/state/taskrunner.go#L541), `Ensure`:
+  an `Always` check immediately before `run` validates a dispatch snapshot using
+  the already-captured status, handler pair, tomb, dependency-blocked result,
+  retry-due result and short-circuiting blocked-predicate result.
+- [overlord/state/taskrunner_assertions_test.go](../../../overlord/state/taskrunner_assertions_test.go#L99),
+  `TestTaskDispatchAssertion`: isolated SDK-output cases cover Do/Undo, Doing/
+  Undoing replay with unsatisfied fresh dependencies, blocked Do/Undo, a future
+  retry time and a stateful blocker evaluated exactly once.
 
-## Proposed SDK Check and Safe Condition
+## Implemented SDK Check and Safe Condition
 
 `Always(dispatchSnapshotIsEligible, "task dispatch respects runner scheduling
-gates", details)` at the call to `run` verifies every actual do/undo dispatch.
-The predicate is proposed; details contain runner incarnation, task/change ID,
-pre-dispatch status, direction, AtTime, ensureTime, dependency statuses, prior
-active count and the already-evaluated blocking decisions.
+gates", details)` runs immediately before `run`. The snapshot uses the actual
+status after Abort-to-Undo/Hold handling, the captured handler pair, whether a
+tomb already existed, the single status-sensitive `mustWait` result, whether
+AtTime was due, and the result of the blocked-predicate loop. The predicates are
+not invoked again for the assertion. Details record task/change ID, kind,
+status, direction, handler availability, active-tomb result, dependency-blocked
+result, retry-due result, blocker result and retry time.
 
 | Pre-dispatch status | Required dependency gate | Other dispatch gates |
 | --- | --- | --- |
@@ -73,10 +84,8 @@ uses a separate readiness property and bypasses normal do/undo gates.
 Capture inputs before `run` changes status and clears schedule. Record existing
 predicate results; **do not invoke predicates again** for an assertion, since
 even test predicates mutate observational state. Record preexisting activity
-before inserting the new tomb. If tracking active callbacks separately, cover
-handler and cleanup entry/return and keep counts scoped to runner plus task.
-Always fits encountered dispatch safety; optional recovery branch checkpoints
-may use distinct Reachable messages for resumed do and resumed undo outcomes.
+before inserting the new tomb. The guard is runner-local: it does not assert
+global ownership across TaskRunner instances or process incarnations.
 
 Single flight is **per runner**, not global across independent TaskRunner
 instances or across process incarnations. Ownership discipline is a separate
@@ -93,18 +102,20 @@ before and after eligibility. Pauses explore same-pass and cross-pass overlap;
 restart explores replay direction. Premature or duplicate dispatch can corrupt
 external effects, run undo out of order or violate subsystem blocking contracts.
 
-Cheap discriminating check: compare `mustWait`'s switch with the status table,
-and TestRetryAfterDuration's intermediate Doing expectation with the AtTime gate.
-Code and test expectations were inspected; no tests were run in this pass.
+Validation: `TestTaskDispatchAssertion`, `TestRetryAfterDuration`, the full
+`overlord/state` race suite, and the SDK-disabled state suite passed. The local
+SDK matrix observed encounters for all four dispatch statuses and no encounters
+for blocked, not-due, or predicate-blocked cases. It simulates Doing/Undoing
+status replay in-process; it does not test persistence across a daemon restart.
 
 ## Instrumentation Status
 
-**Missing**: dispatch snapshot SDK check and per-runner activity evidence.
-The tomb map implements a gate, not an SDK invariant; the proposed do/undo
-Reachable replay anchors are also missing.
-[antithesis/scratchbook/existing-assertions.md](../existing-assertions.md)
-lists no runner scheduling assertion. SUT-side placement is needed because an
-eventual correct outcome can conceal transient duplicate or premature execution.
+**Implemented locally**: the dispatch snapshot `Always` check and its focused
+SDK-output matrix are present. The tomb map remains the single-flight gate; the
+assertion verifies its pre-dispatch state. No Reachable replay anchors or
+persistent Doing/Undoing restart scenario have been added. SUT-side placement is
+needed because an eventual correct outcome can conceal transient duplicate or
+premature execution.
 
 ## Open Questions
 
@@ -119,7 +130,8 @@ handler-effect idempotence are explicitly outside this property's premise.
   serialization and undo-sequence tests; the supplied Overlord task guidance.
 - Found: dependency gates differ by status; AtTime and blocking still apply to
   replay; tomb ownership is per runner; no-undo Undo is a non-dispatch transition.
-- Missing: runtime assertion accounting; no global lock/ownership guarantee was
-  found in this runner boundary, and none is assumed.
-- Conclusion: resolved with status-specific dispatch snapshots and explicitly
+- Missing: restart-based Doing/Undoing replay and real faulted-campaign runtime
+  accounting; no global lock/ownership guarantee was found in this runner
+  boundary, and none is assumed.
+- Conclusion: implemented status-specific dispatch snapshots and explicitly
   runner-local single flight, without an exactly-once or lane-serialization claim.

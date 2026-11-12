@@ -1,7 +1,7 @@
 ---
 sut_path: /home/katie.may@canonical.com/source/snapd
-commit: 114df3f4470d29b961205b33b56574dcb468514b
-updated: 2026-10-15
+commit: d7d23f20732844eb538dab1169f8b8b372376911
+updated: 2026-11-12
 external_references: []
 ---
 
@@ -16,9 +16,18 @@ Scope answer (verbatim): "just this directory".
 | `overlord/state/state.go:308` | `State.Unlock` deferred postcondition | `Always` | `dirty unlock completes checkpoint before releasing state lock` |
 | `overlord/state/task.go:273` | `Task.SetStatus` deferred postcondition | `AlwaysOrUnreachable` | `aborted task rejects competing done commit` |
 | `overlord/state/task.go:306` | `Task.SetToWait` deferred postcondition | `AlwaysOrUnreachable` | `aborted task rejects competing wait commit` |
-| `overlord/state/taskrunner.go:327` | `TaskRunner.run` locked finalization | `AlwaysOrUnreachable` | `aborted handler completion follows cancellation transition` |
-| `overlord/snapstate/snapstate.go:4064` | `Set` locked SnapState replacement | `Always` | `committed app current belongs to its revision sequence` |
+| `overlord/state/taskrunner.go:328` | `TaskRunner.run` locked finalization | `AlwaysOrUnreachable` | `aborted handler completion follows cancellation transition` |
+| `overlord/snapstate/snapstate.go:4254` | `Set` locked SnapState replacement | `Always` | `committed app current belongs to its revision sequence` |
 | `overlord/stateengine.go:192` | `StateEngine.Ensure` deferred completion check | `Always` | `completed ensure pass visits every registered manager` |
+| `overlord/state/taskrunner.go:542` | `TaskRunner.Ensure` captured dispatch gates | `Always` | `task dispatch respects runner scheduling gates` |
+| `overlord/state/taskrunner.go:364` | `TaskRunner.clean` cleanup admission | `AlwaysOrUnreachable` | `cleanup starts only after owning change is ready` |
+| `overlord/state/taskrunner.go:352` | `TaskRunner.clean` no-handler clean commit | `AlwaysOrUnreachable` | `runner clean commit follows eligible cleanup or no-handler path` |
+| `overlord/state/taskrunner.go:386` | `TaskRunner.clean` successful cleanup commit | `AlwaysOrUnreachable` | `runner clean commit follows eligible cleanup or no-handler path` |
+| `overlord/state/change.go:802` | `Change.abortTasks` accepted in-flight abort | `Reachable` | `snap abort accepted during in-flight task` |
+| `store/store_download.go:170` | `Store.Download` recovered valid cache entry | `Reachable` | `snap download recovered a valid cache entry` |
+| `store/store_download.go:179` | `Store.Download` rejected wrong-size cache entry | `Reachable` | `snap download rejected a wrong-size cache entry` |
+| `store/store_download.go:256` | `Store.Download` nonzero-offset resume | `Reachable` | `snap download resumes from a nonzero offset` |
+| `store/store_download.go:282` | `Store.Download` hash-error retry | `Reachable` | `snap download retries after a hash mismatch` |
 
 The source-only follow-up removes the broad `change never enters hold status`
 assertion. Explicit Hold and aborting pending work are supported outcomes, not
@@ -60,29 +69,40 @@ Generated artifacts and external binaries are not treated as SUT source.
 
 ## Current Coverage Assessment
 
-The source inventory now includes six SDK assertion callsites: one dirty-
-checkpoint control-flow assertion, three optional cancellation-transition
-assertions in `overlord/state`, and the Current/Sequence membership assertion in
-`overlord/snapstate`, plus completed Ensure-pass visitation in `overlord`.
-No SUT `Sometimes`, `Reachable`
-or `Unreachable` callsites were found. This is narrow internal instrumentation,
-not implementation of the nineteen-property portfolio in `property-catalog.md`.
+The source inventory includes fifteen SDK assertion callsites and fourteen
+unique property messages. It covers the existing state, snapstate and
+state-engine checks; task dispatch, cleanup and accepted abort; and four
+download-path `Reachable` anchors for resume, cache recovery, wrong-size cache
+rejection and hash-error retry. No SUT `Sometimes` or `Unreachable` callsites
+were found. This remains narrow instrumentation, not implementation of the
+nineteen-property portfolio in `property-catalog.md`.
 
-The eleven selected Spread tests exercise local install, refresh, revert,
-interface and service rollback, parallel instances and removal. State-changing
-operations should encounter the dirty-Unlock guard. Failed multi-service and
-refresh operations can exercise task cancellation, but the selected scenarios
-do not guarantee competing Done/Wait setters or aborted-handler finalization.
-Actual encounter counts require observing a run; no campaign coverage is claimed.
-Their shell checks are scenario checks, not additional SDK assertion callsites.
+The four download anchors have a focused SDK-output matrix over the existing
+store tests; all emitted one true `Reachable` event. They record recovery-path
+encounters only. They do not compare accepted content to an independent fixture
+manifest, validate retained blobs, or establish that a faulted Antithesis run
+encounters these paths.
+
+The original nine-test baseline exercised local install, refresh, revert,
+interface and service rollback, parallel instances and removal. It ran as ten
+jobs because `install-refresh-remove-hooks` has `regular` and `parallel`
+variants. All ten jobs succeeded with zero aborted tasks on disposable Ubuntu
+26.04 Incus containers. After Workstream 2, the refreshed selection ran all
+eleven jobs, including `abort-accepted`, against the rebuilt artifact; all
+eleven succeeded with zero aborted tasks. The abort task also passed separately
+before the refreshed run. These are unfaulted scenario results, not a faulted
+Antithesis campaign. The scenarios do not guarantee competing Done/Wait setters
+or aborted-handler finalization.
 
 The current selection is defined by symlinks in `antithesis/tests/main/`, not
 the older first-series/future-campaign recommendations in the topology notes:
-`revert-sideload`, `install-refresh-remove-hooks`, `refresh-undo`,
+`abort-accepted`, `revert-sideload`, `install-refresh-remove-hooks`, `refresh-undo`,
 `op-install-failed-undone`, `services-disabled-kept-unhappy`,
-`parallel-install-basic`, `parallel-install-common-dirs-undo`,
-`connections-after-failed-refresh`, `services-multi-service-failing`,
-`op-remove-retry`, and `connect-undo`. Selection is not evidence of execution.
+`parallel-install-common-dirs-undo`, `connections-after-failed-refresh`,
+`services-multi-service-failing`, and `op-remove-retry`. The original nine were
+executed as ten jobs in the original baseline. The refreshed eleven-job run
+executed all ten selected symlink targets, including both hook variants and
+`abort-accepted`. Selection alone is not evidence of execution.
 
 Important proposed checks remain absent: independent checkpoint readback,
 stable active links/resources and replay-safe lifecycle
@@ -92,13 +112,22 @@ not currently independently verify rollback isolation, mounted resources or cras
 The dirty-Unlock assertion observes the same checkpoint-success branch it guards;
 it cannot by itself catch incorrect bytes written by a successful backend.
 
-Artifact preparation now stages extracted catalog data at `/symbols` in the
-`snapd-testing-image` scratch image, rather than extracting `/catalog` into the
-Incus container. The existing local snap failed the earlier catalog extraction
-check because it contained no catalog directory. Build wiring therefore does not
-establish that the actual artifact has cataloged these six messages or reports
-them in Antithesis. Rebuild and inspect the instrumented snap and then verify
-runtime encounters before treating the campaign as assertion-enabled.
+The rebuilt artifact `built-snap/snapd_1337.2.78_amd64.snap.keep` is 74 MB.
+It contains the snapd daemon built with `-race` and 208 Go `*.sym.tsv` coverage
+symbol files under `catalog/`.
+All ten unique assertion message literals are embedded in the daemon. The pinned SDK
+generates assertion catalog registrations as Go init code, so these are not
+separate files under `catalog/`.
+
+A local SDK-output probe against the updated isolated testing image recorded
+eight runtime hits across eight properties; every hit condition was true. The
+hits covered dirty-Unlock checkpointing, Current/Sequence membership,
+Ensure-pass visitation, task dispatch, cleanup admission/commit, accepted abort
+and aborted-handler completion. The competing Done/Wait setter assertions were
+cataloged but not encountered. The host Spread runner's `sdk.jsonl` contained
+only its setup-complete event because the local Incus SUT does not receive
+Antithesis' `ANTITHESIS_OUTPUT_DIR` mount. This verifies local SDK output, not
+reporting in a real Antithesis run.
 
 The 2026-10-15 source follow-up implements the existing membership property; it
 does not add property IDs or repeat portfolio evaluation. The new tests inspect
@@ -131,7 +160,7 @@ SDK package presence does not imply every build produces an assertion catalog.
 
 ## Open Questions
 
-Confirm assertion catalog generation for the actual harness binary before a run.
-Confirm which optional cancellation assertions the selected Spread tests encounter.
-No dedicated cancellation test template or instrumented campaign validation was
-added by this status pass.
+Confirm runtime reporting in an Antithesis run and which optional cancellation
+assertions the selected workload encounters. The repository does not configure
+network or disk fault injection, so the baseline does not establish tenant
+fault semantics or disk error/corruption behavior.

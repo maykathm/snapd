@@ -3,7 +3,7 @@
 ## Scope and Property
 
 Scope answer (verbatim): "just this directory". External references: `[]`.
-Evidence revision: `e88ec08852fbc8af019dc39e22097e5720aa6dfd` (2026-10-13).
+Evidence revision: `d7d23f20732844eb538dab1169f8b8b372376911` (2026-11-12).
 Focus: lifecycle, concurrency and replay; evidence only.
 
 Priority: **P1 (high)**. Type: **Safety**. Confidence: **high** for readiness
@@ -14,10 +14,10 @@ is ready. Readiness permits cleanup; it does not mean cleanup has completed.
 
 ## Code and Test Evidence
 
-- [overlord/state/taskrunner.go](../../../overlord/state/taskrunner.go#L383), `Ensure`:
+- [overlord/state/taskrunner.go](../../../overlord/state/taskrunner.go#L434), `Ensure`:
   skips an existing task tomb, then routes ready, not-clean tasks to `clean`.
   A single task becoming ready is insufficient to authorize its cleanup.
-- [overlord/state/taskrunner.go](../../../overlord/state/taskrunner.go#L314), `clean`:
+- [overlord/state/taskrunner.go](../../../overlord/state/taskrunner.go#L342), `clean`:
   first checks `t.Change().IsReady()`. Without a cleanup handler it calls SetClean;
   otherwise it publishes a tomb and starts cleanup asynchronously. Completion
   reacquires runner/state locks; only a nil tomb result makes the runner call
@@ -37,10 +37,10 @@ is ready. Readiness permits cleanup; it does not mean cleanup has completed.
   tasks' clean flags are set. This is an existing guard, not an SDK assertion.
 - [overlord/state/task.go](../../../overlord/state/task.go#L318), `SetClean`:
   idempotent clean flag update, notifying the owning change when present.
-- [overlord/state/taskrunner_test.go](../../../overlord/state/taskrunner_test.go#L1049),
+- [overlord/state/taskrunner_test.go](../../../overlord/state/taskrunner_test.go#L1127),
   `TestPrematureChangeReady`: a blocked undo keeps the change unready despite a
   peer error. This tests readiness, not cleanup callback entry directly.
-- [overlord/state/taskrunner_test.go](../../../overlord/state/taskrunner_test.go#L1225),
+- [overlord/state/taskrunner_test.go](../../../overlord/state/taskrunner_test.go#L1303),
   `TestCleanup`: after tasks finish the change is not yet clean; first cleanup
   errors and remains unclean, second succeeds, later Ensure does not repeat it.
 - [overlord/overlord_test.go](../../../overlord/overlord_test.go#L1094),
@@ -48,29 +48,25 @@ is ready. Readiness permits cleanup; it does not mean cleanup has completed.
 - [overlord/README.md](../../../overlord/README.md#L112): cleanup is outside conflict
   protection, so it must be task-local and must not affect another change.
 
-## Proposed SDK Checks and Safe Condition
+## Implemented SDK Checks and Safe Condition
 
-`AlwaysOrUnreachable(changeReadyAtCleanupAdmission, "task cleanup starts only
-after owning change readiness", details)` checks the accepted branch in `clean`
-before either immediate SetClean or callback launch. Record task readiness too:
-Ensure only calls clean for ready tasks. Use the actual locked IsReady result,
-not a change API status read at a different time. Optional-path safety fits
-cleanup: campaigns without completed known tasks need not encounter it.
+`AlwaysOrUnreachable(changeReady, "cleanup starts only after owning change is
+ready", details)` is emitted before the registered cleanup callback starts.
+The locked `IsReady` result is captured once; an unready change returns without
+starting cleanup. Ensure also requires the task status to be ready and its clean
+flag to be false before calling `clean`.
 
-A separate optional completion check,
-`AlwaysOrUnreachable(runnerCleanCommitIsAuthorized, "runner cleanup clean commit
-has ready owner and successful outcome", details)`, checks the runner's SetClean
-sites. Callback completion requires a nil effective tomb result and ready owner;
-the no-handler path requires ready owner and no registered cleanup. Do not demand
-a callback ran for a kind with no cleanup handler, nor label an expected cleanup
-error a property violation. The runner must not newly mark clean because an
-attempt failed; this does not prohibit a callback's independently authorized
-explicit SetClean. Record pre-clean state and the actor to distinguish them.
+`AlwaysOrUnreachable(changeReady && (noHandler || cleanupSucceeded), "runner
+clean commit follows eligible cleanup or no-handler path", details)` is emitted
+immediately before runner-owned `SetClean`. The no-handler path records
+`cleanup-outcome=no-handler`; a callback path is eligible only after a nil tomb
+result and records `cleanup-outcome=success`. A cleanup error emits no commit
+assertion and remains retryable. Callback-owned `SetClean` remains a separate
+actor and is not covered by this runner assertion.
 
-Predicates above are proposed. Details carry runner incarnation, task/change ID,
-task status, owner IsReady/IsClean, pre/post task clean flag, cleanup attempt,
-handler presence and tomb result. Keep check placement observational under the
-existing runner/state locks; never call cleanup again to evaluate a predicate.
+Details carry task/change ID, kind, handler presence and cleanup outcome. The
+checks use the readiness and tomb-result decisions already made by the runner;
+they do not call cleanup again to evaluate a predicate.
 
 Do not assert `IsReady == IsClean`, require Done-only changes, impose do/undo
 dependency order on cleanup, or claim global conflict exclusion. State locking
@@ -91,17 +87,18 @@ Pauses, rollback interleavings and restarts explore early deletion of undo data
 and lost cleanup commits. Impact: prematurely discarded recovery data can break
 rollback; deferred/repeated cleanup can leak or damage resources if not task-local.
 
-Cheap discriminating check: TestCleanup explicitly has a ready-but-unclean phase
-and a failed attempt followed by success. Compare these expectations with clean's
-entry guard and nil-result SetClean branch. Inspected, not executed in this pass.
+Validation: `TestTaskCleanupAssertions` checks no-handler commit, successful
+cleanup commit, error-then-retry, and an unready owning change with no cleanup
+encounter. Existing `TestCleanup` also passes. The full `overlord/state` race
+suite and SDK-disabled state suite passed. These checks cover ordering and retry
+control flow, not filesystem cleanup idempotence or faulted replay.
 
 ## Instrumentation Status
 
-**Missing**: cleanup-admission and runner-clean-commit SDK assertions.
-[antithesis/scratchbook/existing-assertions.md](../existing-assertions.md)
-lists no cleanup SDK coverage. The taskCleanChanged panic is present but detects
-an invalid clean marking, not early entry into a destructive cleanup callback.
-SUT-side observations are needed for that invisible admission window.
+**Implemented locally**: separate optional assertions cover cleanup admission
+and runner-owned clean commits. The existing `taskCleanChanged` panic remains a
+separate guard against cleaning an unready change; it is not substituted for
+the callback-admission assertion.
 
 Cleanup convergence is separate: a future finite quiet cohort can require every
 eligible ready task to become clean, with an independent oracle and a deadline
@@ -122,7 +119,7 @@ and fixture-specific cleanup-effect recovery are not assumed by this property.
   TestCleanup, TestPrematureChangeReady and TestSettleChainWCleanup.
 - Found: whole-change IsReady gates entry; clean is separate; errors retry;
   no-handler marking is legal; persisted unclean work can re-enter after restart.
-- Missing: SDK observations at callback admission; tests do not prove real
-  filesystem cleanup replay safety, which is not claimed here.
-- Conclusion: resolved as an ordering invariant, explicitly separating ready,
+- Missing: filesystem cleanup replay safety and faulted-campaign observations,
+  which are not claimed here.
+- Conclusion: implemented the ordering invariant, explicitly separating ready,
   clean, successful outcome and eventual cleanup progress.

@@ -107,7 +107,9 @@ incus exec "$runner" -- sh -ec '
     DEBIAN_FRONTEND=noninteractive apt install -y squashfs-tools
 '
 
-incus file push --mode 0755 "$tmpdir/fakestore" "$runner/usr/local/bin/fakestore"
+incus exec "$runner" -- mkdir -p /usr/local/bin
+tar -C "$tmpdir" -cf - fakestore | incus exec "$runner" -- tar --no-same-owner -C /usr/local/bin -xf -
+incus exec "$runner" -- chmod 0755 /usr/local/bin/fakestore
 incus exec "$runner" -- mkdir -p /var/lib/fakestore/asserts
 if [[ -n "$FAKESTORE_DATA" ]]; then
     tar -C "$FAKESTORE_DATA" -cf - . | incus exec "$runner" -- tar --no-same-owner -C /var/lib/fakestore -xf -
@@ -130,7 +132,7 @@ Restart=on-failure
 [Install]
 WantedBy=multi-user.target
 EOF
-incus file push "$tmpdir/fakestore.service" "$runner/etc/systemd/system/fakestore.service"
+tar -C "$tmpdir" -cf - fakestore.service | incus exec "$runner" -- tar --no-same-owner -C /etc/systemd/system -xf -
 incus exec "$runner" -- systemctl enable fakestore.service
 
 incus stop "$runner"

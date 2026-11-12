@@ -71,12 +71,17 @@ affecting handlers, refreshes, deletion and replacement. Record task ID,
 ID/revision, acceptance/recovery phase, expected/actual digest and size in
 details; messages remain fixed.
 
-**Instrumentation status: missing**, per
+**Instrumentation status: partial.** Four fixed-message `Reachable` anchors now
+record nonzero-offset resume, valid-cache recovery, wrong-size cache rejection
+and hash-error retry in `Store.Download`; a focused SDK-output matrix confirms
+each local encounter. These are path-coverage markers, not the accepted-content
+oracle described here. The manifest lookup, acceptance observations and
+independent settled retention check remain missing, per
 [existing-assertions](../existing-assertions.md#L11). Hash checks and ordinary
 error returns are existing validation logic, not Antithesis assertions. The
-manifest lookup, acceptance observations and barrier are proposed mechanisms,
-not existing helpers. Expensive independent hashing belongs in the checker or
-an explicitly gated research build.
+independent manifest and workload barrier remain proposed mechanisms, not
+existing helpers. Expensive independent hashing belongs in the checker or an
+explicitly gated research build.
 
 ## Workload, Fault Timing, and Boundaries
 
