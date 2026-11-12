@@ -12,17 +12,21 @@ Fresh review of the catalog, SUT analysis, topology, assertion placement,
 existing inventory, property evidence and the controlling local source paths.
 Findings concern proposed tests, not demonstrated SUT defects. No instrumentation,
 fixture, host service or other research document was changed by this evaluation.
+Implementation order and acceptance gates are maintained in the single
+[Antithesis implementation plan](../implementation-plan.md); this report retains
+feasibility evidence and discriminating checks.
 
-## Present Harness Versus Proposed Tests
+## Reviewed Snapshot Versus Proposed Tests
 
-The [catalog](../property-catalog.md) explicitly proposes eighteen properties.
-The [inventory](../existing-assertions.md) records only the existing Hold check;
-it is present in [Change.notifyStatusChange](../../../overlord/state/change.go#L451).
-The current [Spread task](../../tests/hello-world/task.yaml#L6) installs and runs
-hello-world. The [image builder](../../build-testing-image.sh#L84) extracts symbol
-catalogs and installs the supplied snap, but does not supply the independent
+At this evaluation's 2026-10-13 snapshot, the [catalog](../property-catalog.md)
+proposed eighteen properties, the [inventory](../existing-assertions.md) recorded
+only the broad Hold check in `Change.notifyStatusChange`, and the selected
+[Spread task](../../tests/hello-world/task.yaml#L6) installed and ran hello-world.
+The current inventory and active selection have since changed; use the
+[canonical plan](../implementation-plan.md) for present status. The
+[image builder](../../build-testing-image.sh#L84) did not supply the independent
 ledger, stable snapshot RPC, pre-start recovery oracle or controlled replay
-campaign described by the [topology](../deployment-topology.md).
+campaign described by the topology.
 
 The predicates and snapshot fields in [assertion placement](../assertion-placement.md)
 are illustrative proposed test code, not callable APIs. Source validation and
@@ -56,13 +60,11 @@ waiting deadlocks completion paths that reacquire `r.mu` then state at
 [Stop](../../../overlord/state/taskrunner.go#L522) kills activities and changes
 error/retry behavior; it is not a transparent substitute for a snapshot barrier.
 
-**Action:** specify a test-only gate covering all affecting manager/runner
-producers, including cleanup and any selected non-task filesystem writer. Close
-the gate before draining; drain without holding state or completion-needed
-locks; then collect state and filesystem projections in the SUT's mount namespace.
-Release reliably after observations. Alternatively reject a sample if a complete
 affecting-work epoch changes, including already-running effects, not merely
-checkpoint writes. Name excluded background producers and fixture controls.
+**Plan disposition:** The shared prerequisites require a bounded barrier that
+closes admissions, drains affecting work without completion-needed locks, and
+observes state/resources in the SUT namespace. The discriminating check remains
+here as the barrier acceptance test.
 
 **Discriminating check:** pause an unlocked link/delete or cleanup operation,
 request a snapshot, and try background dispatch during the read. The barrier
@@ -90,16 +92,12 @@ losing the success event forces the oracle to permit old state even though the
 writer actually returned successfully. An external ledger also has its own
 crash window; recording success before actual writer success is unsound.
 
-**Action:** persist baseline and exact candidate bytes or collision-resistant
-identities outside the killed daemon. Durably acknowledge attempt registration
-before permitting the write. Record completion only after writer success and
 distinguish externally confirmed completion from actual-but-unobserved return.
-The latter must remain uncertain, not be claimed as tested acknowledgement
 durability. Define a controlled campaign with registered attempts and no
-untracked startup/background writes; retries of identical bytes share identity.
-Check independent disk bytes, not SDK event presence or a production counter.
-Keep successful readback inside the locked backend boundary and compare its
-captured argument, not a fresh serialization.
+**Plan disposition:** Workstream 4 now requires exact captured-byte readback and
+an independent durable attempt/completion ledger. Unobserved acknowledgments
+remain ambiguous; startup/background writes must be controlled before a crash
+generation can be classified.
 
 **Discriminating check:** terminate before attempt acknowledgement, after rename
 but before success reporting, and after durable completion acknowledgement.
@@ -126,14 +124,11 @@ generation or prove transient scheduling/cancellation/cleanup invariants. Callin
 MarshalJSON on restored state and using the same deserializer for the expected
 projection risks reproducing the same bug in both sides.
 
-**Action:** read authoritative bytes while the daemon is confirmed stopped,
-with socket/service activation unable to restart it. Add a proposed test-build
-observation immediately after ReadState and before timing writes, initialization
-or replay. Independently decode the persisted schema for expected graph fields;
-compare complete maps and separately inspect runtime relationships. Internal
 dispatch, cancellation and cleanup checks belong at their owning boundaries,
-under the existing locks, not in a client poll. Do not allocate tasks or alter
-statuses solely to inspect counters or force replay.
+**Plan disposition:** Workstream 4 requires an independent checkpoint/task-graph
+projection before startup writes or replay, with default waited-status
+normalization and unlinked tasks included. Internal dispatch, cancellation and
+cleanup remain checked at their owning boundaries.
 
 **Discriminating check:** distinguish two checkpoint generations and verify the
 startup observer sees the loaded one before the first subsequent write. Include
@@ -158,15 +153,11 @@ the ID leaves an unknown accepted operation. Ignoring it undercounts obligations
 blind retry can create another operation. Independent concurrent success also
 makes a frozen pre-operation global snapshot invalid for unrelated resources.
 
-**Action:** persist intent before submission and represent pending, rejected,
-accepted-ID and ambiguous outcomes explicitly. Correlate accepted changes through
 a proposed admission observation/token protocol, or constrain the campaign to
-unambiguous single-in-flight operations with independently verified attribution.
-Reconcile ambiguous intents and completions before pruning; never infer expected
-results solely from terminal status or post-operation inventory. Record allowed
-success/rollback results, retained revisions, ownership and concurrent unrelated
-commits independently. Persistence must survive the faults applied to the checker
-as well as those applied to snapd, or checker faults must be explicitly excluded.
+**Plan disposition:** The shared prerequisites and Workstream 5 require intent
+before submission, explicit unknown/rejected/accepted states, reconciliation
+before retry or pruning, predeclared outcomes, and checker state outside the SUT
+fault boundary.
 
 **Discriminating check:** lose the response after change creation, restart, and
 verify the operation is neither omitted nor blindly resubmitted. Also commit B
@@ -188,13 +179,10 @@ that timeout in a manager or handler. A later retry remains legitimate work.
 observations through the wedged state/manager lock cannot make the terminal
 assertion when it matters. Source alone cannot supply a meaningful quiet budget.
 
-**Action:** keep deadlines and cohort records in an independent checker; publish
-request acceptance, pass-start watermark and pass completion without adding a
-reverse `ensureLock`/`mgrLock` dependency. Credit only requests preceding the
-pass start, with incarnation-qualified IDs and explicit interrupted cohorts.
-Calibrate due retries, dependency restoration and fault-free execution for chosen
-fixtures. Check unresolved obligations at deadline even if snapshot collection
-is blocked; report unavailable observations separately from resolved work.
+**Plan disposition:** The shared prerequisites place the quiet deadline and
+cohort records in an independent checker, and require an unresolved obligation
+to remain reportable when snapshot collection blocks. Request/pass watermarks
+and retry calibration are part of the liveness checks.
 
 **Discriminating check:** deliberately block a manager and a handler completion;
 the checker must still emit a failed terminal obligation check. Requests arriving
@@ -214,14 +202,10 @@ or confirmed crash/restart command. The [topology](../deployment-topology.md)
 proposes these roles and warns that nested Incus fault isolation and storage
 preservation are unconfirmed. Pausing a process is not termination or undo.
 
-**Action:** prepare two distinct signed ordinary-app revisions and an unrelated
-fixture with expected digest, mount identity, retained set and controlled data.
-Provide a safe, repeatable post-effect failure or accepted abort to reach undo;
-store unavailability alone may only retry or fail before effects. Confirm do and
-undo re-entry separately, preserve storage, and inspect mounts from the correct
-namespace using mount/loop identity plus mounted fixture content. Keep parallel
-instances/components as later campaigns, as proposed. Validate branch reachability
-before requiring campaign-specific coverage; no manual handler re-invocation.
+**Plan disposition:** Controlled two-revision fixtures, unrelated-snap tokens,
+post-effect failure/abort, mount identity, and distinct do/undo replay witnesses
+are assigned to Workstreams 3 and 5. Parallel instances and components remain
+outside the initial scope.
 
 ### 7. SDK Pinning Is Not Binary Compatibility Verification
 
@@ -236,14 +220,10 @@ The repository's vendor tree does not contain the SDK implementation. The
 placement document reports checking cached signatures, but that cache is outside
 this evaluation's directory-only scope.
 
-**Concern and action:** full v0.8.0 compatibility of proposed
-`AlwaysOrUnreachable`, `Sometimes`, replay anchors, SetupComplete and reporting
-cannot be independently certified from these local files. Compile proposed
-calls against the exact pinned dependency in a later authorized build; check
-catalog messages in both the executed SUT and checker, cgo/reporting linkage,
-and a controlled failing report. Do not infer reporting from dependency presence
-or a nonempty catalog directory. Gate expensive readback/hashing outside SDK
-argument evaluation. No dependency change is justified by this review.
+**Plan disposition:** Workstream 1 requires checking the current SUT/checker
+catalogs and reporting path against the pinned SDK/cgo build, including a
+controlled failing report. Expensive readback and hashing remain gated; this
+finding does not recommend a dependency change.
 
 ## Checks That Pass
 
@@ -269,8 +249,9 @@ argument evaluation. No dependency change is justified by this review.
   identified invalid premises. A consistently wrong S1/S2 must still fail.
 - `abort-wins-completion-race` and `cleanup-follows-readiness`: runner branches
   expose feasible local observation sites. Preserve legal Hold and no-handler
-  cleanup semantics. Replace the existing broad Hold assertion in a future
-  implementation; do not duplicate it or use assertion outcomes to alter status.
+  cleanup semantics. The former broad Hold assertion has since been removed and
+  replaced by scoped cancellation checks; do not duplicate it or use assertion
+  outcomes to alter status.
 
 ## Assumptions And Uncertainty
 

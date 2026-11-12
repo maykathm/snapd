@@ -72,10 +72,11 @@ transaction's dependency/lane domain are not automatically "unrelated".
 
 **Missing**, per [existing-assertions.md](../existing-assertions.md). Proposed
 undo completion search anchors and independent stable safety checks are absent;
-the existing Hold assertion is neither an isolation nor restoration oracle.
-Fixture policy, parallel-instance extension and stable barrier remain
-catalog-wide implementation plans in
-[deployment-topology.md](../deployment-topology.md), not existing APIs.
+the former broad Hold assertion was neither an isolation nor restoration oracle
+and has been removed. Fixture policy and stable barrier requirements are in the
+[canonical plan](../implementation-plan.md); deployment details remain in
+[deployment-topology.md](../deployment-topology.md). Parallel instances remain
+outside the initial scope.
 
 **Open Questions:** None within this initial scope.
 

@@ -39,7 +39,7 @@ passes; the finite-cohort oracle detects the unresolved second obligation.
 
 ## Instrumentation Status
 
-Missing. `../existing-assertions.md` inventories only the existing Hold assertion.
+Missing. `../existing-assertions.md` contains no finite-cohort completion check.
 Proposed SUT observations record attempts, runner direction, completion and
 cleanup. Proposed workload ledger and barrier are not existing snapd APIs.
 

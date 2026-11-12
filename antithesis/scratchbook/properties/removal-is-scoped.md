@@ -84,9 +84,11 @@ concurrent unrelated commits are reconciled against the independent ledger.
 
 **Missing**, per [existing-assertions.md](../existing-assertions.md): no deletion
 scope assertion exists. Proposed independent stable checks plus deletion
-outcome anchors remain unimplemented. Fixture ownership maps, barrier, parallel
-instances and fault support are catalog-wide plans in
-[deployment-topology.md](../deployment-topology.md), not existing APIs.
+outcome anchors remain unimplemented. Fixture ownership maps, barrier and fault
+support are implementation requirements in the
+[canonical plan](../implementation-plan.md); architecture details are in
+[deployment-topology.md](../deployment-topology.md). Parallel instances remain
+outside the initial scope.
 
 **Open Questions:** None within this initial scope.
 

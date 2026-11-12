@@ -7,6 +7,10 @@ external_references: []
 
 # Evaluation Synthesis
 
+This document preserves the evaluation findings and historical dispositions.
+The [implementation plan](../implementation-plan.md) is the sole source for
+current implementation order and campaign acceptance gates.
+
 Scope answer (verbatim): "just this directory". Four fresh-context reviewers
 evaluated Antithesis fit, coverage balance, implementability and wildcard
 assumptions. Detailed evidence is in the corresponding evaluation files. A
@@ -33,9 +37,9 @@ it did not initiate a whole-system research expansion.
 ## Applied Results
 
 The catalog now has nineteen concrete property IDs with corresponding evidence.
-Safety, liveness and campaign-specific reachability are represented. Existing
-Hold instrumentation is inventoried and its broad premise is invalidated by
-local supported Hold/abort tests; no duplicate assertion is proposed.
+Safety, liveness and campaign-specific reachability are represented. The former
+broad Hold premise was invalidated by local supported Hold/abort tests and has
+since been replaced by scoped cancellation checks.
 
 Source follow-ups implemented dirty-Unlock and cancellation guards. The
 2026-10-15 follow-up additionally instruments Current/Sequence membership at
@@ -61,14 +65,13 @@ Done on graph restoration even for same-version inputs; use the replay evidence'
 canonical optional safety message/type in examples; restrict cohort rollback
 claims to reversible operations; qualify failed cleanup commits as runner-owned.
 
-Campaign coverage handoff: require distinct fixed Reachable outcomes for verified
-cache reuse, resumed verified download, successful cleanup, do replay, undo replay,
-rollback restoration, accepted cancellation, and scoped last/non-last removal.
-Launch campaign additionally requires successful install/refresh/enable outcomes.
-These are concrete missing instrumentation obligations, not implemented anchors.
-The implementation order honors the user's cheap persistence/ensure guards;
-fault-search budget prioritizes external effects and recovery rather than spending
-most exploration on already unit-tested dispatch loops.
+Campaign-specific Reachable witnesses and launch outcomes are tracked in the
+canonical implementation plan. The requirements remain separate from optional
+safety assertions and must be reported as observed coverage, not inferred from
+scenario submission.
+The original implementation order honored the user's cheap persistence/ensure
+guards. The current sequence and fault-search priorities are maintained in the
+[canonical plan](../implementation-plan.md).
 
 This is research, not an implemented workload or passing Antithesis campaign.
 Generated examples use proposed observational variables/helpers where labeled.

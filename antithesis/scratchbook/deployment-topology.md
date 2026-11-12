@@ -100,37 +100,15 @@ deadlock. That coordination remains an explicit property open question.
 No host services, packages or snaps are changed by this research. All future
 system testing must use disposable containers/VMs, not the host daemon.
 
-## Spread Test Selection
+## Observed Spread Selection
 
-Targeted discussion scope: recommend a series of existing `tests/main/` tests,
-not implement or execute a campaign. Scope answer (verbatim): "just this directory".
-The following ranking is based on inspected task bodies, not measured runtime
-or verified compatibility with the Antithesis image.
-
-### First Series
-
-Run each test with its own clean baseline, serially on a disposable SUT:
-
-| Order | Test under `tests/main/` | Useful checks and coverage limits |
-| --- | --- | --- |
-| 1 | `revert-sideload` | Two local installs and revert; observes x1/x2 selection. A small lifecycle baseline, not an independent data or launch oracle. |
-| 2 | `install-refresh-remove-hooks:regular` | Install/configure/pre-refresh/post-refresh/remove hook effects, revision removal versus full purge, and broken install hook rejection. Locally built fixtures; includes non-purge removal and is marked slow in autopkgtest. |
-| 3 | `refresh-undo` | Local good/bad service revisions force refresh rollback; checks original service output afterward. Polls systemctl status for roughly 30 seconds; supplement with current revision/link checks for a stronger oracle. |
-| 4 | `op-install-failed-undone` | A blocked current path forces failed install; checks task undo and resource cleanup. Its glob checks use numeric revision patterns despite local xN revisions, so do not treat them as comprehensive absence checks without auditing them. |
-| 5 | `services-disabled-kept-unhappy` | Seven failed refresh/revert scenarios, renamed services and service-to-app transitions; checks disabled/inactive state and persisted disabled-service metadata. Larger second-step test within this series, using local fixtures. |
-
-These local fixtures still require a preinstalled appropriate base. In particular,
-`basic`, `snap-hooks` and the good service fixture have no explicit base and use
-the legacy core runtime. Local target snaps alone do not establish offline readiness.
-
-### Observed Local Baseline
-
-The original 2026-11-12 run used the disposable Ubuntu 26.04 testing image, the
-staged `TESTSLIB` fixtures, and the shared fakestore container. Global
-`prepare-each` started a fresh journal log; `restore-each` cleaned test snaps
-while preserving `core` and `core24`. Spread reported ten successful jobs and
-zero aborted jobs. The refreshed run on the rebuilt Workstream 2 artifact
-executed all eleven jobs in the current selection, again with zero aborted jobs.
+The current selection has ten symlink targets in `antithesis/tests/main/`; the
+`regular` and `parallel` variants of `install-refresh-remove-hooks` produce
+eleven jobs. The refreshed 2026-11-12 run used the disposable Ubuntu 26.04
+testing image, staged `TESTSLIB` fixtures and the shared fakestore container.
+Global `prepare-each` started a fresh journal log; `restore-each` cleaned test
+snaps while preserving `core` and `core24`. Spread reported eleven successful
+jobs and zero aborted jobs.
 
 | Selected test | Fixture/setup dependency |
 | --- | --- |
@@ -145,27 +123,11 @@ executed all eleven jobs in the current selection, again with zero aborted jobs.
 | `services-multi-service-failing` | Local two-service test snap. |
 | `abort-accepted` | Local core24 test snap with a blocking install hook; passed standalone and in the refreshed eleven-job run. |
 
-All jobs in each run used the same disposable SUT/fakestore pair, with restore
-hooks between jobs. Fixture-level error changes are expected scenario inputs;
-Spread's successful job status is the baseline result.
-
-### Next Campaigns
-
-- Pair `refresh-all-undo` with `refresh-many-transactional-undo`: a corrupt
-	candidate must leave the good snap updated in the per-snap case, but neither
-	snap updated in the all-snaps transaction. Both initially install store snaps,
-	then manage a local fakestore and require trusted test keys. Preseed signed
-	fixtures and reconcile their store setup with the existing external fakestore.
-	These test lane isolation, not arbitrary concurrent unrelated operations.
-- Add `parallel-install-basic` and `parallel-install-common-dirs-undo` when
-	instance ownership is in scope. The former checks separate instance data and
-	requires a prepared test-user session; the latter checks failed-instance shared
-	directory cleanup. Restore the parallel-instances flag between tests.
-- Add `resume-partial-snap-downloads` for store/download faults. It installs
-	core24, builds a 100 MB incompressible fixture, deliberately cuts the download,
-	and checks partial-file retention, Range resume and final-file inode reuse.
-	It has a five-minute kill timeout, trusted-key and local-fakestore requirements;
-	it does not independently verify the accepted blob digest.
+All jobs used the same disposable SUT/fakestore pair, with restore hooks between
+jobs. Fixture-level error changes are expected scenario inputs; Spread's
+successful job status is the baseline result. Additional test adaptation and
+campaign order are maintained only in the
+[implementation plan](implementation-plan.md).
 
 ### Execution Boundaries
 

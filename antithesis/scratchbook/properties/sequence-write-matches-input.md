@@ -65,8 +65,8 @@ file equality. No new SUT code is applied by this research.
 readback assertion exists. Proposed writer-local readback must be gated to test
 builds/campaigns because SDK no-op mode still evaluates expensive arguments.
 Fixtures and barrier/fault wiring remain catalog-wide plans in
-[assertion-placement.md](../assertion-placement.md) and
-[deployment-topology.md](../deployment-topology.md), not existing helpers.
+[implementation-plan.md](../implementation-plan.md). Placement and topology
+documents retain the technical rationale, not a separate execution plan.
 
 **Open Questions:** None within this initial scope.
 

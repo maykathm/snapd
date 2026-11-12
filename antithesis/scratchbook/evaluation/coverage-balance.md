@@ -7,11 +7,14 @@ external_references: []
 
 # Coverage Balance Evaluation
 
-Scope answer (verbatim): "just this directory". Fresh evaluation of the current
+Scope answer (verbatim): "just this directory". Fresh evaluation of the then-current
 18-property portfolio, not a whole-repository audit. This report evaluates the
 targeted ordinary-application scope: persistence, state/resource consistency,
 ensure scheduling, cancellation and real task replay. Only this report is
 written; no catalog, SUT, instrumentation or harness changes are made.
+Implementation order and acceptance gates are maintained in the single
+[Antithesis implementation plan](../implementation-plan.md); this report retains
+the findings and supporting evidence.
 
 ## Inputs And Method
 
@@ -101,16 +104,11 @@ hello-world; it does not establish these campaigns. The topology proposes two
 revisions and a second unrelated snap, but does not require observed overlap
 between unrelated work and rollback/deletion.
 
-**Actionable fix:** Define a small campaign coverage matrix alongside the
-existing safety properties. In campaigns that deliberately construct them,
-require fixed, distinct Reachable outcomes for do replay, undo replay, completed
-refresh rollback overlapping an unrelated committed operation, last/non-last
-removal, accepted abort/completion race, resumed download and cache reuse.
-Include disabled/enabled resource-state observations when those operations are
-admitted. Distinguish an observed branch/outcome from merely submitting an API
-request. Keep crash publication-stage observations conditional on confirmed
-termination support; do not demand every scenario on every timeline or add
 delta/components/parallel-instance campaigns to the initial scope.
+**Plan disposition:** The campaign-specific coverage matrix and prerequisite
+fault gates are consolidated in the canonical implementation plan, under
+Workstreams 2, 3 and 5. This finding remains the rationale for distinct outcome
+witnesses rather than an additional campaign schedule.
 
 ### CB-2: Resource Consistency Does Not Establish Launchability
 
@@ -139,16 +137,10 @@ are separate operations, including partial-stop undo and filtering of disabled
 services. The hello-world task already makes application execution a local
 test expectation, but only for its one install happy path.
 
-**Actionable fix:** Add an explicit workload postcondition for a deterministic,
-non-writing CLI fixture after successful install/refresh/enable and completed
-rollback: launch through the normal supported command path and compare its
-revision token and controlled data token to the independent ledger. Check under
-restored dependencies and a calibrated execution budget, then stop application
-activity before stable filesystem comparisons. First keep this to ordinary CLI
-snaps. If a service fixture is deliberately admitted, separately specify its
-expected enabled/disabled behavior and bounded startup/stop result; never assert
-that all Active snaps have running services. This tests lifecycle usability,
-not security enforcement, arbitrary application behavior or hook effects.
+**Plan disposition:** The deterministic CLI launch postcondition is included in
+Workstream 5 of the canonical implementation plan, with ordinary-app scope and
+the independent revision/data-token ledger. Service-running state remains
+separate from Active/link correctness.
 
 ### CB-3: Failed Removal Needs A Survivor-Only Check
 
@@ -174,14 +166,10 @@ success or rollback and does not define a terminal partially destructive error
 result. This is a mismatch between an existing evidence-level safety intention
 and the eligible portfolio outcomes, not a claim that data sentinels are absent.
 
-**Actionable fix:** Make `removal-is-scoped`'s survivor projection apply at stable
-terminal failure as well as success, recording unrelated operations' latest
-independent ledger effects. Only successful removal must satisfy complete target
-deletion. Explicitly decide whether the initial finite cohort admits failed
-destructive removals: if yes, record an expected terminal-error disposition and
-survivor obligations without promising target restoration; if no, state that
-restriction and retain it as a later ordinary-app fault campaign. Do not exempt
-missing or unreadable survivor data from the check.
+**Plan disposition:** Workstream 5 now requires unrelated-survivor checks after
+success and terminal failure, while complete target deletion is required only
+after successful removal. It also requires an explicit purge-versus-snapshot
+policy; this report remains the evidence for that distinction.
 
 ## Passes
 
@@ -208,9 +196,9 @@ missing or unreadable survivor data from the check.
 - Accepted blob validation spans store, assertion validation and installed
   resources with an independent fixture digest. Size-only cache success and
   transient partial files are not mistaken for accepted content.
-- Existing Hold instrumentation is identified as incompatible with legitimate
-  abort/Hold behavior. It is neither counted as a nineteenth valid portfolio
-  property nor mistaken for implemented cancellation/replay coverage.
+- The former broad Hold instrumentation was incompatible with legitimate
+  abort/Hold behavior and has since been removed. It is neither a valid portfolio
+  property nor cancellation/replay coverage.
 - No whole-repo security, full Ubuntu Core/remodel/reboot, broad version
   compatibility, migration, uncontrolled hooks, customer-data or distributed
   consensus coverage is demanded. These explicit exclusions are not findings.
@@ -225,9 +213,10 @@ not inferred from source scripts.
 
 ## Uncertainties
 
-- None of the 18 proposed properties is implemented by these artifacts; the
-  inventory contains only the broad Hold assertion. Portfolio design coverage
-  must not be reported as measured runtime coverage.
+- At this evaluation's snapshot, none of the 18 proposed properties had been
+  implemented in the source inventory, which contained only the broad Hold
+  assertion. Later source work is recorded in the current inventory and plan;
+  portfolio design coverage must not be reported as measured runtime coverage.
 - Confirmed termination, storage survival, clock fault support, nested Incus
   isolation and actual binary/catalog reporting remain topology prerequisites.
   No process-crash observation would establish power-loss durability.
@@ -244,7 +233,7 @@ not inferred from source scripts.
 
 ## Handoff
 
-CB-1 is catalog-wide; CB-2 and CB-3 concern the named postconditions. Resolve
-campaign coverage obligations first, then make launch and failed-removal
-dispositions explicit without broadening the ordinary-app scope. Categorization
-and any catalog changes belong to the orchestrator, not this evaluation.
+CB-1 is catalog-wide; CB-2 and CB-3 concern the named postconditions. Their
+implementation dispositions and ordering are consolidated in the
+[canonical plan](../implementation-plan.md). This evaluation does not define a
+separate implementation sequence.

@@ -66,8 +66,9 @@ later ownership-aware fixtures, not unconditional deletion/absence rules.
 **Missing**, per [existing-assertions.md](../existing-assertions.md): no resource
 assertion exists. Proposed primary placement is the independent stable checker;
 discard outcome anchors can guide fault search but do not replace it. Fixture,
-preserved storage, barrier and quiet budget remain catalog-wide implementation
-plans in [deployment-topology.md](../deployment-topology.md).
+preserved storage, barrier and quiet budget are tracked in the
+[canonical plan](../implementation-plan.md). The topology document retains
+deployment details.
 
 **Open Questions:** None within this initial scope.
 

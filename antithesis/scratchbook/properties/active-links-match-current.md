@@ -58,10 +58,12 @@ not a violation at this boundary.
 
 ## Instrumentation And Questions
 
-**Missing**, per [existing-assertions.md](../existing-assertions.md): its Hold
-assertion does not check links. Proposed workload stable oracle is primary;
-backend link outcomes can supply optional Reachable search anchors, not proof
-of pair atomicity. Fixture/barrier/fault wiring remains the catalog-wide plan in
+**Missing**, per [existing-assertions.md](../existing-assertions.md): no stable
+active-link oracle exists. The former broad Hold assertion was unrelated and
+has been removed. The independent stable oracle is primary; backend link
+outcomes can supply optional Reachable search anchors, not proof of pair
+atomicity. Implementation sequence is in the
+[canonical plan](../implementation-plan.md); topology details remain in
 [deployment-topology.md](../deployment-topology.md).
 
 **Open Questions:** None within this initial scope.
