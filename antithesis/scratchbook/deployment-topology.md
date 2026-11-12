@@ -1,7 +1,7 @@
 ---
 sut_path: /home/katie.may@canonical.com/source/snapd
-commit: 3299c6e61014038add40369d8f11210ce5b9def4
-updated: 2026-10-14
+commit: d7d23f20732844eb538dab1169f8b8b372376911
+updated: 2026-11-12
 external_references: []
 ---
 
@@ -14,9 +14,13 @@ Scope answer (verbatim): "just this directory".
 `antithesis/prepare-everything.sh` builds scratch artifact-carrier images.
 `incus-allocate.sh` starts testing and fakestore Incus containers; Spread runs
 from the host. `build-testing-image.sh` installs real snapd/systemd and stages
-instrumentation metadata. `tests/hello-world/task.yaml` currently installs and
-runs hello-world. These are useful inputs, not evidence that a standard test
-template, independent recovery oracle or crash campaign is wired up.
+instrumentation metadata and the shared `tests/lib` fixtures. Ten symlinks now
+live under `antithesis/tests/main/`; `install-refresh-remove-hooks` expands to
+two jobs. The original nine-symlink unfaulted baseline ran ten jobs successfully
+on Ubuntu 26.04 with zero aborted tasks. After Workstream 2, the refreshed
+selection ran eleven jobs successfully, including `abort-accepted`, on the
+rebuilt artifact. These are not evidence of faulted-campaign coverage, an
+independent recovery oracle, or a crash campaign.
 
 ## Recommended Roles
 
@@ -38,6 +42,22 @@ rollback isolation. Do not use customer data. Add components or parallel
 instances only in a later campaign with corresponding fixture expectations.
 
 ## Oracle and Fault Wiring
+
+The verified local network path is snapd's forced API URL
+`http://fakestore:11028`, resolved through an `/etc/hosts` entry to the
+fakestore container's address. Both testing and fakestore containers use the
+Incus project's default network. No repository configuration enables network
+or disk fault injection. The local baseline therefore confirms the ordinary
+path only; tenant fault reachability, disk error/delay/corruption semantics,
+and storage persistence remain unknown.
+
+The existing `resume-partial-snap-downloads` and
+`snap-download-corrupted-cleanup` tasks call `store-state setup-fake-store`,
+which starts a second fakestore inside the SUT and switches snapd to
+`localhost:11028`. Adding either task unchanged would bypass the external
+fakestore network boundary; their local `BLOB_DIR` is not shared with the
+external fakestore. Fixture seeding and per-test store configuration must be
+adapted before selecting them for a network-fault campaign.
 
 Stop new workload submissions during stable checks. A daemon-side test barrier
 must drain affecting handlers and prevent new ones from starting while the
@@ -103,6 +123,32 @@ These local fixtures still require a preinstalled appropriate base. In particula
 `basic`, `snap-hooks` and the good service fixture have no explicit base and use
 the legacy core runtime. Local target snaps alone do not establish offline readiness.
 
+### Observed Local Baseline
+
+The original 2026-11-12 run used the disposable Ubuntu 26.04 testing image, the
+staged `TESTSLIB` fixtures, and the shared fakestore container. Global
+`prepare-each` started a fresh journal log; `restore-each` cleaned test snaps
+while preserving `core` and `core24`. Spread reported ten successful jobs and
+zero aborted jobs. The refreshed run on the rebuilt Workstream 2 artifact
+executed all eleven jobs in the current selection, again with zero aborted jobs.
+
+| Selected test | Fixture/setup dependency |
+| --- | --- |
+| `connections-after-failed-refresh` | Local v1/v2 test snaps; install and refresh through snapd. |
+| `install-refresh-remove-hooks` | `snap-hooks` and bad-install hook fixtures from `TESTSLIB`; `regular` and `parallel` variants. |
+| `op-install-failed-undone` | `test-snapd-sh` from `TESTSLIB`; blocked current path forces install failure. |
+| `op-remove-retry` | `test-snapd-tools` from `TESTSLIB`; systemd unmount blocker and cleanup. |
+| `parallel-install-common-dirs-undo` | Bad service fixture from `TESTSLIB`; local packed install. |
+| `refresh-undo` | Good/bad service fixtures from `TESTSLIB`; packed during prepare. |
+| `revert-sideload` | `basic` fixture from `TESTSLIB`; packed during prepare. |
+| `services-disabled-kept-unhappy` | Four templated service fixtures from `TESTSLIB`; packed during prepare. |
+| `services-multi-service-failing` | Local two-service test snap. |
+| `abort-accepted` | Local core24 test snap with a blocking install hook; passed standalone and in the refreshed eleven-job run. |
+
+All jobs in each run used the same disposable SUT/fakestore pair, with restore
+hooks between jobs. Fixture-level error changes are expected scenario inputs;
+Spread's successful job status is the baseline result.
+
 ### Next Campaigns
 
 - Pair `refresh-all-undo` with `refresh-many-transactional-undo`: a corrupt
@@ -123,12 +169,12 @@ the legacy core runtime. Local target snaps alone do not establish offline readi
 
 ### Execution Boundaries
 
-`antithesis/spread.yaml` currently registers only `tests/`, not the repository's
-`tests/main/`. The root `spread.yaml` supplies TESTSLIB/TESTSTOOLS and suite
-prepare/restore hooks through `tests/lib/prepare-restore.sh`. Preserve or adapt
-that lifecycle when exposing selected tests; copying execute blocks alone loses
-fixtures, variants, setup and cleanup. Do not blindly import project preparation
-that could replace the instrumented SUT build.
+`antithesis/spread.yaml` registers `tests/main/` from the copied Antithesis
+selection. `prepare-everything.sh` uses `cp -rL` to materialize the selected
+symlinks, and the testing image stages shared `tests/lib` helpers. The local
+baseline verified the selected tasks' variants, fixture availability, global
+prepare/restore hooks and cleanup behavior. Do not replace the instrumented SUT
+with the root project's ordinary Spread build preparation.
 
 Clean the baseline between test cases, not between the operations within one
 case. Fixed x1/x2 expectations and shared fixture names make blind repetition
@@ -145,16 +191,19 @@ already terminal changes; it does not exercise in-flight cancellation safety.
 Sideload-only scenarios also cannot cover the signed `accepted-blob-digest`
 property. A recovery campaign still needs confirmed do/undo replay observations.
 
-This targeted pass adds no properties and does not repeat the full catalog
-evaluation, instrument tests, configure Spread, validate image compatibility,
-or execute any system tests. Public Antithesis docs were not consulted under
-the directory-only scope; no new platform assertion semantics are prescribed.
+The verified work adds dispatch, cleanup-ordering and accepted-abort assertions
+plus an accepted-abort Spread task. It does not configure tenant fault
+injection, implement the independent checkpoint/resource oracles, or establish
+crash/restart recovery. The local baseline and SDK-output probes do not replace
+a faulted Antithesis campaign.
 
 ## Open Questions
 
 - Confirm tenant fault configuration and independent faulting of nested Incus.
 - Confirm preserved storage and the container-local oracle/barrier mechanism.
 - Calibrate quiet-phase duration; reboot-aware checks are a separate campaign.
-- Verify bases, test helpers, test-user setup and cleanup in the actual image.
-- Decide whether selected tests use the existing external fakestore or an
-	adapted per-test fakestore; the two setups must not compete for store configuration.
+- The selected baseline fixtures and global cleanup passed locally; new
+	download/transaction fixtures still need their base, key and fakestore setup
+	reconciled before they are selected.
+- Keep per-test fakestore setup from competing with the shared external fakestore
+	when download and rollback campaigns are added.

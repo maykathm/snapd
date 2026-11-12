@@ -1,0 +1,7 @@
+name: test-snapd-abort-accepted
+version: '1.0'
+summary: A snap with a blocking install hook for abort testing
+description: A test fixture that holds its install hook until released.
+base: core24
+confinement: strict
+grade: stable

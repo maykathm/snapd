@@ -1,0 +1,58 @@
+summary: Verify abort acceptance for an in-flight snap install
+
+details: |
+  Hold the install hook until the change is visibly Doing, abort it, and verify
+  the change terminates without activating or retaining the snap.
+
+systems: [ubuntu-26.04-64]
+
+prepare: |
+  snap pack test-snap
+
+execute: |
+  snap_name="test-snapd-abort-accepted"
+  common_dir="/var/snap/$snap_name/common"
+  hook_started="$common_dir/install-started"
+  release_hook="$common_dir/release-install"
+
+  mkdir -p "$common_dir"
+  rm -f "$hook_started" "$release_hook"
+  release_install_hook() {
+      mkdir -p "$common_dir"
+      touch "$release_hook"
+  }
+  trap release_install_hook EXIT
+
+  change_id=$(snap install --dangerous --no-wait "${snap_name}_1.0_all.snap")
+    attempt=0
+    while [ "$attempt" -lt 100 ]; do
+      if [ -e "$hook_started" ]; then
+          break
+      fi
+      status=$(snap changes | awk -v id="$change_id" '$1 == id { print $2 }')
+      case "$status" in
+          Done|Error)
+              echo "install completed before the hook signalled in-flight work"
+              exit 1
+              ;;
+      esac
+                  attempt=$((attempt + 1))
+      sleep 0.1
+  done
+
+  test -e "$hook_started"
+  snap changes | MATCH "^${change_id}[[:space:]]+Doing"
+
+  snap abort "$change_id"
+  mkdir -p "$common_dir"
+  touch "$release_hook"
+  snap watch "$change_id" >/dev/null 2>&1 || true
+
+  change_output=$(snap change "$change_id")
+  printf '%s\n' "$change_output" | NOMATCH "Doing|Undoing|Abort"
+  printf '%s\n' "$change_output" | MATCH "Undone|Hold|Error"
+  not snap list "$snap_name"
+
+  snap_mount_dir="$(os.paths snap-mount-dir)"
+  test ! -e "$snap_mount_dir/$snap_name/current"
+  test -z "$(find /var/lib/snapd/snaps -maxdepth 1 -name "${snap_name}_*.snap" -print -quit)"

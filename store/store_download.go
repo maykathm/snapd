@@ -40,6 +40,8 @@ import (
 	"golang.org/x/sys/unix"
 	"gopkg.in/retry.v1"
 
+	"github.com/antithesishq/antithesis-sdk-go/assert"
+
 	"github.com/snapcore/snapd/dirs"
 	"github.com/snapcore/snapd/httputil"
 	"github.com/snapcore/snapd/i18n"
@@ -163,9 +165,24 @@ func (s *Store) Download(ctx context.Context, name string, targetPath string, do
 		// maybe only the preexisting target path is corrupted
 		_ = os.Remove(targetPath)
 
-		if s.cacher.Get(downloadInfo.Sha3_384, targetPath) && isDownloadLikelyNotCorrupted(targetPath, downloadInfo) {
-			logger.Debugf("Recovered snap file from cache for SHA3_384 …%.5s.", downloadInfo.Sha3_384)
-			return nil
+		if s.cacher.Get(downloadInfo.Sha3_384, targetPath) {
+			if isDownloadLikelyNotCorrupted(targetPath, downloadInfo) {
+				assert.Reachable("snap download recovered a valid cache entry", map[string]any{
+					"snap-name": name,
+					"sha3-384":  downloadInfo.Sha3_384,
+					"size":      downloadInfo.Size,
+				})
+				logger.Debugf("Recovered snap file from cache for SHA3_384 …%.5s.", downloadInfo.Sha3_384)
+				return nil
+			}
+			if info, err := os.Lstat(targetPath); err == nil && downloadInfo.Size > 0 && info.Size() != downloadInfo.Size {
+				assert.Reachable("snap download rejected a wrong-size cache entry", map[string]any{
+					"snap-name":     name,
+					"sha3-384":      downloadInfo.Sha3_384,
+					"expected-size": downloadInfo.Size,
+					"actual-size":   info.Size(),
+				})
+			}
 		}
 		// best effort attempt failed, the cache entry is likely bad as well, remove both
 		_ = os.Remove(targetPath)
@@ -235,6 +252,13 @@ func (s *Store) Download(ctx context.Context, name string, targetPath string, do
 
 	url := downloadInfo.DownloadURL
 	if downloadInfo.Size == 0 || resume < downloadInfo.Size {
+		if resume > 0 {
+			assert.Reachable("snap download resumes from a nonzero offset", map[string]any{
+				"snap-name":     name,
+				"resume-offset": resume,
+				"expected-size": downloadInfo.Size,
+			})
+		}
 		err = download(ctx, name, downloadInfo.Sha3_384, url, user, s, w, resume, pbar, dlOpts)
 		if err != nil {
 			logger.Debugf("download of %q failed: %#v", url, err)
@@ -254,7 +278,12 @@ func (s *Store) Download(ctx context.Context, name string, targetPath string, do
 		}
 	}
 	// If hashsum is incorrect retry once
-	if _, ok := err.(HashError); ok {
+	if hashErr, ok := err.(HashError); ok {
+		assert.Reachable("snap download retries after a hash mismatch", map[string]any{
+			"snap-name":         hashErr.name,
+			"actual-sha3-384":   hashErr.sha3_384,
+			"expected-sha3-384": hashErr.targetSha3_384,
+		})
 		logger.Debugf("Hashsum error on download: %v", err.Error())
 		logger.Debugf("Truncating and trying again from scratch.")
 		err = w.Truncate(0)

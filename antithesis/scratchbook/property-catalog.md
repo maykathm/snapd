@@ -1,26 +1,28 @@
 ---
 sut_path: /home/katie.may@canonical.com/source/snapd
-commit: 114df3f4470d29b961205b33b56574dcb468514b
-updated: 2026-10-15
+commit: d7d23f20732844eb538dab1169f8b8b372376911
+updated: 2026-11-12
 external_references: []
 ---
 
 # Targeted Property Catalog
 
 Scope answer (verbatim): "just this directory". Nineteen cataloged properties;
-dirty-Unlock control flow, cancellation safety, Current/Sequence membership and
-completed Ensure-pass visitation now have source instrumentation and tests,
-but no dedicated workload or campaign validation. Other properties remain proposed.
+dirty-Unlock control flow, cancellation safety, Current/Sequence membership,
+Ensure visitation, task dispatch gates, cleanup readiness and four download
+recovery branches now have source instrumentation and local tests. A
+deterministic accepted-abort Spread task and unfaulted eleven-job baseline are
+verified; no accepted-content fixture oracle or faulted campaign has been run.
+Other properties remain proposed.
 P0 means integrity/recovery-critical,
 P1 supporting progress or consistency. Confidence is high for named code
 boundaries; the harness predicates/barrier still need implementation and testing.
 Evidence is in `properties/{slug}.md`. See `assertion-placement.md` for sketches.
 
-Start with dirty unlock, independent checkpoint readback, active links after
-stable successful operations, ensure visitation, and replay-safe semantic effects.
-Then add scheduling, rollback isolation and cohort progress. The invalid Hold
-instrumentation has been replaced with scoped cancellation checks; see
-`existing-assertions.md`.
+Independent checkpoint readback, active links after stable successful
+operations, replay-safe semantic effects, rollback isolation and cohort progress
+remain to be implemented. The invalid Hold instrumentation has been replaced
+with scoped cancellation checks; see `existing-assertions.md`.
 
 ## Persistence and Content Integrity
 
@@ -254,6 +256,12 @@ unverified.
 | Antithesis Angle | Concurrent Ensure, delayed retries, dependency completion and restart. |
 | Why It Matters | Prevent duplicate/premature external effects; lanes are not serialization. |
 
+**Implementation:** A source-side `Always` check now validates the captured
+status-specific dispatch gates immediately before `TaskRunner.run`. Its local
+SDK-output matrix covers Do/Undo, Doing/Undoing replay, dependency blocks, a
+future retry, and a stateful blocker. The full state race suite and SDK-disabled
+suite pass. Persisted replay and faulted campaign validation remain untested.
+
 **Open Questions:** None.
 
 ### abort-wins-completion-race
@@ -266,11 +274,12 @@ unverified.
 | Antithesis Angle | Abort against handler return or explicit terminal commit. |
 | Why It Matters | Preserve cancellation and undo obligations without rejecting legitimate Hold outcomes. |
 
-**Implementation:** Partial. Three optional SUT-side safety assertions and a
-fourteen-case deterministic completion matrix are implemented. The full state
-suite passed under the race detector, and all three assertions emitted successful
-local SDK encounters. Dedicated cancellation workload, outcome coverage anchors,
-actual harness cataloging/reporting and campaign validation remain deferred.
+**Implementation:** Three optional SUT-side safety assertions and a fourteen-case
+deterministic completion matrix are implemented. The accepted Doing-to-Abort
+transition now has a fixed-message `Reachable` anchor and a new asynchronous
+install-abort Spread task that checks final statuses and resources. The task
+passes in the local disposable harness. Actual Antithesis reporting and
+faulted-campaign validation remain deferred.
 
 **Open Questions:** None.
 
@@ -283,6 +292,12 @@ actual harness cataloging/reporting and campaign validation remain deferred.
 | Invariant | `AlwaysOrUnreachable(changeReady && correctCleanupOwnership)` at optional cleanup admission/runner commit; the runner must not newly mark clean because cleanup failed. Independently authorized callback marking is a separate actor. |
 | Antithesis Angle | Blocked undo, retrying cleanup and restart. |
 | Why It Matters | Avoid premature loss of recovery metadata; readiness and cleanliness differ. |
+
+**Implementation:** `AlwaysOrUnreachable` checks now guard cleanup admission
+after owning-change readiness and runner-owned clean commits after a no-handler
+path or successful cleanup. Local SDK-output tests cover not-ready, no-handler,
+success and retry-after-error; the full state race suite passes. Filesystem replay
+and faulted-campaign validation remain untested.
 
 **Open Questions:** None.
 

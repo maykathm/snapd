@@ -340,17 +340,32 @@ func (r *TaskRunner) run(t *Task) {
 }
 
 func (r *TaskRunner) clean(t *Task) {
-	if !t.Change().IsReady() {
+	changeReady := t.Change().IsReady()
+	if !changeReady {
 		// Whole Change is not ready so don't run cleanups yet.
 		return
 	}
 
 	cleanup, ok := r.cleanups[t.Kind()]
 	if !ok {
+		assert.AlwaysOrUnreachable(changeReady && !ok,
+			"runner clean commit follows eligible cleanup or no-handler path", map[string]any{
+				"task-id":                 t.id,
+				"change-id":               t.change,
+				"kind":                    t.kind,
+				"cleanup-handler-present": false,
+				"cleanup-outcome":         "no-handler",
+			})
 		t.SetClean()
 		return
 	}
 
+	assert.AlwaysOrUnreachable(changeReady,
+		"cleanup starts only after owning change is ready", map[string]any{
+			"task-id":   t.id,
+			"change-id": t.change,
+			"kind":      t.kind,
+		})
 	tomb := &tomb.Tomb{}
 	r.tombs[t.ID()] = tomb
 	tomb.Go(func() error {
@@ -367,6 +382,14 @@ func (r *TaskRunner) clean(t *Task) {
 		if tomb.Err() != nil {
 			logger.Debugf("Cleaning task %s: %s", t.ID(), tomb.Err())
 		} else {
+			assert.AlwaysOrUnreachable(changeReady && ok && tomb.Err() == nil,
+				"runner clean commit follows eligible cleanup or no-handler path", map[string]any{
+					"task-id":                 t.id,
+					"change-id":               t.change,
+					"kind":                    t.kind,
+					"cleanup-handler-present": true,
+					"cleanup-outcome":         "success",
+				})
 			t.SetClean()
 		}
 		return nil
@@ -432,7 +455,6 @@ func (r *TaskRunner) Ensure() error {
 
 	ensureTime := timeNow()
 	nextTaskTime := time.Time{}
-ConsiderTasks:
 	for _, t := range r.state.Tasks() {
 		handlers := r.handlerPair(t)
 		if handlers.do == nil {
@@ -467,7 +489,8 @@ ConsiderTasks:
 			continue
 		}
 
-		if mustWait(t) {
+		dependenciesBlocked := mustWait(t)
+		if dependenciesBlocked {
 			// Dependencies still unhandled.
 			continue
 		}
@@ -485,7 +508,8 @@ ConsiderTasks:
 
 		// skip tasks scheduled for later and also track the earliest one
 		tWhen := t.AtTime()
-		if !tWhen.IsZero() && ensureTime.Before(tWhen) {
+		retryDue := tWhen.IsZero() || !ensureTime.Before(tWhen)
+		if !retryDue {
 			if nextTaskTime.IsZero() || nextTaskTime.After(tWhen) {
 				nextTaskTime = tWhen
 			}
@@ -494,14 +518,41 @@ ConsiderTasks:
 
 		// check if any of the blocked predicates returns true
 		// and skip the task if so
+		blockedByPredicate := false
 		for _, blocked := range r.blocked {
 			if blocked(t, running) {
 				r.someBlocked = true
-				continue ConsiderTasks
+				blockedByPredicate = true
+				break
 			}
 		}
+		if blockedByPredicate {
+			continue
+		}
 
+		dispatchStatusValid := status == DoStatus || status == DoingStatus || status == UndoStatus || status == UndoingStatus
+		handlerAvailable := handlers.do != nil
+		direction := "do"
+		if status == UndoStatus || status == UndoingStatus {
+			handlerAvailable = handlers.undo != nil
+			direction = "undo"
+		}
 		logger.Debugf("Running task %s on %s: %s", t.ID(), t.Status(), t.Summary())
+		assert.Always(!r.stopped && dispatchStatusValid && handlerAvailable && tb == nil && !dependenciesBlocked && retryDue && !blockedByPredicate,
+			"task dispatch respects runner scheduling gates", map[string]any{
+				"task-id":               t.id,
+				"change-id":             t.change,
+				"kind":                  t.kind,
+				"status":                status.String(),
+				"direction":             direction,
+				"has-handler":           handlerAvailable,
+				"has-active-invocation": tb != nil,
+				"dependencies-blocked":  dependenciesBlocked,
+				"retry-due":             retryDue,
+				"predicate-blocked":     blockedByPredicate,
+				"retry-at":              tWhen.String(),
+			})
+
 		r.run(t)
 
 		running = append(running, t)

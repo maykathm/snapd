@@ -27,6 +27,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/antithesishq/antithesis-sdk-go/assert"
+
 	"github.com/snapcore/snapd/logger"
 )
 
@@ -797,6 +799,11 @@ func (c *Change) abortTasks(tasks []*Task, abortedLanes map[int]bool, seenTasks 
 		case DoingStatus:
 			// In progress so stop and undo it.
 			t.SetStatus(AbortStatus)
+			assert.Reachable("snap abort accepted during in-flight task", map[string]any{
+				"task-id":   t.id,
+				"change-id": t.change,
+				"kind":      t.kind,
+			})
 		case DoneStatus:
 			// Already done so undo it.
 			t.SetStatus(UndoStatus)
