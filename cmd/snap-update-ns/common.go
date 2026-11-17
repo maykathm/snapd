@@ -49,13 +49,29 @@ func (upCtx *CommonProfileUpdateContext) InstanceName() string {
 
 // Lock acquires locks / freezes needed to synchronize mount namespace changes.
 func (upCtx *CommonProfileUpdateContext) Lock() (func(), error) {
+	unlock, freeze, err := upCtx.LockWithoutFreezing()
+	if err != nil {
+		return nil, err
+	}
+	if err := freeze(); err != nil {
+		unlock()
+		return nil, err
+	}
+	return unlock, nil
+}
+
+// LockWithoutFreezing acquires the lock of the mount namespace, but does not
+// freeze the processes of the snap. The processes are frozen by calling the
+// returned freeze function. The returned unlock function releases the lock and
+// thaws the processes if they were frozen.
+func (upCtx *CommonProfileUpdateContext) LockWithoutFreezing() (unlock func(), freeze func() error, err error) {
 	instanceName := upCtx.instanceName
 
 	// Lock the mount namespace so that any concurrently attempted invocations
 	// of snap-confine are synchronized and will see consistent state.
 	lock, err := snaplock.OpenLock(instanceName)
 	if err != nil {
-		return nil, fmt.Errorf("cannot open lock file for mount namespace of snap %q: %s", instanceName, err)
+		return nil, nil, fmt.Errorf("cannot open lock file for mount namespace of snap %q: %s", instanceName, err)
 	}
 
 	logger.Debugf("locking mount namespace of snap %q", instanceName)
@@ -66,34 +82,39 @@ func (upCtx *CommonProfileUpdateContext) Lock() (func(), error) {
 		if err := lock.TryLock(); err != osutil.ErrAlreadyLocked {
 			// If we managed to grab the lock we should drop it.
 			lock.Close()
-			return nil, fmt.Errorf("mount namespace of snap %q is not locked but --from-snap-confine was used", instanceName)
+			return nil, nil, fmt.Errorf("mount namespace of snap %q is not locked but --from-snap-confine was used", instanceName)
 		}
 	} else {
 		if err := lock.Lock(); err != nil {
-			return nil, fmt.Errorf("cannot lock mount namespace of snap %q: %s", instanceName, err)
+			return nil, nil, fmt.Errorf("cannot lock mount namespace of snap %q: %s", instanceName, err)
 		}
 	}
 
-	// Freeze the mount namespace and unfreeze it later. This lets us perform
-	// modifications without snap processes attempting to construct
-	// symlinks or perform other malicious activity (such as attempting to
-	// introduce a symlink that would cause us to mount something other
-	// than what we expected).
-	logger.Debugf("freezing processes of snap %q", instanceName)
-	// TODO: Ideally we should use signal.NotifyContext
-	if err := cgroup.FreezeSnapProcesses(context.TODO(), instanceName); err != nil {
-		// If we cannot freeze the processes we should drop the lock.
-		lock.Close()
-		return nil, err
+	frozen := false
+	freeze = func() error {
+		// Freeze the mount namespace and unfreeze it later. This lets us perform
+		// modifications without snap processes attempting to construct
+		// symlinks or perform other malicious activity (such as attempting to
+		// introduce a symlink that would cause us to mount something other
+		// than what we expected).
+		logger.Debugf("freezing processes of snap %q", instanceName)
+		// TODO: Ideally we should use signal.NotifyContext
+		if err := cgroup.FreezeSnapProcesses(context.TODO(), instanceName); err != nil {
+			return err
+		}
+		frozen = true
+		return nil
 	}
 
-	unlock := func() {
+	unlock = func() {
 		logger.Debugf("unlocking mount namespace of snap %q", instanceName)
 		lock.Close()
-		logger.Debugf("thawing processes of snap %q", instanceName)
-		cgroup.ThawSnapProcesses(instanceName)
+		if frozen {
+			logger.Debugf("thawing processes of snap %q", instanceName)
+			cgroup.ThawSnapProcesses(instanceName)
+		}
 	}
-	return unlock, nil
+	return unlock, freeze, nil
 }
 
 func (upCtx *CommonProfileUpdateContext) Assumptions() *Assumptions {

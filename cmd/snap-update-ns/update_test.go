@@ -114,6 +114,71 @@ func (s *updateSuite) TestUpdateFlow(c *C) {
 	c.Assert(update.ExecuteMountProfileUpdate(upCtx), IsNil)
 }
 
+// lazyFreezingTestProfileUpdateContext can lock without freezing.
+type lazyFreezingTestProfileUpdateContext struct {
+	testProfileUpdateContext
+	freeze func() error
+}
+
+func (upCtx *lazyFreezingTestProfileUpdateContext) LockWithoutFreezing() (unlock func(), freeze func() error, err error) {
+	return func() {}, upCtx.freeze, nil
+}
+
+func (s *updateSuite) TestUpdateFreezesOnlyWhenNeeded(c *C) {
+	var funcsCalled []string
+	var neededChanges []*update.Change
+	upCtx := &lazyFreezingTestProfileUpdateContext{
+		testProfileUpdateContext: testProfileUpdateContext{
+			neededChanges: func(old, new *osutil.MountProfile) []*update.Change {
+				funcsCalled = append(funcsCalled, "changes-computed")
+				return neededChanges
+			},
+			doPerformChange: func(change *update.Change, as *update.Assumptions) error {
+				funcsCalled = append(funcsCalled, fmt.Sprintf("%s-performed", change.Action))
+				return nil
+			},
+			saveCurrentProfile: func(*osutil.MountProfile) error {
+				funcsCalled = append(funcsCalled, "saved-current")
+				return nil
+			},
+		},
+		freeze: func() error {
+			funcsCalled = append(funcsCalled, "frozen")
+			return nil
+		},
+	}
+	restore := upCtx.MockRelatedFunctions()
+	defer restore()
+
+	// nothing to change, the snap is not frozen
+	neededChanges = []*update.Change{{Action: update.Keep}, {Action: update.Keep}}
+	c.Assert(update.ExecuteMountProfileUpdate(upCtx), IsNil)
+	c.Check(funcsCalled, DeepEquals, []string{
+		"changes-computed",
+		"keep-performed",
+		"keep-performed",
+		"saved-current",
+	})
+
+	// the snap is frozen before the mount namespace is modified
+	funcsCalled = nil
+	neededChanges = []*update.Change{{Action: update.Keep}, {Action: update.Mount}}
+	c.Assert(update.ExecuteMountProfileUpdate(upCtx), IsNil)
+	c.Check(funcsCalled, DeepEquals, []string{
+		"changes-computed",
+		"frozen",
+		"keep-performed",
+		"mount-performed",
+		"saved-current",
+	})
+
+	// freezing errors are reported, nothing is changed
+	funcsCalled = nil
+	upCtx.freeze = func() error { return errTesting }
+	c.Assert(update.ExecuteMountProfileUpdate(upCtx), Equals, errTesting)
+	c.Check(funcsCalled, DeepEquals, []string{"changes-computed"})
+}
+
 func (s *updateSuite) TestResultingProfile(c *C) {
 	// When the mount namespace is changed by performing actions the updated
 	// current profile is comprised of the past changes that were reused (kept

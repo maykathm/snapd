@@ -98,6 +98,12 @@ func (upCtx *UserProfileUpdateContext) Lock() (unlock func(), err error) {
 	return func() {}, nil
 }
 
+// LockWithoutFreezing behaves like Lock, there is nothing to freeze.
+func (upCtx *UserProfileUpdateContext) LockWithoutFreezing() (unlock func(), freeze func() error, err error) {
+	unlock, err = upCtx.Lock()
+	return unlock, func() error { return nil }, err
+}
+
 // Assumptions returns information about file system mutability rules.
 func (upCtx *UserProfileUpdateContext) Assumptions() *Assumptions {
 	// TODO: configure the secure helper and inform it about directories that

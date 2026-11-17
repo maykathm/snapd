@@ -105,6 +105,42 @@ func (s *commonSuite) TestLock(c *C) {
 	c.Check(testLock.TryLock(), IsNil)
 }
 
+func (s *commonSuite) TestLockWithoutFreezing(c *C) {
+	var calls []string
+	restore := cgroup.MockFreezing(func(_ context.Context, snapName string) error {
+		calls = append(calls, "freeze "+snapName)
+		return nil
+	}, func(snapName string) error {
+		calls = append(calls, "thaw "+snapName)
+		return nil
+	})
+	defer restore()
+	dirs.SetRootDir(s.dir)
+	defer dirs.SetRootDir("")
+
+	testLock, err := snaplock.OpenLock(s.upCtx.InstanceName())
+	c.Assert(err, IsNil)
+	defer testLock.Close()
+
+	// locked, but not frozen
+	unlock, freeze, err := s.upCtx.LockWithoutFreezing()
+	c.Assert(err, IsNil)
+	c.Check(testLock.TryLock(), Equals, osutil.ErrAlreadyLocked)
+	unlock()
+	c.Check(calls, HasLen, 0)
+	c.Assert(testLock.TryLock(), IsNil)
+	testLock.Unlock()
+
+	// frozen on demand and thawed when unlocking
+	unlock, freeze, err = s.upCtx.LockWithoutFreezing()
+	c.Assert(err, IsNil)
+	c.Assert(freeze(), IsNil)
+	c.Check(calls, DeepEquals, []string{"freeze foo"})
+	unlock()
+	c.Check(calls, DeepEquals, []string{"freeze foo", "thaw foo"})
+	c.Assert(testLock.TryLock(), IsNil)
+}
+
 func (s *commonSuite) TestLoadDesiredProfile(c *C) {
 	upCtx := s.upCtx
 	text := "tmpfs /tmp tmpfs defaults 0 0\n"

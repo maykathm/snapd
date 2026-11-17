@@ -43,8 +43,21 @@ type MountProfileUpdateContext interface {
 	SaveCurrentProfile(*osutil.MountProfile) error
 }
 
+// lazyFreezingProfileUpdateContext is implemented by update contexts that can
+// lock the mount namespace without freezing the processes of the snap.
+type lazyFreezingProfileUpdateContext interface {
+	LockWithoutFreezing() (unlock func(), freeze func() error, err error)
+}
+
 func executeMountProfileUpdate(upCtx MountProfileUpdateContext) error {
-	unlock, err := upCtx.Lock()
+	var unlock func()
+	var freeze func() error
+	var err error
+	if lazyCtx, ok := upCtx.(lazyFreezingProfileUpdateContext); ok {
+		unlock, freeze, err = lazyCtx.LockWithoutFreezing()
+	} else {
+		unlock, err = upCtx.Lock()
+	}
 	if err != nil {
 		return err
 	}
@@ -70,6 +83,14 @@ func executeMountProfileUpdate(upCtx MountProfileUpdateContext) error {
 	// needed, collecting those that we managed to perform or that
 	// were performed already.
 	changesNeeded := NeededChanges(currentBefore, desired)
+	// The processes of the snap only need to be frozen while the mount
+	// namespace is modified. Keep changes do not touch the file system, so
+	// freezing can be skipped when no other changes are needed.
+	if freeze != nil && !onlyKeepChanges(changesNeeded) {
+		if err := freeze(); err != nil {
+			return err
+		}
+	}
 	// TODO: NeededChanges could return changes grouped by origin (overname,
 	// non-layout, layout) instead of a flat list, removing the need to
 	// filter by origin in each pass.
@@ -275,4 +296,13 @@ func CurrentProfileFromChangesMade(changes []*Change) osutil.MountProfile {
 	}
 
 	return profile
+}
+
+func onlyKeepChanges(changes []*Change) bool {
+	for _, change := range changes {
+		if change.Action != Keep {
+			return false
+		}
+	}
+	return true
 }
