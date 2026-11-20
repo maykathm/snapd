@@ -1,0 +1,89 @@
+summary: Check that corrupted snap downloads are recovered or re-downloaded
+
+details: |
+    Check that when a snap is re-installed and its download is corrupted,
+    snapd recovers the blob from the download cache when possible, and
+    otherwise re-downloads it from the store.
+
+    Three scenarios are tested:
+    - valid_cache: the target blob is a 0-byte file but the cache entry is
+      intact; the download recovers the blob from the cache.
+    - corrupt_cache: both the target blob and the cache entry are truncated to
+      0 bytes; the download rejects the wrong-size cache entry, drops it and
+      re-downloads from the store.
+    - hash_mismatch: the cache entry is removed and a full-size partial
+      download with random content is left behind; the download treats it as
+      complete, detects the hash mismatch, truncates it and re-downloads from
+      the store.
+
+environment:
+    # on core systems, the test was seen to misbehave when memory limit is set
+    SNAPD_NO_MEMORY_LIMIT: 1
+    CACHEMODE/valid_cache: valid
+    CACHEMODE/corrupt_cache: corrupt
+    CACHEMODE/hash_mismatch: hash
+
+execute: |
+    SNAP_NAME=test-snapd-sh
+
+    echo "Install the $SNAP_NAME snap to populate the download cache"
+    snap install "$SNAP_NAME"
+    rev="$(snap list "$SNAP_NAME" | awk 'NR == 2 {print $3}')"
+    blob="/var/lib/snapd/snaps/${SNAP_NAME}_${rev}.snap"
+    test -f "$blob"
+    blob_size="$(stat -c %s "$blob")"
+
+    echo "Identify the cache entry referencing the installed blob"
+    cache_file="$(find /var/lib/snapd/cache -samefile "$blob")"
+    test -n "$cache_file"
+
+    echo "Remove the snap, the cache entry is kept"
+    snap remove --purge "$SNAP_NAME"
+    not test -e "$blob"
+    test -f "$cache_file"
+
+    case "$CACHEMODE" in
+        valid)
+            echo "Create a corrupted 0-byte target blob"
+            touch "$blob"
+            ;;
+        corrupt)
+            echo "Create a corrupted 0-byte target blob and truncate the cache entry"
+            touch "$blob"
+            truncate -s 0 "$cache_file"
+            ;;
+        hash)
+            echo "Drop the cache entry and leave a full-size partial download with wrong content"
+            rm -f "$cache_file"
+            head -c "$blob_size" /dev/urandom > "${blob}.partial"
+            test "$(stat -c %s "${blob}.partial")" = "$blob_size"
+            ;;
+    esac
+
+    cursor="$("$TESTSTOOLS"/journal-state get-last-cursor)"
+
+    echo "Re-install the $SNAP_NAME snap, it self-heals"
+    snap install "$SNAP_NAME"
+    snap list "$SNAP_NAME" | MATCH "^$SNAP_NAME "
+    test "$(stat -c %s "$blob")" = "$blob_size"
+    not test -e "${blob}.partial"
+    test-snapd-sh.sh -c 'echo hello' | MATCH hello
+
+    "$TESTSTOOLS"/journal-state get-log-from-cursor "$cursor" -u snapd > snapd.log
+    case "$CACHEMODE" in
+        valid)
+            echo "Check the blob was recovered from the cache"
+            MATCH 'Recovered snap file from cache' < snapd.log
+            NOMATCH 'has unexpected size, re-downloading' < snapd.log
+            ;;
+        corrupt)
+            echo "Check the corrupted cache entry was dropped and the snap re-downloaded"
+            MATCH 'has unexpected size, re-downloading' < snapd.log
+            NOMATCH 'Recovered snap file from cache' < snapd.log
+            ;;
+        hash)
+            echo "Check the hash mismatch was detected and the download retried"
+            MATCH 'Hashsum error on download' < snapd.log
+            MATCH 'Truncating and trying again from scratch' < snapd.log
+            ;;
+    esac

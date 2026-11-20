@@ -99,7 +99,14 @@ the older first-series/future-campaign recommendations in the topology notes:
 `abort-accepted`, `revert-sideload`, `install-refresh-remove-hooks`, `refresh-undo`,
 `op-install-failed-undone`, `services-disabled-kept-unhappy`,
 `parallel-install-common-dirs-undo`, `connections-after-failed-refresh`,
-`services-multi-service-failing`, and `op-remove-retry`. The original nine were
+`services-multi-service-failing`, `op-remove-retry`, `install-cache` and
+`install-cache-corrupted`. The last two download `test-snapd-sh` (seeded by
+`antithesis/download-snaps.sh`) through the shared fake store and target the
+cache-recovery `Reachable` anchors without starting a second fake store:
+`install-cache-corrupted` `valid_cache` reaches "recovered a valid cache entry"
+, `corrupt_cache` reaches "rejected a wrong-size cache entry" and
+`hash_mismatch` (a full-size `.partial` file with random content) reaches
+"retries after a hash mismatch". The original nine were
 executed as ten jobs in the original baseline. The refreshed eleven-job run
 executed all ten selected symlink targets, including both hook variants and
 `abort-accepted`. Selection alone is not evidence of execution.
